@@ -137,10 +137,10 @@
             📱 번호인증(기록보관)
           </button>
         </div>
-        <div class="flex items-center gap-1 text-[11px] text-zinc-500">
-          <span>AI 가상 캐릭터</span>
-          <span>·</span>
-          <button id="btnOpenAiPolicyInfo" type="button" class="text-zinc-400 hover:text-zinc-300 underline underline-offset-2">안내</button>
+        <div class="flex items-center gap-1.5 text-[11.5px] text-zinc-400">
+          <button id="btnOpenAiPolicyInfo" type="button" class="px-2 py-0.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-amber-300 font-semibold transition">
+            🔑 API 키 설정
+          </button>
         </div>
       </div>
     </footer>
@@ -454,39 +454,43 @@
       </div>
     </div>
 
-    <!-- Modal 6: Service Notice + Developer API Test Modal -->
+    <!-- Modal 6: Direct API Key Settings Modal -->
     <div id="aiPolicyModal" class="hidden absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-5">
       <div class="bg-[#141722] border border-white/15 rounded-3xl max-w-sm w-full p-5 text-zinc-100 shadow-2xl space-y-4">
         <div class="flex items-center justify-between border-b border-white/10 pb-3">
-          <h3 class="text-[16px] font-bold text-amber-300">서비스 이용 안내</h3>
+          <h3 class="text-[16px] font-bold text-amber-300">🔑 AI API 키 직접 설정</h3>
           <button id="btnCloseAiPolicy" type="button" class="w-8 h-8 rounded-full bg-white/10 text-zinc-300 flex items-center justify-center">✕</button>
         </div>
-        <div class="space-y-2.5 text-[13.5px] text-zinc-300 leading-relaxed">
-          <p>
-            • 본 서비스의 대화 상대와 프로필, 일상 이야기는 몰입감 있는 대화를 위해 <strong>인공지능(AI) 기술로 구현된 가상 캐릭터</strong>입니다.
-          </p>
-          <p>
-            • 대화 중 나눈 이야기와 장소, 상황 설정은 감성 롤플레잉을 위한 가상의 연출이므로 편안한 마음으로 대화를 즐겨주시기 바랍니다.
-          </p>
-        </div>
 
-        <!-- Developer API Test Section -->
-        <div class="pt-3 border-t border-white/10 space-y-2 text-[12px]">
+        <!-- Direct API Key Input Section -->
+        <div class="space-y-2.5 text-[12.5px]">
           <div class="flex items-center justify-between">
-            <span class="text-zinc-400 font-semibold">🧪 LLM API 연동 테스트</span>
-            <span id="apiTestStatusBadge" class="text-[11px] text-amber-300 font-medium">기본 엔진</span>
+            <span class="text-zinc-200 font-semibold">사용할 AI 모델 및 API 키</span>
+            <span id="apiTestStatusBadge" class="text-[11.5px] text-amber-300 font-medium">키 미입력 (기본 엔진)</span>
           </div>
-          <select id="selectTestModel" class="w-full px-3 py-2 rounded-xl border border-white/15 bg-[#0c0e15] text-zinc-200 text-[12px]">
+          <select id="selectTestModel" class="w-full px-3 py-2.5 rounded-xl border border-white/15 bg-[#0c0e15] text-zinc-200 text-[12.5px]">
             <option value="gemini-2.5-flash">Google Gemini Flash (AIza... 키)</option>
             <option value="claude-sonnet-openrouter">Claude 3.7 Sonnet (OpenRouter sk-or-... 키)</option>
             <option value="claude-direct">Claude 3.5 Haiku / Sonnet (Anthropic sk-ant-... 키)</option>
             <option value="gpt-4o-mini">OpenAI GPT-4o-mini (sk-... 키)</option>
           </select>
-          <input id="inputTestApiKey" type="password" placeholder="API Key 붙여넣기 (AIza... / sk-...)" class="w-full px-3 py-2 rounded-xl border border-white/15 bg-[#0c0e15] text-white font-mono text-[12px] focus:outline-none focus:border-amber-400" />
+          <div class="flex gap-1.5">
+            <input id="inputTestApiKey" type="password" placeholder="여기에 본인 API 키 붙여넣기 (AIza... / sk-...)" class="flex-1 px-3 py-2.5 rounded-xl border border-white/15 bg-[#0c0e15] text-white font-mono text-[12.5px] focus:outline-none focus:border-amber-400" />
+            <button id="btnClearApiKey" type="button" class="shrink-0 px-3 py-2.5 rounded-xl bg-white/10 hover:bg-white/15 text-zinc-300 text-[12px] font-semibold">
+              비우기
+            </button>
+          </div>
+          <p class="text-[11.5px] text-emerald-400/90 leading-relaxed">
+            🔒 입력하신 API 키는 웹 소스코드나 GitHub에 절대 포함되지 않으며, <strong>현재 접속하신 본인 브라우저(localStorage)에만 단독 저장</strong>됩니다.
+          </p>
         </div>
 
-        <button id="btnConfirmAiPolicy" type="button" class="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-[14px]">
-          확인 및 적용
+        <div class="pt-3 border-t border-white/10 space-y-1.5 text-[12px] text-zinc-400 leading-relaxed">
+          <p>• 본 서비스의 대화 상대는 AI 기술로 구현된 가상 캐릭터입니다.</p>
+        </div>
+
+        <button id="btnConfirmAiPolicy" type="button" class="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-[14.5px] shadow">
+          저장 및 적용하기
         </button>
       </div>
     </div>
@@ -3458,14 +3462,26 @@ ${longTermMemoryBlock}
 
     function updateApiTestBadge() {
       const badge = document.getElementById('apiTestStatusBadge');
-      if (!badge) return;
+      const footerBtn = document.getElementById('btnOpenAiPolicyInfo');
       if (state.apiKey && state.apiKey.trim()) {
         const p = detectProviderFromKey(state.apiKey, state.apiProvider);
-        badge.textContent = `✅ ${p} 연동 중`;
-        badge.className = 'text-[11px] text-emerald-400 font-bold';
+        if (badge) {
+          badge.textContent = `✅ ${p} 키 적용됨`;
+          badge.className = 'text-[11.5px] text-emerald-400 font-bold';
+        }
+        if (footerBtn) {
+          footerBtn.textContent = '🟢 API 키 연결됨';
+          footerBtn.className = 'px-2 py-0.5 rounded-lg bg-emerald-500/15 hover:bg-emerald-500/25 border border-emerald-400/40 text-emerald-300 font-semibold transition';
+        }
       } else {
-        badge.textContent = '기본 엔진';
-        badge.className = 'text-[11px] text-amber-300 font-medium';
+        if (badge) {
+          badge.textContent = '키 미입력 (기본 엔진)';
+          badge.className = 'text-[11.5px] text-amber-300 font-medium';
+        }
+        if (footerBtn) {
+          footerBtn.textContent = '🔑 API 키 설정';
+          footerBtn.className = 'px-2 py-0.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-amber-300 font-semibold transition';
+        }
       }
     }
 
@@ -3474,6 +3490,15 @@ ${longTermMemoryBlock}
       if (val) {
         document.getElementById('selectTestModel').value = detectProviderFromKey(val, document.getElementById('selectTestModel').value);
       }
+    });
+
+    document.getElementById('btnClearApiKey').addEventListener('click', () => {
+      document.getElementById('inputTestApiKey').value = '';
+      state.apiKey = '';
+      try {
+        localStorage.removeItem('seollem_chat_settings');
+      } catch (e) {}
+      updateApiTestBadge();
     });
 
     document.getElementById('btnOpenAiPolicyInfo').addEventListener('click', () => {
@@ -3524,6 +3549,7 @@ ${longTermMemoryBlock}
 
     window.addEventListener('DOMContentLoaded', () => {
       loadAccountState();
+      updateApiTestBadge();
       triggerSavedRoomsTimeGreetings();
       updateAccountAndCreditUI();
       updateFilterModalUI();
