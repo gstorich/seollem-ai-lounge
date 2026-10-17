@@ -515,57 +515,17 @@
       <div class="bg-[#12151f] border-t border-white/15 rounded-t-3xl max-h-[85%] flex flex-col overflow-hidden shadow-2xl text-zinc-100">
         <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between">
           <div>
-            <h3 class="text-[17px] font-bold text-white">🎁 센스 있게 마음 전하기</h3>
+            <h3 class="text-[17px] font-bold text-white">🎁 선물하기</h3>
             <p id="giftModalSubtitle" class="text-[12.5px] text-amber-300 mt-0.5">가벼운 선물로 호감도를 높이고 일상 사진·음성 답례를 받아보세요</p>
           </div>
           <button id="btnCloseGiftModal" type="button" class="w-8 h-8 rounded-full bg-white/10 text-zinc-200 flex items-center justify-center font-bold">✕</button>
         </div>
 
-        <div class="p-4 grid grid-cols-2 gap-2.5 overflow-y-auto chat-scroll">
-          <button type="button" data-gift="coffee" class="gift-item-btn p-3.5 rounded-2xl bg-[#191d2b] hover:bg-[#23293d] border border-white/10 hover:border-amber-400/50 text-left transition flex flex-col justify-between gap-2">
-            <div class="flex items-center justify-between w-full">
-              <span class="text-2xl">☕</span>
-              <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[11px] font-bold">대화권 3회</span>
-            </div>
-            <div>
-              <div class="font-bold text-white text-[14.5px]">따뜻한 아메리카노</div>
-              <div class="text-[11.5px] text-zinc-400 mt-0.5">부담 없이 건네는 센스 있는 커피 한 잔</div>
-            </div>
-          </button>
+        <div id="giftCategoryTabs" class="px-4 pt-3 pb-1 flex gap-2 overflow-x-auto chat-scroll shrink-0"></div>
+        <div id="giftGrid" class="p-4 grid grid-cols-2 gap-2.5 overflow-y-auto chat-scroll"></div>
+      </div>
+    </div>
 
-          <button type="button" data-gift="cake" class="gift-item-btn p-3.5 rounded-2xl bg-[#191d2b] hover:bg-[#23293d] border border-white/10 hover:border-amber-400/50 text-left transition flex flex-col justify-between gap-2">
-            <div class="flex items-center justify-between w-full">
-              <span class="text-2xl">🍰</span>
-              <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[11px] font-bold">대화권 8회</span>
-            </div>
-            <div>
-              <div class="font-bold text-white text-[14.5px]">수제 케이크 세트</div>
-              <div class="text-[11.5px] text-zinc-400 mt-0.5">기분 풀어주기 + 일상 사진 답례 확률 UP</div>
-            </div>
-          </button>
-
-          <button type="button" data-gift="wine" class="gift-item-btn p-3.5 rounded-2xl bg-[#191d2b] hover:bg-[#23293d] border border-white/10 hover:border-amber-400/50 text-left transition flex flex-col justify-between gap-2">
-            <div class="flex items-center justify-between w-full">
-              <span class="text-2xl">🍷</span>
-              <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[11px] font-bold">대화권 15회</span>
-            </div>
-            <div>
-              <div class="font-bold text-white text-[14.5px]">분위기 있는 와인</div>
-              <div class="text-[11.5px] text-zinc-400 mt-0.5">깊어지는 대화 + 시크릿 셀카 & 음성 답례</div>
-            </div>
-          </button>
-
-          <button type="button" data-gift="flower" class="gift-item-btn p-3.5 rounded-2xl bg-[#191d2b] hover:bg-[#23293d] border border-white/10 hover:border-amber-400/50 text-left transition flex flex-col justify-between gap-2">
-            <div class="flex items-center justify-between w-full">
-              <span class="text-2xl">💐</span>
-              <span class="px-2 py-0.5 rounded-full bg-rose-500/25 text-rose-300 text-[11px] font-bold">대화권 30회</span>
-            </div>
-            <div>
-              <div class="font-bold text-white text-[14.5px]">장미 꽃다발 선물</div>
-              <div class="text-[11.5px] text-zinc-400 mt-0.5">최고의 감동 선물 + 모든 사진/음성 답례</div>
-            </div>
-          </button>
-        </div>
       </div>
     </div>
 
@@ -598,7 +558,37 @@
         { url: 'avatars/kr_selfie_closeup_04.jpg', desc: '자연광 아래에서 밝게 미소 지으며 찍은 본인 클로즈업 셀카' },
         { url: 'avatars/avatar_02_kim_subin.jpg', desc: '꽃 작업실에서 직접 찍은 자연스러운 본인 셀카' },
         { url: 'avatars/avatar_06_jung_yujin.jpg', desc: '쉬는 날 집에서 강아지 안고 찍은 본인 셀카' },
-        { url: 'avatars/avatar_08_oh_chaewon.jpg', desc: '베이커리 주방에서 디저트 들고 찍은 본인 사진' }
+        { url: 'avatars/avatar_08_oh_chaewon.jpg', desc: '베이커리 주방에서 디저트 들고 찍은 본인 사진' },
+        { url: 'avatars/kr_user_2030_night_running_01.jpg', desc: '저녁 한강 러닝 코스에서 운동복 차림으로 활기차게 찍은 전신 스냅' },
+        { url: 'avatars/kr_user_2030_night_running_selfie_02.jpg', desc: '야간 러닝 후 땀 흘리며 상쾌하게 찍은 야외 셀카' },
+        { url: 'avatars/kr_user_2030_bathroom_01.jpg', desc: '호텔 파우더룸 거울 앞에서 찍은 세련된 거울 셀카' },
+        { url: 'avatars/kr_user_2030_bathroom_02.jpg', desc: '단정한 블라우스 차림으로 거울 보고 미소 짓는 셀카' },
+        { url: 'avatars/kr_user_2030_bathroom_03.jpg', desc: '모던한 조명 아래 폰 들고 찍은 깔끔한 거울 셀카' },
+        { url: 'avatars/kr_user_2030_bathroom_04.jpg', desc: '외출 전 파우더룸에서 옷매무새 확인하며 찍은 거울 셀카' },
+        { url: 'avatars/kr_user_2030_bus_01.jpg', desc: '퇴근길 버스 창가 자리에 앉아 이어폰 끼고 찍은 일상 셀카' },
+        { url: 'avatars/kr_user_2030_bus_02.jpg', desc: '버스 정류장에서 버스 기다리며 햇살 아래 가볍게 찍은 셀카' },
+        { url: 'avatars/kr_user_2030_bus_03.jpg', desc: '따뜻한 오후 버스 안에서 창문 기대어 찍은 일상 셀카' },
+        { url: 'avatars/kr_user_2030_bus_04.jpg', desc: '주말 외출하는 버스 안에서 은은하게 미소 지은 셀카' },
+        { url: 'avatars/kr_user_2030_car_01.jpg', desc: '차 안에서 자연광 받으며 기분 좋게 찍은 정면 셀카' },
+        { url: 'avatars/kr_user_2030_car_02.jpg', desc: '주차 후 차 안에서 살짝 미소 머금고 찍은 내추럴 셀카' },
+        { url: 'avatars/kr_user_2030_car_03.jpg', desc: '드라이브 가다 신호 대기 중 가볍게 찍은 차안 셀카' },
+        { url: 'avatars/kr_user_2030_mirror_01.jpg', desc: '현관 전신 거울 앞에서 오늘의 데일리룩 찍은 전신 거울 셀카' },
+        { url: 'avatars/kr_user_2030_mirror_02.jpg', desc: '감성 카페 포토존 거울 앞에서 자연스럽게 찍은 거울 셀카' },
+        { url: 'avatars/kr_user_2030_mirror_03.jpg', desc: '화사한 조명 거울 앞에서 살짝 고개 기울이고 찍은 거울 셀카' },
+        { url: 'avatars/kr_user_2030_mirror_04.jpg', desc: '원피스 입고 단정하게 찍은 실내 전신 거울 셀카' },
+        { url: 'avatars/kr_user_2030_mirror_05.jpg', desc: '침실 거울 앞에서 편안한 홈웨어 차림으로 찍은 거울 셀카' },
+        { url: 'avatars/kr_user_2030_home_01.jpg', desc: '아늑한 방 안에서 편안하게 쉬면서 찍은 집 셀카' },
+        { url: 'avatars/kr_user_2030_gym_01.jpg', desc: '헬스장 오운완 인증 거울 셀카' },
+        { url: 'avatars/kr_user_2030_gym_02.jpg', desc: '운동 후 매트 위에서 건강하게 웃으며 찍은 헬스장 셀카' },
+        { url: 'avatars/kr_user_2030_pilates_01.jpg', desc: '필라테스 기구실에서 스트레칭 후 깔끔하게 찍은 셀카' },
+        { url: 'avatars/kr_user_2030_subway_01.jpg', desc: '지하철 플랫폼에서 열차 기다리며 조용히 찍은 일상 셀카' },
+        { url: 'avatars/kr_user_2030_subway_02.jpg', desc: '퇴근 지하철 환승 통로에서 거울 보고 찍은 셀카' },
+        { url: 'avatars/kr_user_2030_subway_03.jpg', desc: '지하철 스크린도어 앞에서 차분하게 찍은 일상 셀카' },
+        { url: 'avatars/kr_user_40_bus_01.jpg', desc: '주말 버스 창가에서 우아하고 부드럽게 미소 지은 셀카' },
+        { url: 'avatars/kr_user_40_gym_01.jpg', desc: '피트니스 센터에서 건강미 넘치게 운동하고 찍은 셀카' },
+        { url: 'avatars/kr_user_40_bus_02.jpg', desc: '가을 햇살 아래 버스 정류장에서 단아하게 찍은 셀카' },
+        { url: 'avatars/kr_user_40_subway_01.jpg', desc: '지하철 에스컬레이터 앞에서 지적인 분위기로 찍은 셀카' },
+        { url: 'avatars/kr_user_40_car_01.jpg', desc: '차 안에서 여유롭고 다정한 미소로 찍은 드라이브 셀카' }
       ],
       // 2. 단정한 본인 프로필 사진 (20~30대 및 40~60대 한국 여성)
       profile: [
@@ -611,7 +601,14 @@
         { url: 'avatars/avatar_09_shin_sohee.jpg', desc: '한강 야경을 배경으로 환하게 웃는 본인 프로필 사진' },
         { url: 'avatars/avatar_10_han_minseo.jpg', desc: '북카페에서 찍은 지적이고 단아한 본인 프로필 사진' },
         { url: 'avatars/kr_profile_senior_02.jpg', desc: '식물원 카페에서 우아하고 온화한 미소로 찍은 본인 프로필 사진' },
-        { url: 'avatars/kr_profile_senior_closeup.jpg', desc: '품위 있고 따뜻한 인상의 본인 정면 프로필 사진' }
+        { url: 'avatars/kr_profile_senior_closeup.jpg', desc: '품위 있고 따뜻한 인상의 본인 정면 프로필 사진' },
+        { url: 'avatars/kr_user_2030_cafe_01.jpg', desc: '분위기 좋은 카페 테이블에 앉아 부드럽게 미소 지은 일상 사진' },
+        { url: 'avatars/kr_user_2030_cat_01.jpg', desc: '반려묘를 품에 안고 사랑스럽게 웃으며 찍은 홈 스냅' },
+        { url: 'avatars/kr_user_2030_puppy_01.jpg', desc: '귀여운 강아지와 얼굴을 맞대고 다정하게 찍은 사진' },
+        { url: 'avatars/kr_user_2030_night_selfie_01.jpg', desc: '은은한 가로등 아래 밤 산책길에 찍은 분위기 있는 셀카' },
+        { url: 'avatars/kr_user_2030_selfie_01.jpg', desc: '햇살 들어오는 창가에서 화사하게 웃고 있는 정면 셀카' },
+        { url: 'avatars/kr_user_2030_travel_01.jpg', desc: '여행지 바닷가 산책로에서 기분 좋게 바람 맞으며 찍은 셀카' },
+        { url: 'avatars/kr_user_2030_winter_01.jpg', desc: '포근한 목도리 두르고 겨울 감성 가득 담아 찍은 셀카' }
       ],
       // 3. 남이 찍어준 일상/카페/여행/한옥마을 스냅 사진
       candid: [
@@ -621,7 +618,16 @@
         { url: 'avatars/kr_candid_hanok_04.jpg', desc: '북촌 한옥마을 골목길 나들이 중 친구가 찍어준 전신 스냅 사진' },
         { url: 'avatars/kr_candid_hanok_closeup.jpg', desc: '한옥마을 산책 중 뒤돌아보며 환하게 웃는 남이 찍어준 사진' },
         { url: 'avatars/avatar_03_kang_daeun.jpg', desc: '가을 가로수길에서 지인이 찍어준 자연스러운 스냅 사진' },
-        { url: 'avatars/avatar_09_shin_sohee.jpg', desc: '저녁 한강 산책길에 남이 찍어준 분위기 있는 사진' }
+        { url: 'avatars/avatar_09_shin_sohee.jpg', desc: '저녁 한강 산책길에 남이 찍어준 분위기 있는 사진' },
+        { url: 'avatars/kr_user_2030_hanriver_01.jpg', desc: '노을 지는 한강 둔치에서 남이 찍어준 자연스러운 일상 스냅' },
+        { url: 'avatars/kr_user_2030_hanriver_02.jpg', desc: '한강 다리를 바라보며 폰으로 풍경 찍는 뒷모습 감성 사진' },
+        { url: 'avatars/kr_user_2030_hanriver_03.jpg', desc: '한강 공원에서 시원한 강바람 맞으며 찍은 단정한 전신 사진' },
+        { url: 'avatars/kr_user_2030_cat_cafe_01.jpg', desc: '고양이 카페에서 고양이 보며 신나게 웃는 일상 스냅' },
+        { url: 'avatars/kr_user_2030_night_walk_01.jpg', desc: '선선한 저녁 거리 산책하며 남이 찍어준 감성 스냅' },
+        { url: 'avatars/kr_user_2030_dog_walk_01.jpg', desc: '밤에 반려견과 동네 산책로 걷다 찍은 훈훈한 일상 사진' },
+        { url: 'avatars/kr_user_2030_dog_walk_02.jpg', desc: '공원 벤치에 강아지와 나란히 앉아 찍은 밤 산책 사진' },
+        { url: 'avatars/kr_user_2030_dog_walk_03.jpg', desc: '강아지 줄 잡고 산책하며 밝게 웃는 일상 스냅' },
+        { url: 'avatars/kr_user_40_night_walk_01.jpg', desc: '달빛 아래 한적한 산책길 걷다 온화하게 미소 지은 셀카' }
       ],
       // 4. 손 찍어서 올린 사진 (커피잔/와인잔/꽃다발을 든 손, 반려견 쓰다듬는 손 등)
       hand: [
@@ -637,7 +643,9 @@
         { url: 'avatars/kr_nature_eastsea_sunset.jpg', desc: '동해 바닷가 여행 가서 직접 찍은 붉은 수평선 노을 풍경 사진' },
         { url: 'avatars/kr_nature_autumn_foliage.jpg', desc: '가을 산책길에 노랗고 붉게 물든 은행나무와 단풍을 찍은 자연 사진' },
         { url: 'avatars/kr_candid_sea_03.jpg', desc: '바닷가 해안 전망대에서 노을을 바라보며 찍은 여행 사진' },
-        { url: 'avatars/kr_candid_park_02.jpg', desc: '가을 단풍길 산책로에서 찍은 나들이 사진' }
+        { url: 'avatars/kr_candid_park_02.jpg', desc: '가을 단풍길 산책로에서 찍은 나들이 사진' },
+        { url: 'avatars/kr_user_2030_mountain_01.jpg', desc: '주말 등산 정상에서 청량한 가을 하늘 배경으로 찍은 인증 셀카' },
+        { url: 'avatars/kr_user_40_mountain_01.jpg', desc: '산 정상 전망대에서 상쾌한 바람 맞으며 찍은 품격 있는 사진' }
       ],
       // 6. 직업과 관련된 일터/작업실 사진
       job: {
@@ -1250,54 +1258,87 @@
       vip: { name: 'VIP 라운지 30일 자유이용권', credits: 9999, price: 29900, priceText: '29,900원', vip: true }
     };
 
+    // 카카오톡 선물하기 스타일 선물 목록 (브랜드·상품명은 모두 가상의 이름입니다)
+    const GIFT_CATEGORIES = [
+      { key: 'all', label: '전체' },
+      { key: 'cafe', label: '카페·푸드' },
+      { key: 'beauty', label: '뷰티' },
+      { key: 'special', label: '주류·꽃' },
+      { key: 'health', label: '건강·휴식' }
+    ];
+
     const GIFT_CATALOG = {
       coffee: {
-        key: 'coffee',
-        emoji: '☕',
-        name: '따뜻한 아메리카노',
-        cost: 3,
-        affectionBoost: 15,
-        rewardType: 'photo_daily',
-        reactions: [
-          '어머! 따뜻한 커피 선물 너무 감사해요 ㅎㅎ 마침 입이 심심했는데 센스 최고시네요!',
-          '제가 답례로 방금 찍어둔 제 일상 사진 한 장 살짝 보내드릴게요 ㅎㅎ'
-        ]
+        key: 'coffee', category: 'cafe', emoji: '☕', image: 'gifts/gift_coffee.jpg',
+        brand: '온도커피', name: '시그니처 아이스 아메리카노 T 2잔', price: 9000,
+        cost: 3, affectionBoost: 12, rewardType: 'photo_daily',
+        reactions: ['어 커피네요, 감사해요', '마침 뭐 마시고 싶었는데 어떻게 아셨어요']
+      },
+      dessert: {
+        key: 'dessert', category: 'cafe', emoji: '🍰', image: 'gifts/gift_dessert.jpg',
+        brand: '달빛베이커리', name: '생딸기 생크림 조각케이크 & 라떼 세트', price: 14500,
+        cost: 5, affectionBoost: 16, rewardType: 'photo_daily',
+        reactions: ['와 딸기케이크다', '이거 줄 서서 먹는 데 아니에요? 잘 먹을게요']
+      },
+      macaron: {
+        key: 'macaron', category: 'cafe', emoji: '🍬', image: 'gifts/gift_macaron.jpg',
+        brand: '소소당', name: '수제 마카롱 6구 선물세트', price: 16800,
+        cost: 6, affectionBoost: 18, rewardType: 'photo_daily',
+        reactions: ['마카롱이다, 색깔 너무 예뻐요', '아까워서 한 번에 못 먹겠네요']
+      },
+      chicken: {
+        key: 'chicken', category: 'cafe', emoji: '🍗', image: 'gifts/gift_chicken.jpg',
+        brand: '해온치킨', name: '황금 반반 치킨 + 치즈볼 세트', price: 24500,
+        cost: 8, affectionBoost: 20, rewardType: 'photo_daily',
+        reactions: ['치킨이요? 아 이거 지금 먹으면 안 되는데', '근데 너무 맛있겠다, 잘 먹을게요']
+      },
+      icecream: {
+        key: 'icecream', category: 'cafe', emoji: '🍨', image: 'gifts/gift_icecream.jpg',
+        brand: '눈송이 아이스크림', name: '파인트 3종 선물세트', price: 18900,
+        cost: 6, affectionBoost: 16, rewardType: 'photo_daily',
+        reactions: ['아이스크림 세 개나요?', '냉동실 꽉 차겠다, 잘 먹을게요']
+      },
+      handcream: {
+        key: 'handcream', category: 'beauty', emoji: '🧴', image: 'gifts/gift_handcream.jpg',
+        brand: '숲내음', name: '핸드크림 & 립밤 3종 세트', price: 19800,
+        cost: 7, affectionBoost: 20, rewardType: 'photo_secret',
+        reactions: ['핸드크림 마침 떨어졌는데', '센스 있으시네요, 잘 쓸게요']
+      },
+      maskpack: {
+        key: 'maskpack', category: 'beauty', emoji: '🧖', image: 'gifts/gift_maskpack.jpg',
+        brand: '모닝글로우', name: '수분 진정 마스크팩 10매', price: 15900,
+        cost: 5, affectionBoost: 16, rewardType: 'photo_daily',
+        reactions: ['마스크팩이다', '요즘 피부가 푸석했는데 오늘 바로 하나 해야겠어요']
       },
       cake: {
-        key: 'cake',
-        emoji: '🍰',
-        name: '수제 케이크 세트',
-        cost: 8,
-        affectionBoost: 24,
-        rewardType: 'photo_secret',
-        reactions: [
-          '세상에.. 이렇게 달콤한 케이크 세트까지 보내주시다니 너무 감동이에요! 기분이 확 좋아지네요 ㅎㅎ',
-          '고마운 마음에 부끄럽지만 제 개인 셀카 한 장 보내드려요 ㅎㅎ'
-        ]
+        key: 'cake', category: 'cafe', emoji: '🎂', image: 'gifts/gift_cake.jpg',
+        brand: '몽글케이크', name: '시즌 생과일 케이크 1호', price: 32000,
+        cost: 11, affectionBoost: 26, rewardType: 'photo_secret',
+        reactions: ['케이크 통으로요? 이거 혼자 다 못 먹는데', '그래도 기분 좋네요, 고마워요']
       },
       wine: {
-        key: 'wine',
-        emoji: '🍷',
-        name: '분위기 있는 와인',
-        cost: 15,
-        affectionBoost: 32,
-        rewardType: 'voice_and_photo',
-        reactions: [
-          '어머나.. 분위기 있는 와인 선물이라니 마음이 괜히 설레네요 ㅎㅎ 오늘 밤은 덕분에 특별해질 것 같아요.',
-          '너무 감사해서 제 목소리랑 사진 같이 남겨요, 들어보실래요? ㅎㅎ'
-        ]
+        key: 'wine', category: 'special', emoji: '🍷', image: 'gifts/gift_wine.jpg',
+        brand: '라베르 와인샵', name: '레드와인 750ml 선물세트', price: 39000,
+        cost: 14, affectionBoost: 32, rewardType: 'voice_and_photo',
+        reactions: ['와인이요? 이런 건 좀 부담스러운데', '근데 솔직히 좋아요, 잘 마실게요']
       },
       flower: {
-        key: 'flower',
-        emoji: '💐',
-        name: '장미 꽃다발 선물',
-        cost: 30,
-        affectionBoost: 45,
-        rewardType: 'voice_and_photo',
-        reactions: [
-          '와.. 꽃다발 선물 받아본 게 얼마 만인지 몰라요. 진심으로 대우받는 기분이라 가슴이 뭉클하네요 ㅎㅎ',
-          '오늘 보내주신 따뜻한 마음 절대 잊지 못할 거예요. 제 목소리랑 아끼는 사진 꼭 받아주세요!'
-        ]
+        key: 'flower', category: 'special', emoji: '💐', image: 'gifts/gift_flower.jpg',
+        brand: '오늘의꽃', name: '파스텔 장미 꽃다발 (중)', price: 45000,
+        cost: 16, affectionBoost: 36, rewardType: 'voice_and_photo',
+        reactions: ['꽃다발 받아본 게 언제였더라', '색깔도 예쁘고 향도 좋겠다, 진짜 고마워요']
+      },
+      ginseng: {
+        key: 'ginseng', category: 'health', emoji: '🌿', image: 'gifts/gift_ginseng.jpg',
+        brand: '한뿌리담', name: '6년근 홍삼스틱 30포 선물세트', price: 59000,
+        cost: 21, affectionBoost: 38, rewardType: 'voice_and_photo',
+        reactions: ['홍삼이요? 이렇게 비싼 걸 왜요', '부모님 같으면 좋아하셨겠다, 아니 저도 좋아요 감사해요']
+      },
+      spa: {
+        key: 'spa', category: 'health', emoji: '🕯️', image: 'gifts/gift_spa.jpg',
+        brand: '쉼표스파', name: '아로마 힐링 60분 이용권', price: 79000,
+        cost: 28, affectionBoost: 48, rewardType: 'voice_and_photo',
+        reactions: ['스파 이용권이요? 이건 진짜 너무 큰 선물인데', '요즘 어깨가 너무 뻐근했는데, 고마워요 진짜']
       }
     };
 
@@ -1344,7 +1385,55 @@
       'avatars/kr_hiking_peak_01.jpg': { url: 'avatars/same_hiking_peak_01.jpg', desc: '산정상에서 환하게 웃으며 찍은 본인 등산 클로즈업 사진' },
       'avatars/kr_job_florist_01.jpg': { url: 'avatars/same_job_florist_01.jpg', desc: '꽃 작업실에서 미소 지으며 찍은 본인 클로즈업 사진' },
       'avatars/kr_profile_senior_02.jpg': { url: 'avatars/kr_profile_senior_closeup.jpg', desc: '온화하고 품위 있는 미소의 본인 클로즈업 사진' },
-      'avatars/kr_profile_senior_closeup.jpg': { url: 'avatars/kr_profile_senior_02.jpg', desc: '식물원 카페에서 차 한잔하며 찍은 본인 사진 원본' }
+      'avatars/kr_profile_senior_closeup.jpg': { url: 'avatars/kr_profile_senior_02.jpg', desc: '식물원 카페에서 차 한잔하며 찍은 본인 사진 원본' },
+      'avatars/kr_user_2030_hanriver_01.jpg': { url: 'avatars/same_kr_user_2030_hanriver_01.jpg', desc: '노을 지는 한강 둔치에서 남이 찍어준 자연스러운 일상 클로즈업 사진' },
+      'avatars/kr_user_2030_hanriver_02.jpg': { url: 'avatars/same_kr_user_2030_hanriver_02.jpg', desc: '한강 다리를 바라보며 폰으로 풍경 찍는 뒷모습 감성 클로즈업 사진' },
+      'avatars/kr_user_2030_hanriver_03.jpg': { url: 'avatars/same_kr_user_2030_hanriver_03.jpg', desc: '한강 공원에서 시원한 강바람 맞으며 찍은 단정한 전신 클로즈업 사진' },
+      'avatars/kr_user_2030_cafe_01.jpg': { url: 'avatars/same_kr_user_2030_cafe_01.jpg', desc: '분위기 좋은 카페 테이블에 앉아 부드럽게 미소 지은 일상 클로즈업 사진' },
+      'avatars/kr_user_2030_cat_01.jpg': { url: 'avatars/same_kr_user_2030_cat_01.jpg', desc: '반려묘를 품에 안고 사랑스럽게 웃으며 찍은 홈 클로즈업 사진' },
+      'avatars/kr_user_2030_puppy_01.jpg': { url: 'avatars/same_kr_user_2030_puppy_01.jpg', desc: '귀여운 강아지와 얼굴을 맞대고 다정하게 찍은 클로즈업 사진' },
+      'avatars/kr_user_2030_night_running_01.jpg': { url: 'avatars/same_kr_user_2030_night_running_01.jpg', desc: '저녁 한강 러닝 코스에서 운동복 차림으로 활기차게 찍은 전신 클로즈업 사진' },
+      'avatars/kr_user_2030_night_running_selfie_02.jpg': { url: 'avatars/same_kr_user_2030_night_running_selfie_02.jpg', desc: '야간 러닝 후 땀 흘리며 상쾌하게 찍은 야외 셀카' },
+      'avatars/kr_user_2030_bathroom_01.jpg': { url: 'avatars/same_kr_user_2030_bathroom_01.jpg', desc: '호텔 파우더룸 거울 앞에서 찍은 세련된 거울 셀카' },
+      'avatars/kr_user_2030_bathroom_02.jpg': { url: 'avatars/same_kr_user_2030_bathroom_02.jpg', desc: '단정한 블라우스 차림으로 거울 보고 미소 짓는 셀카' },
+      'avatars/kr_user_2030_bathroom_03.jpg': { url: 'avatars/same_kr_user_2030_bathroom_03.jpg', desc: '모던한 조명 아래 폰 들고 찍은 깔끔한 거울 셀카' },
+      'avatars/kr_user_2030_bathroom_04.jpg': { url: 'avatars/same_kr_user_2030_bathroom_04.jpg', desc: '외출 전 파우더룸에서 옷매무새 확인하며 찍은 거울 셀카' },
+      'avatars/kr_user_2030_bus_01.jpg': { url: 'avatars/same_kr_user_2030_bus_01.jpg', desc: '퇴근길 버스 창가 자리에 앉아 이어폰 끼고 찍은 일상 셀카' },
+      'avatars/kr_user_2030_bus_02.jpg': { url: 'avatars/same_kr_user_2030_bus_02.jpg', desc: '버스 정류장에서 버스 기다리며 햇살 아래 가볍게 찍은 셀카' },
+      'avatars/kr_user_2030_bus_03.jpg': { url: 'avatars/same_kr_user_2030_bus_03.jpg', desc: '따뜻한 오후 버스 안에서 창문 기대어 찍은 일상 셀카' },
+      'avatars/kr_user_2030_bus_04.jpg': { url: 'avatars/same_kr_user_2030_bus_04.jpg', desc: '주말 외출하는 버스 안에서 은은하게 미소 지은 셀카' },
+      'avatars/kr_user_2030_car_01.jpg': { url: 'avatars/same_kr_user_2030_car_01.jpg', desc: '차 안에서 자연광 받으며 기분 좋게 찍은 정면 셀카' },
+      'avatars/kr_user_2030_car_02.jpg': { url: 'avatars/same_kr_user_2030_car_02.jpg', desc: '주차 후 차 안에서 살짝 미소 머금고 찍은 내추럴 셀카' },
+      'avatars/kr_user_2030_car_03.jpg': { url: 'avatars/same_kr_user_2030_car_03.jpg', desc: '드라이브 가다 신호 대기 중 가볍게 찍은 차안 셀카' },
+      'avatars/kr_user_2030_mirror_01.jpg': { url: 'avatars/same_kr_user_2030_mirror_01.jpg', desc: '현관 전신 거울 앞에서 오늘의 데일리룩 찍은 전신 거울 셀카' },
+      'avatars/kr_user_2030_mirror_02.jpg': { url: 'avatars/same_kr_user_2030_mirror_02.jpg', desc: '감성 카페 포토존 거울 앞에서 자연스럽게 찍은 거울 셀카' },
+      'avatars/kr_user_2030_mirror_03.jpg': { url: 'avatars/same_kr_user_2030_mirror_03.jpg', desc: '화사한 조명 거울 앞에서 살짝 고개 기울이고 찍은 거울 셀카' },
+      'avatars/kr_user_2030_mirror_04.jpg': { url: 'avatars/same_kr_user_2030_mirror_04.jpg', desc: '원피스 입고 단정하게 찍은 실내 전신 거울 셀카' },
+      'avatars/kr_user_2030_mirror_05.jpg': { url: 'avatars/same_kr_user_2030_mirror_05.jpg', desc: '침실 거울 앞에서 편안한 홈웨어 차림으로 찍은 거울 셀카' },
+      'avatars/kr_user_2030_mountain_01.jpg': { url: 'avatars/same_kr_user_2030_mountain_01.jpg', desc: '주말 등산 정상에서 청량한 가을 하늘 배경으로 찍은 인증 셀카' },
+      'avatars/kr_user_2030_night_selfie_01.jpg': { url: 'avatars/same_kr_user_2030_night_selfie_01.jpg', desc: '은은한 가로등 아래 밤 산책길에 찍은 분위기 있는 셀카' },
+      'avatars/kr_user_2030_selfie_01.jpg': { url: 'avatars/same_kr_user_2030_selfie_01.jpg', desc: '햇살 들어오는 창가에서 화사하게 웃고 있는 정면 셀카' },
+      'avatars/kr_user_2030_home_01.jpg': { url: 'avatars/same_kr_user_2030_home_01.jpg', desc: '아늑한 방 안에서 편안하게 쉬면서 찍은 집 셀카' },
+      'avatars/kr_user_2030_travel_01.jpg': { url: 'avatars/same_kr_user_2030_travel_01.jpg', desc: '여행지 바닷가 산책로에서 기분 좋게 바람 맞으며 찍은 셀카' },
+      'avatars/kr_user_2030_winter_01.jpg': { url: 'avatars/same_kr_user_2030_winter_01.jpg', desc: '포근한 목도리 두르고 겨울 감성 가득 담아 찍은 셀카' },
+      'avatars/kr_user_2030_cat_cafe_01.jpg': { url: 'avatars/same_kr_user_2030_cat_cafe_01.jpg', desc: '고양이 카페에서 고양이 보며 신나게 웃는 일상 클로즈업 사진' },
+      'avatars/kr_user_2030_night_walk_01.jpg': { url: 'avatars/same_kr_user_2030_night_walk_01.jpg', desc: '선선한 저녁 거리 산책하며 남이 찍어준 감성 클로즈업 사진' },
+      'avatars/kr_user_2030_gym_01.jpg': { url: 'avatars/same_kr_user_2030_gym_01.jpg', desc: '헬스장 오운완 인증 거울 셀카' },
+      'avatars/kr_user_2030_gym_02.jpg': { url: 'avatars/same_kr_user_2030_gym_02.jpg', desc: '운동 후 매트 위에서 건강하게 웃으며 찍은 헬스장 셀카' },
+      'avatars/kr_user_2030_pilates_01.jpg': { url: 'avatars/same_kr_user_2030_pilates_01.jpg', desc: '필라테스 기구실에서 스트레칭 후 깔끔하게 찍은 셀카' },
+      'avatars/kr_user_2030_subway_01.jpg': { url: 'avatars/same_kr_user_2030_subway_01.jpg', desc: '지하철 플랫폼에서 열차 기다리며 조용히 찍은 일상 셀카' },
+      'avatars/kr_user_2030_subway_02.jpg': { url: 'avatars/same_kr_user_2030_subway_02.jpg', desc: '퇴근 지하철 환승 통로에서 거울 보고 찍은 셀카' },
+      'avatars/kr_user_2030_subway_03.jpg': { url: 'avatars/same_kr_user_2030_subway_03.jpg', desc: '지하철 스크린도어 앞에서 차분하게 찍은 일상 셀카' },
+      'avatars/kr_user_2030_dog_walk_01.jpg': { url: 'avatars/same_kr_user_2030_dog_walk_01.jpg', desc: '밤에 반려견과 동네 산책로 걷다 찍은 훈훈한 일상 클로즈업 사진' },
+      'avatars/kr_user_2030_dog_walk_02.jpg': { url: 'avatars/same_kr_user_2030_dog_walk_02.jpg', desc: '공원 벤치에 강아지와 나란히 앉아 찍은 밤 산책 클로즈업 사진' },
+      'avatars/kr_user_2030_dog_walk_03.jpg': { url: 'avatars/same_kr_user_2030_dog_walk_03.jpg', desc: '강아지 줄 잡고 산책하며 밝게 웃는 일상 클로즈업 사진' },
+      'avatars/kr_user_40_bus_01.jpg': { url: 'avatars/same_kr_user_40_bus_01.jpg', desc: '주말 버스 창가에서 우아하고 부드럽게 미소 지은 셀카' },
+      'avatars/kr_user_40_gym_01.jpg': { url: 'avatars/same_kr_user_40_gym_01.jpg', desc: '피트니스 센터에서 건강미 넘치게 운동하고 찍은 셀카' },
+      'avatars/kr_user_40_mountain_01.jpg': { url: 'avatars/same_kr_user_40_mountain_01.jpg', desc: '산 정상 전망대에서 상쾌한 바람 맞으며 찍은 품격 있는 클로즈업 사진' },
+      'avatars/kr_user_40_night_walk_01.jpg': { url: 'avatars/same_kr_user_40_night_walk_01.jpg', desc: '달빛 아래 한적한 산책길 걷다 온화하게 미소 지은 셀카' },
+      'avatars/kr_user_40_bus_02.jpg': { url: 'avatars/same_kr_user_40_bus_02.jpg', desc: '가을 햇살 아래 버스 정류장에서 단아하게 찍은 셀카' },
+      'avatars/kr_user_40_subway_01.jpg': { url: 'avatars/same_kr_user_40_subway_01.jpg', desc: '지하철 에스컬레이터 앞에서 지적인 분위기로 찍은 셀카' },
+      'avatars/kr_user_40_car_01.jpg': { url: 'avatars/same_kr_user_40_car_01.jpg', desc: '차 안에서 여유롭고 다정한 미소로 찍은 드라이브 셀카' }
     };
 
     // 캐릭터별 3장 일상·셀카 사진첩 생성 (타인의 얼굴이 절대 섞이지 않도록 1인칭 일상/풍경 + 본인 단일 얼굴만 구성)
@@ -2902,6 +2991,9 @@ ${buildModeBlock()}
           durationText: options.durationText || null,
           giftEmoji: options.giftEmoji || null,
           giftName: options.giftName || null,
+          giftImage: options.giftImage || null,
+          giftBrand: options.giftBrand || null,
+          giftPrice: options.giftPrice || 0,
           isSecret: Boolean(options.isSecret),
           cost: options.cost || 0
         };
@@ -2918,11 +3010,16 @@ ${buildModeBlock()}
               <span class="text-[11px] text-zinc-500">${timeStr}</span>
             </div>
             <div class="max-w-[78%] bg-gradient-to-br from-amber-500/25 to-rose-500/25 border border-amber-400/50 text-white rounded-2xl rounded-tr-sm p-3.5 shadow-lg">
-              <div class="flex items-center gap-2.5">
-                <div class="w-11 h-11 rounded-xl bg-amber-500/20 flex items-center justify-center text-2xl shrink-0">${options.giftEmoji || '🎁'}</div>
-                <div>
-                  <div class="text-[11px] font-bold text-amber-300">🎁 마음을 담은 선물 전송</div>
-                  <div class="text-[14.5px] font-bold text-white mt-0.5">${escapeHtml(options.giftName || text)}</div>
+              <div class="flex items-center gap-3">
+                <div class="relative w-16 h-16 rounded-xl overflow-hidden bg-black/30 flex items-center justify-center text-3xl shrink-0">
+                  ${options.giftImage ? `<img src="${options.giftImage}" class="absolute inset-0 w-full h-full object-cover" onerror="this.style.display='none'" />` : ''}
+                  <span>${options.giftEmoji || '🎁'}</span>
+                </div>
+                <div class="min-w-0">
+                  <div class="text-[11px] font-bold text-amber-300">🎁 선물이 도착했어요</div>
+                  ${options.giftBrand ? `<div class="text-[11px] text-zinc-300 mt-0.5">${escapeHtml(options.giftBrand)}</div>` : ''}
+                  <div class="text-[14px] font-bold text-white leading-snug">${escapeHtml(options.giftName || text)}</div>
+                  ${options.giftPrice ? `<div class="text-[12px] text-amber-200 mt-0.5">${Number(options.giftPrice).toLocaleString('ko-KR')}원</div>` : ''}
                 </div>
               </div>
             </div>
@@ -3288,7 +3385,68 @@ ${buildModeBlock()}
     // =========================================================================
     // 8. GIFT ENGINE & SAVED ROOMS TIME-OF-DAY PROACTIVE GREETING ENGINE
     // =========================================================================
-    function sendGiftToCurrentChar(giftKey) {
+        // 실시간 AI 선물 인증샷 생성기 (Gemini Imagen 3 또는 OpenAI DALL-E 3 연동, 실패 시 초고화질 상품 컷 대체)
+    async function generateGiftProofImage(gift) {
+      const key = (state.apiKey || '').trim();
+      if (!key) return gift.image;
+
+      try {
+        if (key.startsWith('AIza')) {
+          // Gemini Imagen 3
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict?key=${encodeURIComponent(key)}`;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              instances: [
+                {
+                  prompt: `Authentic candid first-person POV smartphone photo taken with an iPhone: a delicate Korean woman's hand holding a ${gift.name} (${gift.brand}), sitting in a cozy room or cafe, natural indoor lighting, candid Instagram story shot, realistic skin texture, no text, no letters, no logos, no watermarks, 1:1 square photo`
+                }
+              ],
+              parameters: {
+                sampleCount: 1,
+                aspectRatio: "1:1",
+                outputMimeType: "image/jpeg"
+              }
+            })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const b64 = data.predictions?.[0]?.bytesBase64Encoded;
+            if (b64) return `data:image/jpeg;base64,${b64}`;
+          }
+        } else if (key.startsWith('sk-')) {
+          // OpenAI DALL-E 3
+          const res = await fetch('https://api.openai.com/v1/images/generations', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${key}`
+            },
+            body: JSON.stringify({
+              model: 'dall-e-3',
+              prompt: `A hyper-realistic candid smartphone photo taken with an iPhone: a Korean woman holding a ${gift.name} in her hand, natural indoor lighting, candid photo, no text, no letters, no logos`,
+              n: 1,
+              size: '1024x1024',
+              response_format: 'b64_json'
+            })
+          });
+          if (res.ok) {
+            const data = await res.json();
+            const b64 = data.data?.[0]?.b64_json;
+            if (b64) return `data:image/jpeg;base64,${b64}`;
+          }
+        }
+      } catch (err) {
+        console.warn('Live gift proof generation failed, falling back to local photo:', err);
+      }
+      return gift.image;
+    }
+
+    // =========================================================================
+    // 8. GIFT ENGINE & EMOTION-SENSITIVE REACTION ENGINE
+    // =========================================================================
+    async function sendGiftToCurrentChar(giftKey) {
       const char = state.currentChar;
       const gift = GIFT_CATALOG[giftKey];
       if (!char || !gift || state.roomLeft) return;
@@ -3306,70 +3464,118 @@ ${buildModeBlock()}
       document.getElementById('giftModal').classList.add('hidden');
       clearIdleFollowUpTimer();
       state.idleFollowUpCount = 0;
-
-      // 선물을 보내면 화가 일부 누그러지고(완전히 풀리지는 않음) 호감도가 상승
-      state.anger = Math.max(0, (state.anger || 0) - 30);
-      if (state.anger < 10) state.warned = false;
-      state.rudeStrikes = Math.ceil(state.anger / 35);
-      state.affection = Math.min(100, state.affection + gift.affectionBoost);
       state.bookmarked = true;
       state.turnCount += 1;
 
-      appendMessage('user', `${gift.emoji} ${gift.name} 선물을 보냈습니다.`, {
+      appendMessage('user', `${gift.emoji} ${gift.brand} ${gift.name} 선물을 보냈습니다.`, {
         mediaType: 'gift',
         giftEmoji: gift.emoji,
-        giftName: gift.name
+        giftName: gift.name,
+        giftImage: gift.image,
+        giftBrand: gift.brand,
+        giftPrice: gift.price
       });
       saveAccountState();
 
-      const album = getCharacterAlbum(char);
-      let mediaItem = null;
-      if (gift.rewardType === 'photo_daily') {
-        const p = album[0];
-        state.unlockedMedia[p.id] = true;
-        mediaItem = {
-          mediaType: 'photo',
-          mediaId: p.id,
-          photoUrl: p.url,
-          photoTitle: p.title,
-          photoDesc: p.desc,
-          isSecret: false,
-          cost: 0,
-          caption: '📸 선물 답례로 보내드리는 일상 사진이에요 ㅎㅎ'
-        };
-      } else if (gift.rewardType === 'photo_secret') {
-        const p = album[2] || album[1];
-        state.unlockedMedia[p.id] = true;
-        mediaItem = {
-          mediaType: 'photo',
-          mediaId: p.id,
-          photoUrl: p.url,
-          photoTitle: p.title,
-          photoDesc: p.desc,
-          isSecret: false,
-          cost: 0,
-          caption: '📸 선물에 감동해서 보내드리는 개인 셀카예요 ㅎㅎ'
-        };
-      } else {
-        const p = album[2] || album[1];
-        state.unlockedMedia[p.id] = true;
-        const vId = `voice_gift_${char.id}_${Date.now()}`;
-        state.unlockedMedia[vId] = true;
-        mediaItem = {
-          mediaType: 'voice',
-          mediaId: vId,
-          voiceText: `이렇게 멋진 ${gift.name} 보내주셔서 진심으로 감사해요 ㅎㅎ 감동받아서 제 목소리로 직접 인사 남겨요!`,
-          durationText: '0:06',
-          isSecret: false,
-          cost: 0
-        };
+      // [감정 규칙 핵심] 화가 나 있는 상태에서 선물을 받으면 절대 화가 풀리지 않고 오히려 더 분노함!
+      // "화나있는데 선물 보내면 오히려 더 기분 나쁠수도 있는거에요. 이딴걸로 지금 무마하려는거야? 이런식으로"
+      const currentAnger = state.anger || 0;
+      const isSeverelyAngry = currentAnger >= 35 || state.warned || state.rudeStrikes >= 1;
+      const isMildlyCold = !isSeverelyAngry && currentAnger >= 10;
+
+      if (isSeverelyAngry) {
+        // 화난 상태에서 돈/선물로 무마하려는 태도에 극도로 분노하여 즉시 대화방 퇴장
+        state.anger = 100;
+        state.affection = Math.max(0, state.affection - 25);
+        state.warned = true;
+        saveAccountState();
+
+        const angryReactions = [
+          `지금 이딴 걸로 사람 기분 풀려고 하는 거야?`,
+          `사람 기분 이렇게 상하게 해놓고 돈이나 선물로 때우려는 태도가 더 역겹고 불쾌하네요.`,
+          `진짜 사람을 뭘로 보고 이러는지 모르겠어요. 전 나갈게요.`
+        ];
+
+        runRealisticReplySequence({
+          bubbles: angryReactions,
+          isColdOrRude: true,
+          leaveRoom: true,
+          mediaItem: null
+        });
+        return;
       }
 
+      if (isMildlyCold) {
+        // 약간 서운하거나 쌀쌀맞은 상태: 선물로 바로 풀리지 않음 (호감도 상승 없음, 사진 없음)
+        state.affection = Math.max(0, state.affection);
+        saveAccountState();
+
+        const coldReactions = [
+          `...선물 보낸다고 상한 기분이 다 풀리진 않아요.`,
+          `이런 거 보낼 생각 마시고 말부터 예의 있게 하세요.`
+        ];
+
+        runRealisticReplySequence({
+          bubbles: coldReactions,
+          isColdOrRude: true,
+          leaveRoom: false,
+          mediaItem: null
+        });
+        return;
+      }
+
+      // [평화로운 기분 상태일 때만]: 호감도 정상 상승 및 모드별 맞춤 감사 리액션 + 스마트폰 인증샷 전송!
+      state.affection = Math.min(100, state.affection + gift.affectionBoost);
+      saveAccountState();
+
+      // 모드별 차별화된 실감나는 선물 반응
+      let bubbles = gift.reactions;
+      const mode = state.chatMode || 'friend';
+      if (mode === 'lover') {
+        bubbles = [
+          `자기야... 세상에 진짜 감동이야 ㅠㅠ`,
+          `내 생각해주는 건 진짜 자기밖에 없다 ㅎㅎ 인증샷 바로 찍어서 보내!`
+        ];
+      } else if (mode === 'flirty') {
+        bubbles = [
+          `어머... 은근히 이렇게 챙겨주네? 심쿵하게 ㅎㅎ`,
+          `이거 받고 나한테 더 반하면 어쩌려고 그래요? 방금 폰으로 찍은 인증샷이에요~`
+        ];
+      } else if (mode === 'friend') {
+        bubbles = [
+          `야 미쳤냐?! ㅋㅋㅋ 개감동이다 진짜`,
+          `대박 잘 먹을게 ㅋㅋㅋ 방금 폰으로 인증샷 남긴다!`
+        ];
+      } else if (mode === 'sibling') {
+        bubbles = [
+          `오 뭐야? 왠일로 이런 걸 다 보내? ㅋㅋㅋ`,
+          `이거 먹고 죽으라는 건 아니지? 농담이고 완전 땡큐~ 방금 찰칵 찍었음!`
+        ];
+      } else if (mode === 'counselor') {
+        bubbles = [
+          `마음 써주셔서 정말 감사합니다.`,
+          `덕분에 오늘 하루가 참 따뜻해지네요. 감사한 마음 담아 인증 사진 보내드려요.`
+        ];
+      }
+
+      // 방금 스마트폰으로 찍은 듯한 리얼한 인증샷 생성 및 첨부
+      const proofPhotoUrl = await generateGiftProofImage(gift);
+      const mediaItem = {
+        mediaType: 'photo',
+        mediaId: `gift_thanks_${char.id}_${Date.now()}`,
+        photoUrl: proofPhotoUrl,
+        photoTitle: `${gift.brand} ${gift.name} 인증샷`,
+        photoDesc: `방금 선물 받고 기분 좋아서 폰으로 찍어 보낸 생생한 인증 사진`,
+        isSecret: false,
+        cost: 0,
+        caption: `📸 방금 찍은 따끈따끈한 인증샷이에요 ㅎㅎ 잘 쓸게요!`
+      };
+
       runRealisticReplySequence({
-        bubbles: gift.reactions,
+        bubbles: bubbles,
         isColdOrRude: false,
         leaveRoom: false,
-        mediaItem
+        mediaItem: mediaItem
       });
     }
 
@@ -3770,20 +3976,69 @@ ${buildModeBlock()}
       document.getElementById('profileModal').classList.add('hidden');
     });
 
-    // Gift Modal Events
+    // Gift Modal Events (카카오 선물하기 스타일 카테고리 탭 + 상품 카드)
+    let giftActiveCategory = 'all';
+
+    function formatWon(n) {
+      return Number(n).toLocaleString('ko-KR') + '원';
+    }
+
+    function renderGiftGrid() {
+      const tabs = document.getElementById('giftCategoryTabs');
+      const grid = document.getElementById('giftGrid');
+      if (!tabs || !grid) return;
+
+      tabs.innerHTML = '';
+      GIFT_CATEGORIES.forEach(c => {
+        const b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'shrink-0 px-3.5 py-1.5 rounded-full text-[12.5px] font-bold transition ' + (giftActiveCategory === c.key
+          ? 'bg-amber-400 text-zinc-950'
+          : 'bg-white/[0.07] text-zinc-300 hover:bg-white/[0.12]');
+        b.textContent = c.label;
+        b.addEventListener('click', () => {
+          giftActiveCategory = c.key;
+          renderGiftGrid();
+        });
+        tabs.appendChild(b);
+      });
+
+      grid.innerHTML = '';
+      Object.values(GIFT_CATALOG)
+        .filter(g => giftActiveCategory === 'all' || g.category === giftActiveCategory)
+        .forEach(g => {
+          const affordable = state.isVipUnlimited || state.credits >= g.cost;
+          const card = document.createElement('button');
+          card.type = 'button';
+          card.className = 'gift-item-btn text-left rounded-2xl overflow-hidden bg-[#191d2b] hover:bg-[#222839] border border-white/10 hover:border-amber-400/50 transition flex flex-col';
+          card.innerHTML =
+            '<div class="relative aspect-square w-full bg-[#0e1017] flex items-center justify-center text-5xl">' +
+              '<img src="' + g.image + '" alt="' + escapeHtml(g.name) + '" loading="lazy" class="absolute inset-0 w-full h-full object-cover" onerror="this.style.display=\'none\'" />' +
+              '<span>' + g.emoji + '</span>' +
+            '</div>' +
+            '<div class="p-2.5 flex flex-col gap-0.5">' +
+              '<div class="text-[11px] text-zinc-400">' + escapeHtml(g.brand) + '</div>' +
+              '<div class="text-[13px] font-semibold text-white leading-snug line-clamp-2 min-h-[2.4em]">' + escapeHtml(g.name) + '</div>' +
+              '<div class="mt-1 flex items-center justify-between gap-1">' +
+                '<span class="text-[14px] font-extrabold text-white">' + formatWon(g.price) + '</span>' +
+                '<span class="px-2 py-0.5 rounded-full text-[10.5px] font-bold ' + (affordable ? 'bg-amber-500/20 text-amber-300' : 'bg-rose-500/20 text-rose-300') + '">' +
+                  (state.isVipUnlimited ? 'VIP 무료' : '대화권 ' + g.cost + '회') +
+                '</span>' +
+              '</div>' +
+            '</div>';
+          card.addEventListener('click', () => sendGiftToCurrentChar(g.key));
+          grid.appendChild(card);
+        });
+    }
+
     document.getElementById('btnOpenGiftModal').addEventListener('click', () => {
       if (!state.currentChar || state.roomLeft) return;
-      document.getElementById('giftModalSubtitle').textContent = `${state.currentChar.name}님에게 센스 있는 선물로 호감도를 높여보세요`;
+      document.getElementById('giftModalSubtitle').textContent = `${state.currentChar.name}님에게 마음을 전해보세요`;
+      renderGiftGrid();
       document.getElementById('giftModal').classList.remove('hidden');
     });
     document.getElementById('btnCloseGiftModal').addEventListener('click', () => {
       document.getElementById('giftModal').classList.add('hidden');
-    });
-    document.querySelectorAll('.gift-item-btn').forEach(btn => {
-      btn.addEventListener('click', () => {
-        const gKey = btn.getAttribute('data-gift');
-        sendGiftToCurrentChar(gKey);
-      });
     });
 
     // Saved Rooms Modal Events
