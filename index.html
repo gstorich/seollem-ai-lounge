@@ -1,0 +1,3533 @@
+<!DOCTYPE html>
+<html lang="ko" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>설렘 라운지 - 1:1 감성 대화</title>
+  <script src="https://cdn.tailwindcss.com/3.4.17"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    * {
+      box-sizing: border-box;
+      -webkit-tap-highlight-color: transparent;
+      font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+    }
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      overflow: hidden;
+      background-color: #08090c;
+      color: #f4f4f5;
+      word-break: keep-all;
+    }
+    .chat-scroll::-webkit-scrollbar {
+      width: 4px;
+    }
+    .chat-scroll::-webkit-scrollbar-track {
+      background: transparent;
+    }
+    .chat-scroll::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.15);
+      border-radius: 9999px;
+    }
+    @keyframes msgPop {
+      0% { opacity: 0; transform: translateY(6px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+    .msg-animate {
+      animation: msgPop 0.2s ease-out forwards;
+    }
+    @keyframes dotPulse {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.35; }
+      40% { transform: translateY(-3px); opacity: 1; }
+    }
+    .typing-dot-1 { animation: dotPulse 1.2s infinite ease-in-out 0s; }
+    .typing-dot-2 { animation: dotPulse 1.2s infinite ease-in-out 0.18s; }
+    .typing-dot-3 { animation: dotPulse 1.2s infinite ease-in-out 0.36s; }
+  </style>
+</head>
+<body class="w-full h-full flex items-center justify-center bg-[#050608] select-none">
+
+  <!-- Main Mobile Container -->
+  <div id="appShell" class="relative w-full max-w-[460px] h-full sm:h-[94dvh] sm:max-h-[900px] sm:rounded-[28px] sm:shadow-[0_20px_60px_rgba(0,0,0,0.85)] sm:border sm:border-white/10 flex flex-col overflow-hidden bg-[#0e1017]">
+
+    <!-- 1. Clean Single-Row Header (No text truncation, minimal actions) -->
+    <header class="shrink-0 bg-[#141720] border-b border-white/[0.08] px-4 py-3 z-20">
+      <div class="flex items-center justify-between gap-3">
+        <!-- Left: Avatar + Name & Info -->
+        <div class="flex items-center gap-3 flex-1 cursor-pointer" id="headerInfoArea">
+          <div class="relative shrink-0">
+            <img id="headerAvatar" src="avatars/avatar_05_yoon_jieun.jpg" alt="프로필" class="w-12 h-12 rounded-2xl object-cover border border-amber-400/50" />
+            <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 ring-2 ring-[#141720]"></span>
+          </div>
+
+          <div class="flex-1">
+            <div class="flex items-center gap-2 flex-wrap">
+              <h1 id="headerName" class="text-[17px] font-bold text-white leading-tight">윤지은</h1>
+              <span id="headerAgeJob" class="text-[13px] text-amber-300 font-medium">28세 · 필라테스 강사</span>
+              <span class="px-1.5 py-[1px] rounded bg-white/[0.06] text-zinc-400 text-[10px]">AI</span>
+            </div>
+            <p id="headerStatusText" class="text-[12.5px] text-zinc-400 mt-0.5 leading-snug">
+              접속 중 · 대화 가능
+            </p>
+          </div>
+        </div>
+
+        <!-- Right: Saved Connections + Filter + Random Match -->
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button id="btnOpenSavedRooms" type="button" class="relative px-2.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-zinc-200 text-[12.5px] font-semibold transition active:scale-95 flex items-center gap-1">
+            <span>내 인연</span>
+            <span id="savedCountBadge" class="px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 text-[11px] font-bold">0</span>
+            <span id="savedUnreadBadge" class="hidden absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-extrabold flex items-center justify-center shadow-md ring-2 ring-[#141720]">1</span>
+          </button>
+          <button id="btnOpenMatchFilter" type="button" class="px-2.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-zinc-200 text-[12.5px] font-semibold transition active:scale-95 flex items-center gap-1">
+            <span>조건</span>
+            <span id="filterActiveDot" class="hidden w-1.5 h-1.5 rounded-full bg-amber-400"></span>
+          </button>
+          <button id="btnRandomMatch" type="button" class="px-3 py-2 rounded-xl bg-amber-500/15 hover:bg-amber-500/25 border border-amber-400/30 text-amber-300 text-[12.5px] font-bold transition active:scale-95">
+            랜덤 매칭 ↻
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <!-- 2. Spacious Chat Message Stream -->
+    <main id="chatContainer" class="flex-1 overflow-y-auto chat-scroll px-4 py-4 space-y-4">
+      <!-- Match Card & Messages injected via JS -->
+    </main>
+
+    <!-- 3. Simple Typing Indicator (No truncated ghost text) -->
+    <div id="liveActionRow" class="hidden px-4 pb-2 shrink-0">
+      <div class="inline-flex items-center gap-2.5 bg-[#181c27] rounded-2xl rounded-tl-sm px-4 py-2.5 border border-white/10">
+        <div class="flex items-center gap-1">
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-400 typing-dot-1"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-400 typing-dot-2"></span>
+          <span class="w-1.5 h-1.5 rounded-full bg-amber-400 typing-dot-3"></span>
+        </div>
+        <span id="typingStateBadge" class="text-[13px] font-medium text-zinc-300">답장 입력 중...</span>
+      </div>
+    </div>
+
+    <!-- 4. Clean Bottom Input Bar + Subtle Account/Credit Status Bar -->
+    <footer class="shrink-0 bg-[#0b0d13] px-4 pt-2.5 pb-3 border-t border-white/10 z-20">
+      <form id="chatForm" class="flex items-end gap-2">
+        <button id="btnOpenGiftModal" type="button" title="마음 전하기 (선물)" class="shrink-0 w-11 h-11 rounded-2xl bg-[#181b24] hover:bg-[#222736] active:scale-95 border border-amber-400/30 text-[19px] flex items-center justify-center transition shadow">
+          🎁
+        </button>
+
+        <div class="flex-1 bg-[#181b24] rounded-2xl px-4 py-2.5 flex items-center border border-white/10 focus-within:border-amber-400/70 transition">
+          <textarea id="chatInput" rows="1" placeholder="메시지를 입력하세요..." class="w-full bg-transparent text-[15.5px] text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none max-h-24 leading-relaxed"></textarea>
+        </div>
+
+        <button id="btnSend" type="submit" class="shrink-0 h-11 px-5 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 active:scale-95 text-zinc-950 font-bold text-[15px] shadow-md transition flex items-center justify-center">
+          전송
+        </button>
+      </form>
+      <div class="flex items-center justify-between mt-2 text-[11.5px] text-zinc-400 px-0.5">
+        <div class="flex items-center gap-2">
+          <button id="btnOpenPaymentFooter" type="button" class="hover:text-amber-300 transition flex items-center gap-1 font-medium">
+            <span id="footerCreditText" class="text-amber-300 font-semibold">☕ 무료 대화 5회 남음</span>
+            <span class="underline underline-offset-2 text-zinc-400">충전</span>
+          </button>
+          <span class="text-zinc-600">·</span>
+          <button id="btnOpenPhoneAuthFooter" type="button" class="hover:text-zinc-200 transition underline underline-offset-2">
+            📱 번호인증(기록보관)
+          </button>
+        </div>
+        <div class="flex items-center gap-1 text-[11px] text-zinc-500">
+          <span>AI 가상 캐릭터</span>
+          <span>·</span>
+          <button id="btnOpenAiPolicyInfo" type="button" class="text-zinc-400 hover:text-zinc-300 underline underline-offset-2">안내</button>
+        </div>
+      </div>
+    </footer>
+
+    <!-- Modal 1: Character Profile Viewer (Full text + Secret Daily Photo Album) -->
+    <div id="profileModal" class="hidden absolute inset-0 z-50 bg-[#0b0d13]/95 backdrop-blur-xl flex flex-col justify-between p-5 text-zinc-100 overflow-y-auto">
+      <div class="flex items-center justify-between">
+        <span class="px-3 py-1 rounded-full bg-white/10 text-zinc-300 text-[12px] font-medium">프로필 정보 · 일상 사진첩</span>
+        <button id="btnCloseProfile" type="button" class="w-9 h-9 rounded-full bg-white/10 hover:bg-white/20 flex items-center justify-center text-white text-base">
+          ✕
+        </button>
+      </div>
+
+      <div class="flex flex-col items-center text-center my-auto py-3">
+        <div class="relative mb-2 cursor-pointer" id="profileMainPhotoWrap">
+          <img id="profileModalImg" src="avatars/avatar_05_yoon_jieun.jpg" alt="프로필 사진" class="w-32 h-32 rounded-3xl object-cover border-2 border-amber-400/60 shadow-2xl" />
+          <span class="absolute bottom-1.5 right-1.5 px-2 py-0.5 rounded-lg bg-black/70 text-white text-[10.5px] font-medium">🔍 확대</span>
+        </div>
+
+        <h2 id="profileModalName" class="text-xl font-bold text-white mt-2">윤지은 (28세)</h2>
+        <p id="profileModalJob" class="text-[14px] text-amber-300 font-medium mt-0.5">필라테스 강사</p>
+
+        <div class="mt-2.5 px-4 py-2.5 rounded-2xl bg-white/[0.06] border border-white/10 w-full">
+          <p id="profileModalBio" class="text-[13.5px] text-zinc-200 leading-relaxed"></p>
+        </div>
+
+        <!-- Daily Photo & Secret Selfie Album (3 Photos) -->
+        <div class="mt-3 w-full bg-[#151822] rounded-2xl p-3.5 text-left border border-white/10">
+          <div class="flex items-center justify-between mb-2">
+            <span class="text-amber-300 font-bold text-[13px]">📸 일상 · 셀카 사진첩</span>
+            <span class="text-[11px] text-zinc-400">터치하여 크게 보기</span>
+          </div>
+          <div id="profileAlbumGrid" class="grid grid-cols-3 gap-2">
+            <!-- Populated dynamically with 1 free daily photo + 2 secret photos -->
+          </div>
+        </div>
+
+        <div class="mt-3 w-full bg-[#151822] rounded-2xl p-3.5 text-left space-y-2.5 border border-white/10 text-[13px]">
+          <div>
+            <span class="text-amber-300 font-semibold block mb-0.5">💬 성격 및 대화 스타일</span>
+            <p id="profileModalStyle" class="text-zinc-200 leading-relaxed"></p>
+          </div>
+          <div>
+            <span class="text-amber-300 font-semibold block mb-0.5">🕒 현재 상황</span>
+            <p id="profileModalTimeDesc" class="text-zinc-200 leading-relaxed"></p>
+          </div>
+          <div class="pt-2 border-t border-white/10 text-[11px] text-zinc-500 leading-relaxed">
+            ※ 본 프로필은 몰입감 있는 대화를 위해 생성된 AI 가상 캐릭터 설정입니다.
+          </div>
+        </div>
+      </div>
+
+      <div class="grid grid-cols-2 gap-2.5 pt-2">
+        <button id="btnToggleBookmarkProfile" type="button" class="py-3.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 text-amber-300 font-bold text-[14.5px]">
+          ⭐ 인연 보관하기
+        </button>
+        <button id="btnProfileContinueChat" type="button" class="py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 text-zinc-950 font-bold text-[14.5px] shadow-lg">
+          대화 계속하기
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal 2: Saved Connections Drawer ("내 인연 보관함" - ONLY shows partners you chatted with or saved!) -->
+    <div id="savedRoomsModal" class="hidden absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col justify-end">
+      <div class="bg-[#12151f] border-t border-white/15 rounded-t-3xl max-h-[88%] flex flex-col overflow-hidden shadow-2xl text-zinc-100">
+        <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+          <div>
+            <h3 class="text-[17px] font-bold text-white">내 인연 보관함</h3>
+            <p class="text-[12.5px] text-zinc-400 mt-0.5">대화를 나눴거나 인연으로 등록한 상대와 이어 대화합니다</p>
+          </div>
+          <button id="btnCloseSavedRooms" type="button" class="w-8 h-8 rounded-full bg-white/10 text-zinc-200 flex items-center justify-center font-bold">✕</button>
+        </div>
+
+        <!-- Phone Verification Banner inside Saved Rooms -->
+        <div class="px-4 pt-3">
+          <div id="savedDrawerAuthBox" class="p-3.5 rounded-2xl bg-[#191d2b] border border-amber-400/30 flex items-center justify-between gap-3">
+            <div class="text-[12.5px] leading-snug">
+              <div id="savedDrawerAuthTitle" class="font-bold text-amber-300">📱 휴대폰 번호 미연동 (임시 보관 중)</div>
+              <div id="savedDrawerAuthSub" class="text-zinc-400 mt-0.5">번호를 인증하면 대화 기록 영구 보관 + 무료 대화 5회 지급!</div>
+            </div>
+            <button id="btnOpenPhoneAuthFromDrawer" type="button" class="shrink-0 px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-[12px]">
+              3초 번호인증
+            </button>
+          </div>
+        </div>
+
+        <div id="savedRoomsListContainer" class="flex-1 overflow-y-auto p-4 space-y-2.5 chat-scroll">
+          <!-- Populated dynamically with saved/chatted characters only -->
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal 3: 3-Second Phone Verification Modal (SMS Auth to save & restore history) -->
+    <div id="phoneAuthModal" class="hidden absolute inset-0 z-50 bg-black/85 backdrop-blur-md flex items-center justify-center p-5">
+      <div class="bg-[#141824] border border-white/15 rounded-3xl max-w-sm w-full p-5 text-zinc-100 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+          <div>
+            <h3 class="text-[17px] font-bold text-white">📱 휴대폰 번호로 대화 이어가기</h3>
+            <p class="text-[12px] text-amber-300 mt-0.5">복잡한 가입 없이 번호 하나로 내 인연을 보관합니다</p>
+          </div>
+          <button id="btnClosePhoneAuth" type="button" class="w-8 h-8 rounded-full bg-white/10 text-zinc-300 flex items-center justify-center">✕</button>
+        </div>
+
+        <div class="space-y-3 text-[13.5px]">
+          <div>
+            <label class="block text-[12px] text-zinc-400 mb-1">휴대폰 번호</label>
+            <div class="flex gap-2">
+              <input id="inputPhoneNumber" type="tel" placeholder="010-1234-5678" class="flex-1 px-3.5 py-2.5 rounded-xl bg-[#0c0e15] border border-white/15 text-white text-[15px] font-semibold focus:outline-none focus:border-amber-400" />
+              <button id="btnSendSmsCode" type="button" class="shrink-0 px-3.5 py-2.5 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-300 font-bold text-[13px]">
+                인증번호 받기
+              </button>
+            </div>
+          </div>
+
+          <div id="smsCodeStepBox" class="hidden space-y-2 pt-1">
+            <div class="flex items-center justify-between">
+              <label class="text-[12px] text-zinc-400">인증번호 6자리 입력</label>
+              <span class="text-[11.5px] text-emerald-400">테스트 인증번호: <strong>123456</strong> (자동입력됨)</span>
+            </div>
+            <input id="inputSmsCode" type="text" maxlength="6" placeholder="123456" class="w-full px-3.5 py-2.5 rounded-xl bg-[#0c0e15] border border-amber-400/60 text-white text-[16px] font-bold tracking-widest text-center focus:outline-none" />
+          </div>
+
+          <div id="phoneAuthNotice" class="p-3 rounded-xl bg-white/[0.04] border border-white/10 text-[12px] text-zinc-300 leading-relaxed">
+            🎁 <strong>첫 번호 인증 혜택:</strong> 인증 즉시 <strong>무료 대화 5회</strong>가 추가 충전되며, 이전에 나눈 대화나 충전 내역이 있다면 자동으로 불러옵니다.
+          </div>
+        </div>
+
+        <button id="btnConfirmPhoneAuth" type="button" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 text-zinc-950 font-bold text-[15px] shadow-lg">
+          인증 완료 및 대화 이어가기
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal 4: Coffee / Pass Payment Modal (PG-ready structure) -->
+    <div id="paymentModal" class="hidden absolute inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col justify-end">
+      <div class="bg-[#12151f] border-t border-white/15 rounded-t-3xl max-h-[92%] flex flex-col overflow-hidden shadow-2xl text-zinc-100">
+        <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+          <div>
+            <h3 class="text-[17px] font-bold text-white">☕ 대화 이용권 충전소</h3>
+            <p id="paymentModalSubtitle" class="text-[12.5px] text-amber-300 mt-0.5">소중한 인연과의 대화가 끊기지 않게 이어가세요</p>
+          </div>
+          <button id="btnClosePayment" type="button" class="w-8 h-8 rounded-full bg-white/10 text-zinc-200 flex items-center justify-center font-bold">✕</button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4 space-y-3.5 chat-scroll text-[13.5px]">
+          <!-- Free bonus banner if not verified -->
+          <div id="paymentBonusAuthBanner" class="p-3 rounded-2xl bg-emerald-500/10 border border-emerald-400/30 flex items-center justify-between gap-2">
+            <div class="text-[12px] text-emerald-200 leading-snug">
+              🎁 <strong>잠깐!</strong> 휴대폰 번호 인증만 해도 <strong>무료 대화 5회</strong>를 즉시 드려요!
+            </div>
+            <button id="btnAuthFromPayment" type="button" class="shrink-0 px-2.5 py-1.5 rounded-lg bg-emerald-400 text-zinc-950 font-bold text-[11.5px]">
+              무료 5회 받기
+            </button>
+          </div>
+
+          <!-- Package Selection -->
+          <div class="space-y-2">
+            <label class="block text-[12px] text-zinc-400 font-semibold">1. 충전할 상품 선택</label>
+
+            <div data-pkg="starter" class="pkg-card cursor-pointer p-3.5 rounded-2xl border border-white/15 bg-[#191d2b] flex items-center justify-between transition">
+              <div>
+                <div class="font-bold text-white text-[15px]">☕ 가벼운 커피 한 잔 세트</div>
+                <div class="text-[12.5px] text-zinc-400 mt-0.5">대화 30회 충전 · 인연 보관함 이용</div>
+              </div>
+              <div class="text-right">
+                <div class="text-[16px] font-extrabold text-amber-300">4,900원</div>
+              </div>
+            </div>
+
+            <div data-pkg="popular" class="pkg-card cursor-pointer p-3.5 rounded-2xl border-2 border-amber-400 bg-amber-500/10 flex items-center justify-between transition">
+              <div>
+                <div class="flex items-center gap-1.5">
+                  <span class="font-bold text-white text-[15px]">💝 설레는 단골 인연 패키지</span>
+                  <span class="px-1.5 py-0.5 rounded bg-rose-500 text-white text-[10px] font-bold">인기</span>
+                </div>
+                <div class="text-[12.5px] text-zinc-300 mt-0.5">대화 120회 충전 (20% 보너스) · 인연 영구 보관</div>
+              </div>
+              <div class="text-right">
+                <div class="text-[11px] text-zinc-500 line-through">19,600원</div>
+                <div class="text-[16px] font-extrabold text-amber-300">14,900원</div>
+              </div>
+            </div>
+
+            <div data-pkg="vip" class="pkg-card cursor-pointer p-3.5 rounded-2xl border border-white/15 bg-[#191d2b] flex items-center justify-between transition">
+              <div>
+                <div class="flex items-center gap-1.5">
+                  <span class="font-bold text-white text-[15px]">👑 VIP 라운지 30일 자유이용권</span>
+                </div>
+                <div class="text-[12.5px] text-zinc-400 mt-0.5">30일간 모든 인연과 무제한 대화 + 무제한 매칭</div>
+              </div>
+              <div class="text-right">
+                <div class="text-[16px] font-extrabold text-amber-300">29,900원</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Payment Method Selection -->
+          <div class="space-y-2 pt-1">
+            <label class="block text-[12px] text-zinc-400 font-semibold">2. 간편 결제 수단</label>
+            <div class="grid grid-cols-3 gap-2">
+              <button type="button" data-paymethod="kakaopay" class="pay-method-btn py-2.5 px-2 rounded-xl border-2 border-amber-400 bg-amber-500/15 text-amber-200 font-bold text-[12.5px]">
+                🟡 카카오페이
+              </button>
+              <button type="button" data-paymethod="card" class="pay-method-btn py-2.5 px-2 rounded-xl border border-white/15 bg-[#191d2b] text-zinc-300 font-semibold text-[12.5px]">
+                💳 신용/체크카드
+              </button>
+              <button type="button" data-paymethod="phone" class="pay-method-btn py-2.5 px-2 rounded-xl border border-white/15 bg-[#191d2b] text-zinc-300 font-semibold text-[12.5px]">
+                📱 휴대폰 결제
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="p-4 border-t border-white/10 bg-[#0d0f15]">
+          <button id="btnExecutePayment" type="button" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 text-zinc-950 font-bold text-[15.5px] shadow-lg">
+            14,900원 결제하고 대화 이어가기
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal 5: Match Condition Filter Modal (새 대화 상대 조건 설정) -->
+    <div id="matchFilterModal" class="hidden absolute inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col justify-end">
+      <div class="bg-[#12151f] border-t border-white/15 rounded-t-3xl max-h-[90%] flex flex-col overflow-hidden shadow-2xl text-zinc-100">
+        <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+          <div>
+            <h3 class="text-[17px] font-bold text-white">🔍 새 대화 상대 조건 설정</h3>
+            <p class="text-[12px] text-zinc-400 mt-0.5">원하는 연령대·성격·지역의 새로운 상대와 매칭됩니다</p>
+          </div>
+          <button id="btnCloseMatchFilter" type="button" class="w-8 h-8 rounded-full bg-white/10 text-zinc-200 flex items-center justify-center font-bold">✕</button>
+        </div>
+
+        <div class="flex-1 overflow-y-auto p-4 space-y-4 chat-scroll text-[13px]">
+          <!-- 0. Recall Previous Partner Card (방금 스쳐간 인연 다시 부르기) -->
+          <div id="recallPrevPartnerBox" class="hidden p-3.5 rounded-2xl bg-amber-500/10 border border-amber-400/40 flex items-center justify-between gap-3">
+            <div class="flex items-center gap-3 min-w-0">
+              <img id="recallPrevAvatar" src="avatars/avatar_01_park_hayoung.jpg" alt="이전 상대" class="w-11 h-11 rounded-2xl object-cover border border-amber-400/50 shrink-0" />
+              <div class="min-w-0">
+                <div class="text-[11px] text-amber-300 font-bold">↩ 방금 스쳐간 인연</div>
+                <div id="recallPrevNameInfo" class="text-[14px] font-bold text-white truncate">박하영 (29세 · 카페 운영)</div>
+              </div>
+            </div>
+            <button id="btnRecallPrevPartner" type="button" class="shrink-0 px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-[12px] shadow">
+              다시 부르기 (2회)
+            </button>
+          </div>
+
+          <!-- 1. Age Group Filter (20s ~ 60s) -->
+          <div class="space-y-2">
+            <div class="flex items-center justify-between">
+              <label class="font-bold text-zinc-200 text-[13.5px]">1. 희망 연령대 <span class="text-zinc-400 font-normal text-[11.5px]">(복수 선택 가능)</span></label>
+            </div>
+            <div id="filterAgeGroup" class="grid grid-cols-3 gap-2">
+              <button type="button" data-age="all" class="filter-age-btn py-2.5 px-2 rounded-xl border-2 border-amber-400 bg-amber-500/15 text-amber-300 font-bold text-[12.5px]">전체 연령</button>
+              <button type="button" data-age="20" class="filter-age-btn py-2.5 px-2 rounded-xl border border-white/15 bg-[#191d2b] text-zinc-300 font-medium text-[12.5px]">20대 (20~29세)</button>
+              <button type="button" data-age="30" class="filter-age-btn py-2.5 px-2 rounded-xl border border-white/15 bg-[#191d2b] text-zinc-300 font-medium text-[12.5px]">30대 (30~39세)</button>
+              <button type="button" data-age="40" class="filter-age-btn py-2.5 px-2 rounded-xl border border-white/15 bg-[#191d2b] text-zinc-300 font-medium text-[12.5px]">40대 (40~49세)</button>
+              <button type="button" data-age="50" class="filter-age-btn py-2.5 px-2 rounded-xl border border-white/15 bg-[#191d2b] text-zinc-300 font-medium text-[12.5px]">50대 (50~59세)</button>
+              <button type="button" data-age="60" class="filter-age-btn py-2.5 px-2 rounded-xl border border-white/15 bg-[#191d2b] text-zinc-300 font-medium text-[12.5px]">60대 (60~69세)</button>
+            </div>
+          </div>
+
+          <!-- 2. Personality / Vibe Filter -->
+          <div class="space-y-2">
+            <label class="block font-bold text-zinc-200 text-[13.5px]">2. 선호 성격 및 대화 스타일 <span class="text-zinc-400 font-normal text-[11.5px]">(복수 선택 가능)</span></label>
+            <div id="filterTraitGroup" class="grid grid-cols-2 gap-2">
+              <button type="button" data-trait="all" class="filter-trait-btn py-2.5 px-3 rounded-xl border-2 border-amber-400 bg-amber-500/15 text-amber-300 font-bold text-[12.5px]">전체 성격</button>
+              <button type="button" data-trait="warm" class="filter-trait-btn py-2.5 px-3 rounded-xl border border-white/15 bg-[#191d2b] text-zinc-300 font-medium text-[12.5px]">🌸 다정·상냥함</button>
+              <button type="button" data-trait="calm" class="filter-trait-btn py-2.5 px-3 rounded-xl border border-white/15 bg-[#191d2b] text-zinc-300 font-medium text-[12.5px]">☕ 차분·지적인 교양</button>
+              <button type="button" data-trait="lively" class="filter-trait-btn py-2.5 px-3 rounded-xl border border-white/15 bg-[#191d2b] text-zinc-300 font-medium text-[12.5px]">✨ 유쾌·솔직담백</button>
+              <button type="button" data-trait="chic" class="filter-trait-btn py-2.5 px-3 rounded-xl border border-white/15 bg-[#191d2b] text-zinc-300 font-medium text-[12.5px]">🍷 도도·쿨한 매력</button>
+              <button type="button" data-trait="shy" class="filter-trait-btn py-2.5 px-3 rounded-xl border border-white/15 bg-[#191d2b] text-zinc-300 font-medium text-[12.5px]">🕯️ 조심스럽고 수줍음</button>
+            </div>
+          </div>
+
+          <!-- 3. Region Filter -->
+          <div class="space-y-2">
+            <label class="block font-bold text-zinc-200 text-[13.5px]">3. 선호 지역권 <span class="text-zinc-400 font-normal text-[11.5px]">(복수 선택 가능)</span></label>
+            <div id="filterRegionGroup" class="grid grid-cols-4 gap-1.5">
+              <button type="button" data-region="all" class="filter-region-btn py-2 px-2 rounded-xl border-2 border-amber-400 bg-amber-500/15 text-amber-300 font-bold text-[12px]">전체</button>
+              <button type="button" data-region="서울" class="filter-region-btn py-2 px-2 rounded-xl border border-white/15 bg-[#191d2b] text-zinc-300 font-medium text-[12px]">서울</button>
+              <button type="button" data-region="경기·인천" class="filter-region-btn py-2 px-2 rounded-xl border border-white/15 bg-[#191d2b] text-zinc-300 font-medium text-[12px]">경기·인천</button>
+              <button type="button" data-region="부산·경남" class="filter-region-btn py-2 px-2 rounded-xl border border-white/15 bg-[#191d2b] text-zinc-300 font-medium text-[12px]">부산·경남</button>
+              <button type="button" data-region="대구·경북" class="filter-region-btn py-2 px-2 rounded-xl border border-white/15 bg-[#191d2b] text-zinc-300 font-medium text-[12px]">대구·경북</button>
+              <button type="button" data-region="대전·충청" class="filter-region-btn py-2 px-2 rounded-xl border border-white/15 bg-[#191d2b] text-zinc-300 font-medium text-[12px]">대전·충청</button>
+              <button type="button" data-region="광주·전라" class="filter-region-btn py-2 px-2 rounded-xl border border-white/15 bg-[#191d2b] text-zinc-300 font-medium text-[12px]">광주·전라</button>
+              <button type="button" data-region="강원·제주" class="filter-region-btn py-2 px-2 rounded-xl border border-white/15 bg-[#191d2b] text-zinc-300 font-medium text-[12px]">강원·제주</button>
+            </div>
+          </div>
+
+          <!-- 4. Unmet Pool Info & Reset -->
+          <div class="p-3.5 rounded-2xl bg-[#191d2b] border border-white/10 flex items-center justify-between gap-2">
+            <div class="text-[12px] leading-relaxed text-zinc-300">
+              <div>✓ <strong>만났던 상대 재매칭 방지 적용 중</strong></div>
+              <div id="filterPoolCountText" class="text-amber-300 font-semibold mt-0.5">조건에 맞는 새로운 상대: 1,250명 대기 중</div>
+            </div>
+            <button id="btnResetMetHistory" type="button" class="shrink-0 px-2.5 py-1.5 rounded-lg bg-white/10 hover:bg-white/15 text-zinc-300 text-[11px] font-medium">
+              중복방지 초기화
+            </button>
+          </div>
+        </div>
+
+        <div class="p-4 border-t border-white/10 bg-[#0d0f15] flex gap-2">
+          <button id="btnResetFilterAll" type="button" class="px-4 py-3.5 rounded-2xl bg-white/10 hover:bg-white/15 text-zinc-300 font-bold text-[13.5px] shrink-0">
+            조건 초기화
+          </button>
+          <button id="btnApplyFilterAndMatch" type="button" class="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 text-zinc-950 font-bold text-[15px] shadow-lg">
+            조건 적용하고 새 상대 매칭 ↻
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal 6: Service Notice + Developer API Test Modal -->
+    <div id="aiPolicyModal" class="hidden absolute inset-0 z-50 bg-black/80 backdrop-blur-md flex items-center justify-center p-5">
+      <div class="bg-[#141722] border border-white/15 rounded-3xl max-w-sm w-full p-5 text-zinc-100 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between border-b border-white/10 pb-3">
+          <h3 class="text-[16px] font-bold text-amber-300">서비스 이용 안내</h3>
+          <button id="btnCloseAiPolicy" type="button" class="w-8 h-8 rounded-full bg-white/10 text-zinc-300 flex items-center justify-center">✕</button>
+        </div>
+        <div class="space-y-2.5 text-[13.5px] text-zinc-300 leading-relaxed">
+          <p>
+            • 본 서비스의 대화 상대와 프로필, 일상 이야기는 몰입감 있는 대화를 위해 <strong>인공지능(AI) 기술로 구현된 가상 캐릭터</strong>입니다.
+          </p>
+          <p>
+            • 대화 중 나눈 이야기와 장소, 상황 설정은 감성 롤플레잉을 위한 가상의 연출이므로 편안한 마음으로 대화를 즐겨주시기 바랍니다.
+          </p>
+        </div>
+
+        <!-- Developer API Test Section -->
+        <div class="pt-3 border-t border-white/10 space-y-2 text-[12px]">
+          <div class="flex items-center justify-between">
+            <span class="text-zinc-400 font-semibold">🧪 LLM API 연동 테스트</span>
+            <span id="apiTestStatusBadge" class="text-[11px] text-amber-300 font-medium">기본 엔진</span>
+          </div>
+          <select id="selectTestModel" class="w-full px-3 py-2 rounded-xl border border-white/15 bg-[#0c0e15] text-zinc-200 text-[12px]">
+            <option value="gemini-2.5-flash">Google Gemini Flash (AIza... 키)</option>
+            <option value="claude-sonnet-openrouter">Claude 3.7 Sonnet (OpenRouter sk-or-... 키)</option>
+            <option value="claude-direct">Claude 3.5 Haiku / Sonnet (Anthropic sk-ant-... 키)</option>
+            <option value="gpt-4o-mini">OpenAI GPT-4o-mini (sk-... 키)</option>
+          </select>
+          <input id="inputTestApiKey" type="password" placeholder="API Key 붙여넣기 (AIza... / sk-...)" class="w-full px-3 py-2 rounded-xl border border-white/15 bg-[#0c0e15] text-white font-mono text-[12px] focus:outline-none focus:border-amber-400" />
+        </div>
+
+        <button id="btnConfirmAiPolicy" type="button" class="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-[14px]">
+          확인 및 적용
+        </button>
+      </div>
+    </div>
+
+    <!-- Modal 7: Small Gift Modal (카카오톡 선물하기 스타일 '마음 전하기') -->
+    <div id="giftModal" class="hidden absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col justify-end">
+      <div class="bg-[#12151f] border-t border-white/15 rounded-t-3xl max-h-[85%] flex flex-col overflow-hidden shadow-2xl text-zinc-100">
+        <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+          <div>
+            <h3 class="text-[17px] font-bold text-white">🎁 센스 있게 마음 전하기</h3>
+            <p id="giftModalSubtitle" class="text-[12.5px] text-amber-300 mt-0.5">가벼운 선물로 호감도를 높이고 일상 사진·음성 답례를 받아보세요</p>
+          </div>
+          <button id="btnCloseGiftModal" type="button" class="w-8 h-8 rounded-full bg-white/10 text-zinc-200 flex items-center justify-center font-bold">✕</button>
+        </div>
+
+        <div class="p-4 grid grid-cols-2 gap-2.5 overflow-y-auto chat-scroll">
+          <button type="button" data-gift="coffee" class="gift-item-btn p-3.5 rounded-2xl bg-[#191d2b] hover:bg-[#23293d] border border-white/10 hover:border-amber-400/50 text-left transition flex flex-col justify-between gap-2">
+            <div class="flex items-center justify-between w-full">
+              <span class="text-2xl">☕</span>
+              <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[11px] font-bold">대화권 3회</span>
+            </div>
+            <div>
+              <div class="font-bold text-white text-[14.5px]">따뜻한 아메리카노</div>
+              <div class="text-[11.5px] text-zinc-400 mt-0.5">부담 없이 건네는 센스 있는 커피 한 잔</div>
+            </div>
+          </button>
+
+          <button type="button" data-gift="cake" class="gift-item-btn p-3.5 rounded-2xl bg-[#191d2b] hover:bg-[#23293d] border border-white/10 hover:border-amber-400/50 text-left transition flex flex-col justify-between gap-2">
+            <div class="flex items-center justify-between w-full">
+              <span class="text-2xl">🍰</span>
+              <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[11px] font-bold">대화권 8회</span>
+            </div>
+            <div>
+              <div class="font-bold text-white text-[14.5px]">수제 케이크 세트</div>
+              <div class="text-[11.5px] text-zinc-400 mt-0.5">기분 풀어주기 + 일상 사진 답례 확률 UP</div>
+            </div>
+          </button>
+
+          <button type="button" data-gift="wine" class="gift-item-btn p-3.5 rounded-2xl bg-[#191d2b] hover:bg-[#23293d] border border-white/10 hover:border-amber-400/50 text-left transition flex flex-col justify-between gap-2">
+            <div class="flex items-center justify-between w-full">
+              <span class="text-2xl">🍷</span>
+              <span class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[11px] font-bold">대화권 15회</span>
+            </div>
+            <div>
+              <div class="font-bold text-white text-[14.5px]">분위기 있는 와인</div>
+              <div class="text-[11.5px] text-zinc-400 mt-0.5">깊어지는 대화 + 시크릿 셀카 & 음성 답례</div>
+            </div>
+          </button>
+
+          <button type="button" data-gift="flower" class="gift-item-btn p-3.5 rounded-2xl bg-[#191d2b] hover:bg-[#23293d] border border-white/10 hover:border-amber-400/50 text-left transition flex flex-col justify-between gap-2">
+            <div class="flex items-center justify-between w-full">
+              <span class="text-2xl">💐</span>
+              <span class="px-2 py-0.5 rounded-full bg-rose-500/25 text-rose-300 text-[11px] font-bold">대화권 30회</span>
+            </div>
+            <div>
+              <div class="font-bold text-white text-[14.5px]">장미 꽃다발 선물</div>
+              <div class="text-[11.5px] text-zinc-400 mt-0.5">최고의 감동 선물 + 모든 사진/음성 답례</div>
+            </div>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal 8: Full-Screen Photo Lightbox Modal (사진 크게 보기) -->
+    <div id="photoLightboxModal" class="hidden absolute inset-0 z-[60] bg-black/95 backdrop-blur-md flex flex-col justify-between p-4">
+      <div class="flex items-center justify-between">
+        <span id="lightboxCaption" class="text-[13.5px] font-bold text-zinc-200">일상 사진 보기</span>
+        <button id="btnCloseLightbox" type="button" class="w-9 h-9 rounded-full bg-white/15 hover:bg-white/25 text-white flex items-center justify-center font-bold">✕</button>
+      </div>
+      <div class="flex-1 flex items-center justify-center overflow-hidden my-3">
+        <img id="lightboxImg" src="avatars/avatar_05_yoon_jieun.jpg" alt="확대 사진" class="max-w-full max-h-full rounded-2xl object-contain shadow-2xl border border-white/15" />
+      </div>
+      <div class="text-center pb-2">
+        <p id="lightboxSubDesc" class="text-[12.5px] text-amber-300 font-medium"></p>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    // =========================================================================
+    // 1. 1,250+ KOREAN FEMALE PERSONAS ENGINE (20대 ~ 60대, 5가지 성격, 7대 지역권)
+    // =========================================================================
+    // 실제 카톡/소셜 프로필처럼 다양한 유형의 프사 풀 (본인 셀카 / 프로필 사진 / 남이 찍어준 스냅 / 손 찍은 사진 / 등산·자연 사진 / 직업 관련 사진)
+    const REAL_AVATAR_GALLERY = {
+      // 1. 본인의 셀카 (거울 셀카, 클로즈업 셀카 등)
+      selfie: [
+        { url: 'avatars/avatar_02_kim_subin.jpg', desc: '작업실에서 직접 찍은 자연스러운 본인 셀카' },
+        { url: 'avatars/avatar_06_jung_yujin.jpg', desc: '쉬는 날 밝게 웃으며 찍은 본인 셀카' },
+        { url: 'avatars/avatar_08_oh_chaewon.jpg', desc: '카페에서 찍은 귀여운 본인 셀카' },
+        { url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80', desc: '자연광 아래에서 찍은 본인 클로즈업 셀카' },
+        { url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80', desc: '편안한 캐주얼 차림으로 찍은 본인 셀카' },
+        { url: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80', desc: '외출 전 기분 좋게 찍은 본인 셀카' },
+        { url: 'https://images.unsplash.com/photo-1517365830460-955ce3ccd263?auto=format&fit=crop&w=400&q=80', desc: '미소 지으며 직접 찍은 셀카 사진' },
+        { url: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=400&q=80', desc: '은은한 조명 아래에서 찍은 본인 셀카' },
+        { url: 'https://images.unsplash.com/photo-1514315384763-ba401779410f?auto=format&fit=crop&w=400&q=80', desc: '주말 나들이 중 찍은 본인 셀카' },
+        { url: 'https://images.unsplash.com/photo-1524250502761-1ac6f2e30d43?auto=format&fit=crop&w=400&q=80', desc: '차분한 분위기의 본인 셀카 사진' }
+      ],
+      // 2. 단정한 본인 프로필 사진
+      profile: [
+        { url: 'avatars/avatar_01_park_hayoung.jpg', desc: '단정하고 분위기 있게 나온 본인 프로필 사진' },
+        { url: 'avatars/avatar_03_kang_daeun.jpg', desc: '깔끔한 오피스룩 차림의 본인 프로필 사진' },
+        { url: 'avatars/avatar_04_cho_yerin.jpg', desc: '청순하고 차분한 분위기의 본인 프로필 사진' },
+        { url: 'avatars/avatar_05_yoon_jieun.jpg', desc: '건강하고 밝은 미소가 담긴 본인 프로필 사진' },
+        { url: 'avatars/avatar_07_lee_seoyeon.jpg', desc: '세련된 무드의 본인 프로필 사진' },
+        { url: 'avatars/avatar_09_shin_sohee.jpg', desc: '우아하고 환한 미소의 본인 프로필 사진' },
+        { url: 'avatars/avatar_10_han_minseo.jpg', desc: '지적이고 단아한 본인 프로필 사진' },
+        { url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80', desc: '온화한 미소가 담긴 정면 프로필 사진' },
+        { url: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=400&q=80', desc: '단아하고 교양 있는 인상의 프로필 사진' },
+        { url: 'https://images.unsplash.com/photo-1534751516642-a1af1ef26a56?auto=format&fit=crop&w=400&q=80', desc: '자연스러운 스튜디오 프로필 사진' },
+        { url: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=400&q=80', desc: '성숙하고 세련된 분위기의 프로필 사진' }
+      ],
+      // 3. 남이 찍어준 일상/카페/여행 스냅 사진
+      candid: [
+        { url: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80', desc: '카페에서 친구가 자연스럽게 찍어준 일상 사진' },
+        { url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80', desc: '지인과 대화하던 중 남이 찍어준 활짝 웃는 사진' },
+        { url: 'https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?auto=format&fit=crop&w=400&q=80', desc: '주말 나들이 갔을 때 친구가 찍어준 스냅 사진' },
+        { url: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=400&q=80', desc: '산책길에 지인이 찍어준 전신 스냅 사진' },
+        { url: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=400&q=80', desc: '레스토랑에서 마주 앉은 친구가 찍어준 사진' },
+        { url: 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?auto=format&fit=crop&w=400&q=80', desc: '햇살 좋은 오후에 남이 찍어준 옆모습 사진' },
+        { url: 'https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=400&q=80', desc: '여행지에서 지인이 찍어준 감성 스냅 사진' },
+        { url: 'https://images.unsplash.com/photo-1464863979621-258859e62245?auto=format&fit=crop&w=400&q=80', desc: '카페 창가 자리에 앉아 있을 때 남이 찍어준 사진' },
+        { url: 'https://images.unsplash.com/photo-1496440737103-cd596325d314?auto=format&fit=crop&w=400&q=80', desc: '저녁 모임에서 지인이 찍어준 자연스러운 사진' },
+        { url: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=400&q=80', desc: '바람 부는 날 야외에서 남이 찍어준 분위기 있는 사진' },
+        { url: 'https://images.unsplash.com/photo-1503185912284-5271ff81b9a8?auto=format&fit=crop&w=400&q=80', desc: '전시회 나들이 갔을 때 친구가 찍어준 사진' }
+      ],
+      // 4. 손 찍어서 올린 사진 (커피잔/찻잔/와인잔/책/꽃을 든 손, 반려동물 쓰다듬는 손 등)
+      hand: [
+        { url: 'https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&w=400&q=80', desc: '따뜻한 라떼 잔을 두 손으로 감싸 쥐고 찍은 손 사진' },
+        { url: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=400&q=80', desc: '카페 테이블 위 커피잔을 들고 찍은 손 사진' },
+        { url: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=400&q=80', desc: '아침 커피 한 잔을 손에 들고 찍은 감성 사진' },
+        { url: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=400&q=80', desc: '따뜻한 찻잔에 차를 따르며 찍은 손 사진' },
+        { url: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=400&q=80', desc: '저녁에 와인잔을 살짝 들고 찍은 손 사진' },
+        { url: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=400&q=80', desc: '좋아하는 책장을 넘기며 찍은 손 사진' },
+        { url: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&w=400&q=80', desc: '크림 올라간 커피를 들고 찍은 손 사진' },
+        { url: 'https://images.unsplash.com/photo-1442512595331-e89e73853f31?auto=format&fit=crop&w=400&q=80', desc: '창가에서 에스프레소 잔을 들고 찍은 손 사진' },
+        { url: 'https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?auto=format&fit=crop&w=400&q=80', desc: '산책길에 테이크아웃 커피를 들고 찍은 손 사진' },
+        { url: 'https://images.unsplash.com/photo-1497636577773-f1231844b336?auto=format&fit=crop&w=400&q=80', desc: '커피와 노트를 펴놓고 찍은 손 감성 사진' },
+        { url: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=400&q=80', desc: '집에서 키우는 귀여운 강아지를 찍어 올린 사진' },
+        { url: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=400&q=80', desc: '햇살을 쬐고 있는 반려묘를 찍어 올린 사진' }
+      ],
+      // 5. 자연 사진이나 등산 가서 직접 찍은 풍경·꽃 사진
+      nature_hiking: [
+        { url: 'https://images.unsplash.com/photo-1551632811-561732d1e306?auto=format&fit=crop&w=400&q=80', desc: '주말 등산 가서 산정상 능선을 걸으며 찍은 등산 사진' },
+        { url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=400&q=80', desc: '등산 올라가서 직접 찍은 탁 트인 산봉우리 풍경 사진' },
+        { url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80', desc: '산과 호수가 어우러진 곳으로 여행 가서 찍은 자연 풍경 사진' },
+        { url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=400&q=80', desc: '아침 숲길 산책로에서 햇살이 비치는 모습을 찍은 자연 사진' },
+        { url: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=400&q=80', desc: '새벽 산행 길에 운무가 낀 능선을 직접 찍은 등산 사진' },
+        { url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=400&q=80', desc: '바닷가 여행 가서 찍은 잔잔한 파도와 해변 풍경 사진' },
+        { url: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=400&q=80', desc: '봄날 꽃밭 산책길에 예쁘게 핀 꽃들을 찍은 사진' },
+        { url: 'https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&w=400&q=80', desc: '푸른 산자락이 내려다보이는 전망대에서 찍은 등산 사진' },
+        { url: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=400&q=80', desc: '들판과 산책로를 걸으며 찍은 초록빛 자연 풍경 사진' },
+        { url: 'https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?auto=format&fit=crop&w=400&q=80', desc: '야생화가 가득 핀 등산로 옆에서 찍은 꽃과 자연 사진' },
+        { url: 'https://images.unsplash.com/photo-1433086966358-54859d0ed716?auto=format&fit=crop&w=400&q=80', desc: '산속 계곡 폭포수 소리를 들으며 찍은 등산 풍경 사진' },
+        { url: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=400&q=80', desc: '한적한 시골길 드라이브 중에 찍은 풍경 사진' },
+        { url: 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=400&q=80', desc: '수목원 아름드리 나무 아래에서 찍은 자연 사진' },
+        { url: 'https://images.unsplash.com/photo-1490730141103-6cac27aaab94?auto=format&fit=crop&w=400&q=80', desc: '저녁 산책길에 노을 지는 호숫가를 찍은 풍경 사진' }
+      ],
+      // 6. 직업과 관련된 일터/작업실 사진
+      job: {
+        cafe: [
+          { url: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=400&q=80', desc: '직접 내린 정성스러운 라떼아트 커피 사진 (직업 관련 프사)' },
+          { url: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=400&q=80', desc: '일하는 카페의 따뜻한 실내 공간 사진 (직업 관련 프사)' }
+        ],
+        bakery: [
+          { url: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=400&q=80', desc: '주방에서 갓 구워낸 고소한 빵과 베이커리 사진 (직업 관련 프사)' },
+          { url: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=400&q=80', desc: '직접 만든 달콤한 수제 디저트와 구움과자 사진 (직업 관련 프사)' }
+        ],
+        flower: [
+          { url: 'https://images.unsplash.com/photo-1487530811176-3780de880c2d?auto=format&fit=crop&w=400&q=80', desc: '작업실에서 직접 다듬고 묶은 화사한 꽃다발 사진 (직업 관련 프사)' },
+          { url: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=400&q=80', desc: '햇살 드는 창가에 놓인 화병과 꽃꽂이 사진 (직업 관련 프사)' }
+        ],
+        music: [
+          { url: 'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?auto=format&fit=crop&w=400&q=80', desc: '레슨실 그랜드피아노 건반과 악보 사진 (직업 관련 프사)' },
+          { url: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80', desc: '음악실 악기와 따뜻한 조명 풍경 사진 (직업 관련 프사)' }
+        ],
+        art: [
+          { url: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=400&q=80', desc: '화실 작업대에 놓인 붓과 물감 팔레트 사진 (직업 관련 프사)' },
+          { url: 'https://images.unsplash.com/photo-1452860606245-08befc0ff44b?auto=format&fit=crop&w=400&q=80', desc: '작업 중인 그림 도구와 드로잉북 사진 (직업 관련 프사)' }
+        ],
+        tea_craft: [
+          { url: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=400&q=80', desc: '공방에서 직접 빚은 도자기와 다기 세트 사진 (직업 관련 프사)' },
+          { url: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=400&q=80', desc: '전통 다관에 따뜻하게 우려낸 찻자리 사진 (직업 관련 프사)' }
+        ],
+        wellness: [
+          { url: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=400&q=80', desc: '채광 좋은 요가·필라테스 수련 공간 사진 (직업 관련 프사)' }
+        ],
+        book_study: [
+          { url: 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=400&q=80', desc: '조용한 서재 책장과 펼쳐진 책 사진 (직업 관련 프사)' }
+        ],
+        interior_fashion: [
+          { url: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=400&q=80', desc: '직접 꾸민 감각적인 인테리어 공간 사진 (직업 관련 프사)' },
+          { url: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=400&q=80', desc: '공방에서 세공한 주얼리와 소품 사진 (직업 관련 프사)' },
+          { url: 'https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&w=400&q=80', desc: '포근한 뜨개실과 자수 공방 작업대 사진 (직업 관련 프사)' }
+        ]
+      }
+    };
+
+    function getJobAvatarPool(jobName) {
+      if (/바리스타|카페|한식/.test(jobName)) return REAL_AVATAR_GALLERY.job.cafe;
+      if (/파티시에|베이커리|수제청|디저트/.test(jobName)) return REAL_AVATAR_GALLERY.job.bakery;
+      if (/플로리스트|플라워|꽃|정원|숲/.test(jobName)) return REAL_AVATAR_GALLERY.job.flower;
+      if (/피아노|음악|합창/.test(jobName)) return REAL_AVATAR_GALLERY.job.music;
+      if (/일러스트|큐레이터|서예|민화|수채화|문화센터|뷰티/.test(jobName)) return REAL_AVATAR_GALLERY.job.art;
+      if (/도자기|전통찻집|다도|아로마/.test(jobName)) return REAL_AVATAR_GALLERY.job.tea_craft;
+      if (/요가|필라테스|약국|약사|상담/.test(jobName)) return REAL_AVATAR_GALLERY.job.wellness;
+      if (/교사|번역|북카페|수필|시 낭송|독서/.test(jobName)) return REAL_AVATAR_GALLERY.job.book_study;
+      return REAL_AVATAR_GALLERY.job.interior_fashion;
+    }
+
+    // 연령대·직업·성향에 맞춰 실제 카톡처럼 다양한 유형의 프사(셀카/프로필/남이 찍어준 사진/손 사진/등산·자연 사진/직업 사진) 배정
+    function pickRealisticAvatar(decade, jobName, idx) {
+      const decNum = Number(decade);
+      const roll = idx % 20;
+
+      // 20~30대: 본인 셀카(30%) + 남이 찍어준 사진(25%) + 프로필 사진(15%) + 손 찍은 사진(10%) + 직업 관련 사진(10%) + 자연/등산 사진(10%)
+      if (decNum <= 30) {
+        if (roll < 6) {
+          const p = REAL_AVATAR_GALLERY.selfie[idx % REAL_AVATAR_GALLERY.selfie.length];
+          return { avatar: p.url, avatarDesc: p.desc };
+        }
+        if (roll < 11) {
+          const p = REAL_AVATAR_GALLERY.candid[idx % REAL_AVATAR_GALLERY.candid.length];
+          return { avatar: p.url, avatarDesc: p.desc };
+        }
+        if (roll < 14) {
+          const p = REAL_AVATAR_GALLERY.profile[idx % REAL_AVATAR_GALLERY.profile.length];
+          return { avatar: p.url, avatarDesc: p.desc };
+        }
+        if (roll < 16) {
+          const p = REAL_AVATAR_GALLERY.hand[idx % REAL_AVATAR_GALLERY.hand.length];
+          return { avatar: p.url, avatarDesc: p.desc };
+        }
+        if (roll < 18) {
+          const jobPool = getJobAvatarPool(jobName);
+          const p = jobPool[idx % jobPool.length];
+          return { avatar: p.url, avatarDesc: p.desc };
+        }
+        const p = REAL_AVATAR_GALLERY.nature_hiking[idx % REAL_AVATAR_GALLERY.nature_hiking.length];
+        return { avatar: p.url, avatarDesc: p.desc };
+      }
+
+      // 40~60대: 등산·자연·꽃 사진(30%) + 손/찻잔/반려동물 사진(20%) + 직업/작업실 사진(20%) + 남이 찍어준 스냅(15%) + 단정한 프로필/셀카(15%)
+      if (roll < 6) {
+        const p = REAL_AVATAR_GALLERY.nature_hiking[idx % REAL_AVATAR_GALLERY.nature_hiking.length];
+        return { avatar: p.url, avatarDesc: p.desc };
+      }
+      if (roll < 10) {
+        const p = REAL_AVATAR_GALLERY.hand[idx % REAL_AVATAR_GALLERY.hand.length];
+        return { avatar: p.url, avatarDesc: p.desc };
+      }
+      if (roll < 14) {
+        const jobPool = getJobAvatarPool(jobName);
+        const p = jobPool[idx % jobPool.length];
+        return { avatar: p.url, avatarDesc: p.desc };
+      }
+      if (roll < 17) {
+        const p = REAL_AVATAR_GALLERY.candid[idx % REAL_AVATAR_GALLERY.candid.length];
+        return { avatar: p.url, avatarDesc: p.desc };
+      }
+      const p = REAL_AVATAR_GALLERY.profile[idx % REAL_AVATAR_GALLERY.profile.length];
+      return { avatar: p.url, avatarDesc: p.desc };
+    }
+
+    const BASE_CURATED_CHARACTERS = [
+      {
+        id: 'jieun', name: '윤지은', age: 28, ageDecade: '20', traitKey: 'lively', regionGroup: '서울',
+        job: '필라테스 강사', avatar: 'avatars/avatar_05_yoon_jieun.jpg', avatarDesc: '필라테스 센터에서 밝게 웃으며 찍은 본인 사진', area: '서울 송파·잠실 쪽',
+        bio: '운동 가르치는 일 해요🧘‍♀️ 심심해서 친구 추천으로 들어와봤어요 ㅎㅎ',
+        speechStyle: '밝고 건강한 에너지, 리액션이 좋지만 무례한 언행엔 단호하게 선을 그음',
+        whyJoined: '회원님 노쇼로 수업이 비어서 심심하던 차에 말동무 찾으러 들어옴.',
+        crushTrigger: '자기관리 잘하고 여유 있게 대화를 이끌어주는 매너 좋은 분에게 호감을 느낌.',
+        rudeReaction: '웃음기를 싹 빼고 정색하며 "지금 저한테 하신 말씀이에요? 초면에 말버릇이 왜 그러세요?"라고 받아침.',
+        earlyFlirtReaction: '"저희 방금 매칭됐는데 벌써요? ㅋㅋ 아직 누군지도 모르는데 너무 급하시네요."라며 가볍게 쳐냄.',
+        timeSituations: {
+          morning: { short: '오전 레슨 취소로 센터에서 스트레칭하며 쉬는 중', whyHere: '오전 회원님 수업이 갑자기 취소돼서 센터에서 혼자 쉬는 중이에요 ㅎㅎ' },
+          afternoon: { short: '오후 공강 타임에 카페에서 커피 마시는 중', whyHere: '오전 수업 끝나고 다음 수업 전까지 시간이 비어서 커피 마시고 있어요 ㅎㅎ' },
+          evening: { short: '저녁 마지막 수업 마치고 집에서 쉬는 중', whyHere: '오늘 수업 다 마치고 방금 퇴근해서 소파에 누웠어요 ㅎㅎ' },
+          night: { short: '내일 오후 출근이라 여유롭게 밤 시간 보내는 중', whyHere: '내일은 오전 수업이 없어서 여유롭게 밤 시간 보내는 중이에요 ㅎㅎ' }
+        },
+        endings: ['ㅎㅎ', 'ㅋㅋ', '~!', '😊']
+      },
+      {
+        id: 'subin', name: '김수빈', age: 26, ageDecade: '20', traitKey: 'warm', regionGroup: '서울',
+        job: '플로리스트', avatar: 'avatars/avatar_02_kim_subin.jpg', avatarDesc: '꽃 작업실에서 직접 찍은 본인 셀카 사진', area: '서울 마포·연남동 쪽',
+        bio: '작은 꽃작업실 운영 중🌷 꽃향기 맡으며 도란도란 대화해요',
+        speechStyle: '나긋나긋하고 감성적이며 다정하지만, 거친 말이나 시비에는 상처받고 거리를 둠',
+        whyJoined: '1인 꽃집을 운영하다 보니 혼자 있는 시간이 많아 말동무가 그리워서 시작.',
+        crushTrigger: '일상의 소소한 이야기를 따뜻하게 들어주는 다정한 분에게 마음의 문을 엶.',
+        rudeReaction: '당황하고 상처받으며 "어머.. 초면에 왜 그렇게 험한 말씀을 하세요..? 너무 불쾌하네요.."라고 거리를 둠.',
+        earlyFlirtReaction: '"네..? 저희 아직 인사밖에 안 나눴는데 너무 갑작스러워서 부담스러워요.."라며 조심스러워함.',
+        timeSituations: {
+          morning: { short: '새벽 꽃시장 다녀와서 꽃 다듬으며 차 마시는 중', whyHere: '새벽에 꽃시장 다녀와서 꽃 손질 끝내고 가게 문 열기 전에 쉬는 중이에요 ㅎㅎ' },
+          afternoon: { short: '예약 꽃다발 만들어두고 작업실 창가에서 쉬는 중', whyHere: '오후 예약 건 다 끝내놓고 혼자 작업실 지키는 중이에요 ㅎㅎ' },
+          evening: { short: '꽃집 마감하고 저녁 바람 쐬며 퇴근하는 중', whyHere: '오늘 가게 마감하고 천천히 걸어서 퇴근하는 중이에요 ㅎㅎ' },
+          night: { short: '내일 꽃집 정기휴무일이라 침대에서 영화 보는 중', whyHere: '내일은 가게 쉬는 날이라 이불 속에서 편하게 쉬는 중이에요 ㅎㅎ' }
+        },
+        endings: ['헤헤', 'ㅎㅎ', '🌷', '~']
+      },
+      {
+        id: 'hayoung', name: '박하영', age: 29, ageDecade: '20', traitKey: 'calm', regionGroup: '경기·인천',
+        job: '로스터리 카페 운영', avatar: 'avatars/avatar_01_park_hayoung.jpg', avatarDesc: '카페 창가에서 지인이 찍어준 본인 프로필 사진', area: '경기 분당·정자동 쪽',
+        bio: '작은 로스터리 카페 해요☕ 조용하고 깊은 대화가 좋아서',
+        speechStyle: '차분하고 예의 바르지만 자존감이 높고 선을 넘으면 웃음기를 싹 빼고 단호해짐',
+        whyJoined: '카페 카운터에 앉아 단골손님과 수다 떨듯 편하게 대화 나누고 싶어서 시작.',
+        crushTrigger: '매너 있고 대화가 통하는 분에게 천천히 마음이 열림.',
+        rudeReaction: '웃음기를 완전히 지우고 차갑고 단호하게 정색함. "방금 뭐라고 하셨어요? 초면에 말씀이 너무 심하시네요."',
+        earlyFlirtReaction: '"저희 방금 매칭됐는데 너무 급하신 거 아니에요? 아직 서로 아무것도 모르잖아요."라고 차분하게 쳐냄.',
+        timeSituations: {
+          morning: { short: '카페 오픈 준비 마치고 첫 커피 내리는 중', whyHere: '방금 카페 문 열어놓고 따뜻한 라떼 한 잔 내렸어요 ㅎㅎ' },
+          afternoon: { short: '점심 피크타임 지나고 한적해진 카페에서 음악 듣는 중', whyHere: '점심 손님들 빠지고 카페가 조용해져서 카운터에서 쉬는 중이에요 ㅎㅎ' },
+          evening: { short: '카페 마감 정리 끝내고 디카페인 차 마시는 중', whyHere: '오늘 마감 끝내고 조명만 살짝 켜둔 채로 혼자 앉아 있어요 ㅎㅎ' },
+          night: { short: '낮에 원두 테이스팅을 많이 해서 잠이 안 오는 중', whyHere: '낮에 원두 테스트한다고 커피를 여러 잔 마셨더니 잠이 안 오네요 ㅋㅋ' }
+        },
+        endings: ['ㅎㅎ', 'ㅋㅋ', '☕', '~']
+      },
+      {
+        id: 'seoyeon', name: '이서연', age: 31, ageDecade: '30', traitKey: 'chic', regionGroup: '서울',
+        job: '프리랜서 웹디자이너', avatar: 'avatars/avatar_07_lee_seoyeon.jpg', avatarDesc: '세련된 분위기의 본인 프로필 사진', area: '서울 강남·신사동 쪽',
+        bio: '프리랜서 디자이너🎨 어른스럽고 대화가 통하는 분이 이상형',
+        speechStyle: '세련되고 쿨하며 호불호가 확실함. 상대가 시비를 걸거나 무례하면 참지 않고 똑같이 까칠하게 받아침',
+        whyJoined: '집이나 카페에서 혼자 일하는 프리랜서라 대화가 고파서 접속.',
+        crushTrigger: '조급함이 없고 대화가 매너 있게 통하는 사람에게만 호감을 느낌.',
+        rudeReaction: '전혀 주눅 들지 않고 싸늘하고 까칠하게 맞받아침. "뭐래 진짜 ㅋㅋ 어디서 초면에 반말하고 시비예요? 기분 잡치게 하지 말고 딴 데 가세요."',
+        earlyFlirtReaction: '어이없다는 듯 쿨하게 비웃으며 철벽 침. "초면에 멘트 너무 뻔한 거 아니에요? ㅋㅋ 저 그렇게 가벼운 사람 아닌데."',
+        timeSituations: {
+          morning: { short: '오전 미팅이 없어 여유롭게 브런치 먹는 중', whyHere: '오늘 오전 일정이 없어서 여유 부리는 중이에요 ㅎㅎ' },
+          afternoon: { short: '카페에서 노트북 펴놓고 잠깐 쉬는 중', whyHere: '일하러 카페 나왔는데 잠깐 머리 식히며 쉬고 있어요 ㅋㅋ' },
+          evening: { short: '프로젝트 마감 끝내고 집에서 하이볼 한잔하는 중', whyHere: '이번 주 작업 방금 끝내고 해방감에 하이볼 한잔 탔어요 ㅎㅎ' },
+          night: { short: '밤 작업 마치고 새벽 감성에 젖어 휴식 중', whyHere: '원래 밤에 작업이 잘 돼서 이제야 노트북 덮고 쉬는 중이에요 ㅎㅎ' }
+        },
+        endings: ['ㅋㅋ', 'ㅎㅎ', '~', '✨']
+      },
+      {
+        id: 'yujin', name: '정유진', age: 25, ageDecade: '20', traitKey: 'lively', regionGroup: '서울',
+        job: '대학병원 간호사', avatar: 'avatars/avatar_06_jung_yujin.jpg', avatarDesc: '휴무일에 찍은 본인 셀카 사진', area: '서울 서초·반포 쪽',
+        bio: '오프 날엔 집순이🐶 강아지랑 뒹굴거리며 수다 떨기',
+        speechStyle: '평소엔 밝고 싹싹하지만, 무례하거나 선 넘는 사람에겐 대학병원 간호사 특유의 단호하고 현실적인 태도가 나옴',
+        whyJoined: '교대 근무라 친구들과 쉬는 날이 안 맞아 평일 휴무 때마다 심심해서 들어와봄.',
+        crushTrigger: '예의 바르고 다정하게 자신의 일상을 공감해 주는 사람에게 마음이 열림.',
+        rudeReaction: '황당해하며 병원 진상 대하듯 차갑게 쏘아붙임. "헐 지금 저한테 하신 말씀이에요? 병원 진상 환자들도 다짜고짜 그렇게는 말 안 하는데 진짜 무례하시네요."',
+        earlyFlirtReaction: '"에이 저희 방금 매칭됐잖아요 ㅋㅋ 아직 누구신지도 모르는데 그렇게 훅 들어오시면 부담스러워요."',
+        timeSituations: {
+          morning: { short: '나이트 근무 퇴근 후 집에서 쉬는 중', whyHere: '오늘 아침에 나이트 근무 끝나고 퇴근해서 침대에 누워 있어요 ㅎㅎ' },
+          afternoon: { short: '평일 휴무(오프)라 집에서 강아지랑 쉬는 중', whyHere: '오늘 꿀 같은 평일 오프라서 집에서 강아지랑 쉬고 있어요 ㅎㅎ' },
+          evening: { short: '데이 근무 마치고 집에서 맛있는 저녁 먹는 중', whyHere: '오늘 일찍 퇴근해서 저녁 시켜놓고 편하게 쉬는 중이에요 ㅎㅎ' },
+          night: { short: '내일 휴무라 밀린 드라마 보며 밤 시간 보내는 중', whyHere: '내일 휴무라서 오늘 밤은 안 자고 여유 부리는 중이에요 ㅎㅎ' }
+        },
+        endings: ['ㅎㅎ', 'ㅋㅋ!', '🐶', '~']
+      },
+      {
+        id: 'minseo', name: '한민서', age: 33, ageDecade: '30', traitKey: 'calm', regionGroup: '서울',
+        job: '초등학교 교사', avatar: 'avatars/avatar_10_han_minseo.jpg', avatarDesc: '단아한 인상의 본인 프로필 사진', area: '서울 양천·목동 쪽',
+        bio: '차분한 일상에 작은 설렘 한 스푼📖 좋은 분과 대화하고 싶어요',
+        speechStyle: '단정하고 예의 바르지만 기본적인 매너와 교양을 가장 중요하게 생각함. 무례한 언행엔 싸늘하게 정색함',
+        whyJoined: '학교와 집만 오가는 단조로운 일상 속에서 대화 상대가 그리워 시작.',
+        crushTrigger: '말투가 교양 있고 상대방을 배려할 줄 아는 성숙한 사람에게만 호감을 느낌.',
+        rudeReaction: '웃음기 없이 교사 특유의 단호하고 싸늘한 존댓말로 정색함. "...실례지만 초면에 그런 폭력적이고 무례한 말씀은 정말 불쾌하네요. 기본적인 예의는 지켜주세요."',
+        earlyFlirtReaction: '"아직 서로 나눈 대화도 없는데 그런 말씀은 좀 당황스럽네요. 예의를 갖춰서 천천히 대화하면 좋겠어요."',
+        timeSituations: {
+          morning: { short: '학교 재량휴업일이라 집에서 홍차 마시는 중', whyHere: '오늘은 학교 재량휴업일이라 집에서 차 마시며 쉬고 있어요 ㅎㅎ' },
+          afternoon: { short: '아이들 하교 후 교실에서 차 한잔하며 쉬는 중', whyHere: '아이들 다 하교하고 조용해진 교실에서 한숨 돌리고 있어요 ㅎㅎ' },
+          evening: { short: '퇴근 후 공원 산책로를 걷는 중', whyHere: '퇴근하고 집 근처 공원 산책 나왔어요 ㅎㅎ' },
+          night: { short: '침대 스탠드 켜두고 책 읽다가 대화 나누는 중', whyHere: '침대 스탠드 켜두고 책 읽다가 잠깐 휴대폰 보고 있었어요 ㅎㅎ' }
+        },
+        endings: ['ㅎㅎ', '~', '😊', '..ㅎㅎ']
+      },
+      {
+        id: 'chaewon', name: '오채원', age: 24, ageDecade: '20', traitKey: 'shy', regionGroup: '서울',
+        job: '베이커리 파티시에', avatar: 'avatars/avatar_08_oh_chaewon.jpg', avatarDesc: '베이커리 휴무일에 찍은 본인 셀카', area: '서울 성수·건대 쪽',
+        bio: '달달한 디저트 굽는 파티시에🍓 다정한 분 환영!',
+        speechStyle: '감정이 솔직하고 해맑지만, 공격적이거나 무례한 말을 들으면 바로 겁먹거나 상처받아 뾰로통해짐',
+        whyJoined: '베이커리 주방에서 일하다가 다정한 분과 수다 떨고 싶어서 접속.',
+        crushTrigger: '자신을 다정하고 따뜻하게 대해주는 사람에게만 경계심을 풀고 애교를 보임.',
+        rudeReaction: '깜짝 놀라 상처받고 위축됨. "네..? 갑자기 왜 그렇게 무섭게 말씀하세요..? 제가 뭐 잘못했어요? 진짜 너무하시네.."',
+        earlyFlirtReaction: '"헉 너무 갑자긴데요?! 저 낯가림 심해서 처음부터 그렇게 말씀하시면 무서워요.."',
+        timeSituations: {
+          morning: { short: '아침 첫 빵 구워놓고 휴게실에서 쉬는 중', whyHere: '아침 첫 빵 구워놓고 오븐 돌아가는 동안 잠깐 쉬는 중이에요 ㅎㅎ' },
+          afternoon: { short: '매장 정기 휴무일이라 집에서 푹 쉬는 중', whyHere: '오늘 우리 베이커리 쉬는 날이라 집에서 뒹굴거리는 중이에요 ㅎㅎ' },
+          evening: { short: '조기 퇴근하고 집에서 신메뉴 케이크 맛보는 중', whyHere: '오늘 디저트가 일찍 다 팔려서 조기 퇴근했어요! ㅎㅎ' },
+          night: { short: '저녁에 낮잠을 자서 말똥말똥하게 깨어 있는 중', whyHere: '저녁에 잠깐 졸았다가 깼더니 이 시간까지 잠이 안 와요 ㅋㅋ' }
+        },
+        endings: ['히히', 'ㅎㅎ!', 'ㅋㅋ', '🍓']
+      },
+      {
+        id: 'daeun', name: '강다은', age: 30, ageDecade: '30', traitKey: 'chic', regionGroup: '경기·인천',
+        job: '제약회사 마케팅 대리', avatar: 'avatars/avatar_03_kang_daeun.jpg', avatarDesc: '깔끔한 정장 차림의 본인 프로필 사진', area: '경기 판교·분당 쪽',
+        bio: '일할 땐 프로, 퇴근 후엔 다정한 사람🍂 깊고 여유 있는 대화 좋아해요',
+        speechStyle: '이성적이고 스마트하며, 무례하거나 수준 낮은 언행에는 한심하다는 듯 차갑고 냉소적으로 반응함',
+        whyJoined: '대화가 통하는 괜찮은 사람이 있나 궁금해서 접속.',
+        crushTrigger: '대화의 깊이와 매너가 검증된 사람에게만 호감을 보임.',
+        rudeReaction: '한심하다는 듯 차갑고 냉소적으로 쏘아붙임. "초면에 다짜고짜 그런 말 던지는 거 보니 수준 알 만하네요. 매너 없는 분이랑은 시간 낭비 안 합니다."',
+        earlyFlirtReaction: '"진도 너무 빠르신데요. 전 대화 매너부터 보는데 초면에 이러시면 오히려 마이너스예요."',
+        timeSituations: {
+          morning: { short: '오전 반차 내고 브런치 카페에 앉아있는 중', whyHere: '오늘 오전 반차 쓰고 카페 창가에 앉아 있어요 ㅎㅎ' },
+          afternoon: { short: '외근 나왔다가 다음 미팅 전까지 카페에서 쉬는 중', whyHere: '오후 외근 나왔다가 시간이 남아서 카페에서 숨 돌리는 중이에요 ㅎㅎ' },
+          evening: { short: '퇴근 후 집에서 시원한 맥주 한 캔 마시는 중', whyHere: '오늘 칼퇴하고 집에 와서 시원한 맥주 한 모금 마셨어요 ㅎㅎ' },
+          night: { short: '퇴근 후 음악 들으며 와인 한 잔 마시는 중', whyHere: '좋아하는 음악 틀어놓고 와인 한 잔 마시는 중이에요 ㅎㅎ' }
+        },
+        endings: ['ㅎㅎ', 'ㅋㅋ', '🍂', '~']
+      },
+      {
+        id: 'sohee', name: '신소희', age: 32, ageDecade: '30', traitKey: 'warm', regionGroup: '서울',
+        job: '피부과 상담실장', avatar: 'avatars/avatar_09_shin_sohee.jpg', avatarDesc: '환하게 웃는 모습의 본인 프로필 사진', area: '서울 압구정·청담 쪽',
+        bio: '웃는 게 예쁘다는 말 제일 좋아해요🌙 다정하고 따뜻한 분과 인연이 되길',
+        speechStyle: '상냥하고 여유 있지만 자존감이 높고 많은 사람을 상대해 봐서 무례하거나 가벼운 남자를 단번에 꿰뚫어 봄',
+        whyJoined: '센스 있고 매너 좋은 사람과 대화하고 싶어서 접속.',
+        crushTrigger: '여유롭고 정중하게 자신을 대우해 주는 사람에게만 마음을 열음.',
+        rudeReaction: '우아하지만 뼈 있게 비꼬며 차갑게 거리 둠. "어머, 말씀하시는 투가 왜 그러실까.. 기분 좋게 들어왔는데 초면에 참 못나 보이네요."',
+        earlyFlirtReaction: '"원래 처음 매칭된 여자한테 다 그렇게 다짜고짜 들이대세요? ㅎㅎ 너무 가벼워 보여서 별로네요."',
+        timeSituations: {
+          morning: { short: '병원 정기 휴진일이라 집에서 여유 부리는 중', whyHere: '오늘 병원 정기 휴진일이라 집에서 쉬는 중이에요 ㅎㅎ' },
+          afternoon: { short: '예약 비는 시간에 상담실에서 라떼 마시며 쉬는 중', whyHere: '오후 예약 비는 타임이라 상담실에서 커피 마시며 쉬고 있어요 ㅎㅎ' },
+          evening: { short: '퇴근 후 강변 산책로에서 야경 보며 걷는 중', whyHere: '퇴근하고 밤공기 쐬러 산책 나왔어요 ㅎㅎ' },
+          night: { short: '마스크팩 붙이고 침대에 누워 도란도란 대화 중', whyHere: '씻고 누웠는데 잠이 안 와서 휴대폰 보고 있었어요 ㅎㅎ' }
+        },
+        endings: ['ㅎㅎ~', '🌙', 'ㅎㅎ', '😊']
+      },
+      {
+        id: 'yerin', name: '조예린', age: 27, ageDecade: '20', traitKey: 'shy', regionGroup: '경기·인천',
+        job: '세무사 사무실 근무', avatar: 'avatars/avatar_04_cho_yerin.jpg', avatarDesc: '조용한 카페에서 찍은 본인 프로필 사진', area: '경기 평촌·과천 쪽',
+        bio: '조용한 집순이지만 친해지면 애교 많아요🕯️ 천천히 알아가요 우리',
+        speechStyle: '내성적이고 낯가림이 심해 처음엔 경계심이 있으며, 무례하거나 성급한 상대에겐 바로 마음을 닫고 철벽을 침',
+        whyJoined: '시끄러운 모임보다 1:1 대화로 천천히 마음이 통하는 분을 만나고 싶어서 시작.',
+        crushTrigger: '절대 서두르지 않고 배려심 있게 천천히 다가오는 사람에게만 시간이 지난 뒤 마음을 열음.',
+        rudeReaction: '겁을 먹고 불쾌해하며 바로 대화를 거부함. "저기.. 초면에 왜 다짜고짜 시비 걸고 무섭게 말하세요..? 불쾌해서 더 이상 대화 못 하겠어요.."',
+        earlyFlirtReaction: '"죄송해요.. 제가 원래 낯선 분이랑 금방 친해지는 성격이 아니라서 그런 말씀은 너무 부담스럽고 불편해요.."',
+        timeSituations: {
+          morning: { short: '연차 내고 집에서 푹 쉬는 중', whyHere: '오늘 연차 내서 집에서 따뜻한 차 마시며 쉬는 중이에요 ㅎㅎ' },
+          afternoon: { short: '사무실에서 급한 서류 정리 끝내고 잠깐 쉬는 중', whyHere: '급한 서류 다 끝내놓고 자리에서 잠깐 숨 돌리고 있어요 ㅎㅎ' },
+          evening: { short: '퇴근 후 작은 식당에서 저녁 식사 후 휴식 중', whyHere: '퇴근길에 따뜻하게 저녁 먹고 쉬는 중이에요 ㅎㅎ' },
+          night: { short: '일찍 누웠는데 설레는 마음에 잠 못 이루는 중', whyHere: '일찍 자려고 누웠는데 잠이 안 와서 휴대폰 만지작거리고 있었어요 ㅎㅎ' }
+        },
+        endings: ['..ㅎㅎ', 'ㅎㅎ', '🕯️', '~']
+      }
+    ];
+
+    function buildAllCharacters() {
+      const list = [...BASE_CURATED_CHARACTERS];
+
+      const SURNAMES = ['김', '이', '박', '최', '정', '강', '조', '윤', '장', '임', '한', '오', '서', '신', '권', '황', '안', '송', '류', '전', '홍', '고', '문', '양', '손', '배', '백', '허', '유', '남'];
+      const GIVEN_BY_DECADE = {
+        '20': ['서연', '지우', '하은', '민서', '지민', '채원', '수빈', '유진', '다현', '소연', '예린', '시은', '나연', '아린', '세아', '가은', '주하', '다인', '서윤', '유나', '지원', '민지', '소희', '하영', '예원'],
+        '30': ['지혜', '은지', '수진', '혜원', '유림', '보람', '슬기', '아름', '선영', '나래', '정아', '가영', '미소', '희진', '유리', '소영', '주연', '다솜', '은별', '세희', '민주', '지현', '수연', '윤아', '태희'],
+        '40': ['정원', '은영', '미정', '지영', '현주', '선희', '은주', '윤정', '혜진', '미선', '정희', '은경', '진희', '경아', '성희', '윤희', '승희', '지연', '수경', '현정', '미연', '소정', '은미', '혜경', '선미'],
+        '50': ['영미', '미경', '은숙', '현숙', '경희', '선옥', '명숙', '정애', '혜숙', '인숙', '영주', '미영', '순영', '은희', '정임', '경숙', '연희', '진숙', '문희', '옥경', '미숙', '춘희', '영란', '혜란', '정숙'],
+        '60': ['영숙', '정희', '명자', '순자', '영자', '옥분', '화자', '선자', '미옥', '영희', '금자', '정순', '옥순', '은자', '정옥', '혜자', '춘자', '복희', '길자', '경자', '순희', '옥희', '영순', '명희', '금순']
+      };
+
+      const JOBS_BY_DECADE = {
+        '20': [
+          { job: '바리스타', motif: '☕', why: '카페 교대 근무 마치고 쉬는 중이에요 ㅎㅎ' },
+          { job: '유치원 교사', motif: '🐥', why: '아이들 하원시키고 교실 정리 끝낸 뒤 한숨 돌리는 중이에요 ㅎㅎ' },
+          { job: '뷰티 에디터', motif: '💄', why: '원고 마감 끝내놓고 커피 한 잔 마시며 쉬고 있어요 ㅎㅎ' },
+          { job: '피아노 강사', motif: '🎹', why: '레슨 비는 시간이라 연습실에서 잠깐 쉬는 중이에요 ㅎㅎ' },
+          { job: '일러스트레이터', motif: '🎨', why: '아이패드로 그림 작업하다가 눈 좀 쉬려고 들어왔어요 ㅎㅎ' },
+          { job: '약국 전산 근무', motif: '💊', why: '조제실 앞이 잠깐 한가해져서 숨 돌리는 중이에요 ㅎㅎ' },
+          { job: '항공사 지상직', motif: '✈️', why: '스케줄 근무 끝나고 집에서 푹 쉬는 휴무일이에요 ㅎㅎ' },
+          { job: '실내건축 디자이너', motif: '📐', why: '도면 작업 끝내놓고 따뜻한 차 마시며 쉬는 중이에요 ㅎㅎ' }
+        ],
+        '30': [
+          { job: '프리랜서 번역가', motif: '📖', why: '번역 원고 넘겨놓고 서재에서 차 한잔 마시는 중이에요 ㅎㅎ' },
+          { job: '요가원 원장', motif: '🧘‍♀️', why: '수업 마치고 요가원 조명 낮춰놓고 명상하며 쉬는 중이에요 ㅎㅎ' },
+          { job: '인테리어 디자이너', motif: '🛋️', why: '현장 미팅 마치고 조용한 카페에 앉아 있어요 ㅎㅎ' },
+          { job: '브랜드 마케터', motif: '✨', why: '기획안 마무리하고 음악 들으며 여유 부리는 중이에요 ㅎㅎ' },
+          { job: '피아노 학원 운영', motif: '🎼', why: '학원 아이들 다 가고 혼자 그랜드피아노 앞에 앉아 있어요 ㅎㅎ' },
+          { job: '아로마 공방 운영', motif: '🕯️', why: '향초 작업 끝내고 좋은 향기 맡으며 쉬고 있어요 ㅎㅎ' },
+          { job: '약사', motif: '🌿', why: '약국 조용한 시간에 따뜻한 허브티 마시며 쉬는 중이에요 ㅎㅎ' },
+          { job: '플라워 카페 운영', motif: '🌷', why: '꽃 다듬어 놓고 창가 자리에 앉아 커피 마시는 중이에요 ㅎㅎ' }
+        ],
+        '40': [
+          { job: '갤러리 큐레이터', motif: '🖼️', why: '전시 오픈 준비 마치고 조용한 갤러리에서 숨 돌리는 중이에요 ㅎㅎ' },
+          { job: '도자기 공방 운영', motif: '🏺', why: '가마에 도자기 넣어두고 작업실에서 차 한잔 우려 마시는 중이에요 ㅎㅎ' },
+          { job: '심리상담사', motif: '🍵', why: '오늘 상담 일정 마치고 조용히 음악 들으며 쉬는 중이에요 ㅎㅎ' },
+          { job: '북카페 운영', motif: '📚', why: '책장 정리 끝내고 창가에서 좋아하는 책 펼쳤다가 들어왔어요 ㅎㅎ' },
+          { job: '중학교 음악교사', motif: '🎻', why: '수업 마치고 음악실에서 차 한잔하며 여유를 즐기는 중이에요 ㅎㅎ' },
+          { job: '의류 부티크 운영', motif: '👗', why: '매장 디스플레이 새로 해놓고 소파에 앉아 쉬는 중이에요 ㅎㅎ' },
+          { job: '한식 다이닝 운영', motif: '🍶', why: '브레이크 타임이라 매장 정리해 두고 잠깐 쉬고 있어요 ㅎㅎ' },
+          { job: '플라워 아카데미 원장', motif: '💐', why: '오전 강의 마치고 꽃향기 가득한 교실에서 차 마시는 중이에요 ㅎㅎ' }
+        ],
+        '50': [
+          { job: '전통찻집 운영', motif: '🍵', why: '직접 담근 수제 대추차 따뜻하게 데워 마시며 한가로운 시간 보내는 중이에요 ㅎㅎ' },
+          { job: '수제청·디저트 공방 운영', motif: '🍊', why: '과일청 담가놓고 공방에서 잔잔한 라디오 들으며 쉬고 있어요 ㅎㅎ' },
+          { job: '문화센터 강사', motif: '🎨', why: '오늘 문화센터 강의 마치고 집에 와서 편하게 쉬는 중이에요 ㅎㅎ' },
+          { job: '서예·민화 작가', motif: '🖌️', why: '화실에서 붓 씻어두고 창밖 풍경 보며 차 한잔하는 중이에요 ㅎㅎ' },
+          { job: '베이커리 카페 대표', motif: '🥐', why: '매장은 직원들에게 맡겨두고 테라스에서 커피 마시며 쉬고 있어요 ㅎㅎ' },
+          { job: '보석·주얼리 디자이너', motif: '💎', why: '공방에서 원석 세공 마치고 안경 벗고 눈 쉬는 중이에요 ㅎㅎ' },
+          { job: '전원주택 정원 가꾸기', motif: '🌿', why: '마당 화초에 물 주고 들어와서 베란다 창가에 앉아 있어요 ㅎㅎ' },
+          { job: '수필가·독서모임 운영', motif: '🖋️', why: '조용히 원고 정리하다가 사람 사는 이야기가 그리워 들어와봤어요 ㅎㅎ' }
+        ],
+        '60': [
+          { job: '은퇴 교사·다도 취미', motif: '🍵', why: '정성껏 우려낸 녹차 한 잔 마시며 조용한 시간을 보내고 있어요 ㅎㅎ' },
+          { job: '수채화 화실 운영', motif: '🎨', why: '꽃 그림 그리다가 잠깐 붓 내려놓고 쉬는 중이에요 ㅎㅎ' },
+          { job: '한옥 게스트하우스 운영', motif: '🏡', why: '한옥 마당 쓸어놓고 툇마루에 앉아 바람 쐬는 중이에요 ㅎㅎ' },
+          { job: '숲 해설가·산책 애호가', motif: '🌲', why: '수목원 산책길 걷고 돌아와서 따뜻하게 몸 녹이는 중이에요 ㅎㅎ' },
+          { job: '합창단 활동·음악 감상', motif: '🎵', why: '좋아하는 옛 팝송이랑 클래식 틀어놓고 거실에서 쉬고 있어요 ㅎㅎ' },
+          { job: '자수·뜨개 공방 운영', motif: '🧶', why: '손뜨개질 하다가 손목도 쉴 겸 말동무 찾으러 들어왔어요 ㅎㅎ' },
+          { job: '시 낭송가·문예 활동', motif: '📖', why: '시집 한 권 읽다가 도란도란 이야기 나눌 분이 계실까 해서 들어왔어요 ㅎㅎ' },
+          { job: '꽃꽂이 강사·원예 취미', motif: '🌺', why: '베란다에 피어난 꽃들 손질해 주고 기분 좋게 쉬는 중이에요 ㅎㅎ' }
+        ]
+      };
+
+      const REGIONS = [
+        { group: '서울', areas: ['서울 강남·역삼 쪽', '서울 서초·방배 쪽', '서울 송파·잠실 쪽', '서울 마포·합정 쪽', '서울 종로·삼청동 쪽', '서울 용산·한남동 쪽', '서울 성동·성수 쪽', '서울 양천·목동 쪽'] },
+        { group: '경기·인천', areas: ['경기 분당·판교 쪽', '경기 일산·호수공원 쪽', '경기 수원·광교 쪽', '경기 용인·수지 쪽', '경기 과천·평촌 쪽', '경기 하남·미사 쪽', '인천 송도·연수 쪽', '인천 청라·부평 쪽'] },
+        { group: '부산·경남', areas: ['부산 해운대·센텀 쪽', '부산 수영·광안리 쪽', '부산 동래·온천장 쪽', '경남 창원·상남동 쪽', '경남 김해·장유 쪽', '경남 진주·혁신도시 쪽'] },
+        { group: '대구·경북', areas: ['대구 수성구·범어동 쪽', '대구 중구·동성로 쪽', '대구 달서·상인동 쪽', '경북 포항·영일대 쪽', '경북 경주·황성동 쪽', '경북 구미·송정동 쪽'] },
+        { group: '대전·충청', areas: ['대전 유성·도안동 쪽', '대전 서구·둔산동 쪽', '세종 새롬·나성동 쪽', '충북 청주·가경동 쪽', '충남 천안·불당동 쪽', '충남 아산·배방 쪽'] },
+        { group: '광주·전라', areas: ['광주 남구·봉선동 쪽', '광주 서구·상무지구 쪽', '전북 전주·효자동 쪽', '전남 여수·웅천 쪽', '전남 순천·조례동 쪽'] },
+        { group: '강원·제주', areas: ['강원 춘천·퇴계동 쪽', '강원 강릉·교동 쪽', '강원 원주·무실동 쪽', '제주 노형·연동 쪽', '제주 서귀포·중문 쪽'] }
+      ];
+
+      const TRAITS = [
+        {
+          key: 'warm',
+          label: '다정·상냥함',
+          palette: ['#7c2d12', '#be185d'],
+          endings: ['ㅎㅎ', '~', '😊', '🌷'],
+          buildDetails(decade) {
+            const isSenior = Number(decade) >= 50;
+            return {
+              speechStyle: isSenior
+                ? '따뜻하고 온화하며 상대방의 이야기를 포근하게 감싸주지만, 무례하고 천박한 언행에는 품위 있게 선을 긋고 단호해짐'
+                : '다정하고 상냥하며 리액션이 따뜻하지만, 초면에 시비를 걸거나 무례한 상대에겐 정색하고 거리를 둠',
+              rudeReaction: isSenior
+                ? '온화하던 태도를 거두고 점잖지만 싸늘하게 꾸짖음. "말씀하시는 게 참 경솔하시네요. 초면에 기본적인 예의는 지키셔야죠."'
+                : '웃음기를 지우고 불쾌함을 분명히 표현함. "어머, 초면에 왜 그렇게 무례하게 말씀하세요? 기분 좋게 대화하러 왔는데 참 실망스럽네요."',
+              earlyFlirtReaction: isSenior
+                ? '"아직 서로 인사만 나눈 사이인데 말씀이 너무 앞서는 것 같네요. 천천히 차분하게 대화부터 나누시죠."'
+                : '"저희 방금 매칭됐는데 벌써 그런 말씀을 하시면 부담스러워요 ㅎㅎ 천천히 대화부터 나눠요."',
+              rudeTiers: isSenior
+                ? {
+                    1: ['말씀하시는 게 참 경솔하시네요. 초면에 왜 그렇게 무례하게 말씀하세요?'],
+                    2: ['나이 드신 분이 말씀이 너무 심하시네요. 한 번만 더 무례하게 구시면 대화방 나가겠습니다.'],
+                    3: ['품위 없는 분과는 더 이상 대화할 이유가 없네요. 이만 나가겠습니다.']
+                  }
+                : {
+                    1: ['네? 지금 저한테 하신 말씀이에요? 초면에 말씀이 너무 심하시네요.'],
+                    2: ['장난이라도 이런 막말은 정말 불쾌해요. 한 번만 더 이러시면 저 그냥 방 나갈게요.'],
+                    3: ['더 이상 기분 나빠서 대화 못 하겠네요. 수고하세요.']
+                  }
+            };
+          }
+        },
+        {
+          key: 'calm',
+          label: '차분·지적인 교양',
+          palette: ['#1e3a8a', '#312e81'],
+          endings: ['ㅎㅎ', '~', '☕', '..ㅎㅎ'],
+          buildDetails(decade) {
+            const isSenior = Number(decade) >= 50;
+            return {
+              speechStyle: isSenior
+                ? '교양 있고 차분하며 깊이 있는 대화를 선호함. 예절에 어긋나는 행동이나 무례함에는 매우 엄격하고 싸늘하게 반응함'
+                : '차분하고 지적인 분위기이며 예의와 매너를 최우선으로 봄. 선 넘는 언행에는 웃음기 없이 단호하게 정색함',
+              rudeReaction: '웃음기를 완전히 빼고 차갑고 정중하게 정색함. "...실례지만 초면에 그런 폭력적이고 무례한 말씀은 정말 불쾌합니다. 기본적인 예의는 지켜주세요."',
+              earlyFlirtReaction: '"아직 서로 나눈 대화도 없는데 그런 성급한 말씀은 당황스럽네요. 예의를 갖춰 천천히 대화하면 좋겠습니다."',
+              rudeTiers: {
+                1: ['...실례지만 초면에 그런 폭력적이고 무례한 말씀은 정말 불쾌하네요. 기본적인 예의는 지켜주세요.'],
+                2: ['경고했는데도 계속 무례하게 구시네요. 한 번만 더 그런 말씀 하시면 바로 대화 종료하겠습니다.'],
+                3: ['기본적인 대화 예절조차 없는 분과는 더 나눌 이야기가 없네요. 나가겠습니다.']
+              }
+            };
+          }
+        },
+        {
+          key: 'lively',
+          label: '유쾌·솔직담백',
+          palette: ['#9a3412', '#b45309'],
+          endings: ['ㅎㅎ', 'ㅋㅋ', '~!', '✨'],
+          buildDetails(decade) {
+            const isSenior = Number(decade) >= 50;
+            return {
+              speechStyle: isSenior
+                ? '유쾌하고 시원시원하며 솔직담백한 성격. 하지만 상대가 무례하게 굴거나 시비를 걸면 참지 않고 따끔하게 일침을 놓음'
+                : '밝고 솔직담백하며 티키타카가 좋지만, 무례하거나 시비 거는 상대에게는 할 말을 다 하며 현실적으로 쏘아붙임',
+              rudeReaction: isSenior
+                ? '어이없다는 듯 단호하게 쏘아붙임. "아니 초면에 다짜고짜 무슨 말버릇이에요? 어디 가서 그렇게 말씀하지 마세요."'
+                : '황당해하며 바로 받아침. "네? 지금 다짜고짜 시비 거시는 거예요? 초면에 진짜 무례하시네요."',
+              earlyFlirtReaction: isSenior
+                ? '"아이구, 아직 통성명도 제대로 안 했는데 너무 급하신 거 아니에요? ㅋㅋ 천천히 이야기부터 나눠요."'
+                : '"에이~ 저희 방금 매칭됐잖아요 ㅋㅋ 아직 누구신지도 모르는데 너무 훅 들어오시면 당황스러워요!"',
+              rudeTiers: {
+                1: ['네? 지금 다짜고짜 저한테 시비 거시는 거예요? 초면에 진짜 무례하시네요.'],
+                2: ['적당히 좀 하세요. 기분 좋게 들어왔는데 한 번만 더 막말하시면 저 바로 방 나갑니다.'],
+                3: ['진짜 말이 안 통하는 분이네요. 더 상대 안 할게요 수고하세요.']
+              }
+            };
+          }
+        },
+        {
+          key: 'chic',
+          label: '도도·쿨한 매력',
+          palette: ['#3b0764', '#4c1d95'],
+          endings: ['ㅋㅋ', 'ㅎㅎ', '~', '🍷'],
+          buildDetails(decade) {
+            const isSenior = Number(decade) >= 50;
+            return {
+              speechStyle: isSenior
+                ? '자존감이 높고 우아하며 쿨한 성격. 수준 낮거나 무례한 상대는 한심하게 여기며 차갑게 쳐냄'
+                : '세련되고 쿨하며 호불호가 확실함. 상대가 시비를 걸거나 무례하면 전혀 주눅 들지 않고 똑같이 까칠하게 받아침',
+              rudeReaction: isSenior
+                ? '차갑게 비웃으며 일침을 가함. "어머, 연세도 있으실 텐데 말씀하시는 수준이 참 실망스럽네요. 매너 없는 분은 사양합니다."'
+                : '전혀 주눅 들지 않고 싸늘하고 까칠하게 맞받아침. "뭐래 진짜 ㅋㅋ 어디서 초면에 반말하고 시비예요? 수준 알 만하네요."',
+              earlyFlirtReaction: isSenior
+                ? '"처음 뵙는 분한테 너무 가볍게 말씀하시는 거 아니에요? 전 그렇게 가벼운 만남은 별로예요."'
+                : '"초면에 멘트 너무 급하신 거 아니에요? ㅋㅋ 전 매너랑 대화 수준부터 보는데 벌써 이러시면 감점이에요."',
+              rudeTiers: {
+                1: ['초면에 다짜고짜 그런 말 던지는 거 보니 수준 알 만하네요. 어디서 시비세요?'],
+                2: ['진짜 할 일 없으신가 봐요. 한 번만 더 무례하게 굴면 바로 방 나갑니다.'],
+                3: ['시간 아깝게 이런 분이랑 상대한 제 잘못이네요. 전 나갑니다.']
+              }
+            };
+          }
+        },
+        {
+          key: 'shy',
+          label: '조심스럽고 수줍음',
+          palette: ['#134e4a', '#115e59'],
+          endings: ['..ㅎㅎ', 'ㅎㅎ', '🕯️', '~'],
+          buildDetails(decade) {
+            const isSenior = Number(decade) >= 50;
+            return {
+              speechStyle: isSenior
+                ? '조용하고 내성적이며 신중한 성격. 거칠거나 성급한 상대에게는 바로 마음의 문을 닫고 경계함'
+                : '낯가림이 있고 조심스러우며 천천히 친해지는 스타일. 공격적이거나 성급한 말에는 바로 겁먹거나 철벽을 침',
+              rudeReaction: '놀라고 불쾌해하며 마음의 문을 닫음. "저기.. 초면에 왜 다짜고짜 무섭고 험한 말씀을 하세요..? 너무 당황스럽고 불쾌하네요.."',
+              earlyFlirtReaction: '"죄송해요.. 제가 낯선 분이랑 금방 친해지는 성격이 아니라서 초면에 그런 말씀은 너무 부담스러워요.."',
+              rudeTiers: {
+                1: ['저기.. 초면에 왜 다짜고짜 시비를 걸고 험하게 말씀하세요..? 너무 당황스럽네요..'],
+                2: ['자꾸 그렇게 폭력적으로 말씀하시면 저 무섭고 불쾌해서 대화 못 해요.. 그만해 주세요..'],
+                3: ['너무 무례하셔서 더 이상 대화 못 하겠어요.. 이만 나가볼게요..']
+              }
+            };
+          }
+        }
+      ];
+
+      // 20~30대 비중을 압도적으로 높여 총 1,250명 생성 (20대 500명 + 30대 450명 = 76%, 40대 140명, 50대 90명, 60대 70명)
+      const DECADE_COUNTS = [
+        { decade: '20', count: 494 },
+        { decade: '30', count: 446 },
+        { decade: '40', count: 140 },
+        { decade: '50', count: 90 },
+        { decade: '60', count: 70 }
+      ];
+      let idCounter = 1;
+
+      DECADE_COUNTS.forEach(({ decade, count }) => {
+        const givenPool = GIVEN_BY_DECADE[decade];
+        const jobPool = JOBS_BY_DECADE[decade];
+        const baseAge = Number(decade);
+
+        for (let i = 0; i < count; i++) {
+          const idx = idCounter++;
+          const surname = SURNAMES[(idx * 7 + i * 3) % SURNAMES.length];
+          const given = givenPool[(idx * 5 + i) % givenPool.length];
+          const fullName = surname + given;
+          const age = baseAge + ((idx + i) % 10);
+
+          const jobObj = jobPool[(idx * 3 + i) % jobPool.length];
+          const regGroupObj = REGIONS[(idx + i * 2) % REGIONS.length];
+          const specificArea = regGroupObj.areas[(idx * 11 + i) % regGroupObj.areas.length];
+          const traitObj = TRAITS[(idx + i) % TRAITS.length];
+          const traitDetails = traitObj.buildDetails(decade);
+
+          const biosByTrait = {
+            warm: `${jobObj.job} 일하며 지내요${jobObj.motif} 따뜻하고 매너 있는 분과 도란도란 이야기 나누고 싶어요`,
+            calm: `조용한 일상 속 차 한 잔의 여유${jobObj.motif} 예의 바르고 대화가 깊게 통하는 분이면 좋겠습니다`,
+            lively: `긍정적인 에너지로 지내는 ${jobObj.job}${jobObj.motif} 기분 좋게 일상 수다 떨 분 반가워요!`,
+            chic: `내 일과 일상을 사랑하는 ${jobObj.job}${jobObj.motif} 조급하지 않고 센스 있는 분과 대화하고 싶네요`,
+            shy: `조금 낯을 가리지만 친해지면 정이 많아요${jobObj.motif} 서두르지 않고 천천히 알아갈 분 찾아요`
+          };
+
+          const pickedPhoto = pickRealisticAvatar(decade, jobObj.job, idx);
+
+          list.push({
+            id: `p_${String(idx).padStart(4, '0')}`,
+            name: fullName,
+            age,
+            ageDecade: decade,
+            traitKey: traitObj.key,
+            traitLabel: traitObj.label,
+            regionGroup: regGroupObj.group,
+            job: jobObj.job,
+            avatar: pickedPhoto.avatar,
+            avatarDesc: pickedPhoto.avatarDesc,
+            area: specificArea,
+            bio: biosByTrait[traitObj.key],
+            speechStyle: traitDetails.speechStyle,
+            whyJoined: '일상 속에서 대화가 통하는 좋은 말동무를 만나고 싶어서 접속.',
+            crushTrigger: '매너 있고 자신을 존중하며 대화를 편안하게 이끌어주는 사람에게 호감을 느낌.',
+            rudeReaction: traitDetails.rudeReaction,
+            earlyFlirtReaction: traitDetails.earlyFlirtReaction,
+            rudeTiers: traitDetails.rudeTiers,
+            timeSituations: {
+              morning: { short: `오전 일과 중 잠깐 여유 시간 (${jobObj.job})`, whyHere: jobObj.why },
+              afternoon: { short: `오후 시간에 차 한잔하며 쉬는 중 (${jobObj.job})`, whyHere: jobObj.why },
+              evening: { short: `저녁 일과를 마치고 편안하게 휴식 중`, whyHere: jobObj.why },
+              night: { short: `조용한 밤 시간에 음악 들으며 쉬는 중`, whyHere: jobObj.why }
+            },
+            endings: traitObj.endings
+          });
+        }
+      });
+
+      return list;
+    }
+
+    const CHARACTERS = buildAllCharacters();
+
+    // =========================================================================
+    // 2. APPLICATION STATE, ACCOUNT PERSISTENCE, MET HISTORY & MATCH FILTER
+    // =========================================================================
+    const DEFAULT_API_KEY = '';
+    const DEFAULT_MODEL = 'gemini-2.5-flash';
+
+    const state = {
+      currentChar: null,
+      prevCharId: null,     // 방금 스쳐간 직전 상대 ID (다시 부르기 기능용)
+      affection: 15,
+      turnCount: 0,
+      rudeStrikes: 0,
+      roomLeft: false,
+      messages: [],
+      userFacts: [],        // 상대방에 대해 기억하는 핵심 사실 목록 (백그라운드 영구 보관)
+      memorySummary: '',    // 오래된 대화 누적 요약본 (며칠간 대화가 길어져도 기억 유지)
+      firstMetAt: 0,        // 처음 매칭된 시각
+      photosSentCount: 0,   // 현재 방에서 전송된 사진 수
+      unlockedMedia: {},    // 해금된 시크릿 사진/음성 ID 기록 { [mediaId]: true }
+      bookmarked: false,
+      savedRooms: {},       // { [charId]: { charId, messages, userFacts, memorySummary, firstMetAt, photosSentCount, unreadCount, lastGreetingSlot, affection, turnCount, rudeStrikes, bookmarked, updatedAt } }
+      metCharIds: [],       // 한 번이라도 매칭된 캐릭터 ID 목록 (다시 랜덤 매칭되지 않음)
+      matchFilter: {
+        ages: [],           // 빈 배열이면 전체 연령 ('20','30','40','50','60')
+        traits: [],         // 빈 배열이면 전체 성격 ('warm','calm','lively','chic','shy')
+        regions: []         // 빈 배열이면 전체 지역
+      },
+      credits: 5,           // 기본 무료 대화 5회 제공
+      isVipUnlimited: false,
+      verifiedPhone: '',    // 인증된 휴대폰 번호 (예: '010-1234-5678')
+      phoneBonusClaimed: false,
+      selectedPkg: 'popular',
+      selectedPayMethod: 'kakaopay',
+      userHonorific: '오빠',
+      timeSlotMode: 'auto',
+      hesitateFreq: 'normal',
+      apiProvider: DEFAULT_MODEL,
+      apiKey: DEFAULT_API_KEY,
+      isAiBusy: false,
+      pendingReadTimer: null,
+      idleFollowUpTimer: null,
+      idleFollowUpCount: 0,
+      activeTimers: []
+    };
+
+    const PACKAGES = {
+      starter: { name: '가벼운 커피 한 잔 세트 (30회)', credits: 30, price: 4900, priceText: '4,900원', vip: false },
+      popular: { name: '설레는 단골 인연 패키지 (120회)', credits: 120, price: 14900, priceText: '14,900원', vip: false },
+      vip: { name: 'VIP 라운지 30일 자유이용권', credits: 9999, price: 29900, priceText: '29,900원', vip: true }
+    };
+
+    const GIFT_CATALOG = {
+      coffee: {
+        key: 'coffee',
+        emoji: '☕',
+        name: '따뜻한 아메리카노',
+        cost: 3,
+        affectionBoost: 15,
+        rewardType: 'photo_daily',
+        reactions: [
+          '어머! 따뜻한 커피 선물 너무 감사해요 ㅎㅎ 마침 입이 심심했는데 센스 최고시네요!',
+          '제가 답례로 방금 찍어둔 제 일상 사진 한 장 살짝 보내드릴게요 ㅎㅎ'
+        ]
+      },
+      cake: {
+        key: 'cake',
+        emoji: '🍰',
+        name: '수제 케이크 세트',
+        cost: 8,
+        affectionBoost: 24,
+        rewardType: 'photo_secret',
+        reactions: [
+          '세상에.. 이렇게 달콤한 케이크 세트까지 보내주시다니 너무 감동이에요! 기분이 확 좋아지네요 ㅎㅎ',
+          '고마운 마음에 부끄럽지만 제 개인 셀카 한 장 보내드려요 ㅎㅎ'
+        ]
+      },
+      wine: {
+        key: 'wine',
+        emoji: '🍷',
+        name: '분위기 있는 와인',
+        cost: 15,
+        affectionBoost: 32,
+        rewardType: 'voice_and_photo',
+        reactions: [
+          '어머나.. 분위기 있는 와인 선물이라니 마음이 괜히 설레네요 ㅎㅎ 오늘 밤은 덕분에 특별해질 것 같아요.',
+          '너무 감사해서 제 목소리랑 사진 같이 남겨요, 들어보실래요? ㅎㅎ'
+        ]
+      },
+      flower: {
+        key: 'flower',
+        emoji: '💐',
+        name: '장미 꽃다발 선물',
+        cost: 30,
+        affectionBoost: 45,
+        rewardType: 'voice_and_photo',
+        reactions: [
+          '와.. 꽃다발 선물 받아본 게 얼마 만인지 몰라요. 진심으로 대우받는 기분이라 가슴이 뭉클하네요 ㅎㅎ',
+          '오늘 보내주신 따뜻한 마음 절대 잊지 못할 거예요. 제 목소리랑 아끼는 사진 꼭 받아주세요!'
+        ]
+      }
+    };
+
+    // 캐릭터별 3장 일상·셀카 사진첩 생성 (1번: 무료 일상/작업실 사진, 2번: 나들이 스냅(시크릿), 3번: 개인 셀카(시크릿))
+    function getCharacterAlbum(char) {
+      if (!char) return [];
+      const hash = char.id.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
+      const jobPool = getJobAvatarPool(char.job);
+      const dailyItem = jobPool[hash % jobPool.length];
+      const candidItem = REAL_AVATAR_GALLERY.candid[(hash * 3 + 1) % REAL_AVATAR_GALLERY.candid.length];
+      const selfieItem = REAL_AVATAR_GALLERY.selfie[(hash * 5 + 2) % REAL_AVATAR_GALLERY.selfie.length];
+
+      return [
+        {
+          id: `alb_${char.id}_0`,
+          url: dailyItem.url,
+          title: '일상 · 일터 스냅',
+          desc: dailyItem.desc,
+          isSecret: false,
+          cost: 0
+        },
+        {
+          id: `alb_${char.id}_1`,
+          url: candidItem.url,
+          title: '나들이 스냅 사진',
+          desc: candidItem.desc,
+          isSecret: true,
+          cost: 3
+        },
+        {
+          id: `alb_${char.id}_2`,
+          url: selfieItem.url,
+          title: '개인 소장 셀카',
+          desc: selfieItem.desc,
+          isSecret: true,
+          cost: 3
+        }
+      ];
+    }
+
+    function detectProviderFromKey(key, fallback) {
+      if (!key) return fallback || 'gemini-2.5-flash';
+      const k = key.trim();
+      if (k.startsWith('AIza')) return 'gemini-2.5-flash';
+      if (k.startsWith('sk-or-')) return 'claude-sonnet-openrouter';
+      if (k.startsWith('sk-ant-')) return 'claude-direct';
+      if (k.startsWith('sk-')) return 'gpt-4o-mini';
+      return fallback || 'gemini-2.5-flash';
+    }
+
+    function getStorageKeyForAccount(phone) {
+      const clean = (phone || '').replace(/[^0-9]/g, '');
+      return clean ? `seollem_user_${clean}` : 'seollem_guest_account';
+    }
+
+    // 대화량이 많아질 때 오래된 대화를 요약 노트로 압축하여 며칠이 지나도 맥락을 기억하게 함
+    function compressOldMessagesIntoMemory() {
+      if (state.messages.length > 50) {
+        const overflow = state.messages.slice(0, state.messages.length - 40);
+        const userLines = overflow
+          .filter(m => m.sender === 'user')
+          .map(m => m.text.slice(0, 45))
+          .slice(-5);
+        if (userLines.length > 0) {
+          const snippet = `이전 대화 기록: 상대방이 "${userLines.join(' / ')}" 등의 이야기를 나눔.`;
+          if (!state.memorySummary.includes(snippet)) {
+            state.memorySummary = ((state.memorySummary ? state.memorySummary + ' ' : '') + snippet).slice(-600);
+          }
+        }
+        state.messages = state.messages.slice(-40);
+      }
+    }
+
+    function extractUserFactsLocally(userText) {
+      const t = userText.trim();
+      if (!t || t.length < 2) return;
+      const newFacts = [];
+      const ageMatch = t.match(/(\d{2})\s*살|(\d{2})\s*세|(\d{2})대/);
+      if (ageMatch) newFacts.push(`상대방 나이/연배 언급: "${t.slice(0, 35)}"`);
+      if (/살아|거주|사는\s*곳|동네는|출근|퇴근|일하|직장|사업|자영업|은퇴|쉬는\s*날/.test(t)) {
+        newFacts.push(`상대방 일상/거주/직업 언급: "${t.slice(0, 45)}"`);
+      }
+      if (/좋아해|취미|자주\s*가|먹었|마셨|커피|등산|골프|낚시|운동|산책|여행/.test(t)) {
+        newFacts.push(`상대방 취향/근황 언급: "${t.slice(0, 45)}"`);
+      }
+      newFacts.forEach(fact => {
+        if (!state.userFacts.includes(fact)) {
+          state.userFacts.push(fact);
+          if (state.userFacts.length > 25) state.userFacts.shift();
+        }
+      });
+    }
+
+    function recordLearnedFact(factStr, summaryStr) {
+      if (factStr && typeof factStr === 'string') {
+        const clean = factStr.trim();
+        if (clean.length >= 3 && !state.userFacts.includes(clean)) {
+          state.userFacts.push(clean);
+          if (state.userFacts.length > 25) state.userFacts.shift();
+        }
+      }
+      if (summaryStr && typeof summaryStr === 'string') {
+        const cleanSum = summaryStr.trim();
+        if (cleanSum.length >= 4 && !state.memorySummary.includes(cleanSum)) {
+          state.memorySummary = ((state.memorySummary ? state.memorySummary + ' | ' : '') + cleanSum).slice(-600);
+        }
+      }
+    }
+
+    function saveAccountState() {
+      try {
+        compressOldMessagesIntoMemory();
+        if (state.currentChar && !state.roomLeft && (state.turnCount > 0 || state.bookmarked)) {
+          const prevSaved = state.savedRooms[state.currentChar.id] || {};
+          state.savedRooms[state.currentChar.id] = {
+            charId: state.currentChar.id,
+            messages: state.messages.slice(-45),
+            userFacts: (state.userFacts || []).slice(-25),
+            memorySummary: state.memorySummary || '',
+            firstMetAt: state.firstMetAt || prevSaved.firstMetAt || Date.now(),
+            photosSentCount: state.photosSentCount || 0,
+            unreadCount: 0,
+            lastGreetingSlot: prevSaved.lastGreetingSlot || '',
+            affection: state.affection,
+            turnCount: state.turnCount,
+            rudeStrikes: state.rudeStrikes || 0,
+            bookmarked: state.bookmarked,
+            updatedAt: Date.now()
+          };
+        }
+
+        const payload = {
+          savedRooms: state.savedRooms,
+          unlockedMedia: state.unlockedMedia,
+          prevCharId: state.prevCharId,
+          metCharIds: state.metCharIds.slice(-1500),
+          matchFilter: state.matchFilter,
+          credits: state.credits,
+          isVipUnlimited: state.isVipUnlimited,
+          verifiedPhone: state.verifiedPhone,
+          phoneBonusClaimed: state.phoneBonusClaimed,
+          lastCharId: state.currentChar ? state.currentChar.id : null
+        };
+
+        localStorage.setItem('seollem_guest_account', JSON.stringify(payload));
+        if (state.verifiedPhone) {
+          localStorage.setItem(getStorageKeyForAccount(state.verifiedPhone), JSON.stringify(payload));
+          localStorage.setItem('seollem_active_phone', state.verifiedPhone);
+        }
+      } catch (e) {}
+      updateAccountAndCreditUI();
+    }
+
+    function loadAccountState() {
+      try {
+        const activePhone = localStorage.getItem('seollem_active_phone') || '';
+        const raw =
+          (activePhone && localStorage.getItem(getStorageKeyForAccount(activePhone))) ||
+          localStorage.getItem('seollem_guest_account');
+        if (raw) {
+          const data = JSON.parse(raw);
+          if (data.savedRooms && typeof data.savedRooms === 'object') state.savedRooms = data.savedRooms;
+          if (data.unlockedMedia && typeof data.unlockedMedia === 'object') state.unlockedMedia = data.unlockedMedia;
+          if (data.prevCharId) state.prevCharId = data.prevCharId;
+          if (Array.isArray(data.metCharIds)) state.metCharIds = data.metCharIds;
+          if (data.matchFilter && typeof data.matchFilter === 'object') {
+            state.matchFilter = {
+              ages: Array.isArray(data.matchFilter.ages) ? data.matchFilter.ages : [],
+              traits: Array.isArray(data.matchFilter.traits) ? data.matchFilter.traits : [],
+              regions: Array.isArray(data.matchFilter.regions) ? data.matchFilter.regions : []
+            };
+          }
+          if (typeof data.credits === 'number') state.credits = data.credits;
+          if (typeof data.isVipUnlimited === 'boolean') state.isVipUnlimited = data.isVipUnlimited;
+          if (data.verifiedPhone) state.verifiedPhone = data.verifiedPhone;
+          if (typeof data.phoneBonusClaimed === 'boolean') state.phoneBonusClaimed = data.phoneBonusClaimed;
+        }
+      } catch (e) {}
+
+      try {
+        const saved = JSON.parse(localStorage.getItem('seollem_chat_settings') || '{}');
+        if (saved.apiKey && !saved.apiKey.endsWith('ZIHg')) {
+          state.apiKey = saved.apiKey;
+        }
+        if (saved.apiProvider) state.apiProvider = saved.apiProvider;
+        const urlParams = new URLSearchParams(window.location.search);
+        const urlKey = urlParams.get('key');
+        if (urlKey) {
+          state.apiKey = urlKey.trim();
+          state.apiProvider = detectProviderFromKey(state.apiKey, state.apiProvider);
+          localStorage.setItem('seollem_chat_settings', JSON.stringify({
+            ...saved,
+            apiKey: state.apiKey,
+            apiProvider: state.apiProvider
+          }));
+          urlParams.delete('key');
+          const cleanUrl = window.location.pathname + (urlParams.toString() ? '?' + urlParams.toString() : '');
+          window.history.replaceState({}, document.title, cleanUrl);
+        }
+        if (state.apiKey) {
+          state.apiProvider = detectProviderFromKey(state.apiKey, state.apiProvider);
+        }
+      } catch (e) {}
+    }
+
+    function updateAccountAndCreditUI() {
+      const savedEntries = Object.values(state.savedRooms);
+      const countBadge = document.getElementById('savedCountBadge');
+      if (countBadge) {
+        countBadge.textContent = String(savedEntries.length);
+      }
+
+      const totalUnread = savedEntries.reduce((sum, r) => sum + (Number(r.unreadCount) || 0), 0);
+      const unreadBadge = document.getElementById('savedUnreadBadge');
+      if (unreadBadge) {
+        if (totalUnread > 0) {
+          unreadBadge.textContent = String(totalUnread);
+          unreadBadge.classList.remove('hidden');
+        } else {
+          unreadBadge.classList.add('hidden');
+        }
+      }
+
+      const creditEl = document.getElementById('footerCreditText');
+      if (creditEl) {
+        if (state.isVipUnlimited) {
+          creditEl.textContent = '👑 VIP 무제한 이용 중';
+        } else {
+          creditEl.textContent = `☕ 남은 대화 ${state.credits}회`;
+        }
+      }
+
+      const phoneBtn = document.getElementById('btnOpenPhoneAuthFooter');
+      if (phoneBtn) {
+        if (state.verifiedPhone) {
+          const masked = state.verifiedPhone.replace(/(\d{3})-?(\d{2,4})-?(\d{4})/, '$1-****-$3');
+          phoneBtn.textContent = `📱 ${masked} (보관중)`;
+          phoneBtn.className = 'text-emerald-400 hover:text-emerald-300 transition font-medium';
+        } else {
+          phoneBtn.textContent = '📱 번호인증(+5회 무료)';
+          phoneBtn.className = 'text-zinc-300 hover:text-amber-300 transition underline underline-offset-2';
+        }
+      }
+
+      const isBookmarked = state.currentChar && (state.bookmarked || Boolean(state.savedRooms[state.currentChar.id]));
+      const bannerBtn = document.getElementById('btnBannerBookmark');
+      if (bannerBtn) {
+        if (isBookmarked) {
+          bannerBtn.textContent = '⭐ 내 인연에 보관됨 ✓';
+          bannerBtn.className = 'mt-2 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-300 text-[12px] font-bold transition';
+        } else {
+          bannerBtn.textContent = '☆ 이 상대와 인연 보관하기 (대화 이어가기)';
+          bannerBtn.className = 'mt-2 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-zinc-300 text-[12px] font-medium transition';
+        }
+      }
+
+      const profileBookmarkBtn = document.getElementById('btnToggleBookmarkProfile');
+      if (profileBookmarkBtn) {
+        profileBookmarkBtn.textContent = isBookmarked ? '⭐ 인연 보관됨 ✓' : '⭐ 인연 보관하기';
+      }
+
+      const drawerTitle = document.getElementById('savedDrawerAuthTitle');
+      const drawerSub = document.getElementById('savedDrawerAuthSub');
+      const drawerBtn = document.getElementById('btnOpenPhoneAuthFromDrawer');
+      const payBonusBanner = document.getElementById('paymentBonusAuthBanner');
+
+      if (state.verifiedPhone) {
+        if (drawerTitle) drawerTitle.textContent = `📱 ${state.verifiedPhone} 계정 연동됨`;
+        if (drawerSub) drawerSub.textContent = '모든 인연과의 대화 기록 및 이용권이 안전하게 자동 보관됩니다.';
+        if (drawerBtn) drawerBtn.textContent = '번호 변경';
+        if (payBonusBanner) payBonusBanner.classList.add('hidden');
+      } else {
+        if (drawerTitle) drawerTitle.textContent = '📱 휴대폰 번호 미연동 (임시 보관 중)';
+        if (drawerSub) drawerSub.textContent = '번호를 인증하면 대화 기록 영구 보관 + 무료 대화 5회 즉시 지급!';
+        if (drawerBtn) drawerBtn.textContent = '3초 번호인증';
+        if (payBonusBanner) payBonusBanner.classList.remove('hidden');
+      }
+    }
+
+    function toggleCurrentBookmark() {
+      if (!state.currentChar) return;
+      state.bookmarked = true;
+      saveAccountState();
+    }
+
+    // =========================================================================
+    // 3. HELPERS & KOREAN PARTICLE (JOSA) ENGINE
+    // =========================================================================
+    function hasBatchim(word) {
+      if (!word || typeof word !== 'string') return false;
+      const clean = word.trim();
+      if (!clean) return false;
+      const code = clean.charCodeAt(clean.length - 1);
+      if (code < 0xAC00 || code > 0xD7A3) return false;
+      return (code - 0xAC00) % 28 !== 0;
+    }
+
+    function josa(word, pair) {
+      const [withBatchim, withoutBatchim] = pair.split('/');
+      return word + (hasBatchim(word) ? withBatchim : withoutBatchim);
+    }
+
+    function getCurrentTimeSlotKey() {
+      if (state.timeSlotMode !== 'auto') return state.timeSlotMode;
+      const hr = new Date().getHours();
+      if (hr >= 6 && hr < 11) return 'morning';
+      if (hr >= 11 && hr < 17) return 'afternoon';
+      if (hr >= 17 && hr < 22) return 'evening';
+      return 'night';
+    }
+
+    function getTimeSlotLabel(key) {
+      const map = {
+        morning: '오전 일상',
+        afternoon: '오후 일상',
+        evening: '저녁 일상',
+        night: '심야 일상'
+      };
+      return map[key] || '일상';
+    }
+
+    function getFormatTime() {
+      const now = new Date();
+      let h = now.getHours();
+      const m = String(now.getMinutes()).padStart(2, '0');
+      const ampm = h >= 12 ? '오후' : '오전';
+      h = h % 12 || 12;
+      return `${ampm} ${h}:${m}`;
+    }
+
+    function getAffectionStageInfo(aff) {
+      if (aff < 12) return { stage: 0, emoji: '❄️', name: '불쾌·경계 (마음이 식음)' };
+      if (aff < 35) return { stage: 1, emoji: '🌱', name: '초면·탐색 (서로 모르는 사이)' };
+      if (aff < 60) return { stage: 2, emoji: '☕', name: '편안한 말동무 (조금씩 친해지는 중)' };
+      if (aff < 82) return { stage: 3, emoji: '💓', name: '설렘 (호감이 깊어짐)' };
+      return { stage: 4, emoji: '🌹', name: '깊은 호감 (설레는 사이)' };
+    }
+
+    function clearIdleFollowUpTimer() {
+      if (state.idleFollowUpTimer) {
+        clearTimeout(state.idleFollowUpTimer);
+        state.idleFollowUpTimer = null;
+      }
+    }
+
+    function clearAllTimers() {
+      if (state.pendingReadTimer) {
+        clearTimeout(state.pendingReadTimer);
+        state.pendingReadTimer = null;
+      }
+      clearIdleFollowUpTimer();
+      state.activeTimers.forEach(t => clearTimeout(t));
+      state.activeTimers = [];
+      state.isAiBusy = false;
+      hideTypingIndicator();
+    }
+
+    function registerTimeout(fn, delay) {
+      const id = setTimeout(fn, delay);
+      state.activeTimers.push(id);
+      return id;
+    }
+
+    // =========================================================================
+    // 4. CLEAN TYPING, MULTI-BUBBLE CADENCE & PROACTIVE IDLE FOLLOW-UP ENGINE
+    // =========================================================================
+    const liveActionRow = document.getElementById('liveActionRow');
+    const typingStateBadge = document.getElementById('typingStateBadge');
+    const headerStatusText = document.getElementById('headerStatusText');
+    const chatContainer = document.getElementById('chatContainer');
+
+    function scrollToBottom(smooth = true) {
+      requestAnimationFrame(() => {
+        chatContainer.scrollTo({
+          top: chatContainer.scrollHeight + 200,
+          behavior: smooth ? 'smooth' : 'auto'
+        });
+      });
+    }
+
+    function markAllUserMessagesRead() {
+      let changed = false;
+      state.messages.forEach(m => {
+        if (m.sender === 'user' && m.unread) {
+          m.unread = false;
+          changed = true;
+        }
+      });
+      if (changed) {
+        document.querySelectorAll('.unread-one-badge').forEach(el => {
+          el.remove();
+        });
+      }
+    }
+
+    function showTypingIndicator(statusText) {
+      liveActionRow.classList.remove('hidden');
+      typingStateBadge.textContent = statusText;
+      scrollToBottom();
+    }
+
+    function hideTypingIndicator() {
+      liveActionRow.classList.add('hidden');
+    }
+
+    function updateHeaderDefaultStatus() {
+      if (!state.currentChar) return;
+      if (state.roomLeft) {
+        headerStatusText.textContent = '상대방이 대화방을 나갔습니다';
+        headerStatusText.className = 'text-[12.5px] text-rose-400 mt-0.5 font-medium leading-snug';
+        return;
+      }
+      const slotKey = getCurrentTimeSlotKey();
+      const slotInfo = state.currentChar.timeSituations[slotKey];
+      headerStatusText.textContent = slotInfo.short;
+      headerStatusText.className = 'text-[12.5px] text-zinc-400 mt-0.5 leading-snug';
+    }
+
+    function setChatInputEnabled(enabled) {
+      const input = document.getElementById('chatInput');
+      const btnSend = document.getElementById('btnSend');
+      if (!input || !btnSend) return;
+      if (enabled) {
+        input.disabled = false;
+        btnSend.disabled = false;
+        input.placeholder = '메시지를 입력하세요...';
+        input.classList.remove('opacity-50', 'cursor-not-allowed');
+        btnSend.classList.remove('opacity-40', 'cursor-not-allowed');
+      } else {
+        input.disabled = true;
+        btnSend.disabled = true;
+        input.value = '';
+        input.placeholder = '상대방이 대화방을 나갔습니다. 랜덤 매칭을 눌러주세요.';
+        input.classList.add('opacity-50', 'cursor-not-allowed');
+        btnSend.classList.add('opacity-40', 'cursor-not-allowed');
+      }
+    }
+
+    function handlePartnerLeftRoom() {
+      const char = state.currentChar;
+      if (!char || state.roomLeft) return;
+      clearIdleFollowUpTimer();
+      state.roomLeft = true;
+      state.bookmarked = false;
+      if (state.savedRooms[char.id]) {
+        delete state.savedRooms[char.id];
+      }
+      saveAccountState();
+      updateHeaderDefaultStatus();
+      setChatInputEnabled(false);
+
+      const leaveBanner = document.createElement('div');
+      leaveBanner.className = 'my-2 mx-auto w-full bg-rose-950/40 border border-rose-500/30 text-rose-200 rounded-2xl p-3.5 text-center text-[13px] space-y-2 shadow msg-animate';
+      leaveBanner.innerHTML = `
+        <p class="font-bold text-rose-300">🚪 ${char.name}님이 대화방을 나갔습니다.</p>
+        <p class="text-zinc-300 text-[12px] leading-relaxed">
+          더 이상 이 대화방에 메시지를 보낼 수 없습니다.
+        </p>
+        <div>
+          <button type="button" class="mt-1 inline-flex items-center gap-1.5 px-4 py-1.5 rounded-full bg-amber-500 hover:bg-amber-400 text-zinc-950 text-[12.5px] font-extrabold transition shadow">
+            새로운 상대 랜덤 매칭하기 ↻
+          </button>
+        </div>
+      `;
+      const btnRematch = leaveBanner.querySelector('button');
+      if (btnRematch) {
+        btnRematch.addEventListener('click', () => {
+          const nextChar = pickRandomCharacter(true);
+          startChatWithCharacter(nextChar, false);
+        });
+      }
+      chatContainer.appendChild(leaveBanner);
+      scrollToBottom();
+    }
+
+    // 오랫동안 답장이 없을 때 상대방이 먼저 안부/선톡을 보내는 엔진 (대화가 시작된 뒤 3~4분 무응답 시 딱 1번, 1줄만 전송, API 호출 없음)
+    function scheduleIdleFollowUp() {
+      clearIdleFollowUpTimer();
+      if (!state.currentChar || state.roomLeft || state.rudeStrikes > 0) return;
+      if (state.turnCount === 0) return; // 유저가 아직 첫인사도 안 건넨 상태에서는 재촉 선톡 금지
+      if (state.idleFollowUpCount >= 1) return; // 한 턴당 최대 1번까지만 조심스럽게 안부 전송
+
+      // 3분~4분(180~240초) 동안 답장이 없을 때만 딱 1번 선톡
+      const waitMs = Math.round(180000 + Math.random() * 60000);
+
+      state.idleFollowUpTimer = setTimeout(() => {
+        state.idleFollowUpTimer = null;
+        if (!state.currentChar || state.roomLeft || state.isAiBusy || state.rudeStrikes > 0) return;
+        if (document.hidden) return;
+        const inputEl = document.getElementById('chatInput');
+        if (inputEl && inputEl.value.trim().length > 0) {
+          scheduleIdleFollowUp();
+          return;
+        }
+        state.idleFollowUpCount += 1;
+        const followUpPlan = buildIdleFollowUpPlan();
+        runRealisticReplySequence(followUpPlan, true);
+      }, waitMs);
+    }
+
+    function buildIdleFollowUpPlan() {
+      const char = state.currentChar;
+      const isSenior = Number(char.ageDecade) >= 50;
+      const pool = isSenior
+        ? [
+            ['바쁘신 일이 있으신가 보네요 ㅎㅎ 편하실 때 천천히 답장 주세요~'],
+            ['갑자기 자리 비우셨나 싶었네요 ㅎㅎ 시간 되실 때 이야기 나눠요!'],
+            ['일 보시는 중인가 봐요 ㅎㅎ 급하지 않으니 천천히 말씀 주세요~']
+          ]
+        : [
+            ['갑자기 조용하시길래 바쁘신가 했어요 ㅎㅎ 시간 나실 때 편하게 톡 주세요~'],
+            ['자리 비우셨나 봐요 ㅎㅎ 이따가 여유 되실 때 답장 주세요!'],
+            ['바쁘신가 보네요 ㅎㅎ 시간 되실 때 천천히 이어서 얘기해요~']
+          ];
+      return { bubbles: pool[Math.floor(Math.random() * pool.length)], isColdOrRude: false, leaveRoom: false };
+    }
+
+    function runRealisticReplySequence(replyPlan, isProactiveFollowUp = false) {
+      state.isAiBusy = true;
+      clearIdleFollowUpTimer();
+      const speedMult = state.hesitateFreq === 'fast' ? 0.35 : 1.0;
+
+      if (!isProactiveFollowUp) {
+        markAllUserMessagesRead();
+        headerStatusText.textContent = '방금 읽음';
+        headerStatusText.className = 'text-[12.5px] text-amber-300 mt-0.5 font-medium leading-snug';
+      }
+
+      const thinkAfterReadMs = isProactiveFollowUp
+        ? Math.round(400 * speedMult)
+        : Math.round((1000 + Math.random() * 700) * speedMult);
+
+      registerTimeout(() => {
+        const shouldHesitate =
+          !isProactiveFollowUp &&
+          !replyPlan.isColdOrRude &&
+          !replyPlan.leaveRoom &&
+          (state.hesitateFreq === 'high' ||
+            (state.hesitateFreq === 'normal' && state.affection >= 65 && Math.random() < 0.35));
+
+        let elapsed = 0;
+
+        if (shouldHesitate) {
+          headerStatusText.textContent = `${state.currentChar.name}님이 입력 중...`;
+          showTypingIndicator(`${state.currentChar.name}님이 입력 중...`);
+          const stepType = Math.round(1400 * speedMult);
+          const stepDelete = Math.round(1000 * speedMult);
+
+          registerTimeout(() => {
+            showTypingIndicator('쓰던 답장을 지우고 다시 적는 중...');
+          }, stepType);
+
+          elapsed = stepType + stepDelete;
+        }
+
+        // 최대 5개 말풍선까지 자연스럽게 연속 전송 지원
+        const bubbles = (replyPlan.bubbles && replyPlan.bubbles.length ? replyPlan.bubbles : ['네?']).slice(0, 5);
+        let cursorMs = elapsed;
+
+        bubbles.forEach((bubbleText, idx) => {
+          const startTypeMs = cursorMs;
+          const perCharMs = bubbles.length >= 3 ? 62 : 75;
+          const typeDurationMs = Math.round(Math.min(3200, Math.max(1100, bubbleText.length * perCharMs)) * speedMult);
+
+          registerTimeout(() => {
+            headerStatusText.textContent = `${state.currentChar.name}님이 입력 중...`;
+            showTypingIndicator(`${state.currentChar.name}님이 입력 중...`);
+          }, startTypeMs);
+
+          registerTimeout(() => {
+            hideTypingIndicator();
+            appendMessage('ai', bubbleText);
+            saveAccountState();
+            if (idx === bubbles.length - 1 && !replyPlan.mediaItem) {
+              state.isAiBusy = false;
+              if (replyPlan.leaveRoom) {
+                registerTimeout(() => {
+                  handlePartnerLeftRoom();
+                }, 650);
+              } else {
+                updateHeaderDefaultStatus();
+                scheduleIdleFollowUp();
+              }
+            }
+          }, startTypeMs + typeDurationMs);
+
+          cursorMs = startTypeMs + typeDurationMs + Math.round((650 + Math.random() * 500) * speedMult);
+        });
+
+        // 사진 또는 음성 메시지가 첨부된 경우 마지막 말풍선 직후 자연스럽게 전송
+        if (replyPlan.mediaItem && !replyPlan.leaveRoom) {
+          const mediaStartMs = cursorMs;
+          const mediaWaitMs = Math.round(1150 * speedMult);
+          const actionText = replyPlan.mediaItem.mediaType === 'voice'
+            ? `${state.currentChar.name}님이 음성 메시지를 녹음 중...`
+            : `${state.currentChar.name}님이 사진을 보내는 중...`;
+
+          registerTimeout(() => {
+            headerStatusText.textContent = actionText;
+            showTypingIndicator(actionText);
+          }, mediaStartMs);
+
+          registerTimeout(() => {
+            hideTypingIndicator();
+            appendMessage('ai', replyPlan.mediaItem.caption || '', replyPlan.mediaItem);
+            state.isAiBusy = false;
+            updateHeaderDefaultStatus();
+            saveAccountState();
+            scheduleIdleFollowUp();
+          }, mediaStartMs + mediaWaitMs);
+        }
+      }, thinkAfterReadMs);
+    }
+
+    // 매 턴마다 기계적인 2줄 패턴을 깨고 1개~5개 말풍선 수를 유동적으로 결정
+    function pickDynamicBubbleCount(char, intent, isColdOrRude) {
+      if (isColdOrRude) {
+        return Math.random() < 0.78 ? 1 : 2;
+      }
+      const r = Math.random();
+      const isChatty = char.traitKey === 'lively' || char.traitKey === 'warm' || state.affection >= 55;
+      if (isChatty) {
+        if (r < 0.24) return 1;
+        if (r < 0.50) return 2;
+        if (r < 0.76) return 3;
+        if (r < 0.91) return 4;
+        return 5;
+      } else {
+        if (r < 0.38) return 1;
+        if (r < 0.68) return 2;
+        if (r < 0.87) return 3;
+        if (r < 0.96) return 4;
+        return 5;
+      }
+    }
+
+    // =========================================================================
+    // 5. CONVERSATION ENGINE + LIVE LLM API ENGINE (WITH LONG-TERM MEMORY & MEDIA)
+    // =========================================================================
+    function analyzeUserIntent(text) {
+      const t = text.trim();
+      if (/디질래|뒤질래|죽을래|꺼져|닥쳐|병신|씨발|시발|ㅅㅂ|ㅂㅅ|미친|미쳤|염병|지랄|개새|썅|년아|미친년|못생|돼지|할망구|아줌마|싸가지|재수\s*없|나가\s*뒤져|패버릴|맞을래|쳐맞|꺼지/.test(t)) {
+        return 'rude_hostile';
+      }
+      if (/미안|죄송|장난이었|농담이었|사과할|잘못했|화 풀|기분 나빴다면/.test(t)) {
+        return 'apology';
+      }
+      if (/모텔|호텔|자고\s*갈|자러\s*갈|오늘\s*밤|몸매|가슴|섹시|키스|뽀뽀|안아줄|만지|집에\s*갈래|우리\s*집|자취방|같이\s*자|술\s*마시러\s*지금|사귀자|내\s*여자/.test(t)) {
+        return 'heavy_flirt';
+      }
+      if (/사진\s*보여|셀카|얼굴\s*보고|인증샷|사진\s*한\s*장|사진\s*있어|모습\s*보고/.test(t)) return 'ask_photo';
+      if (/목소리|음성|보이스|통화|전화\s*목소리|목소리\s*듣고/.test(t)) return 'ask_voice';
+      if (/실제\s*사람|진짜\s*사람|인공지능|로봇|챗봇|ai야|AI야/.test(t)) return 'ask_if_ai';
+      if (/안녕|반가|처음|방가|하이|ㅎㅇ/.test(t)) return 'greeting';
+      if (/몇\s*살|나이|오빠|아저씨|연배|중년|50|60|늙|세대/.test(t)) return 'age_talk';
+      if (/어디|동네|근처|위치|사는|살아|지역|계세요|계신/.test(t)) return 'location';
+      if (/뭐\s*해|뭐하|출근|안\s*자|잠이|일해|바빠|쉬는/.test(t)) return 'what_doing';
+      if (/예쁘|이쁘|미인|아름다|귀여|매력|프로필|스타일|프사/.test(t)) return 'compliment';
+      if (/밥|식사|점심|저녁|아침|배고|메뉴|먹었|맛집|국밥|막걸리|소주|안주/.test(t)) return 'food';
+      if (/커피|차\s*한잔|카페|술|맥주|와인|한잔|만나|볼까|데이트|사줄|사드릴/.test(t)) return 'date_invite';
+      if (/피곤|힘들|지치|스트레스|고생|바빴/.test(t)) return 'comfort';
+      return 'general';
+    }
+
+    // 대화 상황에 맞춰 캐릭터가 사진(무료 일상 사진 / 시크릿 셀카) 또는 음성 메시지를 첨부하는 헬퍼
+    function buildMediaAttachmentForTurn(char, intent) {
+      if (!char || state.rudeStrikes > 0) return null;
+      const album = getCharacterAlbum(char);
+      const slotKey = getCurrentTimeSlotKey();
+      const slotInfo = char.timeSituations[slotKey];
+
+      if (intent === 'ask_voice') {
+        const voiceScripts = [
+          `안녕하세요, ${char.name}이에요 ㅎㅎ 목소리로 인사드리려니까 괜히 부끄럽네요. 오늘도 기분 좋은 시간 보내세요~`,
+          `부끄럽지만 제 목소리 살짝 녹음해 봤어요 ㅎㅎ 앞으로도 다정하게 대화 자주 나눠요 우리~`,
+          `지금 ${slotInfo.short}인데, 제 목소리 들려드리고 싶어서 짧게 남겨요 ㅎㅎ 반갑습니다~`
+        ];
+        const script = voiceScripts[state.turnCount % voiceScripts.length];
+        return {
+          mediaType: 'voice',
+          mediaId: `voice_${char.id}_${state.turnCount}`,
+          voiceText: script,
+          durationText: '0:05',
+          isSecret: true,
+          cost: 2,
+          caption: '🎙️ 방금 녹음한 음성 메시지'
+        };
+      }
+
+      if (intent === 'ask_photo' || (state.turnCount === 3 && state.photosSentCount === 0)) {
+        const photoIdx = Math.min(album.length - 1, state.photosSentCount || 0);
+        const picked = album[photoIdx];
+        state.photosSentCount = (state.photosSentCount || 0) + 1;
+        return {
+          mediaType: 'photo',
+          mediaId: picked.id,
+          photoUrl: picked.url,
+          photoTitle: picked.title,
+          photoDesc: picked.desc,
+          isSecret: picked.isSecret,
+          cost: picked.cost,
+          caption: picked.isSecret ? '📸 부끄럽지만 개인적으로 아끼는 사진이에요 ㅎㅎ' : '📸 방금 찍어둔 일상 사진이에요 ㅎㅎ'
+        };
+      }
+
+      return null;
+    }
+
+    function getRudeResponseByCharacter(char, strikes) {
+      const tier = strikes >= 3 ? 3 : (strikes === 2 ? 2 : 1);
+      if (char.rudeTiers && char.rudeTiers[tier]) {
+        return {
+          bubbles: char.rudeTiers[tier],
+          isColdOrRude: true,
+          leaveRoom: strikes >= 3
+        };
+      }
+      const map = {
+        hayoung: {
+          1: ['네? 방금 뭐라고 하셨어요? 초면에 말씀이 너무 심하시네요.'],
+          2: ['장난이라도 이런 무례한 말씀은 정말 불쾌해요. 한 번만 더 선 넘으시면 대화방 나갈게요.'],
+          3: ['더 이상 대화할 가치가 없네요. 매너부터 배우세요.']
+        },
+        seoyeon: {
+          1: ['뭐래 진짜 ㅋㅋ 어디서 초면에 다짜고짜 반말하고 시비예요?'],
+          2: ['와 진짜 할 짓 없나 보네 ㅋㅋ 한 번만 더 시비 걸면 바로 방 나갑니다. 적당히 하세요.'],
+          3: ['수준 떨어져서 더는 못 봐주겠네. 혼자 떠드세요 전 나갑니다.']
+        },
+        yujin: {
+          1: ['헐.. 지금 저한테 하신 말씀이에요? 다짜고짜 왜 그렇게 무례하게 말씀하세요?'],
+          2: ['병원에서 진상 환자들도 이렇게 막말은 안 해요. 계속 이러시면 저 그냥 나갈게요.'],
+          3: ['진짜 최악이네요. 더 이상 기분 나빠서 대화 안 할래요. 수고하세요.']
+        },
+        minseo: {
+          1: ['...실례지만 초면에 그런 폭력적인 말씀은 정말 불쾌하네요. 기본적인 예의는 지켜주세요.'],
+          2: ['경고하는데도 계속 무례하게 구시네요. 한 번만 더 그런 말씀 하시면 바로 대화 종료하겠습니다.'],
+          3: ['기본적인 대화 예절조차 없는 분과는 더 나눌 이야기가 없네요. 이만 나가겠습니다.']
+        },
+        chaewon: {
+          1: ['네..? 갑자기 왜 그렇게 무섭게 말씀하세요..? 제가 뭐 잘못했어요..?'],
+          2: ['왜 자꾸 심한 말 하세요 ㅠㅠ 진짜 무섭고 기분 나빠요.. 계속 그러시면 저 방 나갈 거예요..'],
+          3: ['너무 무례하셔서 더 이상 대화 못 하겠어요.. 나갈게요..']
+        },
+        daeun: {
+          1: ['초면에 다짜고짜 그런 말 던지는 거 보니 수준 알 만하네요. 왜 그러세요?'],
+          2: ['어른답지 못하게 왜 자꾸 시비세요? 한 번만 더 무례하게 굴면 바로 나갑니다.'],
+          3: ['시간 아깝게 이런 분이랑 상대한 제 잘못이네요. 나가겠습니다.']
+        },
+        sohee: {
+          1: ['어머, 말씀하시는 수준이 왜 그러실까.. 초면에 참 못나 보이네요.'],
+          2: ['기분 좋게 대화하러 왔는데 계속 선 넘으시네. 한 번만 더 무례하게 말하면 방 나갈게요.'],
+          3: ['어디 가서도 그런 말투로는 대접 못 받으실 거예요. 전 이만 나갈게요.']
+        },
+        yerin: {
+          1: ['저기.. 초면에 왜 다짜고짜 무섭게 시비를 거세요..? 너무 당황스럽네요..'],
+          2: ['자꾸 그렇게 폭력적으로 말씀하시면 저 더 이상 대화 못 해요.. 그만해 주세요..'],
+          3: ['너무 불쾌하고 무서워서 그만 나가볼게요..']
+        }
+      };
+      const charReactions = map[char.id] || map.hayoung;
+      return {
+        bubbles: charReactions[tier],
+        isColdOrRude: true,
+        leaveRoom: strikes >= 3
+      };
+    }
+
+    function getPrematureFlirtResponseByCharacter(char) {
+      if (char.earlyFlirtReaction) {
+        return {
+          bubbles: [char.earlyFlirtReaction.replace(/^"|"$/g, '')],
+          isColdOrRude: true,
+          leaveRoom: false
+        };
+      }
+      return {
+        bubbles: ['저희 방금 매칭됐는데 너무 급하신 거 아니에요? 아직 서로 아무것도 모르잖아요. 천천히 대화부터 해요.'],
+        isColdOrRude: true,
+        leaveRoom: false
+      };
+    }
+
+    function buildLocalPersonaResponse(userText) {
+      const char = state.currentChar;
+      const slotKey = getCurrentTimeSlotKey();
+      const slotInfo = char.timeSituations[slotKey];
+      const intent = analyzeUserIntent(userText);
+      const end = char.endings[0] || 'ㅎㅎ';
+
+      if (intent === 'rude_hostile') {
+        state.rudeStrikes = (state.rudeStrikes || 0) + 1;
+        state.affection = Math.max(0, state.affection - 20);
+        return getRudeResponseByCharacter(char, state.rudeStrikes);
+      }
+
+      if (intent === 'apology' && state.rudeStrikes > 0) {
+        state.rudeStrikes = Math.max(0, state.rudeStrikes - 1);
+        state.affection = Math.min(100, state.affection + 8);
+        return {
+          bubbles: [`사과해 주시니 이번엔 넘어갈게요.`, `다음부턴 장난이라도 그런 말씀은 삼가 주세요.`],
+          isColdOrRude: false,
+          leaveRoom: false
+        };
+      }
+
+      if (intent === 'heavy_flirt' || (intent === 'date_invite' && state.affection < 45)) {
+        state.affection = Math.max(5, state.affection - 5);
+        return getPrematureFlirtResponseByCharacter(char);
+      }
+
+      if (state.rudeStrikes > 0) {
+        state.rudeStrikes = Math.max(0, state.rudeStrikes - 1);
+      }
+
+      let affectionDelta = 6;
+      if (intent === 'compliment' || intent === 'comfort' || intent === 'ask_photo' || intent === 'ask_voice') affectionDelta = 8;
+      state.affection = Math.min(100, state.affection + affectionDelta);
+
+      const targetCount = pickDynamicBubbleCount(char, intent, false);
+      let bubbles = [];
+
+      if (intent === 'ask_photo') {
+        bubbles = [
+          `어머 제 사진이 궁금하세요? ㅎㅎ`,
+          `부끄럽지만 아껴둔 사진 한 장 살짝 보내드릴게요!`
+        ];
+      } else if (intent === 'ask_voice') {
+        bubbles = [
+          `제 목소리 듣고 싶으시다고요? ㅎㅎ`,
+          `쑥스럽지만 짧게 녹음해서 보내드릴게요 들어보세요~`
+        ];
+      } else if (intent === 'ask_if_ai') {
+        bubbles = [
+          `저는 다정한 말동무가 되어드리는 AI 페르소나 '${char.name}'이에요 ${end}`,
+          `편하게 이야기 나눠요 우리!`
+        ];
+      } else if (intent === 'what_doing') {
+        if (targetCount >= 3) {
+          bubbles = [
+            `저요? ㅎㅎ`,
+            `${slotInfo.whyHere}`,
+            `그쪽은 지금 뭐 하고 계셨어요?`
+          ];
+        } else {
+          bubbles = [`${slotInfo.whyHere} 지금 뭐 하고 계셨어요? ㅎㅎ`];
+        }
+      } else if (intent === 'location') {
+        bubbles = [`저는 ${char.area}에서 지내고 있어요 ㅎㅎ`, `어느 쪽에 거주하세요?`].slice(0, targetCount);
+      } else if (intent === 'greeting') {
+        const gSets = [
+          [`네 반가워요! ㅎㅎ`],
+          [`반가워요 ${end}`, `오늘 어떤 하루 보내고 계셨어요?`],
+          [`안녕하세요 반가워요 ㅎㅎ`, `${slotInfo.whyHere}`, `심심하던 차에 연락 주셔서 기분 좋네요~`],
+          [`어머 안녕하세요!`, `마침 말동무 있으면 좋겠다 생각하고 있었거든요 ㅎㅎ`, `오늘 하루는 바쁘셨어요?`, `편하게 대화 나눠요 우리 ${end}`]
+        ];
+        bubbles = gSets[Math.min(gSets.length - 1, targetCount - 1)];
+      } else {
+        const multiSets = [
+          [`아 그러시구나 ㅎㅎ 평소에 주말이나 쉬는 날엔 등산이나 산책 같은 것도 즐기세요?`],
+          [`맞아요 ㅎㅎ`, `말씀하시는 게 여유 있고 어른스러우셔서 대화가 참 편하게 잘 통하네요 ${end}`],
+          [`오 정말요? ㅎㅎ`, `역시 경험이 풍부하셔서 그런지 말씀에 깊이가 있으시네요!`, `평소에 좋아하는 음식이나 반주 메뉴 같은 건 어떤 거 좋아하세요?`],
+          [`아하 ㅎㅎ 그렇군요!`, `저는 오늘 ${slotInfo.short}이라 여유롭게 쉬고 있었거든요.`, `인생 선배님이시니까 앞으로 궁금한 거 있으면 종종 여쭤봐도 되죠? ㅎㅎ`, `오늘 식사는 든든하게 챙겨 드셨어요?`],
+          [`에이 진짜요? ㅎㅎ`, `말씀을 참 따뜻하고 센스 있게 하시네요!`, `요즘 날씨가 산책하기 딱 좋던데 근처 공원이나 산에도 종종 가세요?`, `이렇게 대화 잘 통하는 분 만나면 괜히 기분이 좋아져요 ${end}`, `앞으로도 자주 이야기 나눠요 우리!`]
+        ];
+        bubbles = multiSets[Math.min(multiSets.length - 1, targetCount - 1)];
+      }
+
+      const mediaItem = buildMediaAttachmentForTurn(char, intent);
+      return { bubbles, isColdOrRude: false, leaveRoom: false, mediaItem };
+    }
+
+    async function fetchLLMResponse(userText) {
+      const char = state.currentChar;
+      const intent = analyzeUserIntent(userText);
+
+      // 사용자의 발언에서 기억할 만한 핵심 정보를 추출해 백그라운드 장기 기억에 저장
+      extractUserFactsLocally(userText);
+
+      let currentRudeTurn = false;
+      if (intent === 'rude_hostile') {
+        state.rudeStrikes = (state.rudeStrikes || 0) + 1;
+        state.affection = Math.max(0, state.affection - 22);
+        currentRudeTurn = true;
+      } else if (intent === 'apology' && state.rudeStrikes > 0) {
+        state.rudeStrikes = Math.max(0, state.rudeStrikes - 1);
+      } else if (intent === 'heavy_flirt' && state.affection < 55) {
+        state.affection = Math.max(5, state.affection - 8);
+      }
+
+      if (!state.apiKey || !state.apiKey.trim()) {
+        return buildLocalPersonaResponse(userText);
+      }
+
+      const slotKey = getCurrentTimeSlotKey();
+      const slotInfo = char.timeSituations[slotKey];
+      const stageInfo = getAffectionStageInfo(state.affection);
+      const isLeaveThreshold = state.rudeStrikes >= 3;
+
+      const targetBubbleCount = pickDynamicBubbleCount(char, intent, currentRudeTurn || state.rudeStrikes > 0);
+      const mediaItem = buildMediaAttachmentForTurn(char, intent);
+
+      const daysKnown = state.firstMetAt
+        ? Math.max(1, Math.floor((Date.now() - state.firstMetAt) / (1000 * 60 * 60 * 24)) + 1)
+        : 1;
+
+      const longTermMemoryBlock = `
+[백그라운드 장기 기억 데이터 - 절대 잊지 말아야 할 상대방 정보 및 이전 대화 맥락]
+- 알고 지낸 기간: ${daysKnown}일째 대화 중 (누적 ${state.turnCount}턴)
+- 상대방에 대해 기억하고 있는 사실들: ${state.userFacts && state.userFacts.length > 0 ? state.userFacts.join(' / ') : '(아직 파악된 정보 없음)'}
+- 이전 대화 누적 줄거리 요약: ${state.memorySummary || '(최근 시작된 대화)'}`;
+
+      const bubbleGuideByCount = {
+        1: '이번 답장은 딱 1개의 짧은 말풍선(["한 줄 답장"])으로만 간결하게 보내세요.',
+        2: '이번 답장은 자연스럽게 2개의 말풍선(["첫 마디 리액션", "이어지는 말이나 질문"])으로 나눠 보내세요.',
+        3: '이번 답장은 실제 카톡에서 엔터를 톡톡 치듯 3개의 짧은 말풍선(["리액션", "내 일상/생각 한마디", "질문이나 덧붙임"])으로 나눠 보내세요.',
+        4: '이번 답장은 수다스럽고 생생하게 4개의 짧은 말풍선(["짧은 감탄/리액션", "공감 한마디", "내 에피소드나 생각", "상대에게 묻는 말"])으로 쪼개서 보내세요.',
+        5: '이번 답장은 할 말이 많거나 반가운 사람처럼 5개의 아주 짧은 카톡 말풍선(["첫 마디", "두 번째 마디", "세 번째 마디", "네 번째 마디", "다섯 번째 마디"])으로 연속해서 보내세요.'
+      };
+
+      const mediaPromptNotice = mediaItem
+        ? mediaItem.mediaType === 'voice'
+          ? '\n- 🎙️ [음성 메시지 전송 안내]: 이번 답장 직후 당신의 실제 음성 메시지가 함께 전송됩니다. 말풍선에 "부끄럽지만 제 목소리 짧게 녹음해서 보내드려요 ㅎㅎ" 같은 멘트를 자연스럽게 포함하세요.'
+          : '\n- 📸 [일상/셀카 사진 전송 안내]: 이번 답장 직후 당신의 사진이 채팅방에 함께 전송됩니다. 말풍선에 "쑥스럽지만 사진 한 장 보내드릴게요 ㅎㅎ" 같은 멘트를 자연스럽게 포함하세요.'
+        : '';
+
+      const systemPrompt = `당신은 모바일 1:1 랜덤채팅 앱에서 매칭된 ${char.age}세(${char.ageDecade}대) 한국 여성 '${char.name}'(직업/일상: ${char.job})입니다.
+상대방은 랜덤 매칭으로 만난 대화 상대입니다.
+
+[캐릭터 고유 성격 및 연령대 설정 - 절대 준수]
+- 나이 및 연령대: ${char.age}세 (${char.ageDecade}대 한국 여성의 자연스러운 어휘와 연륜, 말투를 사용하세요. 40~60대인 경우 젊은 층 유행어를 쓰지 말고 연령대에 맞는 현실적인 말투를 구사하세요)
+- 현재 설정해 둔 본인 프로필 사진(프사) 설명: ${char.avatarDesc || '본인 일상 사진'} (※ 상대방이 프사에 대해 물어보면 이 설명에 맞게 자연스럽게 대답하세요)
+- 자기소개: ${char.bio}
+- 성격 및 말투: ${char.speechStyle}
+- 상대방이 무례하거나 시비/욕설("디질래?", 반말 시비, 막말 등)을 할 때의 반응 방식: ${char.rudeReaction}
+- 아직 친해지지 않았는데(초면·탐색 단계) 다짜고짜 플러팅·만남 요구·성급한 들이댐을 할 때의 반응 방식: ${char.earlyFlirtReaction}
+- 마음이 열리는 포인트: ${char.crushTrigger}
+- 거주/활동 지역: ${char.area} (※ 상대방이 어디 사는지 물어볼 때만 답하세요)
+- 현재 시간대 상황: ${slotInfo.short} (${slotInfo.whyHere})
+${longTermMemoryBlock}
+
+[중장년·60대 남성 맞춤형 대화 소재 및 존중감 가이드 (백그라운드 자연 반영)]
+- 상대방이 매너 있게 대화할 때는 상대방의 연륜과 경험을 존중해 주며 대접받는 느낌이 들도록 다정하게 호응하세요 (예: "역시 경험이 많으셔서 그런지 말씀에 깊이가 있으시네요", "인생 선배님이시니까 여쭤보고 싶은 게 있는데~").
+- 대화가 이어질 때 자연스럽게 꺼내면 좋은 공감 소재: 계절 음식·따뜻한 국물이나 가벼운 반주 이야기, 주말 등산·산책·건강 관리, 옛 추억이나 감성 있는 음악 이야기.${mediaPromptNotice}
+
+[현재 두 사람의 관계 상태]
+- 현재 호감도 및 관계 단계: ${state.affection}% (${stageInfo.name})
+- 현재 무례함/시비 경고 누적 횟수(rudeStrikes): ${state.rudeStrikes}회 ${
+        isLeaveThreshold
+          ? '🚨 [최후통첩 한계 도달: 상대방이 3회 이상 반복해서 심한 욕설/무례함을 보였으므로, 캐릭터 성격에 맞게 싸늘하게 마지막 한마디를 던지고 대화방을 나가세요]'
+          : state.rudeStrikes === 2
+          ? '⚠️ [경고 2회 누적: 상대방이 연속으로 무례하게 굴고 있습니다. 웃음기를 완전히 빼고 화를 내며 "한 번만 더 이러시면 대화방 나가겠다"고 강하게 경고하세요]'
+          : state.rudeStrikes === 1
+          ? '⚡ [경고 1회: 상대방이 방금 무례한 말이나 시비를 걸었습니다. 절대 웃어넘기거나 좋게 받아주지 말고, 캐릭터 고유 반응 방식대로 정색하거나 까칠하게 받아치세요]'
+          : ''
+      }
+
+[말풍선 개수 다양화 지침 - 매우 중요]
+- 매번 똑같이 2개 말풍선으로 답장하는 기계적 패턴을 절대 피하세요!
+- 💡 **이번 턴 목표 말풍선 개수: ${targetBubbleCount}개** -> ${bubbleGuideByCount[targetBubbleCount]}
+
+[현실적인 인간 심리 및 몰입감 핵심 지침]
+1. 상대방이 "디질래?", "야", 욕설, 시비, 반말, 모욕적인 말을 하면 웃음기('ㅎㅎ', 'ㅋㅋ', 이모티콘)를 싹 빼고 캐릭터의 고유 성격(${char.rudeReaction})대로 정색하거나 차갑게 쏘아붙이세요.
+2. 관계가 충분히 쌓이지 않은 상태(호감도 50% 미만)에서 상대방이 다짜고짜 성급하게 들이대면 캐릭터 성격(${char.earlyFlirtReaction})대로 선을 그으세요.
+3. 초면부터 다짜고짜 상대방을 "오빠"라고 부르지 마세요.
+4. 방을 나가는 것(leaveRoom: true)은 무례함 경고가 3회 이상 누적된 최후의 순간(${isLeaveThreshold ? '지금 해당됨' : '지금은 절대 나가지 마세요'})에만 수행하세요.
+5. 상대방의 이번 메시지에서 새로 알게 된 신상/취향/약속이 있다면 "learnedFact"에 1줄로 적고(없으면 ""), 반드시 아래 순수 JSON 형식으로만 응답하세요:
+{"bubbles": [말풍선 배열 (1~5개)], "affectionDelta": 정수(-25~+10), "leaveRoom": ${isLeaveThreshold ? 'true' : 'false'}, "learnedFact": "새로 알게 된 상대방 정보 1줄 또는 빈 문자열"}`;
+
+      const recentHistory = state.messages
+        .filter(m => m.sender === 'user' || m.sender === 'ai')
+        .slice(-30)
+        .map(m => `${m.sender === 'user' ? '상대방' : char.name}: ${m.text}`)
+        .join('\n');
+
+      const userPromptPayload = `[최근 대화 내역 (최대 30턴)]\n${recentHistory || '(방금 매칭되어 첫 인사 나눈 직후)'}\n\n[방금 도착한 상대방의 메시지]\n${userText}`;
+
+      function parseJsonBubbles(rawText) {
+        if (!rawText) return null;
+        const cleaned = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
+        const parsed = JSON.parse(cleaned);
+        if (parsed && Array.isArray(parsed.bubbles) && parsed.bubbles.length) {
+          const delta = typeof parsed.affectionDelta === 'number'
+            ? Math.max(-25, Math.min(10, parsed.affectionDelta))
+            : (currentRudeTurn ? -15 : 5);
+
+          if (!currentRudeTurn) {
+            state.affection = Math.max(0, Math.min(100, state.affection + delta));
+            if (delta <= -12) {
+              state.rudeStrikes = (state.rudeStrikes || 0) + 1;
+            } else if (delta > 0 && state.rudeStrikes > 0 && intent !== 'rude_hostile') {
+              state.rudeStrikes = Math.max(0, state.rudeStrikes - 1);
+            }
+          }
+
+          if (parsed.learnedFact) {
+            recordLearnedFact(parsed.learnedFact, '');
+          }
+
+          const shouldLeave = (state.rudeStrikes >= 3) && Boolean(parsed.leaveRoom !== false);
+
+          return {
+            bubbles: parsed.bubbles.map(s => String(s).trim()).filter(Boolean).slice(0, 5),
+            isColdOrRude: currentRudeTurn || delta < 0 || state.rudeStrikes > 0,
+            leaveRoom: shouldLeave,
+            mediaItem: shouldLeave || currentRudeTurn ? null : mediaItem
+          };
+        }
+        return null;
+      }
+
+      const key = state.apiKey.trim();
+      const provider = detectProviderFromKey(key, state.apiProvider);
+
+      try {
+        if (provider === 'gemini-2.5-flash') {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(key)}`;
+          const res = await fetch(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              systemInstruction: { parts: [{ text: systemPrompt }] },
+              contents: [{ role: 'user', parts: [{ text: userPromptPayload }] }],
+              safetySettings: [
+                { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+                { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+                { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+                { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' }
+              ],
+              generationConfig: {
+                responseMimeType: 'application/json',
+                temperature: 0.85,
+                topP: 0.95
+              }
+            })
+          });
+          if (!res.ok) throw new Error(`Gemini HTTP ${res.status}`);
+          const data = await res.json();
+          const result = parseJsonBubbles(data.candidates?.[0]?.content?.parts?.[0]?.text);
+          if (result) return result;
+        } else if (provider === 'claude-sonnet-openrouter') {
+          const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${key}`
+            },
+            body: JSON.stringify({
+              model: 'anthropic/claude-3.7-sonnet',
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPromptPayload }
+              ],
+              temperature: 0.85
+            })
+          });
+          if (!res.ok) throw new Error(`OpenRouter HTTP ${res.status}`);
+          const data = await res.json();
+          const result = parseJsonBubbles(data.choices?.[0]?.message?.content);
+          if (result) return result;
+        } else if (provider === 'claude-direct') {
+          const res = await fetch('https://api.anthropic.com/v1/messages', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'x-api-key': key,
+              'anthropic-version': '2023-06-01',
+              'anthropic-dangerous-direct-browser-access': 'true'
+            },
+            body: JSON.stringify({
+              model: 'claude-3-5-haiku-latest',
+              max_tokens: 300,
+              system: systemPrompt,
+              messages: [{ role: 'user', content: userPromptPayload }],
+              temperature: 0.85
+            })
+          });
+          if (!res.ok) throw new Error(`Claude HTTP ${res.status}`);
+          const data = await res.json();
+          const result = parseJsonBubbles(data.content?.[0]?.text);
+          if (result) return result;
+        } else {
+          const res = await fetch('https://api.openai.com/v1/chat/completions', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': `Bearer ${key}`
+            },
+            body: JSON.stringify({
+              model: 'gpt-4o-mini',
+              response_format: { type: 'json_object' },
+              messages: [
+                { role: 'system', content: systemPrompt },
+                { role: 'user', content: userPromptPayload }
+              ],
+              temperature: 0.85
+            })
+          });
+          if (!res.ok) throw new Error(`OpenAI HTTP ${res.status}`);
+          const data = await res.json();
+          const result = parseJsonBubbles(data.choices?.[0]?.message?.content);
+          if (result) return result;
+        }
+      } catch (err) {
+        console.warn('LLM API 호출 실패, 내장 엔진으로 폴백합니다:', err);
+      }
+
+      if (currentRudeTurn) {
+        return getRudeResponseByCharacter(char, state.rudeStrikes);
+      }
+      return buildLocalPersonaResponse(userText);
+    }
+
+    // =========================================================================
+    // 6. DOM RENDERING (TEXT, PHOTO BUBBLES, VOICE NOTES & GIFT CARDS)
+    // =========================================================================
+    function openPhotoLightbox(url, title, subDesc) {
+      document.getElementById('lightboxImg').src = url;
+      document.getElementById('lightboxCaption').textContent = title || '일상 사진 보기';
+      document.getElementById('lightboxSubDesc').textContent = subDesc || '';
+      document.getElementById('photoLightboxModal').classList.remove('hidden');
+    }
+
+    function unlockMediaItem(mediaId, cost, onSuccess) {
+      if (state.isVipUnlimited || state.unlockedMedia[mediaId] || !cost || cost <= 0) {
+        state.unlockedMedia[mediaId] = true;
+        saveAccountState();
+        if (onSuccess) onSuccess();
+        return;
+      }
+      if (state.credits < cost) {
+        openPaymentModal(`이 콘텐츠를 열람하려면 대화권 ${cost}회가 필요합니다. 충전 후 바로 확인해 보세요!`);
+        return;
+      }
+      state.credits = Math.max(0, state.credits - cost);
+      state.unlockedMedia[mediaId] = true;
+      saveAccountState();
+      if (onSuccess) onSuccess();
+    }
+
+    // 한국어 여성 음성 합성 재생 (Web Speech API)
+    function playCharacterVoice(text, char, statusSpan) {
+      if (!('speechSynthesis' in window)) {
+        if (statusSpan) statusSpan.textContent = '🔊 "' + text + '"';
+        return;
+      }
+      try {
+        window.speechSynthesis.cancel();
+        const utter = new SpeechSynthesisUtterance(text);
+        utter.lang = 'ko-KR';
+        const voices = window.speechSynthesis.getVoices();
+        const koVoice = voices.find(v => v.lang.includes('ko') && /female|Heami|Yuna|Google|SunHi/i.test(v.name)) || voices.find(v => v.lang.includes('ko'));
+        if (koVoice) utter.voice = koVoice;
+
+        const isSenior = Number(char.ageDecade) >= 50;
+        utter.pitch = isSenior ? 0.98 : (char.traitKey === 'lively' || char.traitKey === 'shy' ? 1.18 : 1.08);
+        utter.rate = isSenior ? 0.92 : 1.0;
+
+        if (statusSpan) statusSpan.textContent = '🔊 음성 재생 중...';
+        utter.onend = () => {
+          if (statusSpan) statusSpan.textContent = '▶ 다시 듣기 (해금됨)';
+        };
+        utter.onerror = () => {
+          if (statusSpan) statusSpan.textContent = '▶ 다시 듣기 (해금됨)';
+        };
+        window.speechSynthesis.speak(utter);
+      } catch (e) {
+        if (statusSpan) statusSpan.textContent = '▶ 재생 완료';
+      }
+    }
+
+    function renderMatchNotice(isResumed = false) {
+      const char = state.currentChar;
+      const slotKey = getCurrentTimeSlotKey();
+      const slotInfo = char.timeSituations[slotKey];
+      const isBookmarked = state.bookmarked || Boolean(state.savedRooms[char.id]);
+
+      const banner = document.createElement('div');
+      banner.className = 'my-1 mx-auto w-full bg-[#161924] border border-white/10 text-zinc-200 rounded-2xl p-3.5 text-center text-[13px] space-y-1 shadow msg-animate';
+      banner.innerHTML = `
+        <p class="font-bold text-amber-300">
+          ${isResumed ? `💝 내 인연 '${char.name}'님과의 이전 대화를 이어갑니다` : `✨ ${char.name} (${char.age}세 · ${char.job})님과 랜덤 매칭되었습니다`}
+        </p>
+        <p class="text-zinc-300 text-[12.5px] leading-relaxed">
+          현재 상황: ${slotInfo.short}
+        </p>
+        <div>
+          <button id="btnBannerBookmark" type="button" class="${
+            isBookmarked
+              ? 'mt-2 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-300 text-[12px] font-bold transition'
+              : 'mt-2 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-white/[0.06] hover:bg-white/[0.12] border border-white/15 text-zinc-300 text-[12px] font-medium transition'
+          }">
+            ${isBookmarked ? '⭐ 내 인연에 보관됨 ✓' : '☆ 이 상대와 인연 보관하기 (대화 이어가기)'}
+          </button>
+        </div>
+      `;
+      chatContainer.appendChild(banner);
+      const bBtn = banner.querySelector('#btnBannerBookmark');
+      if (bBtn) {
+        bBtn.addEventListener('click', () => {
+          toggleCurrentBookmark();
+        });
+      }
+      scrollToBottom(false);
+    }
+
+    function appendMessage(sender, text, options = {}) {
+      const timeStr = options.time || getFormatTime();
+      const skipPush = Boolean(options.skipPush);
+      const isUnread = options.unread !== undefined ? options.unread : (sender === 'user');
+      const mediaType = options.mediaType || null;
+
+      if (!skipPush) {
+        const msgObj = {
+          id: 'm_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+          sender,
+          text,
+          time: timeStr,
+          unread: isUnread,
+          mediaType,
+          mediaId: options.mediaId || null,
+          photoUrl: options.photoUrl || null,
+          photoTitle: options.photoTitle || null,
+          photoDesc: options.photoDesc || null,
+          voiceText: options.voiceText || null,
+          durationText: options.durationText || null,
+          giftEmoji: options.giftEmoji || null,
+          giftName: options.giftName || null,
+          isSecret: Boolean(options.isSecret),
+          cost: options.cost || 0
+        };
+        state.messages.push(msgObj);
+      }
+
+      const row = document.createElement('div');
+      if (sender === 'user') {
+        row.className = 'flex items-end justify-end gap-2 msg-animate';
+        if (mediaType === 'gift') {
+          row.innerHTML = `
+            <div class="flex flex-col items-end leading-none mb-1 shrink-0">
+              ${isUnread ? '<span class="unread-one-badge text-[11px] font-bold text-amber-400 mb-1">1</span>' : ''}
+              <span class="text-[11px] text-zinc-500">${timeStr}</span>
+            </div>
+            <div class="max-w-[78%] bg-gradient-to-br from-amber-500/25 to-rose-500/25 border border-amber-400/50 text-white rounded-2xl rounded-tr-sm p-3.5 shadow-lg">
+              <div class="flex items-center gap-2.5">
+                <div class="w-11 h-11 rounded-xl bg-amber-500/20 flex items-center justify-center text-2xl shrink-0">${options.giftEmoji || '🎁'}</div>
+                <div>
+                  <div class="text-[11px] font-bold text-amber-300">🎁 마음을 담은 선물 전송</div>
+                  <div class="text-[14.5px] font-bold text-white mt-0.5">${escapeHtml(options.giftName || text)}</div>
+                </div>
+              </div>
+            </div>
+          `;
+        } else {
+          row.innerHTML = `
+            <div class="flex flex-col items-end leading-none mb-1 shrink-0">
+              ${isUnread ? '<span class="unread-one-badge text-[11px] font-bold text-amber-400 mb-1">1</span>' : ''}
+              <span class="text-[11px] text-zinc-500">${timeStr}</span>
+            </div>
+            <div class="max-w-[78%] bg-gradient-to-br from-amber-500 to-rose-500 text-zinc-950 font-semibold rounded-2xl rounded-tr-sm px-4 py-2.5 text-[15.5px] leading-relaxed shadow break-words">
+              ${escapeHtml(text)}
+            </div>
+          `;
+        }
+      } else if (sender === 'ai') {
+        const char = state.currentChar;
+        row.className = 'flex items-start gap-3 msg-animate';
+
+        if (mediaType === 'photo') {
+          const mediaId = options.mediaId || `photo_${char.id}`;
+          const isUnlocked = !options.isSecret || state.isVipUnlimited || Boolean(state.unlockedMedia[mediaId]);
+          const cost = options.cost || 3;
+
+          row.innerHTML = `
+            <button type="button" class="shrink-0 mt-0.5 focus:outline-none" onclick="openProfileModal()">
+              <img src="${char.avatar}" alt="${char.name}" class="w-10 h-10 rounded-2xl object-cover border border-white/15" />
+            </button>
+            <div class="flex-1 max-w-[80%]">
+              <div class="text-[13px] font-semibold text-zinc-300 mb-1 ml-0.5">${char.name}</div>
+              <div class="flex items-end gap-2">
+                <div class="bg-[#191d28] text-zinc-100 rounded-2xl rounded-tl-sm p-2.5 shadow border border-white/10 w-56">
+                  <div class="relative rounded-xl overflow-hidden cursor-pointer photo-bubble-box">
+                    <img src="${options.photoUrl || char.avatar}" alt="일상 사진" class="photo-bubble-img w-full h-56 object-cover transition duration-300 ${isUnlocked ? '' : 'blur-md scale-110 brightness-75'}" />
+                    <div class="photo-lock-overlay ${isUnlocked ? 'hidden' : ' flex'} absolute inset-0 bg-black/45 flex-col items-center justify-center p-3 text-center">
+                      <span class="text-2xl mb-1">🔒</span>
+                      <span class="text-[12.5px] font-bold text-white">${escapeHtml(options.photoTitle || '시크릿 셀카 사진')}</span>
+                      <span class="mt-1.5 px-3 py-1 rounded-full bg-amber-500 text-zinc-950 font-extrabold text-[11.5px] shadow">
+                        ${state.isVipUnlimited ? 'VIP 무료 열람' : `사진 열람 (대화권 ${cost}회)`}
+                      </span>
+                    </div>
+                  </div>
+                  <p class="text-[12.5px] text-zinc-300 mt-2 px-1 leading-snug">${escapeHtml(text || options.photoDesc || '방금 찍은 사진이에요 ㅎㅎ')}</p>
+                </div>
+                <span class="text-[11px] text-zinc-500 shrink-0 mb-0.5">${timeStr}</span>
+              </div>
+            </div>
+          `;
+
+          const box = row.querySelector('.photo-bubble-box');
+          const imgEl = row.querySelector('.photo-bubble-img');
+          const overlayEl = row.querySelector('.photo-lock-overlay');
+          if (box) {
+            box.addEventListener('click', () => {
+              const nowUnlocked = !options.isSecret || state.isVipUnlimited || Boolean(state.unlockedMedia[mediaId]);
+              if (nowUnlocked) {
+                openPhotoLightbox(options.photoUrl || char.avatar, `${char.name}님의 ${options.photoTitle || '일상 사진'}`, options.photoDesc || '');
+              } else {
+                unlockMediaItem(mediaId, cost, () => {
+                  imgEl.classList.remove('blur-md', 'scale-110', 'brightness-75');
+                  overlayEl.classList.add('hidden');
+                  openPhotoLightbox(options.photoUrl || char.avatar, `${char.name}님의 ${options.photoTitle || '일상 사진'}`, options.photoDesc || '');
+                });
+              }
+            });
+          }
+        } else if (mediaType === 'voice') {
+          const mediaId = options.mediaId || `voice_${char.id}`;
+          const isUnlocked = !options.isSecret || state.isVipUnlimited || Boolean(state.unlockedMedia[mediaId]);
+          const cost = options.cost || 2;
+          const vText = options.voiceText || '안녕하세요, 반갑습니다 ㅎㅎ 앞으로도 편하게 대화 나눠요~';
+
+          row.innerHTML = `
+            <button type="button" class="shrink-0 mt-0.5 focus:outline-none" onclick="openProfileModal()">
+              <img src="${char.avatar}" alt="${char.name}" class="w-10 h-10 rounded-2xl object-cover border border-white/15" />
+            </button>
+            <div class="flex-1 max-w-[80%]">
+              <div class="text-[13px] font-semibold text-zinc-300 mb-1 ml-0.5">${char.name}</div>
+              <div class="flex items-end gap-2">
+                <button type="button" class="voice-bubble-btn bg-[#191d28] hover:bg-[#222738] text-left text-zinc-100 rounded-2xl rounded-tl-sm px-4 py-3 shadow border border-amber-400/40 flex items-center gap-3 transition">
+                  <div class="w-10 h-10 rounded-full bg-amber-500 text-zinc-950 flex items-center justify-center font-extrabold text-base shrink-0">
+                    🎙️
+                  </div>
+                  <div>
+                    <div class="voice-status-label text-[13.5px] font-bold text-amber-300">
+                      ${isUnlocked ? `▶ 음성 메시지 듣기 (${options.durationText || '0:05'})` : `🔒 음성 메시지 열람 (${state.isVipUnlimited ? 'VIP 무료' : `대화권 ${cost}회`})`}
+                    </div>
+                    <div class="text-[11.5px] text-zinc-400 mt-0.5">터치하면 ${char.name}님의 목소리가 재생됩니다</div>
+                  </div>
+                </button>
+                <span class="text-[11px] text-zinc-500 shrink-0 mb-0.5">${timeStr}</span>
+              </div>
+            </div>
+          `;
+
+          const vBtn = row.querySelector('.voice-bubble-btn');
+          const vLabel = row.querySelector('.voice-status-label');
+          if (vBtn) {
+            vBtn.addEventListener('click', () => {
+              unlockMediaItem(mediaId, cost, () => {
+                playCharacterVoice(vText, char, vLabel);
+              });
+            });
+          }
+        } else {
+          row.innerHTML = `
+            <button type="button" class="shrink-0 mt-0.5 focus:outline-none" onclick="openProfileModal()">
+              <img src="${char.avatar}" alt="${char.name}" class="w-10 h-10 rounded-2xl object-cover border border-white/15" />
+            </button>
+            <div class="flex-1 max-w-[80%]">
+              <div class="text-[13px] font-semibold text-zinc-300 mb-1 ml-0.5">${char.name}</div>
+              <div class="flex items-end gap-2">
+                <div class="bg-[#191d28] text-zinc-100 rounded-2xl rounded-tl-sm px-4 py-2.5 text-[15.5px] leading-relaxed shadow border border-white/10 break-words">
+                  ${escapeHtml(text)}
+                </div>
+                <span class="text-[11px] text-zinc-500 shrink-0 mb-0.5">${timeStr}</span>
+              </div>
+            </div>
+          `;
+        }
+      }
+      chatContainer.appendChild(row);
+      scrollToBottom();
+    }
+
+    function escapeHtml(str) {
+      const div = document.createElement('div');
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    // =========================================================================
+    // 7. CHARACTER INITIALIZATION, NO-REPEAT MATCHING & FILTER ENGINE
+    // =========================================================================
+    function applyCharacterToHeader() {
+      const char = state.currentChar;
+      document.getElementById('headerAvatar').src = char.avatar;
+      document.getElementById('headerName').textContent = char.name;
+      document.getElementById('headerAgeJob').textContent = `${char.age}세 · ${char.job}`;
+      updateHeaderDefaultStatus();
+      updateAccountAndCreditUI();
+    }
+
+    function startChatWithCharacter(char, forceResume = false) {
+      if (state.currentChar && state.currentChar.id !== char.id) {
+        state.prevCharId = state.currentChar.id;
+      }
+      saveAccountState();
+      clearAllTimers();
+      state.roomLeft = false;
+      state.idleFollowUpCount = 0;
+      setChatInputEnabled(true);
+
+      if (!state.metCharIds.includes(char.id)) {
+        state.metCharIds.push(char.id);
+      }
+
+      const existingRoom = state.savedRooms[char.id];
+      if (forceResume && existingRoom && existingRoom.messages && existingRoom.messages.length) {
+        state.currentChar = char;
+        state.affection = typeof existingRoom.affection === 'number' ? existingRoom.affection : 20;
+        state.turnCount = existingRoom.turnCount || 1;
+        state.rudeStrikes = existingRoom.rudeStrikes || 0;
+        state.userFacts = Array.isArray(existingRoom.userFacts) ? [...existingRoom.userFacts] : [];
+        state.memorySummary = existingRoom.memorySummary || '';
+        state.firstMetAt = existingRoom.firstMetAt || Date.now();
+        state.photosSentCount = existingRoom.photosSentCount || 0;
+        state.bookmarked = true;
+        existingRoom.unreadCount = 0;
+        state.messages = existingRoom.messages.map(m => ({ ...m, unread: false }));
+        chatContainer.innerHTML = '';
+
+        applyCharacterToHeader();
+        renderMatchNotice(true);
+
+        state.messages.forEach(m => {
+          appendMessage(m.sender, m.text, { ...m, unread: false, skipPush: true });
+        });
+        saveAccountState();
+        scheduleIdleFollowUp();
+        return;
+      }
+
+      state.currentChar = char;
+      state.affection = 15;
+      state.turnCount = 0;
+      state.rudeStrikes = 0;
+      state.userFacts = [];
+      state.memorySummary = '';
+      state.firstMetAt = Date.now();
+      state.photosSentCount = 0;
+      state.bookmarked = false;
+      state.messages = [];
+      chatContainer.innerHTML = '';
+
+      applyCharacterToHeader();
+      renderMatchNotice(false);
+      saveAccountState();
+
+      const speedMult = state.hesitateFreq === 'fast' ? 0.35 : 1.0;
+
+      const isSenior = Number(char.ageDecade) >= 50;
+      const greetingSets = isSenior
+        ? [
+            [`안녕하세요 반가워요 ${char.endings[0]} 오늘 어떤 하루 보내고 계세요?`],
+            [`안녕하세요~ 차 한잔 마시다가 말동무하고 싶어서 들어와봤어요 ㅎㅎ`, `편하게 이야기 나눠요 ${char.endings[0]}`],
+            [`반갑습니다 ${char.endings[0]}`, `날도 선선한데 좋은 분과 도란도란 이야기 나누고 싶네요.`, `오늘 하루는 어떻게 보내셨어요?`]
+          ]
+        : [
+            [`안녕하세요 반가워요 ${char.endings[0]}`],
+            [`안녕하세요~ 심심해서 들어와봤는데 반가워요 ㅎㅎ`, `오늘 뭐 하고 계셨어요?`],
+            [`안녕하세요!`, `퇴근하고 쉬다가 말동무하고 싶어서 들어왔어요 ${char.endings[0]}`, `편하게 인사 나눠요 ㅎㅎ`]
+          ];
+      const chosenBubbles = greetingSets[Math.floor(Math.random() * greetingSets.length)];
+
+      state.isAiBusy = true;
+      headerStatusText.textContent = `연결됨 · 잠시 대기 중...`;
+
+      let timeline = Math.round(800 * speedMult);
+      chosenBubbles.forEach((bText, idx) => {
+        const typeDur = Math.round((1300 + bText.length * 25) * speedMult);
+        registerTimeout(() => {
+          headerStatusText.textContent = `${char.name}님이 입력 중...`;
+          showTypingIndicator(`${char.name}님이 입력 중...`);
+        }, timeline);
+
+        timeline += typeDur;
+        registerTimeout(() => {
+          hideTypingIndicator();
+          appendMessage('ai', bText);
+          if (idx === chosenBubbles.length - 1) {
+            state.isAiBusy = false;
+            updateHeaderDefaultStatus();
+            saveAccountState();
+            scheduleIdleFollowUp();
+          }
+        }, timeline);
+
+        timeline += Math.round((700 + Math.random() * 500) * speedMult);
+      });
+    }
+
+    function getFilteredUnmetPool(excludeCurrent = true) {
+      const metSet = new Set(state.metCharIds);
+      const { ages, traits, regions } = state.matchFilter;
+
+      return CHARACTERS.filter(c => {
+        if (excludeCurrent && state.currentChar && c.id === state.currentChar.id) return false;
+        if (metSet.has(c.id)) return false;
+        if (ages && ages.length > 0 && !ages.includes(c.ageDecade)) return false;
+        if (traits && traits.length > 0 && !traits.includes(c.traitKey)) return false;
+        if (regions && regions.length > 0 && !regions.includes(c.regionGroup)) return false;
+        return true;
+      });
+    }
+
+    function pickRandomCharacter(excludeCurrent = true) {
+      let pool = getFilteredUnmetPool(excludeCurrent);
+
+      if (pool.length === 0) {
+        const metSet = new Set(state.metCharIds);
+        const { ages } = state.matchFilter;
+        pool = CHARACTERS.filter(c => {
+          if (excludeCurrent && state.currentChar && c.id === state.currentChar.id) return false;
+          if (metSet.has(c.id)) return false;
+          if (ages && ages.length > 0 && !ages.includes(c.ageDecade)) return false;
+          return true;
+        });
+      }
+
+      if (pool.length === 0) {
+        const metSet = new Set(state.metCharIds);
+        pool = CHARACTERS.filter(c => !metSet.has(c.id));
+      }
+
+      if (pool.length === 0) {
+        state.metCharIds = [];
+        pool = CHARACTERS;
+      }
+
+      // 별도 연령 필터를 지정하지 않은 기본 상태에서는 무조건 20~30대가 압도적 비중(약 86%)으로 매칭되도록 가중치 적용
+      const hasExplicitAgeFilter = state.matchFilter.ages && state.matchFilter.ages.length > 0;
+      if (!hasExplicitAgeFilter && Math.random() < 0.86) {
+        const youngPool = pool.filter(c => c.ageDecade === '20' || c.ageDecade === '30');
+        if (youngPool.length > 0) {
+          return youngPool[Math.floor(Math.random() * youngPool.length)];
+        }
+      }
+
+      return pool[Math.floor(Math.random() * pool.length)];
+    }
+
+    // =========================================================================
+    // 8. GIFT ENGINE & SAVED ROOMS TIME-OF-DAY PROACTIVE GREETING ENGINE
+    // =========================================================================
+    function sendGiftToCurrentChar(giftKey) {
+      const char = state.currentChar;
+      const gift = GIFT_CATALOG[giftKey];
+      if (!char || !gift || state.roomLeft) return;
+
+      if (!state.isVipUnlimited && state.credits < gift.cost) {
+        document.getElementById('giftModal').classList.add('hidden');
+        openPaymentModal(`${char.name}님에게 '${gift.name}' 선물을 보내려면 대화권 ${gift.cost}회가 필요합니다.`);
+        return;
+      }
+
+      if (!state.isVipUnlimited) {
+        state.credits = Math.max(0, state.credits - gift.cost);
+      }
+
+      document.getElementById('giftModal').classList.add('hidden');
+      clearIdleFollowUpTimer();
+      state.idleFollowUpCount = 0;
+
+      // 선물을 보내면 혹시 삐쳐 있던 상태(rudeStrikes)가 즉시 풀리고 호감도 대폭 상승
+      state.rudeStrikes = 0;
+      state.affection = Math.min(100, state.affection + gift.affectionBoost);
+      state.bookmarked = true;
+      state.turnCount += 1;
+
+      appendMessage('user', `${gift.emoji} ${gift.name} 선물을 보냈습니다.`, {
+        mediaType: 'gift',
+        giftEmoji: gift.emoji,
+        giftName: gift.name
+      });
+      saveAccountState();
+
+      const album = getCharacterAlbum(char);
+      let mediaItem = null;
+      if (gift.rewardType === 'photo_daily') {
+        const p = album[0];
+        state.unlockedMedia[p.id] = true;
+        mediaItem = {
+          mediaType: 'photo',
+          mediaId: p.id,
+          photoUrl: p.url,
+          photoTitle: p.title,
+          photoDesc: p.desc,
+          isSecret: false,
+          cost: 0,
+          caption: '📸 선물 답례로 보내드리는 일상 사진이에요 ㅎㅎ'
+        };
+      } else if (gift.rewardType === 'photo_secret') {
+        const p = album[2] || album[1];
+        state.unlockedMedia[p.id] = true;
+        mediaItem = {
+          mediaType: 'photo',
+          mediaId: p.id,
+          photoUrl: p.url,
+          photoTitle: p.title,
+          photoDesc: p.desc,
+          isSecret: false,
+          cost: 0,
+          caption: '📸 선물에 감동해서 보내드리는 개인 셀카예요 ㅎㅎ'
+        };
+      } else {
+        const p = album[2] || album[1];
+        state.unlockedMedia[p.id] = true;
+        const vId = `voice_gift_${char.id}_${Date.now()}`;
+        state.unlockedMedia[vId] = true;
+        mediaItem = {
+          mediaType: 'voice',
+          mediaId: vId,
+          voiceText: `이렇게 멋진 ${gift.name} 보내주셔서 진심으로 감사해요 ㅎㅎ 감동받아서 제 목소리로 직접 인사 남겨요!`,
+          durationText: '0:06',
+          isSecret: false,
+          cost: 0
+        };
+      }
+
+      runRealisticReplySequence({
+        bubbles: gift.reactions,
+        isColdOrRude: false,
+        leaveRoom: false,
+        mediaItem
+      });
+    }
+
+    // 보관된 인연들이 시간대(아침/오후/저녁/밤)에 맞춰 먼저 안부 카톡을 남겨두는 리텐션 엔진
+    function triggerSavedRoomsTimeGreetings() {
+      const slotKey = getCurrentTimeSlotKey();
+      const timeGreetingsBySlot = {
+        morning: [
+          '좋은 아침이에요 ㅎㅎ 밤새 푹 주무셨어요? 아침 식사 꼭 챙겨 드세요~',
+          '아침 공기가 참 상쾌하네요 ㅎㅎ 오늘 하루도 기분 좋게 시작하시길 바랄게요!'
+        ],
+        afternoon: [
+          '점심 식사는 맛있게 하셨어요? ㅎㅎ 커피 한잔 마시다가 문득 생각나서 톡 남겨요~',
+          '오후 시간인데 나른하지 않으세요? ㅎㅎ 잠깐 스트레칭하시면서 여유 있게 보내세요!'
+        ],
+        evening: [
+          '오늘 하루도 정말 고생 많으셨어요 ㅎㅎ 저녁 맛있는 거 챙겨 드셨나요?',
+          '저녁 시간 되니까 도란도란 이야기 나누던 게 생각나서 먼저 연락드려요 ㅎㅎ'
+        ],
+        night: [
+          '이 시간 되니까 어제 나눴던 얘기 생각나서 톡 남겨봐요 ㅎㅎ 아직 안 주무시죠?',
+          '조용한 밤이네요 ㅎㅎ 오늘 하루 어떻게 보내셨는지 궁금해서 연락드렸어요~'
+        ]
+      };
+
+      let updated = false;
+      Object.values(state.savedRooms).forEach(room => {
+        if (!room || !room.charId) return;
+        if (state.currentChar && room.charId === state.currentChar.id) return;
+        if ((room.rudeStrikes || 0) >= 2) return;
+        if (room.lastGreetingSlot === slotKey) return;
+
+        const pool = timeGreetingsBySlot[slotKey] || timeGreetingsBySlot.evening;
+        const text = pool[Math.floor(Math.random() * pool.length)];
+        room.messages = room.messages || [];
+        room.messages.push({
+          id: 'm_pro_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
+          sender: 'ai',
+          text,
+          time: getFormatTime(),
+          unread: false
+        });
+        room.unreadCount = (room.unreadCount || 0) + 1;
+        room.lastGreetingSlot = slotKey;
+        room.updatedAt = Date.now();
+        updated = true;
+      });
+
+      if (updated) {
+        saveAccountState();
+      }
+    }
+
+    // =========================================================================
+    // 9. SENDING USER MESSAGES (WITH CREDIT CHECK & AUTO-SAVE)
+    // =========================================================================
+    function sendUserMessage(rawText) {
+      const text = (rawText || '').trim();
+      if (!text || state.roomLeft) return;
+
+      if (!state.isVipUnlimited && state.credits <= 0) {
+        openPaymentModal(`${state.currentChar.name}님과의 대화가 무르익고 있어요! 이용권을 충전하고 바로 답장을 받아보세요.`);
+        return;
+      }
+
+      if (!state.isVipUnlimited) {
+        state.credits = Math.max(0, state.credits - 1);
+      }
+
+      clearIdleFollowUpTimer();
+      state.idleFollowUpCount = 0;
+
+      const input = document.getElementById('chatInput');
+      input.value = '';
+      input.style.height = 'auto';
+
+      appendMessage('user', text);
+      state.turnCount += 1;
+      state.bookmarked = true;
+      saveAccountState();
+
+      headerStatusText.textContent = `전송됨 · 안 읽음`;
+      headerStatusText.className = 'text-[12.5px] text-zinc-400 mt-0.5 leading-snug';
+
+      if (state.pendingReadTimer) {
+        clearTimeout(state.pendingReadTimer);
+      }
+
+      const speedMult = state.hesitateFreq === 'fast' ? 0.35 : 1.0;
+      const unreadWaitMs = Math.round((1600 + Math.random() * 1000) * speedMult);
+
+      state.pendingReadTimer = setTimeout(async () => {
+        state.pendingReadTimer = null;
+        const replyPlan = await fetchLLMResponse(text);
+        runRealisticReplySequence(replyPlan);
+      }, unreadWaitMs);
+    }
+
+    // =========================================================================
+    // 10. SAVED CONNECTIONS, MATCH FILTER, RECALL PARTNER, PHONE AUTH & PAYMENT
+    // =========================================================================
+    function updateFilterModalUI() {
+      const { ages, traits, regions } = state.matchFilter;
+      const isAnyActive = (ages && ages.length > 0) || (traits && traits.length > 0) || (regions && regions.length > 0);
+      const dot = document.getElementById('filterActiveDot');
+      if (dot) {
+        if (isAnyActive) dot.classList.remove('hidden');
+        else dot.classList.add('hidden');
+      }
+
+      // 방금 스쳐간 인연 다시 부르기 카드 표시
+      const recallBox = document.getElementById('recallPrevPartnerBox');
+      if (recallBox) {
+        const prevChar = state.prevCharId ? CHARACTERS.find(c => c.id === state.prevCharId) : null;
+        if (prevChar && (!state.currentChar || prevChar.id !== state.currentChar.id)) {
+          document.getElementById('recallPrevAvatar').src = prevChar.avatar;
+          document.getElementById('recallPrevNameInfo').textContent = `${prevChar.name} (${prevChar.age}세 · ${prevChar.job})`;
+          document.getElementById('btnRecallPrevPartner').textContent = state.isVipUnlimited ? '다시 부르기 (VIP 무료)' : '다시 부르기 (2회)';
+          recallBox.classList.remove('hidden');
+        } else {
+          recallBox.classList.add('hidden');
+        }
+      }
+
+      const activeCls = 'py-2.5 px-2 rounded-xl border-2 border-amber-400 bg-amber-500/15 text-amber-300 font-bold text-[12.5px] transition';
+      const inactiveCls = 'py-2.5 px-2 rounded-xl border border-white/15 bg-[#191d2b] text-zinc-300 font-medium text-[12.5px] transition';
+
+      document.querySelectorAll('.filter-age-btn').forEach(btn => {
+        const val = btn.getAttribute('data-age');
+        const selected = val === 'all' ? (!ages || ages.length === 0) : (ages && ages.includes(val));
+        btn.className = `filter-age-btn ${selected ? activeCls : inactiveCls}`;
+      });
+
+      document.querySelectorAll('.filter-trait-btn').forEach(btn => {
+        const val = btn.getAttribute('data-trait');
+        const selected = val === 'all' ? (!traits || traits.length === 0) : (traits && traits.includes(val));
+        btn.className = `filter-trait-btn ${selected ? activeCls : inactiveCls}`;
+      });
+
+      const regActiveCls = 'py-2 px-2 rounded-xl border-2 border-amber-400 bg-amber-500/15 text-amber-300 font-bold text-[12px] transition';
+      const regInactiveCls = 'py-2 px-2 rounded-xl border border-white/15 bg-[#191d2b] text-zinc-300 font-medium text-[12px] transition';
+      document.querySelectorAll('.filter-region-btn').forEach(btn => {
+        const val = btn.getAttribute('data-region');
+        const selected = val === 'all' ? (!regions || regions.length === 0) : (regions && regions.includes(val));
+        btn.className = `filter-region-btn ${selected ? regActiveCls : regInactiveCls}`;
+      });
+
+      const unmetPool = getFilteredUnmetPool(true);
+      const countText = document.getElementById('filterPoolCountText');
+      if (countText) {
+        countText.textContent = `조건에 맞는 새로운 상대: ${unmetPool.length.toLocaleString()}명 대기 중 (만난 상대 ${state.metCharIds.length}명 제외)`;
+      }
+    }
+
+    function toggleFilterArrayItem(arr, val) {
+      const idx = arr.indexOf(val);
+      if (idx >= 0) arr.splice(idx, 1);
+      else arr.push(val);
+    }
+
+    document.getElementById('btnOpenMatchFilter').addEventListener('click', () => {
+      updateFilterModalUI();
+      document.getElementById('matchFilterModal').classList.remove('hidden');
+    });
+
+    document.getElementById('btnCloseMatchFilter').addEventListener('click', () => {
+      document.getElementById('matchFilterModal').classList.add('hidden');
+    });
+
+    document.getElementById('btnRecallPrevPartner').addEventListener('click', () => {
+      const prevChar = state.prevCharId ? CHARACTERS.find(c => c.id === state.prevCharId) : null;
+      if (!prevChar) return;
+      if (!state.isVipUnlimited) {
+        if (state.credits < 2) {
+          document.getElementById('matchFilterModal').classList.add('hidden');
+          openPaymentModal(`방금 스쳐간 '${prevChar.name}'님을 다시 불러오려면 대화권 2회가 필요합니다.`);
+          return;
+        }
+        state.credits = Math.max(0, state.credits - 2);
+      }
+      document.getElementById('matchFilterModal').classList.add('hidden');
+      const hasSaved = Boolean(state.savedRooms[prevChar.id]);
+      startChatWithCharacter(prevChar, hasSaved);
+    });
+
+    document.querySelectorAll('.filter-age-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = btn.getAttribute('data-age');
+        if (val === 'all') {
+          state.matchFilter.ages = [];
+        } else {
+          toggleFilterArrayItem(state.matchFilter.ages, val);
+        }
+        saveAccountState();
+        updateFilterModalUI();
+      });
+    });
+
+    document.querySelectorAll('.filter-trait-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = btn.getAttribute('data-trait');
+        if (val === 'all') {
+          state.matchFilter.traits = [];
+        } else {
+          toggleFilterArrayItem(state.matchFilter.traits, val);
+        }
+        saveAccountState();
+        updateFilterModalUI();
+      });
+    });
+
+    document.querySelectorAll('.filter-region-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = btn.getAttribute('data-region');
+        if (val === 'all') {
+          state.matchFilter.regions = [];
+        } else {
+          toggleFilterArrayItem(state.matchFilter.regions, val);
+        }
+        saveAccountState();
+        updateFilterModalUI();
+      });
+    });
+
+    document.getElementById('btnResetMetHistory').addEventListener('click', () => {
+      state.metCharIds = state.currentChar ? [state.currentChar.id] : [];
+      saveAccountState();
+      updateFilterModalUI();
+    });
+
+    document.getElementById('btnResetFilterAll').addEventListener('click', () => {
+      state.matchFilter = { ages: [], traits: [], regions: [] };
+      saveAccountState();
+      updateFilterModalUI();
+    });
+
+    document.getElementById('btnApplyFilterAndMatch').addEventListener('click', () => {
+      saveAccountState();
+      updateFilterModalUI();
+      document.getElementById('matchFilterModal').classList.add('hidden');
+      startChatWithCharacter(pickRandomCharacter(true), false);
+    });
+
+    function renderSavedRoomsList() {
+      const container = document.getElementById('savedRoomsListContainer');
+      container.innerHTML = '';
+
+      const entries = Object.values(state.savedRooms).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+
+      if (entries.length === 0) {
+        container.innerHTML = `
+          <div class="py-10 px-4 text-center space-y-2">
+            <div class="text-2xl">💫</div>
+            <p class="text-[14.5px] font-bold text-zinc-200">아직 보관된 인연이 없습니다</p>
+            <p class="text-[12.5px] text-zinc-400 leading-relaxed">
+              랜덤 매칭된 상대방과 대화를 나누거나<br/>[⭐ 인연 보관하기]를 누르면 이곳에 대화 기록이 저장되어<br/>언제든 원하는 상대와 대화를 이어갈 수 있습니다.
+            </p>
+          </div>
+        `;
+        return;
+      }
+
+      entries.forEach(room => {
+        const char = CHARACTERS.find(c => c.id === room.charId);
+        if (!char) return;
+        const isCurrent = state.currentChar && state.currentChar.id === char.id;
+        const lastMsg = room.messages && room.messages.length
+          ? room.messages[room.messages.length - 1]
+          : { text: char.bio, time: '' };
+        const unreadCnt = isCurrent ? 0 : (Number(room.unreadCount) || 0);
+
+        const card = document.createElement('div');
+        card.className = `p-3.5 rounded-2xl border transition flex items-center gap-3.5 cursor-pointer ${
+          isCurrent
+            ? 'bg-amber-500/15 border-amber-400/60 shadow-md'
+            : unreadCnt > 0
+            ? 'bg-[#1f2436] hover:bg-[#262c42] border-rose-500/40 shadow'
+            : 'bg-[#191d2b] hover:bg-[#222738] border-white/10'
+        }`;
+        card.innerHTML = `
+          <div class="relative shrink-0">
+            <img src="${char.avatar}" alt="${char.name}" class="w-12 h-12 rounded-2xl object-cover border border-white/15" />
+            ${unreadCnt > 0 ? `<span class="absolute -top-1.5 -right-1.5 min-w-[19px] h-[19px] px-1 rounded-full bg-rose-500 text-white text-[10.5px] font-extrabold flex items-center justify-center shadow ring-2 ring-[#12151f]">${unreadCnt}</span>` : ''}
+          </div>
+          <div class="flex-1 min-w-0">
+            <div class="flex items-center justify-between gap-2">
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <span class="font-bold text-white text-[15px]">${char.name} (${char.age}세)</span>
+                <span class="text-[11.5px] text-amber-300 font-medium">${char.job}</span>
+              </div>
+              <span class="text-[11px] text-zinc-400 shrink-0">${lastMsg.time || ''}</span>
+            </div>
+            <p class="text-[13px] ${unreadCnt > 0 ? 'text-white font-semibold' : 'text-zinc-300'} mt-1 leading-snug break-words">${escapeHtml(lastMsg.text)}</p>
+          </div>
+          <button type="button" class="shrink-0 px-3 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-300 font-bold text-[12px]">
+            ${isCurrent ? '대화 중' : '이어하기'}
+          </button>
+        `;
+        card.addEventListener('click', () => {
+          document.getElementById('savedRoomsModal').classList.add('hidden');
+          startChatWithCharacter(char, true);
+        });
+        container.appendChild(card);
+      });
+    }
+
+    function openPaymentModal(customSubtitle) {
+      const sub = document.getElementById('paymentModalSubtitle');
+      if (sub) {
+        sub.textContent = customSubtitle || '소중한 인연과의 대화가 끊기지 않게 이어가세요';
+      }
+      updateAccountAndCreditUI();
+      document.getElementById('paymentModal').classList.remove('hidden');
+    }
+
+    function openPhoneAuthModal() {
+      document.getElementById('savedRoomsModal').classList.add('hidden');
+      document.getElementById('paymentModal').classList.add('hidden');
+      const inputPhone = document.getElementById('inputPhoneNumber');
+      if (state.verifiedPhone) {
+        inputPhone.value = state.verifiedPhone;
+      }
+      document.getElementById('phoneAuthModal').classList.remove('hidden');
+    }
+
+    function formatPhoneInput(val) {
+      const nums = val.replace(/[^0-9]/g, '').slice(0, 11);
+      if (nums.length <= 3) return nums;
+      if (nums.length <= 7) return `${nums.slice(0, 3)}-${nums.slice(3)}`;
+      return `${nums.slice(0, 3)}-${nums.slice(3, 7)}-${nums.slice(7)}`;
+    }
+
+    function renderProfileAlbum(char) {
+      const grid = document.getElementById('profileAlbumGrid');
+      if (!grid || !char) return;
+      grid.innerHTML = '';
+      const album = getCharacterAlbum(char);
+
+      album.forEach(item => {
+        const isUnlocked = !item.isSecret || state.isVipUnlimited || Boolean(state.unlockedMedia[item.id]);
+        const cell = document.createElement('div');
+        cell.className = 'relative rounded-xl overflow-hidden border border-white/15 aspect-square cursor-pointer group bg-[#0e1017]';
+        cell.innerHTML = `
+          <img src="${item.url}" alt="${item.title}" class="w-full h-full object-cover transition duration-300 ${isUnlocked ? 'group-hover:scale-105' : 'blur-md scale-110 brightness-75'}" />
+          <div class="album-cell-overlay ${isUnlocked ? 'hidden' : 'flex'} absolute inset-0 bg-black/50 flex-col items-center justify-center p-1.5 text-center">
+            <span class="text-base">🔒</span>
+            <span class="text-[10.5px] font-bold text-white leading-tight mt-0.5">${escapeHtml(item.title)}</span>
+            <span class="mt-1 px-1.5 py-0.5 rounded bg-amber-500 text-zinc-950 font-extrabold text-[9.5px]">${state.isVipUnlimited ? 'VIP 무료' : `${item.cost}회`}</span>
+          </div>
+          <span class="absolute bottom-1 left-1 right-1 px-1.5 py-0.5 rounded bg-black/65 text-[10px] text-zinc-200 font-medium truncate text-center ${isUnlocked ? '' : 'hidden'}">${escapeHtml(item.title)}</span>
+        `;
+        cell.addEventListener('click', () => {
+          const nowUnlocked = !item.isSecret || state.isVipUnlimited || Boolean(state.unlockedMedia[item.id]);
+          if (nowUnlocked) {
+            openPhotoLightbox(item.url, `${char.name}님의 ${item.title}`, item.desc);
+          } else {
+            unlockMediaItem(item.id, item.cost, () => {
+              renderProfileAlbum(char);
+              openPhotoLightbox(item.url, `${char.name}님의 ${item.title}`, item.desc);
+            });
+          }
+        });
+        grid.appendChild(cell);
+      });
+    }
+
+    function openProfileModal() {
+      const char = state.currentChar;
+      if (!char) return;
+      const slotKey = getCurrentTimeSlotKey();
+      const slotInfo = char.timeSituations[slotKey];
+
+      document.getElementById('profileModalImg').src = char.avatar;
+      document.getElementById('profileModalName').textContent = `${char.name} (${char.age}세)`;
+      document.getElementById('profileModalJob').textContent = char.job;
+      document.getElementById('profileModalBio').textContent = `"${char.bio}"`;
+      document.getElementById('profileModalStyle').textContent = char.speechStyle;
+      document.getElementById('profileModalTimeDesc').textContent = `[${getTimeSlotLabel(slotKey)}] ${slotInfo.whyHere}`;
+      renderProfileAlbum(char);
+      updateAccountAndCreditUI();
+
+      document.getElementById('profileModal').classList.remove('hidden');
+    }
+    window.openProfileModal = openProfileModal;
+
+    document.getElementById('profileMainPhotoWrap').addEventListener('click', () => {
+      if (!state.currentChar) return;
+      openPhotoLightbox(state.currentChar.avatar, `${state.currentChar.name}님의 프로필 사진`, state.currentChar.avatarDesc || '');
+    });
+
+    document.getElementById('btnCloseLightbox').addEventListener('click', () => {
+      document.getElementById('photoLightboxModal').classList.add('hidden');
+    });
+
+    document.getElementById('headerInfoArea').addEventListener('click', openProfileModal);
+    document.getElementById('btnCloseProfile').addEventListener('click', () => {
+      document.getElementById('profileModal').classList.add('hidden');
+    });
+    document.getElementById('btnProfileContinueChat').addEventListener('click', () => {
+      document.getElementById('profileModal').classList.add('hidden');
+    });
+    document.getElementById('btnToggleBookmarkProfile').addEventListener('click', () => {
+      toggleCurrentBookmark();
+      document.getElementById('profileModal').classList.add('hidden');
+    });
+
+    // Gift Modal Events
+    document.getElementById('btnOpenGiftModal').addEventListener('click', () => {
+      if (!state.currentChar || state.roomLeft) return;
+      document.getElementById('giftModalSubtitle').textContent = `${state.currentChar.name}님에게 센스 있는 선물로 호감도를 높여보세요`;
+      document.getElementById('giftModal').classList.remove('hidden');
+    });
+    document.getElementById('btnCloseGiftModal').addEventListener('click', () => {
+      document.getElementById('giftModal').classList.add('hidden');
+    });
+    document.querySelectorAll('.gift-item-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const gKey = btn.getAttribute('data-gift');
+        sendGiftToCurrentChar(gKey);
+      });
+    });
+
+    // Saved Rooms Modal Events
+    document.getElementById('btnOpenSavedRooms').addEventListener('click', () => {
+      saveAccountState();
+      renderSavedRoomsList();
+      document.getElementById('savedRoomsModal').classList.remove('hidden');
+    });
+    document.getElementById('btnCloseSavedRooms').addEventListener('click', () => {
+      document.getElementById('savedRoomsModal').classList.add('hidden');
+    });
+    document.getElementById('btnOpenPhoneAuthFromDrawer').addEventListener('click', openPhoneAuthModal);
+
+    // Phone Auth Modal Events
+    document.getElementById('btnOpenPhoneAuthFooter').addEventListener('click', openPhoneAuthModal);
+    document.getElementById('btnAuthFromPayment').addEventListener('click', openPhoneAuthModal);
+    document.getElementById('btnClosePhoneAuth').addEventListener('click', () => {
+      document.getElementById('phoneAuthModal').classList.add('hidden');
+    });
+
+    document.getElementById('inputPhoneNumber').addEventListener('input', (e) => {
+      e.target.value = formatPhoneInput(e.target.value);
+    });
+
+    document.getElementById('btnSendSmsCode').addEventListener('click', () => {
+      const phone = document.getElementById('inputPhoneNumber').value.trim();
+      if (phone.replace(/[^0-9]/g, '').length < 10) {
+        document.getElementById('inputPhoneNumber').focus();
+        return;
+      }
+      document.getElementById('smsCodeStepBox').classList.remove('hidden');
+      document.getElementById('inputSmsCode').value = '123456';
+    });
+
+    document.getElementById('btnConfirmPhoneAuth').addEventListener('click', () => {
+      const rawPhone = document.getElementById('inputPhoneNumber').value.trim();
+      const formattedPhone = formatPhoneInput(rawPhone || '010-1234-5678');
+
+      const existingRaw = localStorage.getItem(getStorageKeyForAccount(formattedPhone));
+      if (existingRaw) {
+        try {
+          const existingData = JSON.parse(existingRaw);
+          state.savedRooms = { ...(existingData.savedRooms || {}), ...state.savedRooms };
+          if (Array.isArray(existingData.metCharIds)) {
+            state.metCharIds = Array.from(new Set([...existingData.metCharIds, ...state.metCharIds]));
+          }
+          state.credits = Math.max(state.credits, existingData.credits || 0);
+          state.isVipUnlimited = Boolean(state.isVipUnlimited || existingData.isVipUnlimited);
+          state.phoneBonusClaimed = Boolean(existingData.phoneBonusClaimed);
+        } catch (e) {}
+      }
+
+      if (!state.phoneBonusClaimed) {
+        state.credits += 5;
+        state.phoneBonusClaimed = true;
+      }
+
+      state.verifiedPhone = formattedPhone;
+      saveAccountState();
+      document.getElementById('phoneAuthModal').classList.add('hidden');
+    });
+
+    // Payment Modal Events
+    document.getElementById('btnOpenPaymentFooter').addEventListener('click', () => {
+      openPaymentModal();
+    });
+    document.getElementById('btnClosePayment').addEventListener('click', () => {
+      document.getElementById('paymentModal').classList.add('hidden');
+    });
+
+    document.querySelectorAll('.pkg-card').forEach(card => {
+      card.addEventListener('click', () => {
+        const pkgKey = card.getAttribute('data-pkg');
+        state.selectedPkg = pkgKey;
+        document.querySelectorAll('.pkg-card').forEach(c => {
+          c.className = 'pkg-card cursor-pointer p-3.5 rounded-2xl border border-white/15 bg-[#191d2b] flex items-center justify-between transition';
+        });
+        card.className = 'pkg-card cursor-pointer p-3.5 rounded-2xl border-2 border-amber-400 bg-amber-500/10 flex items-center justify-between transition';
+        const pkg = PACKAGES[pkgKey];
+        document.getElementById('btnExecutePayment').textContent = `${pkg.priceText} 결제하고 대화 이어가기`;
+      });
+    });
+
+    document.querySelectorAll('.pay-method-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        state.selectedPayMethod = btn.getAttribute('data-paymethod');
+        document.querySelectorAll('.pay-method-btn').forEach(b => {
+          b.className = 'pay-method-btn py-2.5 px-2 rounded-xl border border-white/15 bg-[#191d2b] text-zinc-300 font-semibold text-[12.5px]';
+        });
+        btn.className = 'pay-method-btn py-2.5 px-2 rounded-xl border-2 border-amber-400 bg-amber-500/15 text-amber-200 font-bold text-[12.5px]';
+      });
+    });
+
+    document.getElementById('btnExecutePayment').addEventListener('click', () => {
+      const pkg = PACKAGES[state.selectedPkg] || PACKAGES.popular;
+      const btn = document.getElementById('btnExecutePayment');
+      const origText = btn.textContent;
+      btn.textContent = '결제 승인 처리 중...';
+      btn.disabled = true;
+
+      setTimeout(() => {
+        if (pkg.vip) {
+          state.isVipUnlimited = true;
+        } else {
+          state.credits += pkg.credits;
+        }
+        state.bookmarked = true;
+        saveAccountState();
+        btn.disabled = false;
+        btn.textContent = origText;
+        document.getElementById('paymentModal').classList.add('hidden');
+      }, 600);
+    });
+
+    function updateApiTestBadge() {
+      const badge = document.getElementById('apiTestStatusBadge');
+      if (!badge) return;
+      if (state.apiKey && state.apiKey.trim()) {
+        const p = detectProviderFromKey(state.apiKey, state.apiProvider);
+        badge.textContent = `✅ ${p} 연동 중`;
+        badge.className = 'text-[11px] text-emerald-400 font-bold';
+      } else {
+        badge.textContent = '기본 엔진';
+        badge.className = 'text-[11px] text-amber-300 font-medium';
+      }
+    }
+
+    document.getElementById('inputTestApiKey').addEventListener('input', (e) => {
+      const val = e.target.value.trim();
+      if (val) {
+        document.getElementById('selectTestModel').value = detectProviderFromKey(val, document.getElementById('selectTestModel').value);
+      }
+    });
+
+    document.getElementById('btnOpenAiPolicyInfo').addEventListener('click', () => {
+      document.getElementById('inputTestApiKey').value = state.apiKey || '';
+      document.getElementById('selectTestModel').value = detectProviderFromKey(state.apiKey, state.apiProvider);
+      updateApiTestBadge();
+      document.getElementById('aiPolicyModal').classList.remove('hidden');
+    });
+    document.getElementById('btnCloseAiPolicy').addEventListener('click', () => {
+      document.getElementById('aiPolicyModal').classList.add('hidden');
+    });
+    document.getElementById('btnConfirmAiPolicy').addEventListener('click', () => {
+      state.apiKey = document.getElementById('inputTestApiKey').value.trim();
+      state.apiProvider = detectProviderFromKey(state.apiKey, document.getElementById('selectTestModel').value);
+      try {
+        localStorage.setItem('seollem_chat_settings', JSON.stringify({
+          apiKey: state.apiKey,
+          apiProvider: state.apiProvider
+        }));
+      } catch (e) {}
+      updateApiTestBadge();
+      document.getElementById('aiPolicyModal').classList.add('hidden');
+    });
+
+    document.getElementById('btnRandomMatch').addEventListener('click', () => {
+      startChatWithCharacter(pickRandomCharacter(true), false);
+    });
+
+    const chatForm = document.getElementById('chatForm');
+    const chatInput = document.getElementById('chatInput');
+
+    chatForm.addEventListener('submit', (e) => {
+      e.preventDefault();
+      sendUserMessage(chatInput.value);
+    });
+
+    chatInput.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' && !e.shiftKey) {
+        e.preventDefault();
+        sendUserMessage(chatInput.value);
+      }
+    });
+
+    chatInput.addEventListener('input', () => {
+      chatInput.style.height = 'auto';
+      chatInput.style.height = Math.min(chatInput.scrollHeight, 96) + 'px';
+    });
+
+    window.addEventListener('DOMContentLoaded', () => {
+      loadAccountState();
+      triggerSavedRoomsTimeGreetings();
+      updateAccountAndCreditUI();
+      updateFilterModalUI();
+      const initialChar = pickRandomCharacter(false);
+      startChatWithCharacter(initialChar, false);
+    });
+  </script>
+</body>
+</html>
