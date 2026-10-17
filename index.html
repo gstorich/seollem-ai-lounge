@@ -1277,29 +1277,100 @@
       }
     };
 
-    // 캐릭터별 3장 일상·셀카 사진첩 생성 (1번: 무료 일상/작업실 사진, 2번: 나들이 스냅(시크릿), 3번: 개인 셀카(시크릿))
+    // 얼굴이 나오지 않는 1인칭 일상/소품 사진 (어떤 캐릭터가 보내도 타인 얼굴과 절대 섞이지 않음)
+    const NON_FACE_DAILY_PHOTOS = [
+      { url: 'avatars/kr_hand_coffee_01.jpg', desc: '오후에 카페에서 직접 찍은 따뜻한 라떼 한 잔 사진' },
+      { url: 'avatars/kr_job_bakery_03.jpg', desc: '티타임에 먹으려고 준비한 크루아상과 딸기 케이크 간식 사진' },
+      { url: 'avatars/kr_hand_bouquet_04.jpg', desc: '예쁘게 포장하면서 직접 찍어둔 파스텔톤 꽃다발 사진' },
+      { url: 'avatars/kr_hand_dog_03.jpg', desc: '집 거실에서 귀엽게 앉아 있는 강아지를 쓰다듬으며 찍은 사진' },
+      { url: 'avatars/kr_scene_iced_coffee.jpg', desc: '햇살 좋은 카페 창가 자리에서 마신 아이스 아메리카노 사진' },
+      { url: 'avatars/kr_job_barista_02.jpg', desc: '고소한 원두 향 가득한 카페에서 정성껏 내린 라떼아트 사진' }
+    ];
+
+    // 얼굴이 나오지 않는 1인칭 주말 나들이·풍경 사진 (타인 얼굴과 절대 섞이지 않음)
+    const NON_FACE_OUTING_PHOTOS = [
+      { url: 'avatars/kr_nature_mountain_ridge.jpg', desc: '주말 등산 올라가서 직접 찍은 맑은 하늘과 산정상 바위 능선 사진' },
+      { url: 'avatars/kr_nature_eastsea_sunset.jpg', desc: '동해 바닷가 나들이 가서 직접 찍은 수평선 노을 풍경 사진' },
+      { url: 'avatars/kr_nature_autumn_foliage.jpg', desc: '산책길에 노랗고 붉게 물든 은행나무와 단풍을 직접 찍은 사진' },
+      { url: 'avatars/kr_scene_hanok_alley.jpg', desc: '주말에 조용히 걸었던 한옥마을 골목길 처마 풍경 사진' },
+      { url: 'avatars/kr_hand_wine_02.jpg', desc: '저녁에 분위기 좋은 곳에서 가볍게 마신 레드와인 한 잔 사진' }
+    ];
+
+    // 동일 인물 원본 ↔ 클로즈업 1:1 매칭 맵 (절대 다른 사람 얼굴이 섞이지 않도록 보장)
+    const SAME_PERSON_PAIR_MAP = {
+      'avatars/avatar_01_park_hayoung.jpg': { url: 'avatars/same_01_park_hayoung.jpg', desc: '카페 창가에서 밝게 미소 지으며 찍은 본인 클로즈업 사진' },
+      'avatars/avatar_02_kim_subin.jpg': { url: 'avatars/same_02_kim_subin.jpg', desc: '꽃 작업실에서 다정하게 웃으며 찍은 본인 클로즈업 셀카' },
+      'avatars/avatar_03_kang_daeun.jpg': { url: 'avatars/same_03_kang_daeun.jpg', desc: '산책길에 기분 좋게 미소 지은 본인 클로즈업 사진' },
+      'avatars/avatar_04_cho_yerin.jpg': { url: 'avatars/same_04_cho_yerin.jpg', desc: '따뜻한 조명 아래에서 찍은 본인 클로즈업 사진' },
+      'avatars/avatar_05_yoon_jieun.jpg': { url: 'avatars/same_05_yoon_jieun.jpg', desc: '운동 끝나고 활짝 웃으며 찍은 본인 클로즈업 사진' },
+      'avatars/avatar_06_jung_yujin.jpg': { url: 'avatars/same_06_jung_yujin.jpg', desc: '휴무일에 집에서 편하게 찍은 본인 클로즈업 셀카' },
+      'avatars/avatar_07_lee_seoyeon.jpg': { url: 'avatars/same_07_lee_seoyeon.jpg', desc: '전시회 나들이 가서 찍은 본인 클로즈업 사진' },
+      'avatars/avatar_08_oh_chaewon.jpg': { url: 'avatars/same_08_oh_chaewon.jpg', desc: '베이커리에서 환하게 웃으며 찍은 본인 클로즈업 셀카' },
+      'avatars/avatar_09_shin_sohee.jpg': { url: 'avatars/same_09_shin_sohee.jpg', desc: '저녁 한강 산책 중 찍은 본인 클로즈업 사진' },
+      'avatars/avatar_10_han_minseo.jpg': { url: 'avatars/same_10_han_minseo.jpg', desc: '조용한 북카페에서 찍은 본인 클로즈업 사진' },
+      'avatars/kr_selfie_mirror_01.jpg': { url: 'avatars/same_selfie_mirror_01.jpg', desc: '외출 전 거울 앞에서 찍은 본인 클로즈업 셀카' },
+      'avatars/kr_selfie_cafe_03.jpg': { url: 'avatars/kr_selfie_closeup_04.jpg', desc: '카페 창가에서 가까이 찍은 본인 클로즈업 셀카' },
+      'avatars/kr_selfie_closeup_04.jpg': { url: 'avatars/kr_selfie_cafe_03.jpg', desc: '카페 창가에서 커피와 함께 찍은 본인 셀카 원본' },
+      'avatars/kr_candid_cafe_01.jpg': { url: 'avatars/kr_profile_cafe_closeup.jpg', desc: '카페에서 턱을 괴고 미소 짓는 본인 클로즈업 사진' },
+      'avatars/kr_profile_cafe_closeup.jpg': { url: 'avatars/kr_candid_cafe_01.jpg', desc: '카페 테이블에 앉아 커피 마시며 찍은 본인 일상 사진' },
+      'avatars/kr_candid_hanok_04.jpg': { url: 'avatars/kr_candid_hanok_closeup.jpg', desc: '한옥마을 산책 중 뒤돌아보며 웃는 본인 클로즈업 사진' },
+      'avatars/kr_candid_hanok_closeup.jpg': { url: 'avatars/kr_candid_hanok_04.jpg', desc: '한옥마을 골목길 나들이 중 찍은 본인 전신 스냅 사진' },
+      'avatars/kr_candid_park_02.jpg': { url: 'avatars/same_candid_park_02.jpg', desc: '단풍 든 산책로에서 활짝 웃는 본인 클로즈업 사진' },
+      'avatars/kr_candid_sea_03.jpg': { url: 'avatars/same_candid_sea_03.jpg', desc: '동해 바닷가 전망대에서 찍은 본인 클로즈업 스냅' },
+      'avatars/kr_hiking_peak_01.jpg': { url: 'avatars/same_hiking_peak_01.jpg', desc: '산정상에서 환하게 웃으며 찍은 본인 등산 클로즈업 사진' },
+      'avatars/kr_job_florist_01.jpg': { url: 'avatars/same_job_florist_01.jpg', desc: '꽃 작업실에서 미소 지으며 찍은 본인 클로즈업 사진' },
+      'avatars/kr_profile_senior_02.jpg': { url: 'avatars/kr_profile_senior_closeup.jpg', desc: '온화하고 품위 있는 미소의 본인 클로즈업 사진' },
+      'avatars/kr_profile_senior_closeup.jpg': { url: 'avatars/kr_profile_senior_02.jpg', desc: '식물원 카페에서 차 한잔하며 찍은 본인 사진 원본' }
+    };
+
+    // 캐릭터별 3장 일상·셀카 사진첩 생성 (타인의 얼굴이 절대 섞이지 않도록 1인칭 일상/풍경 + 본인 단일 얼굴만 구성)
     function getCharacterAlbum(char) {
       if (!char) return [];
       const hash = char.id.split('').reduce((acc, ch) => acc + ch.charCodeAt(0), 0);
-      const jobPool = getJobAvatarPool(char.job);
-      const dailyItem = jobPool[hash % jobPool.length];
-      const candidItem = REAL_AVATAR_GALLERY.candid[(hash * 3 + 1) % REAL_AVATAR_GALLERY.candid.length];
-      const selfieItem = REAL_AVATAR_GALLERY.selfie[(hash * 5 + 2) % REAL_AVATAR_GALLERY.selfie.length];
+
+      // 1번 사진 (무료): 얼굴이 나오지 않는 1인칭 일상/티타임/반려견 사진 (프사와 겹치지 않게 선택)
+      const dailyFiltered = NON_FACE_DAILY_PHOTOS.filter(p => p.url !== char.avatar);
+      const dailyItem = dailyFiltered[hash % dailyFiltered.length] || NON_FACE_DAILY_PHOTOS[0];
+
+      // 2번 사진 (시크릿): 얼굴이 나오지 않는 1인칭 주말 산행/바다 노을/단풍/와인 사진
+      const outingFiltered = NON_FACE_OUTING_PHOTOS.filter(p => p.url !== char.avatar && p.url !== dailyItem.url);
+      const outingItem = outingFiltered[(hash * 3 + 1) % outingFiltered.length] || NON_FACE_OUTING_PHOTOS[0];
+
+      // 3번 사진 (시크릿 셀카):
+      // - 프사가 인물 사진이면 반드시 '동일 인물'의 클로즈업/원본 페어 사진 사용
+      // - 프사가 풍경/손 사진(인물 없음)이면 해당 캐릭터의 연령대에 맞는 단 1명의 본인 셀카 배정
+      let selfieItem = SAME_PERSON_PAIR_MAP[char.avatar];
+      if (!selfieItem) {
+        const isSenior = Number(char.ageDecade) >= 50;
+        const singlePersonFallbackPool = isSenior
+          ? [
+              { url: 'avatars/kr_profile_senior_02.jpg', desc: '차 한잔 마시며 찍어둔 개인 소장 본인 사진' },
+              { url: 'avatars/avatar_10_han_minseo.jpg', desc: '조용한 카페에서 찍어둔 개인 소장 본인 사진' },
+              { url: 'avatars/avatar_07_lee_seoyeon.jpg', desc: '주말 외출 중 찍어둔 개인 소장 본인 사진' }
+            ]
+          : [
+              { url: 'avatars/kr_selfie_cafe_03.jpg', desc: '카페 창가에서 직접 찍은 개인 소장 셀카' },
+              { url: 'avatars/kr_selfie_mirror_01.jpg', desc: '외출 전 거울 앞에서 직접 찍은 개인 소장 셀카' },
+              { url: 'avatars/kr_candid_cafe_01.jpg', desc: '주말 카페에서 찍어둔 개인 소장 본인 사진' },
+              { url: 'avatars/kr_candid_hanok_04.jpg', desc: '나들이 가서 찍어둔 개인 소장 본인 사진' }
+            ];
+        selfieItem = singlePersonFallbackPool[hash % singlePersonFallbackPool.length];
+      }
 
       return [
         {
           id: `alb_${char.id}_0`,
           url: dailyItem.url,
-          title: '일상 · 일터 스냅',
+          title: '일상 · 티타임 스냅',
           desc: dailyItem.desc,
           isSecret: false,
           cost: 0
         },
         {
           id: `alb_${char.id}_1`,
-          url: candidItem.url,
-          title: '나들이 스냅 사진',
-          desc: candidItem.desc,
+          url: outingItem.url,
+          title: '주말 나들이 풍경',
+          desc: outingItem.desc,
           isSecret: true,
           cost: 3
         },
