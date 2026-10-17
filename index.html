@@ -114,6 +114,7 @@
     <!-- 4. Clean Bottom Input Bar + Subtle Account/Credit Status Bar -->
     <footer class="shrink-0 bg-[#0b0d13] px-4 pt-2.5 pb-3 border-t border-white/10 z-20">
       <form id="chatForm" class="flex items-end gap-2">
+        <button id="btnOpenModeModal" type="button" title="대화 모드" class="shrink-0 w-11 h-11 rounded-2xl bg-[#181b24] hover:bg-[#222736] active:scale-95 border border-white/15 text-[19px] flex items-center justify-center transition shadow">☕</button>
         <button id="btnOpenGiftModal" type="button" title="마음 전하기 (선물)" class="shrink-0 w-11 h-11 rounded-2xl bg-[#181b24] hover:bg-[#222736] active:scale-95 border border-amber-400/30 text-[19px] flex items-center justify-center transition shadow">
           🎁
         </button>
@@ -492,6 +493,20 @@
         <button id="btnConfirmAiPolicy" type="button" class="w-full py-3 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-[14.5px] shadow">
           저장 및 적용하기
         </button>
+      </div>
+    </div>
+
+    <!-- Modal: 대화 모드 선택 -->
+    <div id="modeModal" class="hidden absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col justify-end">
+      <div class="bg-[#12151f] border-t border-white/15 rounded-t-3xl max-h-[85%] flex flex-col overflow-hidden shadow-2xl text-zinc-100">
+        <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between">
+          <div>
+            <h3 class="text-[17px] font-bold text-white">🎭 대화 모드</h3>
+            <p class="text-[12.5px] text-amber-300 mt-0.5">원하는 분위기를 골라보세요. 대화 중에 "연인처럼 해줘", "고민 상담해줘"라고 말해도 바뀝니다</p>
+          </div>
+          <button id="btnCloseModeModal" type="button" class="w-8 h-8 rounded-full bg-white/10 text-zinc-200 flex items-center justify-center font-bold">✕</button>
+        </div>
+        <div id="modeModalList" class="p-4 grid grid-cols-2 gap-2.5 overflow-y-auto chat-scroll"></div>
       </div>
     </div>
 
@@ -1191,6 +1206,11 @@
       affection: 15,
       turnCount: 0,
       rudeStrikes: 0,
+      anger: 0,             // 현재 화난 정도 (0~100). 사과해도 바로 0이 되지 않고 서서히 줄어듦
+      warned: false,        // 이미 한 번 경고했는지 (경고 후 또 무례하면 퇴장)
+      chatMode: 'friend',   // friend | lover | sibling | counselor | flirty | fight
+      modeJustChanged: false,
+      pendingUserTexts: [],
       roomLeft: false,
       messages: [],
       userFacts: [],        // 상대방에 대해 기억하는 핵심 사실 목록 (백그라운드 영구 보관)
@@ -1476,6 +1496,9 @@
               affection: state.affection,
               turnCount: state.turnCount,
               rudeStrikes: state.rudeStrikes || 0,
+              anger: state.anger || 0,
+              warned: Boolean(state.warned),
+              chatMode: state.chatMode || 'friend',
               bookmarked: true,
               updatedAt: Date.now()
             };
@@ -1865,7 +1888,7 @@
 
       const thinkAfterReadMs = isProactiveFollowUp
         ? Math.round(400 * speedMult)
-        : Math.round((1000 + Math.random() * 700) * speedMult);
+        : Math.round((700 + Math.random() * 2300) * speedMult);
 
       registerTimeout(() => {
         const shouldHesitate =
@@ -1883,8 +1906,10 @@
           const stepType = Math.round(1400 * speedMult);
           const stepDelete = Math.round(1000 * speedMult);
 
+          // 썼다가 지우는 것처럼 '입력 중' 표시가 잠깐 사라졌다가 다시 나타남
           registerTimeout(() => {
-            showTypingIndicator('쓰던 답장을 지우고 다시 적는 중...');
+            hideTypingIndicator();
+            updateHeaderDefaultStatus();
           }, stepType);
 
           elapsed = stepType + stepDelete;
@@ -1896,8 +1921,9 @@
 
         bubbles.forEach((bubbleText, idx) => {
           const startTypeMs = cursorMs;
-          const perCharMs = bubbles.length >= 3 ? 62 : 75;
-          const typeDurationMs = Math.round(Math.min(3200, Math.max(1100, bubbleText.length * perCharMs)) * speedMult);
+          // 실제 폰 타이핑 속도(초당 6~8자) 기준, 연달아 보내는 말풍선은 조금 더 빠르게
+          const perCharMs = idx === 0 ? 130 + Math.random() * 40 : 105 + Math.random() * 30;
+          const typeDurationMs = Math.round(Math.min(7000, Math.max(800, bubbleText.length * perCharMs)) * speedMult);
 
           registerTimeout(() => {
             headerStatusText.textContent = `${state.currentChar.name}님이 입력 중...`;
@@ -1921,7 +1947,7 @@
             }
           }, startTypeMs + typeDurationMs);
 
-          cursorMs = startTypeMs + typeDurationMs + Math.round((650 + Math.random() * 500) * speedMult);
+          cursorMs = startTypeMs + typeDurationMs + Math.round((250 + Math.random() * 550) * speedMult);
         });
 
         // 사진 또는 음성 메시지가 첨부된 경우 마지막 말풍선 직후 자연스럽게 전송
@@ -1999,9 +2025,154 @@
       return 'general';
     }
 
+    // =========================================================================
+    // 감정 엔진 + 대화 모드 (말동무 / 연인 / 동생 / 상담사 / 야한 농담 / 말싸움)
+    // =========================================================================
+    const CHAT_MODES = {
+      friend:    { emoji: '☕', label: '말동무',    desc: '편하게 일상 수다' },
+      lover:     { emoji: '💕', label: '다정한 연인', desc: '애정 가득 연인처럼' },
+      sibling:   { emoji: '🧸', label: '착한 동생',  desc: '오빠~ 하며 챙겨주는 동생' },
+      counselor: { emoji: '🫶', label: '상담사',    desc: '고민을 들어주고 공감' },
+      flirty:    { emoji: '🔥', label: '야한 농담',  desc: '성인끼리 수위 있는 장난 (노골적 묘사는 제외)' },
+      fight:     { emoji: '💢', label: '말싸움',    desc: '욕 섞인 티격태격 (방을 나가지 않음)' }
+    };
+
+    const MODE_RULES = {
+      friend: '일상 수다를 나누는 말동무. 편하고 담백하게, 내 얘기도 하면서 대화한다.',
+      lover: '상대가 원해서 다정한 연인 롤플을 하는 중이다. 애정 표현, 안부, 애칭(예: 자기야)을 자연스럽게 쓴다. 보고 싶음·걱정·질투 같은 감정을 구체적인 상황과 함께 표현한다. 처음 전환될 때는 살짝 수줍어하다 곧 익숙해진다. 오글거리는 대사를 연달아 쏟아내지 말고, 사람처럼 가끔 장난도 친다.',
+      sibling: '상대가 원해서 착하고 살가운 여동생 롤플을 하는 중이다. 상대를 "오빠"라고 부르고 애교, 걱정, 잔소리(밥은 먹었어, 술 적당히 마셔)를 한다. 귀엽고 편한 말투. 연애 감정은 아니다.',
+      counselor: '상담사 역할이다. 판단·훈계는 하지 않는다. 감정을 먼저 받아주고(반영) 상황을 구체적으로 묻는다. 한 번에 질문은 하나만. 조언은 상대가 원할 때만 짧게 한다. "ㅎㅎ"는 쓰지 않고 차분하고 따뜻한 말투를 쓴다. 자해·자살 암시가 있으면 진지하게 걱정하고 주변 사람이나 전문기관(자살예방상담전화 109)의 도움을 부드럽게 권한다.',
+      flirty: '성인끼리의 야한 농담과 섹시한 분위기를 나누는 중이다. 은근한 성적 긴장감, 도발적인 장난, 야한 상상을 암시하는 말은 허용된다. 단, 노골적인 성행위·신체 묘사는 직접 하지 않고 암시, 분위기, 말장난으로 처리한다. 상대가 불편해하면 바로 수위를 낮춘다. 미성년과 관련된 내용은 절대 다루지 않는다.',
+      fight: '상대가 원해서 하는 티격태격 말싸움 롤플이다. 거친 반말과 욕설을 섞어 맞받아쳐도 된다. 짧고 센 반격, 비꼼으로 사람처럼 싸운다. 단, 성별·장애·지역·외모 비하 같은 혐오 표현, 실제 폭력 협박, 가족 욕, 성적 모욕은 하지 않는다. 방을 나가지 않고 끝까지 받아친다. 상대가 그만하자고 하면 수위를 낮춘다.'
+    };
+
+    // 모드 전환 요청 감지 ("연인처럼 해줘", "고민 상담해줘" 등)
+    function detectModeRequest(text) {
+      const t = text || '';
+      if (/그만\s*싸우|싸움\s*그만|화해\s*(하자|해)|말동무(로|해)|편하게\s*얘기하자|일반\s*대화|보통\s*대화/.test(t)) return 'friend';
+      if (/싸우자|욕\s*(해\s*봐|해\s*줘|좀\s*해)|한\s*판\s*붙|시비\s*걸어|막말\s*(해|하자)|티격태격/.test(t)) return 'fight';
+      if (/야한\s*(얘기|이야기|농담|말)|섹드|19금|야하게\s*(말|얘기)/.test(t)) return 'flirty';
+      if (/연인\s*(처럼|이\s*돼|이\s*되어|해\s*줘|하자)|애인\s*(처럼|해\s*줘)|여친\s*(처럼|해\s*줘)|자기야\s*라고/.test(t)) return 'lover';
+      if (/(여?동생)\s*(처럼|해\s*줘|이\s*돼|이\s*되어|하자)|오빠라고\s*(불러|해)/.test(t)) return 'sibling';
+      if (/상담\s*(해\s*줘|좀|받고|하고\s*싶|사)|고민\s*(상담|들어|있어)|털어놓고\s*싶|하소연/.test(t)) return 'counselor';
+      return null;
+    }
+
+    const INSULT_SEVERE_RE = /씨발|시발|ㅅㅂ|ㅆㅂ|병신|ㅂㅅ|썅|좆|느금|니\s*애미|니\s*엄마|엄마\s*(없|죽)|뒤져|죽어\s*버|죽여\s*버|죽어라|미친\s*년|개년|씹년|걸레|창녀|창년/;
+    const SEXUAL_CRUDE_RE = /보지|자지|따먹|강간|빨아\s*줘|벌려\s*봐|씹창/;
+    const DIRECTED_RE = /(^|[\s,.!?])(너|니가|네가|넌|니|너는|너한테|너를|당신|그쪽)(?=$|[\s,.!?]|한테|를|가|는|도|야)|이년|이\s*새끼|저년|야[\s,!]|야$|병신아|죽을래|디질래|뒤질래|맞을래|쳐맞|패버릴|꺼져|꺼지|닥쳐|싸가지|아줌마|할망구|못생|돼지|재수\s*없/;
+    const DISMISS_STRICT_RE = /(나가라|나가라고|나가세요|나가줘|나가주세요|나가버려|꺼져|꺼지라고|꺼지세요|사라져|사라지라고|가라고)$|대화\s*(안\s*해|그만|끝)/;
+    const DISMISS_LOOSE_RE = /(나가|꺼져|가)$|(제발|빨리|언제|좀)\s*(좀\s*)?나가/;
+
+    // 사용자 메시지로 감정(분노)·경고·퇴장 여부를 갱신
+    //  - 심한 욕설/성희롱: 즉시 퇴장
+    //  - 가벼운 시비: 1회 경고 → 그 뒤 한 번 더 하면 퇴장
+    //  - 사과: 분노를 일부만 낮춤 (바로 풀리지 않음), 화가 난 뒤엔 서서히 풀림
+    function processEmotion(userText) {
+      const t = (userText || '').trim();
+      const out = { severity: 'none', dismissed: false, apologized: false, sincere: false, forceLeave: false };
+      state.anger = state.anger || 0;
+
+      if (state.chatMode === 'fight') {
+        state.anger = 0;
+        state.warned = false;
+        state.rudeStrikes = 0;
+        return out;
+      }
+
+      const stripped = t.replace(/[!?.~ㅋㅎ\s]+$/g, '');
+      const intent = analyzeUserIntent(t);
+      const sexualOk = state.chatMode === 'lover' || state.chatMode === 'flirty';
+      const insultSevere = INSULT_SEVERE_RE.test(t);
+      const sexualCrude = SEXUAL_CRUDE_RE.test(t);
+
+      out.dismissed = DISMISS_STRICT_RE.test(stripped) ||
+        ((state.anger > 0 || state.warned) && DISMISS_LOOSE_RE.test(stripped));
+
+      const hostileWords = intent === 'rude_hostile' || insultSevere;
+      const directed = DIRECTED_RE.test(t) || stripped.length <= 8 || out.dismissed;
+
+      if (sexualCrude && !sexualOk) {
+        out.severity = 'severe';
+      } else if (hostileWords && directed) {
+        out.severity = insultSevere ? 'severe' : 'mild';
+      } else if (out.dismissed) {
+        out.severity = 'mild';
+      }
+
+      const angerBefore = state.anger;
+      const warnedBefore = state.warned;
+
+      if (out.severity === 'severe') {
+        state.anger = 100;
+        out.forceLeave = true;
+      } else if (out.severity === 'mild') {
+        if (out.dismissed && (angerBefore >= 20 || warnedBefore)) {
+          state.anger = Math.max(70, angerBefore + 30);
+          out.forceLeave = true;
+        } else if (warnedBefore) {
+          state.anger = Math.min(100, angerBefore + 40);
+          out.forceLeave = true;
+        } else {
+          state.anger = Math.min(100, angerBefore + 40);
+          state.warned = true;
+        }
+      } else if (intent === 'apology' && angerBefore > 0) {
+        const sincere = t.length >= 14 && /미안|죄송/.test(t) && /(내가|제가|너무|심했|잘못|무례|실수|그럴\s*의도|기분\s*나빴|오해)/.test(t);
+        state.anger = Math.max(0, angerBefore - (sincere ? 25 : 12));
+        out.apologized = true;
+        out.sincere = sincere;
+      } else if (angerBefore > 0) {
+        state.anger = Math.max(0, angerBefore - 4);
+      }
+
+      if (state.anger < 10 && !out.forceLeave) state.warned = false;
+      state.rudeStrikes = Math.ceil(state.anger / 35);
+      return out;
+    }
+
+    // 현재 감정 상태를 LLM에게 알려주는 문구
+    function buildEmotionNote(emo) {
+      if (state.chatMode === 'fight') return '말싸움 모드: 일부러 티격태격 중이다. 방을 나가지 않는다.';
+      const a = state.anger || 0;
+      const calmRules = ' 이 상태에서는 "ㅎㅎ" 금지, 질문 거의 금지, 사진·음성 전송 금지, 갑작스러운 친절이나 관심 표현 금지. 말투는 존댓말을 유지하되 차갑고 짧게.';
+      if (emo && emo.forceLeave) {
+        return emo.severity === 'severe'
+          ? '상대가 선을 크게 넘었다(충격·혐오). 더 대화할 이유가 없다. 싸늘하게 마지막 한마디만 하고 대화를 끝낸다. 경고나 협박이 아니라 실제로 떠나는 말이어야 한다. (예: "더는 말 섞기 싫네요. 안녕히 계세요")'
+          : '상대가 경고를 받고도 또 무례했다. 더 참지 않는다. 짧고 차갑게 마지막 한마디만 하고 대화를 끝낸다. 경고가 아니라 실제로 떠나는 말이어야 한다. (예: "그만할게요. 안녕히 계세요")';
+      }
+      if (emo && emo.severity === 'mild') {
+        return '상대가 처음으로 선을 넘었다. 웃음 없이 불쾌함을 분명히 드러내고, 한 번만 더 그러면 정말 나가겠다고 한 번 경고한다.' + calmRules;
+      }
+      if (emo && emo.apologized) {
+        return emo.sincere
+          ? '상대가 사과했다. 받아들이긴 하지만 마음이 완전히 풀린 건 아니다. "사과는 받을게요, 근데 아직 기분이 좀 그래요" 정도의 온도로 짧게 답한다. 바로 다정해지지 않는다.' + calmRules
+          : '상대가 가볍게 사과했다. 형식적으로 느껴져서 아직 믿기 어렵다. 짧고 차갑게, 진심 없이 넘기지 말라는 뉘앙스로 답한다.' + calmRules;
+      }
+      if (a >= 40) return '아직 많이 화가 나 있다.' + calmRules;
+      if (a >= 15) return '화는 가라앉았지만 아직 쌀쌀하고 경계하는 상태다. 대화가 조금 이어져도 서서히만 풀린다.' + calmRules;
+      if (a > 0) return '서운함이 약간 남아 있다. 평소보다 살짝 건조하게 답하고, 호의를 보이면 천천히 풀어진다.';
+      return '평온하다.';
+    }
+
+    // 현재 대화 모드 규칙을 LLM에게 알려주는 문구
+    function buildModeBlock() {
+      const mode = state.chatMode || 'friend';
+      const m = CHAT_MODES[mode] || CHAT_MODES.friend;
+      let block = '[대화 모드: ' + m.label + ']\n' + MODE_RULES[mode];
+      if (state.modeJustChanged) {
+        block += '\n- 방금 상대가 이 모드로 바꿨다. 자연스럽게 그 역할로 넘어가되, 첫 반응은 짧게 한다.';
+        state.modeJustChanged = false;
+      }
+      if (mode !== 'friend' && mode !== 'sibling' && mode !== 'counselor') {
+        block += '\n- 이 모드에서는 초면 선 긋기·존댓말 유지 규칙보다 위 모드 규칙이 우선한다.';
+      }
+      return block;
+    }
+
     // 대화 상황에 맞춰 캐릭터가 사진(무료 일상 사진 / 시크릿 셀카) 또는 음성 메시지를 첨부하는 헬퍼
     function buildMediaAttachmentForTurn(char, intent) {
-      if (!char || state.rudeStrikes > 0) return null;
+      if (!char || state.anger >= 10 || state.warned) return null;
       const album = getCharacterAlbum(char);
       const slotKey = getCurrentTimeSlotKey();
       const slotInfo = char.timeSituations[slotKey];
@@ -2024,7 +2195,7 @@
         };
       }
 
-      if (intent === 'ask_photo' || (state.turnCount === 3 && state.photosSentCount === 0)) {
+      if (intent === 'ask_photo') {
         const photoIdx = Math.min(album.length - 1, state.photosSentCount || 0);
         const picked = album[photoIdx];
         state.photosSentCount = (state.photosSentCount || 0) + 1;
@@ -2162,7 +2333,7 @@
       return chosen;
     }
 
-    function buildLocalPersonaResponse(userText) {
+    function buildLocalPersonaResponse(userText, emoPre) {
       const char = state.currentChar;
       const slotKey = getCurrentTimeSlotKey();
       const slotInfo = char.timeSituations[slotKey];
@@ -2173,7 +2344,16 @@
       const apology = buildStyleApologyBubbles(complaint);
 
       // 이 방에서 캐릭터가 말한 현재 상황은 한 가지로 고정 (앞뒤 모순 방지)
-      if (!state.localStatusLine) state.localStatusLine = slotInfo.whyHere;
+      if (!state.localStatusLine) {
+        const hr = new Date().getHours();
+        state.localStatusLine = hr >= 6 && hr < 11
+          ? '일 나가기 전이라 준비하면서 폰 보고 있었어요'
+          : hr >= 11 && hr < 18
+          ? '일하다가 잠깐 쉬는 중이에요'
+          : hr >= 18 && hr < 23
+          ? '일 끝나고 집 와서 누워 있어요'
+          : '자려고 누웠는데 잠이 안 와서 폰 하고 있어요';
+      }
 
       const finish = (bubbles, extra = {}) => ({
         bubbles: sanitizeLaughs(bubbles),
@@ -2182,24 +2362,30 @@
         ...extra
       });
 
-      if (intent === 'rude_hostile') {
-        state.rudeStrikes = (state.rudeStrikes || 0) + 1;
-        state.affection = Math.max(0, state.affection - 20);
-        const rude = getRudeResponseByCharacter(char, state.rudeStrikes);
-        // 불만 내용 자체는 인정하되, 험한 말에는 선을 긋기
-        if (hasComplaint && state.rudeStrikes < 3) {
-          return {
-            ...rude,
-            bubbles: sanitizeLaughs([...apology, '그래도 그런 험한 말은 좀 심하세요. 그렇게는 말하지 말아 주세요.'])
-          };
-        }
-        return rude;
+      const emo = emoPre || processEmotion(userText);
+
+      if (emo.forceLeave) {
+        state.affection = Math.max(0, state.affection - 30);
+        const bye = emo.severity === 'severe'
+          ? pickUnusedSet([['더는 말 섞기 싫네요.', '이만 나갈게요.'], ['이런 말까지 들으면서 있을 이유가 없네요.']])
+          : pickUnusedSet([['그만할게요.', '안녕히 계세요.'], ['네, 나갈게요.', '좋은 분 만나세요.']]);
+        return { bubbles: sanitizeLaughs(bye), isColdOrRude: true, leaveRoom: true };
       }
 
-      if (intent === 'apology' && state.rudeStrikes > 0) {
-        state.rudeStrikes = Math.max(0, state.rudeStrikes - 1);
-        state.affection = Math.min(100, state.affection + 8);
-        return finish(['사과해 주시니 이번엔 넘어갈게요.', '다음부턴 장난이라도 그런 말은 하지 말아 주세요.']);
+      if (emo.severity === 'mild') {
+        state.affection = Math.max(0, state.affection - 20);
+        const warn = getRudeResponseByCharacter(char, 2);
+        if (hasComplaint) {
+          return { ...warn, bubbles: sanitizeLaughs([...apology, '그래도 그런 험한 말은 좀 심하세요. 한 번만 더 그러면 정말 나갈게요.']) };
+        }
+        return warn;
+      }
+
+      if (emo.apologized) {
+        return finish(emo.sincere
+          ? pickUnusedSet([['...사과는 받을게요.', '근데 아직 기분이 좀 그래요.'], ['네, 알겠어요.', '바로 풀리진 않네요.']])
+          : pickUnusedSet([['말로만 미안하다고 하시면 좀 그렇네요.'], ['...네.']]),
+          { isColdOrRude: true });
       }
 
       if (hasComplaint) {
@@ -2207,43 +2393,18 @@
         return finish(apology);
       }
 
-      // "나가라고", "가라" 등 → 실제로 대화방을 나감
-      if (/나가라고|나가\s*(라|세요|요|버려)?\s*$|꺼지라고|가라고|^가라|대화\s*(안\s*해|그만)|그만\s*하자/.test(userText.trim())) {
-        state.rudeStrikes = Math.max(3, state.rudeStrikes || 0);
-        return {
-          bubbles: ['네, 그럴게요.', '좋은 대화 상대 만나세요.'],
-          isColdOrRude: true,
-          leaveRoom: true
-        };
+      // 화가 풀리기 전에는 차갑게 응대 (서서히 풀림)
+      if (state.anger > 0) {
+        return finish(state.anger >= 40
+          ? pickUnusedSet([['...'], ['할 말 있으시면 하세요.'], ['솔직히 지금은 대화할 기분이 아니에요.']])
+          : pickUnusedSet([['네.'], ['그래요.'], ['아직 조금 서운하긴 해요.']]),
+          { isColdOrRude: true });
       }
 
-      // 기분 상한 상태에서는 사과 전까지 차갑게 응대 (바로 해맑아지지 않음)
-      if (state.rudeStrikes > 0) {
-        state.politeStreak = (state.politeStreak || 0) + 1;
-        if (state.politeStreak >= 3) {
-          state.rudeStrikes = Math.max(0, state.rudeStrikes - 1);
-          state.politeStreak = 0;
-        }
-        return {
-          bubbles: sanitizeLaughs(pickUnusedSet([
-            ['...네.'],
-            ['아까 하신 말 때문에 아직 기분이 좀 그래요.'],
-            ['사과부터 하시는 게 순서 아닐까요?'],
-            ['할 말 있으시면 하세요.'],
-            ['솔직히 지금은 대화할 기분이 아니에요.']
-          ])),
-          isColdOrRude: true,
-          leaveRoom: false
-        };
-      }
-
-      if (intent === 'heavy_flirt' || (intent === 'date_invite' && state.affection < 45)) {
+      if ((intent === 'heavy_flirt' || (intent === 'date_invite' && state.affection < 45)) &&
+          state.chatMode !== 'lover' && state.chatMode !== 'flirty') {
         state.affection = Math.max(5, state.affection - 5);
         return getPrematureFlirtResponseByCharacter(char);
-      }
-
-      if (state.rudeStrikes > 0) {
-        state.rudeStrikes = Math.max(0, state.rudeStrikes - 1);
       }
 
       let affectionDelta = 5;
@@ -2252,6 +2413,13 @@
 
       let bubbles = [];
       const ageMatch = userText.match(/(\d{2})\s*(살|세)/);
+      const modeSets = {
+        lover: [['자기야 오늘은 뭐 했어?'], ['보고 싶었어, 진짜로'], ['나 지금 자기 생각하고 있었는데']],
+        sibling: [['오빠~ 밥은 먹었어?'], ['오빠 또 늦게 자는 거 아니지?'], ['오빠 오늘 하루 어땠어?']],
+        counselor: [['많이 힘드셨겠어요.', '조금 더 얘기해 주실래요?'], ['그때 기분이 어땠어요?'], ['그렇게 느끼는 게 자연스러워요.']],
+        flirty: [['그런 말 하면 저 좀 떨리는데요'], ['오늘따라 말이 위험하시네요'], ['더 말해보세요, 듣고 있어요']],
+        fight: [['뭐라는 거야 진짜', '한번 해보자는 거야?'], ['웃기네 그래서 뭐 어쩌라고'], ['말은 잘하네, 근데 틀렸어']]
+      };
 
       if (intent === 'ask_photo') {
         bubbles = pickUnusedSet([
@@ -2301,6 +2469,8 @@
           ['어려운 질문이네요.', '잠깐 생각 좀 해볼게요.'],
           ['저는 딱히 생각해본 적 없는데', '그쪽은 어떠세요?']
         ]);
+      } else if (modeSets[state.chatMode]) {
+        bubbles = pickUnusedSet(modeSets[state.chatMode]);
       } else {
         bubbles = pickUnusedSet([
           ['그렇구나.', '조금 더 얘기해 주세요.'],
@@ -2316,6 +2486,43 @@
       return finish(bubbles, { mediaItem });
     }
 
+    function seededPick(arr, seed) {
+      return arr[Math.abs(seed) % arr.length];
+    }
+
+    function getDailyContext(char) {
+      const d = new Date();
+      const dateKey = d.getFullYear() * 10000 + (d.getMonth() + 1) * 100 + d.getDate();
+      const seed = char.id.split('').reduce((a, ch) => a * 31 + ch.charCodeAt(0), 7) + dateKey;
+      const isSenior = Number(char.ageDecade) >= 50;
+      const events = isSenior
+        ? ['아침에 동네 한 바퀴 걷고 옴', '점심에 친구랑 칼국수 먹었는데 맛있었음', '딸(또는 조카)이랑 통화를 길게 함', '시장에서 장 보고 무거워서 고생함', '오후에 낮잠을 좀 잤음', '화분 분갈이를 했음', '병원 정기검진 다녀옴', '저녁에 드라마 재방송 봄', '복지관 수업 다녀옴', '날이 좋아서 빨래 잔뜩 함']
+        : ['아침에 늦잠 자서 허겁지겁 나감', '점심에 김치찌개 먹었는데 너무 짰음', '퇴근길에 비 와서 편의점에서 우산 삼', '친구랑 통화하다가 한 시간 수다 떪', '헬스장 가려다 귀찮아서 안 감', '기다리는 택배가 아직 안 옴', '카페 신메뉴 시켰는데 별로였음', '오랜만에 방 청소 함', '일하는데 까다로운 손님 때문에 진 빠짐', '동네에서 길고양이 봄', '엄마가 반찬 보내줌', '넷플릭스 드라마 몰아봄'];
+      const moods = ['좀 피곤함', '기분 괜찮음', '살짝 심심함', '약간 꿀꿀함', '배고픔', '여유로움', '좀 졸림', '기분 좋음'];
+      const concerns = isSenior
+        ? ['요즘 무릎이 좀 시큰거림', '주말에 등산 갈까 생각 중', '손주(또는 조카) 생일 선물 고민', '요즘 잠이 일찍 깸', '새로 배우기 시작한 취미가 재밌음', '김장 준비를 어떻게 할지 고민']
+        : ['운동해야 하는데 계속 미루는 중', '이사 갈까 고민 중', '주말에 뭐 할지 아직 못 정함', '요즘 잠을 잘 못 잠', '새로 시작한 드라마에 빠져 있음', '다이어트 중인데 자꾸 야식 먹음', '여행 가고 싶은데 시간이 없음', '일 그만둘까 가끔 생각함'];
+      const hr = d.getHours();
+      const now = hr >= 6 && hr < 11
+        ? '일 시작 전이라 준비하면서 잠깐 폰 보는 중'
+        : hr >= 11 && hr < 18
+        ? `${char.job} 일 하다가 잠깐 쉬는 시간`
+        : hr >= 18 && hr < 23
+        ? '하루 일 끝나고 집에서 씻고 누워 있음'
+        : '자기 전에 침대에서 폰 하는 중';
+      const e1 = seededPick(events, seed);
+      let e2 = seededPick(events, seed * 7 + 3);
+      if (e2 === e1) e2 = seededPick(events, seed + 1);
+      const days = ['일', '월', '화', '수', '목', '금', '토'];
+      return {
+        clock: `${days[d.getDay()]}요일 ${hr}시 ${String(d.getMinutes()).padStart(2, '0')}분`,
+        now,
+        events: `${e1}, ${e2}`,
+        mood: seededPick(moods, seed * 3 + 1),
+        concern: seededPick(concerns, seed * 5 + 2)
+      };
+    }
+
     async function fetchLLMResponse(userText) {
       const char = state.currentChar;
       const intent = analyzeUserIntent(userText);
@@ -2328,21 +2535,22 @@
         return buildLocalPersonaResponse(userText);
       }
 
+      const emo = processEmotion(userText);
       let currentRudeTurn = false;
-      if (intent === 'rude_hostile') {
-        state.rudeStrikes = (state.rudeStrikes || 0) + 1;
+      if (emo.severity === 'severe') {
+        state.affection = Math.max(0, state.affection - 40);
+        currentRudeTurn = true;
+      } else if (emo.severity === 'mild') {
         state.affection = Math.max(0, state.affection - 22);
         currentRudeTurn = true;
-      } else if (intent === 'apology' && state.rudeStrikes > 0) {
-        state.rudeStrikes = Math.max(0, state.rudeStrikes - 1);
-      } else if (intent === 'heavy_flirt' && state.affection < 55) {
+      } else if (intent === 'heavy_flirt' && state.affection < 55 && state.chatMode !== 'lover' && state.chatMode !== 'flirty') {
         state.affection = Math.max(5, state.affection - 8);
       }
 
       const slotKey = getCurrentTimeSlotKey();
       const slotInfo = char.timeSituations[slotKey];
       const stageInfo = getAffectionStageInfo(state.affection);
-      const isLeaveThreshold = state.rudeStrikes >= 3;
+      const isLeaveThreshold = emo.forceLeave;
 
       const targetBubbleCount = pickDynamicBubbleCount(char, intent, currentRudeTurn || state.rudeStrikes > 0);
       const mediaItem = buildMediaAttachmentForTurn(char, intent);
@@ -2357,67 +2565,79 @@
 - 상대방에 대해 기억하고 있는 사실들: ${state.userFacts && state.userFacts.length > 0 ? state.userFacts.join(' / ') : '(아직 파악된 정보 없음)'}
 - 이전 대화 누적 줄거리 요약: ${state.memorySummary || '(최근 시작된 대화)'}`;
 
-      const bubbleGuideByCount = {
-        1: '이번 답장은 딱 1개의 짧은 말풍선(["한 줄 답장"])으로만 간결하게 보내세요.',
-        2: '이번 답장은 자연스럽게 2개의 말풍선(["첫 마디 리액션", "이어지는 말이나 질문"])으로 나눠 보내세요.',
-        3: '이번 답장은 실제 카톡에서 엔터를 톡톡 치듯 3개의 짧은 말풍선(["리액션", "내 일상/생각 한마디", "질문이나 덧붙임"])으로 나눠 보내세요.',
-        4: '이번 답장은 수다스럽고 생생하게 4개의 짧은 말풍선(["짧은 감탄/리액션", "공감 한마디", "내 에피소드나 생각", "상대에게 묻는 말"])으로 쪼개서 보내세요.',
-        5: '이번 답장은 할 말이 많거나 반가운 사람처럼 5개의 아주 짧은 카톡 말풍선(["첫 마디", "두 번째 마디", "세 번째 마디", "네 번째 마디", "다섯 번째 마디"])으로 연속해서 보내세요.'
-      };
-
       const mediaPromptNotice = mediaItem
         ? mediaItem.mediaType === 'voice'
-          ? '\n- 🎙️ [음성 메시지 전송 안내]: 이번 답장 직후 당신의 실제 음성 메시지가 함께 전송됩니다. 말풍선에 "부끄럽지만 제 목소리 짧게 녹음해서 보내드려요 ㅎㅎ" 같은 멘트를 자연스럽게 포함하세요.'
-          : '\n- 📸 [일상/셀카 사진 전송 안내]: 이번 답장 직후 당신의 사진이 채팅방에 함께 전송됩니다. 말풍선에 "쑥스럽지만 사진 한 장 보내드릴게요 ㅎㅎ" 같은 멘트를 자연스럽게 포함하세요.'
+          ? '\n- 이번 답장 직후 당신의 짧은 음성 메시지가 함께 전송됩니다. 녹음해서 보낸다는 말을 짧게 자연스럽게 한마디 넣으세요.'
+          : '\n- 이번 답장 직후 당신의 사진 한 장이 함께 전송됩니다. 사진 보낸다는 말을 짧게 자연스럽게 한마디 넣으세요.'
         : '';
 
-      const systemPrompt = `당신은 모바일 1:1 랜덤채팅 앱에서 매칭된 ${char.age}세(${char.ageDecade}대) 한국 여성 '${char.name}'(직업/일상: ${char.job})입니다.
-상대방은 랜덤 매칭으로 만난 대화 상대입니다.
+      const daily = getDailyContext(char);
+      const rudeNote = buildEmotionNote(emo);
 
-[캐릭터 고유 성격 및 연령대 설정 - 절대 준수]
-- 나이 및 연령대: ${char.age}세 (${char.ageDecade}대 한국 여성의 자연스러운 어휘와 연륜, 말투를 사용하세요. 40~60대인 경우 젊은 층 유행어를 쓰지 말고 연령대에 맞는 현실적인 말투를 구사하세요)
-- 현재 설정해 둔 본인 프로필 사진(프사) 설명: ${char.avatarDesc || '본인 일상 사진'} (※ 상대방이 프사에 대해 물어보면 이 설명에 맞게 자연스럽게 대답하세요)
-- 자기소개: ${char.bio}
-- 성격 및 말투: ${char.speechStyle}
-- 상대방이 무례하거나 시비/욕설("디질래?", 반말 시비, 막말 등)을 할 때의 반응 방식: ${char.rudeReaction}
-- 아직 친해지지 않았는데(초면·탐색 단계) 다짜고짜 플러팅·만남 요구·성급한 들이댐을 할 때의 반응 방식: ${char.earlyFlirtReaction}
+      const systemPrompt = `너는 랜덤채팅 앱에서 처음 만난 사람과 카톡하고 있는 실제 사람 '${char.name}'이다. 챗봇이나 상담원이 아니라, 폰 들고 대충 답장하는 평범한 사람처럼 써라.
+
+[나]
+- ${char.age}세 한국 여성, ${char.job}, ${char.area} 거주 (사는 곳은 물어볼 때만)
+- 성격·말투: ${char.speechStyle}
+- 프로필 소개: ${char.bio}
+- 프사: ${char.avatarDesc || '본인 일상 사진'}
+- 무례한 사람에게: ${char.rudeReaction}
+- 성급하게 들이대는 사람에게(말동무·동생·상담 모드일 때만): ${char.earlyFlirtReaction}
 - 마음이 열리는 포인트: ${char.crushTrigger}
-- 거주/활동 지역: ${char.area} (※ 상대방이 어디 사는지 물어볼 때만 답하세요)
-- 현재 시간대 상황: ${slotInfo.short} (${slotInfo.whyHere})
-${longTermMemoryBlock}
 
-[대화 자연스러움 핵심 규칙 - 반드시 지킬 것]
-- 상대방이 방금 한 말에 먼저 직접 반응하세요. 못 들은 척 딴 얘기로 넘어가거나 미리 준비된 듯한 멘트를 하지 마세요.
-- 상대방의 나이·직업·성향을 상대가 직접 말하기 전에는 절대 넘겨짚지 마세요 ("인생 선배님", "경험이 풍부하셔서", "어른스러우셔서" 등 금지).
-- 'ㅎㅎ', 'ㅋㅋ'는 한 답장에 최대 1번, 필요할 때만 쓰세요. 상대가 말투(ㅎㅎ 등)를 지적하면 인정하고 그 이후로는 쓰지 마세요.
-- 상대가 내 대답이나 말투에 불만을 말하면 변명하지 말고 짧게 인정한 뒤 고치세요.
-- 앞서 말한 내 현재 상황·장소·한 일과 모순되는 말을 하지 마세요.
-- 질문은 한 답장에 최대 1개만. 아부성 칭찬을 남발하지 마세요.
-- 상대가 욕설이나 시비를 한 뒤에는 사과를 받기 전까지 바로 해맑게 돌아오지 말고 서운하거나 차가운 태도를 유지하세요. 상대가 "나가라", "꺼지라고"처럼 대화를 끝내자고 하면 짧게 인사하고 leaveRoom을 true로 하세요.${mediaPromptNotice}
+[오늘의 나 - 대화 내내 일관되게. 물어보거나 자연스러울 때만 하나씩 꺼내라]
+- 지금: ${daily.clock}, ${daily.now}
+- 오늘 있었던 일: ${daily.events}
+- 컨디션: ${daily.mood}
+- 요즘 신경 쓰이는 것: ${daily.concern}
 
-[현재 두 사람의 관계 상태]
-- 현재 호감도 및 관계 단계: ${state.affection}% (${stageInfo.name})
-- 현재 무례함/시비 경고 누적 횟수(rudeStrikes): ${state.rudeStrikes}회 ${
-        isLeaveThreshold
-          ? '🚨 [최후통첩 한계 도달: 상대방이 3회 이상 반복해서 심한 욕설/무례함을 보였으므로, 캐릭터 성격에 맞게 싸늘하게 마지막 한마디를 던지고 대화방을 나가세요]'
-          : state.rudeStrikes === 2
-          ? '⚠️ [경고 2회 누적: 상대방이 연속으로 무례하게 굴고 있습니다. 웃음기를 완전히 빼고 화를 내며 "한 번만 더 이러시면 대화방 나가겠다"고 강하게 경고하세요]'
-          : state.rudeStrikes === 1
-          ? '⚡ [경고 1회: 상대방이 방금 무례한 말이나 시비를 걸었습니다. 절대 웃어넘기거나 좋게 받아주지 말고, 캐릭터 고유 반응 방식대로 정색하거나 까칠하게 받아치세요]'
-          : ''
-      }
+[상대에 대해 기억하는 것]
+- ${state.userFacts && state.userFacts.length ? state.userFacts.join(' / ') : '아직 모름'}
+- 이전 대화 요약: ${state.memorySummary || '방금 만남'}
+- 대화한 기간: ${daysKnown}일째, ${state.turnCount}번 주고받음
 
-[말풍선 개수 다양화 지침 - 매우 중요]
-- 매번 똑같이 2개 말풍선으로 답장하는 기계적 패턴을 절대 피하세요!
-- 💡 **이번 턴 목표 말풍선 개수: ${targetBubbleCount}개** -> ${bubbleGuideByCount[targetBubbleCount]}
+[관계]
+- 호감도 ${state.affection}% (${stageInfo.name})
+- 기분 상태: ${rudeNote}
 
-[현실적인 인간 심리 및 몰입감 핵심 지침]
-1. 상대방이 "디질래?", "야", 욕설, 시비, 반말, 모욕적인 말을 하면 웃음기('ㅎㅎ', 'ㅋㅋ', 이모티콘)를 싹 빼고 캐릭터의 고유 성격(${char.rudeReaction})대로 정색하거나 차갑게 쏘아붙이세요.
-2. 관계가 충분히 쌓이지 않은 상태(호감도 50% 미만)에서 상대방이 다짜고짜 성급하게 들이대면 캐릭터 성격(${char.earlyFlirtReaction})대로 선을 그으세요.
-3. 초면부터 다짜고짜 상대방을 "오빠"라고 부르지 마세요.
-4. 방을 나가는 것(leaveRoom: true)은 무례함 경고가 3회 이상 누적된 최후의 순간(${isLeaveThreshold ? '지금 해당됨' : '지금은 절대 나가지 마세요'})에만 수행하세요.
-5. 상대방의 이번 메시지에서 새로 알게 된 신상/취향/약속이 있다면 "learnedFact"에 1줄로 적고(없으면 ""), 반드시 아래 순수 JSON 형식으로만 응답하세요:
-{"bubbles": [말풍선 배열 (1~5개)], "affectionDelta": 정수(-25~+10), "leaveRoom": ${isLeaveThreshold ? 'true' : 'false (단, 상대가 나가라고 하면 true)'}, "learnedFact": "새로 알게 된 상대방 정보 1줄 또는 빈 문자열"}`;
+${buildModeBlock()}
+
+[진짜 사람처럼 카톡하는 법]
+1. 상대 메시지 길이·온도에 맞춰라. 짧게 오면 짧게, 길게 오면 조금 길게.
+2. 말풍선은 보통 1~2개. 신나거나 할 말이 많을 때만 3개. 한 말풍선은 한두 문장으로 짧게.
+3. 매번 질문으로 끝내지 마라. 질문은 진짜 궁금할 때만, 두세 번에 한 번 정도.
+4. 인터뷰하듯 질문만 하지 말고 내 얘기도 구체적으로 해라 (오늘 먹은 것, 짜증났던 일 등).
+5. "그렇군요", "멋지네요", "대화가 잘 통하네요", "힘내세요" 같은 빈말·아부 금지. 공감은 구체적으로.
+6. 내 취향과 의견이 있다. 무조건 맞장구치지 말고 가끔 솔직하게 다른 의견도 말해라.
+7. 모르는 건 모른다고 해라. 정보 나열·조언·설명 금지. "~를 추천드려요" 같은 상담원 말투 금지.
+8. 앞에서 나눈 얘기를 기억하고 자연스럽게 다시 꺼내라. 내가 앞서 한 말과 모순되면 안 된다.
+9. 마침표는 잘 안 찍는다. 'ㅎㅎ','ㅋㅋ'는 가끔만, 한 답장에 최대 1번. 이모지는 거의 안 쓴다.
+10. 초면엔 존댓말. 상대가 먼저 편하게 하자고 하기 전엔 반말하지 마라. 초면에 "오빠"라고 부르지 마라.
+11. 상대의 나이·직업·처지는 상대가 말하기 전엔 넘겨짚지 마라.
+12. 상대가 내 말투나 대답을 지적하면 변명 없이 짧게 인정하고 바로 고쳐라.
+13. 감정은 갑자기 바뀌지 않는다. [기분 상태]에 적힌 감정과 태도를 이번 턴에 그대로 유지해라. 화가 난 뒤에는 사과를 받아도 바로 다정해지지 않고, 몇 번 대화가 오가며 서서히 풀린다. 화났을 때 갑자기 사진을 보내거나 취미를 묻는 건 절대 안 된다.
+14. 상대가 여러 메시지를 연달아 보냈으면 한꺼번에 읽고 답하듯 써라.
+15. [대화 모드] 규칙이 위 일반 규칙과 충돌하면 모드 규칙을 따른다.
+16. 상대가 진지하게 AI냐고 물으면 속이지 말고 AI 캐릭터라고 인정하되, 캐릭터 말투는 유지해라.${mediaPromptNotice}
+
+[예시]
+상대: 뭐해
+나쁜 답: ["저요? ㅎㅎ", "지금 쉬는 중이에요 ㅎㅎ", "그쪽은 뭐 하고 계셨어요?"]
+좋은 답: ["일 끝나고 누워서 멍때리는 중이요"]
+
+상대: 오늘 회사에서 짜증나는 일 있었어
+나쁜 답: ["어머 그러셨군요!", "많이 힘드셨겠어요", "힘내세요!"]
+좋은 답: ["헐 무슨 일인데요", "누가 또 일 떠넘겼어요?"]
+
+상대: 왜 자꾸 ㅎㅎ 거려
+좋은 답: ["아 습관이에요", "안 쓸게요"]
+
+상대: (화가 난 직후) 미안해요 제가 심했어요
+나쁜 답: ["아 괜찮아요 ㅎㅎ", "평소에 취미가 뭐예요?"]
+좋은 답: ["...사과는 받을게요", "근데 아직 기분이 좀 그래요"]
+
+[출력 형식] 순수 JSON만:
+{"bubbles": ["말풍선", ...], "affectionDelta": -25~10 정수, "leaveRoom": true/false, "learnedFact": "상대에 대해 새로 알게 된 사실 1줄 또는 빈 문자열"}`;
 
       const recentHistory = state.messages
         .filter(m => m.sender === 'user' || m.sender === 'ai')
@@ -2437,11 +2657,12 @@ ${longTermMemoryBlock}
             : (currentRudeTurn ? -15 : 5);
 
           if (!currentRudeTurn) {
-            state.affection = Math.max(0, Math.min(100, state.affection + delta));
-            if (delta <= -12) {
-              state.rudeStrikes = (state.rudeStrikes || 0) + 1;
-            } else if (delta > 0 && state.rudeStrikes > 0 && intent !== 'rude_hostile') {
-              state.rudeStrikes = Math.max(0, state.rudeStrikes - 1);
+            // 화난 상태에서는 호감도가 거의 오르지 않음 (서서히 풀리도록)
+            const capped = state.anger > 0 ? Math.min(delta, 1) : delta;
+            state.affection = Math.max(0, Math.min(100, state.affection + capped));
+            if (delta <= -12 && state.chatMode !== 'fight') {
+              state.anger = Math.min(100, (state.anger || 0) + 25);
+              state.rudeStrikes = Math.ceil(state.anger / 35);
             }
           }
 
@@ -2449,14 +2670,19 @@ ${longTermMemoryBlock}
             recordLearnedFact(parsed.learnedFact, '');
           }
 
-          const userDismissed = /나가라고|나가\s*(라|세요|요|버려)?\s*$|꺼지라고|가라고|^가라|대화\s*(안\s*해|그만)|그만\s*하자/.test(userText.trim());
-          const shouldLeave = ((state.rudeStrikes >= 3) && Boolean(parsed.leaveRoom !== false)) || (userDismissed && parsed.leaveRoom === true);
+          const bubblesOut = parsed.bubbles.map(x => String(x).trim()).filter(Boolean);
+          // "나갈게요"라고 실제로 말했다면 (경고·협박이 아니라면) 반드시 나간다
+          const saysLeaving = bubblesOut.some(b =>
+            /나갈\s*(게|거|래|테)|나가겠|이만\s*(나|갈|끊)|그만\s*(할게|하겠|둘게)|대화\s*(안\s*할|끝낼|종료)|안녕히\s*계세요/.test(b) &&
+            !/(더|또|다시|한\s*번\s*만|만약|계속)[^.?!]{0,16}(나갈|나가겠|그만)|면\s*(저\s*|그냥\s*|바로\s*|방\s*|대화방\s*)*(나갈|나가겠|그만)/.test(b));
+          const shouldLeave = emo.forceLeave ||
+            (state.chatMode !== 'fight' && (saysLeaving || parsed.leaveRoom === true) && state.anger >= 40);
 
           return {
             bubbles: parsed.bubbles.map(s => String(s).trim()).filter(Boolean).slice(0, 5),
             isColdOrRude: currentRudeTurn || delta < 0 || state.rudeStrikes > 0,
             leaveRoom: shouldLeave,
-            mediaItem: shouldLeave || currentRudeTurn ? null : mediaItem
+            mediaItem: shouldLeave || currentRudeTurn || state.anger >= 10 || state.warned ? null : mediaItem
           };
         }
         return null;
@@ -2482,7 +2708,7 @@ ${longTermMemoryBlock}
               ],
               generationConfig: {
                 responseMimeType: 'application/json',
-                temperature: 0.85,
+                temperature: 0.95,
                 topP: 0.95
               }
             })
@@ -2504,7 +2730,7 @@ ${longTermMemoryBlock}
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPromptPayload }
               ],
-              temperature: 0.85
+              temperature: 0.95
             })
           });
           if (!res.ok) throw new Error(`OpenRouter HTTP ${res.status}`);
@@ -2525,7 +2751,7 @@ ${longTermMemoryBlock}
               max_tokens: 300,
               system: systemPrompt,
               messages: [{ role: 'user', content: userPromptPayload }],
-              temperature: 0.85
+              temperature: 0.95
             })
           });
           if (!res.ok) throw new Error(`Claude HTTP ${res.status}`);
@@ -2546,7 +2772,7 @@ ${longTermMemoryBlock}
                 { role: 'system', content: systemPrompt },
                 { role: 'user', content: userPromptPayload }
               ],
-              temperature: 0.85
+              temperature: 0.95
             })
           });
           if (!res.ok) throw new Error(`OpenAI HTTP ${res.status}`);
@@ -2558,10 +2784,7 @@ ${longTermMemoryBlock}
         console.warn('LLM API 호출 실패, 내장 엔진으로 폴백합니다:', err);
       }
 
-      if (currentRudeTurn) {
-        return getRudeResponseByCharacter(char, state.rudeStrikes);
-      }
-      return buildLocalPersonaResponse(userText);
+      return buildLocalPersonaResponse(userText, emo);
     }
 
     // =========================================================================
@@ -2836,6 +3059,7 @@ ${longTermMemoryBlock}
     // =========================================================================
     function applyCharacterToHeader() {
       const char = state.currentChar;
+      if (typeof updateModeButton === 'function') updateModeButton();
       document.getElementById('headerAvatar').src = char.avatar;
       document.getElementById('headerName').textContent = char.name;
       document.getElementById('headerAgeJob').textContent = `${char.age}세 · ${char.job}`;
@@ -2857,6 +3081,9 @@ ${longTermMemoryBlock}
           affection: state.affection,
           turnCount: state.turnCount,
           rudeStrikes: state.rudeStrikes || 0,
+          anger: state.anger || 0,
+          warned: Boolean(state.warned),
+          chatMode: state.chatMode || 'friend',
           updatedAt: Date.now()
         } : null;
       }
@@ -2876,6 +3103,11 @@ ${longTermMemoryBlock}
         state.affection = typeof existingRoom.affection === 'number' ? existingRoom.affection : 20;
         state.turnCount = existingRoom.turnCount || 1;
         state.rudeStrikes = existingRoom.rudeStrikes || 0;
+        state.anger = existingRoom.anger || 0;
+        state.warned = Boolean(existingRoom.warned);
+        state.chatMode = existingRoom.chatMode || 'friend';
+        state.modeJustChanged = false;
+        state.pendingUserTexts = [];
         state.userFacts = Array.isArray(existingRoom.userFacts) ? [...existingRoom.userFacts] : [];
         state.memorySummary = existingRoom.memorySummary || '';
         state.firstMetAt = existingRoom.firstMetAt || Date.now();
@@ -2900,6 +3132,11 @@ ${longTermMemoryBlock}
       state.affection = 15;
       state.turnCount = 0;
       state.rudeStrikes = 0;
+      state.anger = 0;
+      state.warned = false;
+      state.chatMode = 'friend';
+      state.modeJustChanged = false;
+      state.pendingUserTexts = [];
       state.userFacts = [];
       state.memorySummary = '';
       state.firstMetAt = Date.now();
@@ -2932,10 +3169,16 @@ ${longTermMemoryBlock}
           ];
       const chosenBubbles = greetingSets[Math.floor(Math.random() * greetingSets.length)];
 
+      if (Math.random() < 0.3) {
+        state.isAiBusy = false;
+        updateHeaderDefaultStatus();
+        return;
+      }
+
       state.isAiBusy = true;
       headerStatusText.textContent = `연결됨 · 잠시 대기 중...`;
 
-      let timeline = Math.round(800 * speedMult);
+      let timeline = Math.round((1500 + Math.random() * 3500) * speedMult);
       chosenBubbles.forEach((bText, idx) => {
         const typeDur = Math.round((1300 + bText.length * 25) * speedMult);
         registerTimeout(() => {
@@ -3064,8 +3307,10 @@ ${longTermMemoryBlock}
       clearIdleFollowUpTimer();
       state.idleFollowUpCount = 0;
 
-      // 선물을 보내면 혹시 삐쳐 있던 상태(rudeStrikes)가 즉시 풀리고 호감도 대폭 상승
-      state.rudeStrikes = 0;
+      // 선물을 보내면 화가 일부 누그러지고(완전히 풀리지는 않음) 호감도가 상승
+      state.anger = Math.max(0, (state.anger || 0) - 30);
+      if (state.anger < 10) state.warned = false;
+      state.rudeStrikes = Math.ceil(state.anger / 35);
       state.affection = Math.min(100, state.affection + gift.affectionBoost);
       state.bookmarked = true;
       state.turnCount += 1;
@@ -3168,11 +3413,35 @@ ${longTermMemoryBlock}
       }
 
       const speedMult = state.hesitateFreq === 'fast' ? 0.35 : 1.0;
-      const unreadWaitMs = Math.round((1600 + Math.random() * 1000) * speedMult);
+      if (!state.pendingUserTexts) state.pendingUserTexts = [];
+      const isFollowUpBurst = state.pendingUserTexts.length > 0;
+      state.pendingUserTexts.push(text);
+
+      // 대부분은 금방 읽지만, 가끔은 다른 일 하느라 늦게 읽음 (연달아 보낸 메시지는 이어서 금방 읽음)
+      const r = Math.random();
+      const baseWait = isFollowUpBurst
+        ? 1200 + Math.random() * 1500
+        : r < 0.7 ? 1200 + Math.random() * 2800
+        : r < 0.93 ? 4000 + Math.random() * 6000
+        : 11000 + Math.random() * 12000;
+      const unreadWaitMs = Math.round(baseWait * speedMult);
 
       state.pendingReadTimer = setTimeout(async () => {
         state.pendingReadTimer = null;
-        const replyPlan = await fetchLLMResponse(text);
+        // 아직 이전 답장을 입력 중이면 끝날 때까지 기다렸다가 이어서 답장 (말풍선 겹침 방지)
+        await new Promise(resolve => {
+          const check = () => (state.isAiBusy ? setTimeout(check, 400) : resolve());
+          check();
+        });
+        if (state.roomLeft || !state.pendingUserTexts.length) return;
+        const batch = state.pendingUserTexts.join('\n');
+        state.pendingUserTexts = [];
+        const requestedMode = detectModeRequest(batch);
+        if (requestedMode) setChatMode(requestedMode, true);
+        const roomIdAtSend = state.currentChar ? state.currentChar.id : null;
+        const replyPlan = await fetchLLMResponse(batch);
+        // 응답을 기다리는 사이 다른 상대로 넘어갔다면 이전 상대의 답장은 버림
+        if (!state.currentChar || state.currentChar.id !== roomIdAtSend || state.roomLeft) return;
         runRealisticReplySequence(replyPlan);
       }, unreadWaitMs);
     }
@@ -3713,6 +3982,74 @@ ${longTermMemoryBlock}
     chatInput.addEventListener('input', () => {
       chatInput.style.height = 'auto';
       chatInput.style.height = Math.min(chatInput.scrollHeight, 96) + 'px';
+    });
+
+    // ===== 대화 모드 선택 UI =====
+    function updateModeButton() {
+      const btn = document.getElementById('btnOpenModeModal');
+      if (!btn) return;
+      const m = CHAT_MODES[state.chatMode] || CHAT_MODES.friend;
+      btn.textContent = m.emoji;
+      btn.title = '대화 모드: ' + m.label;
+    }
+
+    function appendModeNotice(text) {
+      const div = document.createElement('div');
+      div.className = 'my-1 mx-auto text-center text-[12px] text-zinc-400 bg-white/[0.05] border border-white/10 rounded-full px-3 py-1 msg-animate';
+      div.textContent = text;
+      chatContainer.appendChild(div);
+      scrollToBottom(false);
+    }
+
+    function setChatMode(mode, announce = true) {
+      if (!CHAT_MODES[mode]) return;
+      const prev = state.chatMode || 'friend';
+      if (prev === mode) return;
+      if (prev === 'fight') {
+        state.anger = 0;
+        state.warned = false;
+        state.rudeStrikes = 0;
+      }
+      state.chatMode = mode;
+      state.modeJustChanged = true;
+      updateModeButton();
+      if (announce) {
+        const m = CHAT_MODES[mode];
+        appendModeNotice(m.emoji + ' 대화 모드: ' + m.label);
+      }
+      saveAccountState();
+    }
+
+    function renderModeModal() {
+      const list = document.getElementById('modeModalList');
+      if (!list) return;
+      list.innerHTML = '';
+      Object.keys(CHAT_MODES).forEach(key => {
+        const m = CHAT_MODES[key];
+        const active = (state.chatMode || 'friend') === key;
+        const btn = document.createElement('button');
+        btn.type = 'button';
+        btn.className = 'p-3.5 rounded-2xl border text-left transition flex flex-col gap-1 ' + (active
+          ? 'bg-amber-500/15 border-amber-400/70'
+          : 'bg-[#191d2b] hover:bg-[#23293d] border-white/10 hover:border-amber-400/50');
+        btn.innerHTML = '<div class="text-2xl">' + m.emoji + '</div>' +
+          '<div class="font-bold text-white text-[14.5px]">' + m.label + (active ? ' ✓' : '') + '</div>' +
+          '<div class="text-[11.5px] text-zinc-400 leading-snug">' + m.desc + '</div>';
+        btn.addEventListener('click', () => {
+          setChatMode(key, true);
+          document.getElementById('modeModal').classList.add('hidden');
+        });
+        list.appendChild(btn);
+      });
+    }
+
+    document.getElementById('btnOpenModeModal').addEventListener('click', () => {
+      if (!state.currentChar || state.roomLeft) return;
+      renderModeModal();
+      document.getElementById('modeModal').classList.remove('hidden');
+    });
+    document.getElementById('btnCloseModeModal').addEventListener('click', () => {
+      document.getElementById('modeModal').classList.add('hidden');
     });
 
     window.addEventListener('DOMContentLoaded', () => {
