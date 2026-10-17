@@ -1458,7 +1458,15 @@
           localStorage.getItem('seollem_guest_account');
         if (raw) {
           const data = JSON.parse(raw);
-          if (data.savedRooms && typeof data.savedRooms === 'object') state.savedRooms = data.savedRooms;
+          if (data.savedRooms && typeof data.savedRooms === 'object') {
+            Object.values(data.savedRooms).forEach(r => {
+              if (r && Array.isArray(r.messages)) {
+                r.messages = r.messages.filter(m => !String(m.id || '').startsWith('m_pro_'));
+              }
+              if (r) r.unreadCount = 0;
+            });
+            state.savedRooms = data.savedRooms;
+          }
           if (data.unlockedMedia && typeof data.unlockedMedia === 'object') state.unlockedMedia = data.unlockedMedia;
           if (data.prevCharId) state.prevCharId = data.prevCharId;
           if (Array.isArray(data.metCharIds)) state.metCharIds = data.metCharIds;
@@ -1772,46 +1780,9 @@
       scrollToBottom();
     }
 
-    // 오랫동안 답장이 없을 때 상대방이 먼저 안부/선톡을 보내는 엔진 (대화가 시작된 뒤 3~4분 무응답 시 딱 1번, 1줄만 전송, API 호출 없음)
+    // 선톡(무응답 시 자동 재촉 메시지) 기능 완전 비활성화
     function scheduleIdleFollowUp() {
       clearIdleFollowUpTimer();
-      if (!state.currentChar || state.roomLeft || state.rudeStrikes > 0) return;
-      if (state.turnCount === 0) return; // 유저가 아직 첫인사도 안 건넨 상태에서는 재촉 선톡 금지
-      if (state.idleFollowUpCount >= 1) return; // 한 턴당 최대 1번까지만 조심스럽게 안부 전송
-
-      // 3분~4분(180~240초) 동안 답장이 없을 때만 딱 1번 선톡
-      const waitMs = Math.round(180000 + Math.random() * 60000);
-
-      state.idleFollowUpTimer = setTimeout(() => {
-        state.idleFollowUpTimer = null;
-        if (!state.currentChar || state.roomLeft || state.isAiBusy || state.rudeStrikes > 0) return;
-        if (document.hidden) return;
-        const inputEl = document.getElementById('chatInput');
-        if (inputEl && inputEl.value.trim().length > 0) {
-          scheduleIdleFollowUp();
-          return;
-        }
-        state.idleFollowUpCount += 1;
-        const followUpPlan = buildIdleFollowUpPlan();
-        runRealisticReplySequence(followUpPlan, true);
-      }, waitMs);
-    }
-
-    function buildIdleFollowUpPlan() {
-      const char = state.currentChar;
-      const isSenior = Number(char.ageDecade) >= 50;
-      const pool = isSenior
-        ? [
-            ['바쁘신 일이 있으신가 보네요 ㅎㅎ 편하실 때 천천히 답장 주세요~'],
-            ['갑자기 자리 비우셨나 싶었네요 ㅎㅎ 시간 되실 때 이야기 나눠요!'],
-            ['일 보시는 중인가 봐요 ㅎㅎ 급하지 않으니 천천히 말씀 주세요~']
-          ]
-        : [
-            ['갑자기 조용하시길래 바쁘신가 했어요 ㅎㅎ 시간 나실 때 편하게 톡 주세요~'],
-            ['자리 비우셨나 봐요 ㅎㅎ 이따가 여유 되실 때 답장 주세요!'],
-            ['바쁘신가 보네요 ㅎㅎ 시간 되실 때 천천히 이어서 얘기해요~']
-          ];
-      return { bubbles: pool[Math.floor(Math.random() * pool.length)], isColdOrRude: false, leaveRoom: false };
     }
 
     function runRealisticReplySequence(replyPlan, isProactiveFollowUp = false) {
@@ -2923,54 +2894,9 @@ ${longTermMemoryBlock}
       });
     }
 
-    // 보관된 인연들이 시간대(아침/오후/저녁/밤)에 맞춰 먼저 안부 카톡을 남겨두는 리텐션 엔진
+    // 보관된 인연 선톡 기능 비활성화
     function triggerSavedRoomsTimeGreetings() {
-      const slotKey = getCurrentTimeSlotKey();
-      const timeGreetingsBySlot = {
-        morning: [
-          '좋은 아침이에요 ㅎㅎ 밤새 푹 주무셨어요? 아침 식사 꼭 챙겨 드세요~',
-          '아침 공기가 참 상쾌하네요 ㅎㅎ 오늘 하루도 기분 좋게 시작하시길 바랄게요!'
-        ],
-        afternoon: [
-          '점심 식사는 맛있게 하셨어요? ㅎㅎ 커피 한잔 마시다가 문득 생각나서 톡 남겨요~',
-          '오후 시간인데 나른하지 않으세요? ㅎㅎ 잠깐 스트레칭하시면서 여유 있게 보내세요!'
-        ],
-        evening: [
-          '오늘 하루도 정말 고생 많으셨어요 ㅎㅎ 저녁 맛있는 거 챙겨 드셨나요?',
-          '저녁 시간 되니까 도란도란 이야기 나누던 게 생각나서 먼저 연락드려요 ㅎㅎ'
-        ],
-        night: [
-          '이 시간 되니까 어제 나눴던 얘기 생각나서 톡 남겨봐요 ㅎㅎ 아직 안 주무시죠?',
-          '조용한 밤이네요 ㅎㅎ 오늘 하루 어떻게 보내셨는지 궁금해서 연락드렸어요~'
-        ]
-      };
-
-      let updated = false;
-      Object.values(state.savedRooms).forEach(room => {
-        if (!room || !room.charId) return;
-        if (state.currentChar && room.charId === state.currentChar.id) return;
-        if ((room.rudeStrikes || 0) >= 2) return;
-        if (room.lastGreetingSlot === slotKey) return;
-
-        const pool = timeGreetingsBySlot[slotKey] || timeGreetingsBySlot.evening;
-        const text = pool[Math.floor(Math.random() * pool.length)];
-        room.messages = room.messages || [];
-        room.messages.push({
-          id: 'm_pro_' + Date.now() + '_' + Math.random().toString(36).slice(2, 5),
-          sender: 'ai',
-          text,
-          time: getFormatTime(),
-          unread: false
-        });
-        room.unreadCount = (room.unreadCount || 0) + 1;
-        room.lastGreetingSlot = slotKey;
-        room.updatedAt = Date.now();
-        updated = true;
-      });
-
-      if (updated) {
-        saveAccountState();
-      }
+      return;
     }
 
     // =========================================================================
