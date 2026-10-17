@@ -1461,23 +1461,27 @@
     function saveAccountState() {
       try {
         compressOldMessagesIntoMemory();
-        if (state.currentChar && !state.roomLeft && (state.turnCount > 0 || state.bookmarked)) {
-          const prevSaved = state.savedRooms[state.currentChar.id] || {};
-          state.savedRooms[state.currentChar.id] = {
-            charId: state.currentChar.id,
-            messages: state.messages.slice(-45),
-            userFacts: (state.userFacts || []).slice(-25),
-            memorySummary: state.memorySummary || '',
-            firstMetAt: state.firstMetAt || prevSaved.firstMetAt || Date.now(),
-            photosSentCount: state.photosSentCount || 0,
-            unreadCount: 0,
-            lastGreetingSlot: prevSaved.lastGreetingSlot || '',
-            affection: state.affection,
-            turnCount: state.turnCount,
-            rudeStrikes: state.rudeStrikes || 0,
-            bookmarked: state.bookmarked,
-            updatedAt: Date.now()
-          };
+        if (state.currentChar && !state.roomLeft) {
+          if (state.bookmarked) {
+            const prevSaved = state.savedRooms[state.currentChar.id] || {};
+            state.savedRooms[state.currentChar.id] = {
+              charId: state.currentChar.id,
+              messages: state.messages.slice(-45),
+              userFacts: (state.userFacts || []).slice(-25),
+              memorySummary: state.memorySummary || '',
+              firstMetAt: state.firstMetAt || prevSaved.firstMetAt || Date.now(),
+              photosSentCount: state.photosSentCount || 0,
+              unreadCount: 0,
+              lastGreetingSlot: prevSaved.lastGreetingSlot || '',
+              affection: state.affection,
+              turnCount: state.turnCount,
+              rudeStrikes: state.rudeStrikes || 0,
+              bookmarked: true,
+              updatedAt: Date.now()
+            };
+          } else if (state.savedRooms[state.currentChar.id]) {
+            delete state.savedRooms[state.currentChar.id];
+          }
         }
 
         const payload = {
@@ -1612,7 +1616,7 @@
       const bannerBtn = document.getElementById('btnBannerBookmark');
       if (bannerBtn) {
         if (isBookmarked) {
-          bannerBtn.textContent = '⭐ 내 인연에 보관됨 ✓';
+          bannerBtn.textContent = '⭐ 내 인연에 보관됨 ✓ (다시 누르면 해제)';
           bannerBtn.className = 'mt-2 inline-flex items-center gap-1 px-3 py-1 rounded-full bg-amber-500/20 border border-amber-400/50 text-amber-300 text-[12px] font-bold transition';
         } else {
           bannerBtn.textContent = '☆ 이 상대와 인연 보관하기 (대화 이어가기)';
@@ -1622,7 +1626,7 @@
 
       const profileBookmarkBtn = document.getElementById('btnToggleBookmarkProfile');
       if (profileBookmarkBtn) {
-        profileBookmarkBtn.textContent = isBookmarked ? '⭐ 인연 보관됨 ✓' : '⭐ 인연 보관하기';
+        profileBookmarkBtn.textContent = isBookmarked ? '⭐ 인연 보관됨 ✓ (보관 해제)' : '⭐ 인연 보관하기';
       }
 
       const drawerTitle = document.getElementById('savedDrawerAuthTitle');
@@ -1645,7 +1649,11 @@
 
     function toggleCurrentBookmark() {
       if (!state.currentChar) return;
-      state.bookmarked = true;
+      const currentlyBookmarked = state.bookmarked || Boolean(state.savedRooms[state.currentChar.id]);
+      state.bookmarked = !currentlyBookmarked;
+      if (!state.bookmarked && state.savedRooms[state.currentChar.id]) {
+        delete state.savedRooms[state.currentChar.id];
+      }
       saveAccountState();
     }
 
@@ -2721,6 +2729,19 @@ ${longTermMemoryBlock}
     function startChatWithCharacter(char, forceResume = false) {
       if (state.currentChar && state.currentChar.id !== char.id) {
         state.prevCharId = state.currentChar.id;
+        state.prevRoomSnapshot = state.messages.length ? {
+          charId: state.currentChar.id,
+          messages: state.messages.slice(-45),
+          userFacts: (state.userFacts || []).slice(-25),
+          memorySummary: state.memorySummary || '',
+          firstMetAt: state.firstMetAt || Date.now(),
+          photosSentCount: state.photosSentCount || 0,
+          unreadCount: 0,
+          affection: state.affection,
+          turnCount: state.turnCount,
+          rudeStrikes: state.rudeStrikes || 0,
+          updatedAt: Date.now()
+        } : null;
       }
       saveAccountState();
       clearAllTimers();
@@ -2855,25 +2876,37 @@ ${longTermMemoryBlock}
         pool = CHARACTERS;
       }
 
-      // 이미 만났던 캐릭터들의 프사(및 동일 인물 페어 사진)와 겹치지 않는 새로운 사진의 캐릭터를 최우선 매칭
-      const seenAvatars = new Set();
-      state.metCharIds.forEach(id => {
-        const metChar = CHARACTERS.find(c => c.id === id);
-        if (metChar && metChar.avatar) {
-          seenAvatars.add(metChar.avatar);
-          const pair = SAME_PERSON_PAIR_MAP[metChar.avatar];
-          if (pair && pair.url) seenAvatars.add(pair.url);
-        }
-      });
-      if (state.currentChar && state.currentChar.avatar) {
-        seenAvatars.add(state.currentChar.avatar);
-        const pair = SAME_PERSON_PAIR_MAP[state.currentChar.avatar];
-        if (pair && pair.url) seenAvatars.add(pair.url);
-      }
+      // 동일 인물(원본 ↔ 클로즈업 페어)은 하나의 '인물 키'로 취급
+      const personKey = (url) => {
+        const pair = SAME_PERSON_PAIR_MAP[url];
+        if (pair && pair.url) return [url, pair.url].sort()[0];
+        return url;
+      };
 
-      const unseenAvatarPool = pool.filter(c => !seenAvatars.has(c.avatar));
+      // 최근에 본 순서대로 인물 키의 '마지막으로 본 순번' 기록 (값이 클수록 최근)
+      const lastSeenRank = new Map();
+      state.metCharIds.forEach((id, i) => {
+        const metChar = CHARACTERS.find(c => c.id === id);
+        if (metChar && metChar.avatar) lastSeenRank.set(personKey(metChar.avatar), i);
+      });
+
+      // 현재 상대 + 직전 상대의 인물은 무조건 제외 (연달아 같은 얼굴 매칭 방지)
+      const hardExclude = new Set();
+      if (state.currentChar && state.currentChar.avatar) hardExclude.add(personKey(state.currentChar.avatar));
+      const prevC = state.prevCharId ? CHARACTERS.find(c => c.id === state.prevCharId) : null;
+      if (prevC && prevC.avatar) hardExclude.add(personKey(prevC.avatar));
+      const strictPool = pool.filter(c => !hardExclude.has(personKey(c.avatar)));
+      if (strictPool.length > 0) pool = strictPool;
+
+      // 1순위: 한 번도 안 본 인물 / 2순위: 가장 오래전에 본 인물들 (최근 본 얼굴일수록 후순위)
+      const unseenAvatarPool = pool.filter(c => !lastSeenRank.has(personKey(c.avatar)));
       if (unseenAvatarPool.length > 0) {
         pool = unseenAvatarPool;
+      } else {
+        const ranks = Array.from(new Set(pool.map(c => lastSeenRank.get(personKey(c.avatar))))).sort((a, b) => a - b);
+        const cutoff = ranks[Math.max(0, Math.floor(ranks.length / 3) - 1)];
+        const oldestPool = pool.filter(c => lastSeenRank.get(personKey(c.avatar)) <= cutoff);
+        if (oldestPool.length > 0) pool = oldestPool;
       }
 
       // 별도 연령 필터를 지정하지 않은 기본 상태에서는 무조건 20~30대가 압도적 비중(약 86%)으로 매칭되도록 가중치 적용
@@ -3004,7 +3037,6 @@ ${longTermMemoryBlock}
 
       appendMessage('user', text);
       state.turnCount += 1;
-      state.bookmarked = true;
       saveAccountState();
 
       headerStatusText.textContent = `전송됨 · 안 읽음`;
@@ -3107,6 +3139,9 @@ ${longTermMemoryBlock}
         state.credits = Math.max(0, state.credits - 2);
       }
       document.getElementById('matchFilterModal').classList.add('hidden');
+      if (!state.savedRooms[prevChar.id] && state.prevRoomSnapshot && state.prevRoomSnapshot.charId === prevChar.id) {
+        state.savedRooms[prevChar.id] = { ...state.prevRoomSnapshot, bookmarked: true };
+      }
       const hasSaved = Boolean(state.savedRooms[prevChar.id]);
       startChatWithCharacter(prevChar, hasSaved);
     });
@@ -3220,10 +3255,23 @@ ${longTermMemoryBlock}
             </div>
             <p class="text-[13px] ${unreadCnt > 0 ? 'text-white font-semibold' : 'text-zinc-300'} mt-1 leading-snug break-words">${escapeHtml(lastMsg.text)}</p>
           </div>
-          <button type="button" class="shrink-0 px-3 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-300 font-bold text-[12px]">
-            ${isCurrent ? '대화 중' : '이어하기'}
-          </button>
+          <div class="shrink-0 flex flex-col gap-1.5">
+            <button type="button" class="px-3 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-300 font-bold text-[12px]">
+              ${isCurrent ? '대화 중' : '이어하기'}
+            </button>
+            <button type="button" data-role="delete" class="px-3 py-1 rounded-xl bg-white/[0.04] hover:bg-rose-500/20 border border-white/10 text-zinc-400 hover:text-rose-300 text-[11px]">
+              삭제
+            </button>
+          </div>
         `;
+        card.querySelector('[data-role="delete"]').addEventListener('click', (e) => {
+          e.stopPropagation();
+          if (!confirm(`'${char.name}'님을 내 인연에서 삭제할까요?`)) return;
+          delete state.savedRooms[char.id];
+          if (isCurrent) state.bookmarked = false;
+          saveAccountState();
+          renderSavedRoomsList();
+        });
         card.addEventListener('click', () => {
           document.getElementById('savedRoomsModal').classList.add('hidden');
           startChatWithCharacter(char, true);
@@ -3452,7 +3500,6 @@ ${longTermMemoryBlock}
         } else {
           state.credits += pkg.credits;
         }
-        state.bookmarked = true;
         saveAccountState();
         btn.disabled = false;
         btn.textContent = origText;
