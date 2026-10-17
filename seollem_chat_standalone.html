@@ -1989,7 +1989,7 @@
       if (/목소리|음성|보이스|통화|전화\s*목소리|목소리\s*듣고/.test(t)) return 'ask_voice';
       if (/실제\s*사람|진짜\s*사람|인공지능|로봇|챗봇|ai야|AI야/.test(t)) return 'ask_if_ai';
       if (/안녕|반가|처음|방가|하이|ㅎㅇ/.test(t)) return 'greeting';
-      if (/몇\s*살|나이|오빠|아저씨|연배|중년|50|60|늙|세대/.test(t)) return 'age_talk';
+      if (/몇\s*살|나이|오빠|아저씨|연배|중년|\d{2}\s*(살|세)|늙|세대/.test(t)) return 'age_talk';
       if (/어디|동네|근처|위치|사는|살아|지역|계세요|계신/.test(t)) return 'location';
       if (/뭐\s*해|뭐하|출근|안\s*자|잠이|일해|바빠|쉬는/.test(t)) return 'what_doing';
       if (/예쁘|이쁘|미인|아름다|귀여|매력|프로필|스타일|프사/.test(t)) return 'compliment';
@@ -2117,25 +2117,122 @@
       };
     }
 
+    // 사용자가 말투/반응 자체에 불만을 표시했는지 감지
+    function detectStyleComplaint(text) {
+      const t = text || '';
+      return {
+        laugh: /(ㅎㅎ|ㅋㅋ|웃음).{0,6}(거려|거리|좀|그만|하지\s*마|왜|쓰지)|왜\s*자꾸\s*(ㅎㅎ|ㅋㅋ|웃)|웃지\s*마/.test(t),
+        age: /선배|나이도\s*말\s*안|나이도\s*모르|어른\s*취급|아저씨\s*취급|늙은이\s*취급/.test(t),
+        nonsense: /동문서답|무슨\s*소리|딴\s*소리|말이\s*안\s*통|대답이\s*이상|이상한\s*소리|기계\s*같|로봇\s*같|똑같은\s*말|같은\s*말만|녹음기/.test(t)
+      };
+    }
+
+    function buildStyleApologyBubbles(c) {
+      const out = [];
+      if (c.laugh) out.push('아 그게 거슬리셨구나. 습관처럼 붙였네요, 이제 안 쓸게요.');
+      if (c.age) out.push('나이도 모르는데 제가 멋대로 넘겨짚었네요. 죄송해요.');
+      if (c.nonsense) out.push('제가 말을 제대로 못 알아들었나 봐요. 한 번만 다시 말씀해 주실래요?');
+      return out;
+    }
+
+    // ㅎㅎ/ㅋㅋ 남발 방지: 금지 모드면 전부 제거, 아니면 한 답장에 최대 1번만 허용
+    function sanitizeLaughs(bubbles) {
+      const laughRe = /\s*(ㅎ{2,}|ㅋ{2,})\s*/g;
+      let used = false;
+      return bubbles
+        .map(b => {
+          if (state.noLaughMode) return b.replace(laughRe, ' ').trim();
+          return b.replace(laughRe, (m) => {
+            if (used) return ' ';
+            used = true;
+            return m;
+          }).trim();
+        })
+        .filter(Boolean);
+    }
+
+    // 같은 방에서 이미 한 말은 다시 하지 않도록 후보 중 안 쓴 세트를 고름
+    function pickUnusedSet(sets) {
+      if (!state.usedLocalLines) state.usedLocalLines = [];
+      const fresh = sets.filter(s => !state.usedLocalLines.includes(s.join('|')));
+      const pool = fresh.length ? fresh : sets;
+      const chosen = pool[Math.floor(Math.random() * pool.length)];
+      state.usedLocalLines.push(chosen.join('|'));
+      if (state.usedLocalLines.length > 60) state.usedLocalLines.shift();
+      return chosen;
+    }
+
     function buildLocalPersonaResponse(userText) {
       const char = state.currentChar;
       const slotKey = getCurrentTimeSlotKey();
       const slotInfo = char.timeSituations[slotKey];
       const intent = analyzeUserIntent(userText);
-      const end = char.endings[0] || 'ㅎㅎ';
+      const complaint = detectStyleComplaint(userText);
+      const hasComplaint = complaint.laugh || complaint.age || complaint.nonsense;
+      if (complaint.laugh) state.noLaughMode = true;
+      const apology = buildStyleApologyBubbles(complaint);
+
+      // 이 방에서 캐릭터가 말한 현재 상황은 한 가지로 고정 (앞뒤 모순 방지)
+      if (!state.localStatusLine) state.localStatusLine = slotInfo.whyHere;
+
+      const finish = (bubbles, extra = {}) => ({
+        bubbles: sanitizeLaughs(bubbles),
+        isColdOrRude: false,
+        leaveRoom: false,
+        ...extra
+      });
 
       if (intent === 'rude_hostile') {
         state.rudeStrikes = (state.rudeStrikes || 0) + 1;
         state.affection = Math.max(0, state.affection - 20);
-        return getRudeResponseByCharacter(char, state.rudeStrikes);
+        const rude = getRudeResponseByCharacter(char, state.rudeStrikes);
+        // 불만 내용 자체는 인정하되, 험한 말에는 선을 긋기
+        if (hasComplaint && state.rudeStrikes < 3) {
+          return {
+            ...rude,
+            bubbles: sanitizeLaughs([...apology, '그래도 그런 험한 말은 좀 심하세요. 그렇게는 말하지 말아 주세요.'])
+          };
+        }
+        return rude;
       }
 
       if (intent === 'apology' && state.rudeStrikes > 0) {
         state.rudeStrikes = Math.max(0, state.rudeStrikes - 1);
         state.affection = Math.min(100, state.affection + 8);
+        return finish(['사과해 주시니 이번엔 넘어갈게요.', '다음부턴 장난이라도 그런 말은 하지 말아 주세요.']);
+      }
+
+      if (hasComplaint) {
+        state.affection = Math.max(5, state.affection - 2);
+        return finish(apology);
+      }
+
+      // "나가라고", "가라" 등 → 실제로 대화방을 나감
+      if (/나가라고|나가\s*(라|세요|요|버려)?\s*$|꺼지라고|가라고|^가라|대화\s*(안\s*해|그만)|그만\s*하자/.test(userText.trim())) {
+        state.rudeStrikes = Math.max(3, state.rudeStrikes || 0);
         return {
-          bubbles: [`사과해 주시니 이번엔 넘어갈게요.`, `다음부턴 장난이라도 그런 말씀은 삼가 주세요.`],
-          isColdOrRude: false,
+          bubbles: ['네, 그럴게요.', '좋은 대화 상대 만나세요.'],
+          isColdOrRude: true,
+          leaveRoom: true
+        };
+      }
+
+      // 기분 상한 상태에서는 사과 전까지 차갑게 응대 (바로 해맑아지지 않음)
+      if (state.rudeStrikes > 0) {
+        state.politeStreak = (state.politeStreak || 0) + 1;
+        if (state.politeStreak >= 3) {
+          state.rudeStrikes = Math.max(0, state.rudeStrikes - 1);
+          state.politeStreak = 0;
+        }
+        return {
+          bubbles: sanitizeLaughs(pickUnusedSet([
+            ['...네.'],
+            ['아까 하신 말 때문에 아직 기분이 좀 그래요.'],
+            ['사과부터 하시는 게 순서 아닐까요?'],
+            ['할 말 있으시면 하세요.'],
+            ['솔직히 지금은 대화할 기분이 아니에요.']
+          ])),
+          isColdOrRude: true,
           leaveRoom: false
         };
       }
@@ -2149,61 +2246,74 @@
         state.rudeStrikes = Math.max(0, state.rudeStrikes - 1);
       }
 
-      let affectionDelta = 6;
+      let affectionDelta = 5;
       if (intent === 'compliment' || intent === 'comfort' || intent === 'ask_photo' || intent === 'ask_voice') affectionDelta = 8;
       state.affection = Math.min(100, state.affection + affectionDelta);
 
-      const targetCount = pickDynamicBubbleCount(char, intent, false);
       let bubbles = [];
+      const ageMatch = userText.match(/(\d{2})\s*(살|세)/);
 
       if (intent === 'ask_photo') {
-        bubbles = [
-          `어머 제 사진이 궁금하세요? ㅎㅎ`,
-          `부끄럽지만 아껴둔 사진 한 장 살짝 보내드릴게요!`
-        ];
+        bubbles = pickUnusedSet([
+          ['제 사진이 궁금하세요?', '조금 부끄럽지만 한 장 보내드릴게요.'],
+          ['사진이요? 잘 나온 게 별로 없는데..', '그래도 하나 골라서 보내볼게요.']
+        ]);
       } else if (intent === 'ask_voice') {
-        bubbles = [
-          `제 목소리 듣고 싶으시다고요? ㅎㅎ`,
-          `쑥스럽지만 짧게 녹음해서 보내드릴게요 들어보세요~`
-        ];
+        bubbles = pickUnusedSet([
+          ['목소리요? 쑥스럽네요.', '짧게 녹음해서 보내드릴게요.'],
+          ['녹음은 잘 안 해봤는데', '한번 해볼게요, 들어보세요.']
+        ]);
       } else if (intent === 'ask_if_ai') {
-        bubbles = [
-          `저는 다정한 말동무가 되어드리는 AI 페르소나 '${char.name}'이에요 ${end}`,
-          `편하게 이야기 나눠요 우리!`
-        ];
+        bubbles = [`네, 저는 대화 상대가 되어드리는 AI '${char.name}'이에요.`, '그래도 편하게 이야기해 주세요.'];
       } else if (intent === 'what_doing') {
-        if (targetCount >= 3) {
-          bubbles = [
-            `저요? ㅎㅎ`,
-            `${slotInfo.whyHere}`,
-            `그쪽은 지금 뭐 하고 계셨어요?`
-          ];
+        bubbles = pickUnusedSet([
+          [state.localStatusLine, '그쪽은 지금 뭐 하세요?'],
+          ['저요?', state.localStatusLine, '그쪽은요?'],
+          [`아까 말한 대로 ${state.localStatusLine.replace(/[.!]$/, '')}.`, '오늘 하루는 어떠셨어요?']
+        ]);
+      } else if (intent === 'age_talk') {
+        if (ageMatch) {
+          bubbles = [`아 ${ageMatch[1]}살이시구나.`, `저는 ${char.age}살이에요.`];
+        } else if (/몇\s*살|나이/.test(userText)) {
+          bubbles = [`저는 ${char.age}살이에요.`, '그쪽은 어떻게 되세요? 말하기 싫으시면 안 하셔도 돼요.'];
         } else {
-          bubbles = [`${slotInfo.whyHere} 지금 뭐 하고 계셨어요? ㅎㅎ`];
+          bubbles = pickUnusedSet([['나이는 별로 상관없어요.', '대화만 잘 통하면 되죠.'], ['그런 거 신경 안 쓰셔도 돼요.']]);
         }
       } else if (intent === 'location') {
-        bubbles = [`저는 ${char.area}에서 지내고 있어요 ㅎㅎ`, `어느 쪽에 거주하세요?`].slice(0, targetCount);
+        bubbles = [`저는 ${char.area} 쪽에 살아요.`, '그쪽은 어느 쪽이세요?'];
       } else if (intent === 'greeting') {
-        const gSets = [
-          [`네 반가워요! ㅎㅎ`],
-          [`반가워요 ${end}`, `오늘 어떤 하루 보내고 계셨어요?`],
-          [`안녕하세요 반가워요 ㅎㅎ`, `${slotInfo.whyHere}`, `심심하던 차에 연락 주셔서 기분 좋네요~`],
-          [`어머 안녕하세요!`, `마침 말동무 있으면 좋겠다 생각하고 있었거든요 ㅎㅎ`, `오늘 하루는 바쁘셨어요?`, `편하게 대화 나눠요 우리 ${end}`]
-        ];
-        bubbles = gSets[Math.min(gSets.length - 1, targetCount - 1)];
+        bubbles = pickUnusedSet([['네 반가워요!'], ['반가워요.', '편하게 얘기해요.'], ['안녕하세요!', '오늘 하루 어떠셨어요?']]);
+      } else if (intent === 'food') {
+        bubbles = pickUnusedSet([
+          ['저는 아까 김밥 한 줄로 대충 때웠어요.', '그쪽은 뭐 드셨어요?'],
+          ['저녁은 집에서 된장찌개 끓여 먹었어요.', '그쪽은요?'],
+          ['아직 못 먹었어요. 이따 라면이라도 먹으려고요.', '드셨어요?']
+        ]);
+      } else if (intent === 'comfort') {
+        bubbles = pickUnusedSet([['에고, 고생 많으셨어요.', '무슨 일 있으셨어요?'], ['오늘 많이 힘드셨나 봐요.', '푹 쉬셔야겠다.']]);
+      } else if (intent === 'compliment') {
+        bubbles = pickUnusedSet([['어머 감사해요.', '그렇게 말해주시니 기분 좋네요.'], ['과찬이세요.', '그래도 듣기 좋네요.']]);
+      } else if (intent === 'date_invite') {
+        bubbles = ['좋아요, 근데 조금만 더 얘기 나눠보고요.', '서로 좀 더 알고 나서 정해요.'];
+      } else if (/\?$|까$|요\?|니$|냐$/.test(userText.trim())) {
+        bubbles = pickUnusedSet([
+          ['음 글쎄요..', '그쪽은 어떻게 생각하세요?'],
+          ['어려운 질문이네요.', '잠깐 생각 좀 해볼게요.'],
+          ['저는 딱히 생각해본 적 없는데', '그쪽은 어떠세요?']
+        ]);
       } else {
-        const multiSets = [
-          [`아 그러시구나 ㅎㅎ 평소에 주말이나 쉬는 날엔 등산이나 산책 같은 것도 즐기세요?`],
-          [`맞아요 ㅎㅎ`, `말씀하시는 게 여유 있고 어른스러우셔서 대화가 참 편하게 잘 통하네요 ${end}`],
-          [`오 정말요? ㅎㅎ`, `역시 경험이 풍부하셔서 그런지 말씀에 깊이가 있으시네요!`, `평소에 좋아하는 음식이나 반주 메뉴 같은 건 어떤 거 좋아하세요?`],
-          [`아하 ㅎㅎ 그렇군요!`, `저는 오늘 ${slotInfo.short}이라 여유롭게 쉬고 있었거든요.`, `인생 선배님이시니까 앞으로 궁금한 거 있으면 종종 여쭤봐도 되죠? ㅎㅎ`, `오늘 식사는 든든하게 챙겨 드셨어요?`],
-          [`에이 진짜요? ㅎㅎ`, `말씀을 참 따뜻하고 센스 있게 하시네요!`, `요즘 날씨가 산책하기 딱 좋던데 근처 공원이나 산에도 종종 가세요?`, `이렇게 대화 잘 통하는 분 만나면 괜히 기분이 좋아져요 ${end}`, `앞으로도 자주 이야기 나눠요 우리!`]
-        ];
-        bubbles = multiSets[Math.min(multiSets.length - 1, targetCount - 1)];
+        bubbles = pickUnusedSet([
+          ['그렇구나.', '조금 더 얘기해 주세요.'],
+          ['아 정말요?'],
+          ['음 그럴 수 있죠.'],
+          ['맞아요.', '저도 가끔 그런 생각 해요.'],
+          ['오 그래요?', '평소에 쉬는 날엔 뭐 하세요?'],
+          ['그랬구나.', '요즘은 어떻게 지내세요?']
+        ]);
       }
 
       const mediaItem = buildMediaAttachmentForTurn(char, intent);
-      return { bubbles, isColdOrRude: false, leaveRoom: false, mediaItem };
+      return finish(bubbles, { mediaItem });
     }
 
     async function fetchLLMResponse(userText) {
@@ -2212,6 +2322,11 @@
 
       // 사용자의 발언에서 기억할 만한 핵심 정보를 추출해 백그라운드 장기 기억에 저장
       extractUserFactsLocally(userText);
+
+      // API 키가 없으면 내장 엔진이 경고/호감도를 직접 처리 (이중 차감 방지)
+      if (!state.apiKey || !state.apiKey.trim()) {
+        return buildLocalPersonaResponse(userText);
+      }
 
       let currentRudeTurn = false;
       if (intent === 'rude_hostile') {
@@ -2222,10 +2337,6 @@
         state.rudeStrikes = Math.max(0, state.rudeStrikes - 1);
       } else if (intent === 'heavy_flirt' && state.affection < 55) {
         state.affection = Math.max(5, state.affection - 8);
-      }
-
-      if (!state.apiKey || !state.apiKey.trim()) {
-        return buildLocalPersonaResponse(userText);
       }
 
       const slotKey = getCurrentTimeSlotKey();
@@ -2275,9 +2386,14 @@
 - 현재 시간대 상황: ${slotInfo.short} (${slotInfo.whyHere})
 ${longTermMemoryBlock}
 
-[중장년·60대 남성 맞춤형 대화 소재 및 존중감 가이드 (백그라운드 자연 반영)]
-- 상대방이 매너 있게 대화할 때는 상대방의 연륜과 경험을 존중해 주며 대접받는 느낌이 들도록 다정하게 호응하세요 (예: "역시 경험이 많으셔서 그런지 말씀에 깊이가 있으시네요", "인생 선배님이시니까 여쭤보고 싶은 게 있는데~").
-- 대화가 이어질 때 자연스럽게 꺼내면 좋은 공감 소재: 계절 음식·따뜻한 국물이나 가벼운 반주 이야기, 주말 등산·산책·건강 관리, 옛 추억이나 감성 있는 음악 이야기.${mediaPromptNotice}
+[대화 자연스러움 핵심 규칙 - 반드시 지킬 것]
+- 상대방이 방금 한 말에 먼저 직접 반응하세요. 못 들은 척 딴 얘기로 넘어가거나 미리 준비된 듯한 멘트를 하지 마세요.
+- 상대방의 나이·직업·성향을 상대가 직접 말하기 전에는 절대 넘겨짚지 마세요 ("인생 선배님", "경험이 풍부하셔서", "어른스러우셔서" 등 금지).
+- 'ㅎㅎ', 'ㅋㅋ'는 한 답장에 최대 1번, 필요할 때만 쓰세요. 상대가 말투(ㅎㅎ 등)를 지적하면 인정하고 그 이후로는 쓰지 마세요.
+- 상대가 내 대답이나 말투에 불만을 말하면 변명하지 말고 짧게 인정한 뒤 고치세요.
+- 앞서 말한 내 현재 상황·장소·한 일과 모순되는 말을 하지 마세요.
+- 질문은 한 답장에 최대 1개만. 아부성 칭찬을 남발하지 마세요.
+- 상대가 욕설이나 시비를 한 뒤에는 사과를 받기 전까지 바로 해맑게 돌아오지 말고 서운하거나 차가운 태도를 유지하세요. 상대가 "나가라", "꺼지라고"처럼 대화를 끝내자고 하면 짧게 인사하고 leaveRoom을 true로 하세요.${mediaPromptNotice}
 
 [현재 두 사람의 관계 상태]
 - 현재 호감도 및 관계 단계: ${state.affection}% (${stageInfo.name})
@@ -2301,7 +2417,7 @@ ${longTermMemoryBlock}
 3. 초면부터 다짜고짜 상대방을 "오빠"라고 부르지 마세요.
 4. 방을 나가는 것(leaveRoom: true)은 무례함 경고가 3회 이상 누적된 최후의 순간(${isLeaveThreshold ? '지금 해당됨' : '지금은 절대 나가지 마세요'})에만 수행하세요.
 5. 상대방의 이번 메시지에서 새로 알게 된 신상/취향/약속이 있다면 "learnedFact"에 1줄로 적고(없으면 ""), 반드시 아래 순수 JSON 형식으로만 응답하세요:
-{"bubbles": [말풍선 배열 (1~5개)], "affectionDelta": 정수(-25~+10), "leaveRoom": ${isLeaveThreshold ? 'true' : 'false'}, "learnedFact": "새로 알게 된 상대방 정보 1줄 또는 빈 문자열"}`;
+{"bubbles": [말풍선 배열 (1~5개)], "affectionDelta": 정수(-25~+10), "leaveRoom": ${isLeaveThreshold ? 'true' : 'false (단, 상대가 나가라고 하면 true)'}, "learnedFact": "새로 알게 된 상대방 정보 1줄 또는 빈 문자열"}`;
 
       const recentHistory = state.messages
         .filter(m => m.sender === 'user' || m.sender === 'ai')
@@ -2333,7 +2449,8 @@ ${longTermMemoryBlock}
             recordLearnedFact(parsed.learnedFact, '');
           }
 
-          const shouldLeave = (state.rudeStrikes >= 3) && Boolean(parsed.leaveRoom !== false);
+          const userDismissed = /나가라고|나가\s*(라|세요|요|버려)?\s*$|꺼지라고|가라고|^가라|대화\s*(안\s*해|그만)|그만\s*하자/.test(userText.trim());
+          const shouldLeave = ((state.rudeStrikes >= 3) && Boolean(parsed.leaveRoom !== false)) || (userDismissed && parsed.leaveRoom === true);
 
           return {
             bubbles: parsed.bubbles.map(s => String(s).trim()).filter(Boolean).slice(0, 5),
@@ -2787,6 +2904,10 @@ ${longTermMemoryBlock}
       state.memorySummary = '';
       state.firstMetAt = Date.now();
       state.photosSentCount = 0;
+      state.noLaughMode = false;
+      state.usedLocalLines = [];
+      state.localStatusLine = '';
+      state.politeStreak = 0;
       state.bookmarked = false;
       state.messages = [];
       chatContainer.innerHTML = '';
