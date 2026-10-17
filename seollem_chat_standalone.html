@@ -2851,6 +2851,27 @@ ${longTermMemoryBlock}
         pool = CHARACTERS;
       }
 
+      // 이미 만났던 캐릭터들의 프사(및 동일 인물 페어 사진)와 겹치지 않는 새로운 사진의 캐릭터를 최우선 매칭
+      const seenAvatars = new Set();
+      state.metCharIds.forEach(id => {
+        const metChar = CHARACTERS.find(c => c.id === id);
+        if (metChar && metChar.avatar) {
+          seenAvatars.add(metChar.avatar);
+          const pair = SAME_PERSON_PAIR_MAP[metChar.avatar];
+          if (pair && pair.url) seenAvatars.add(pair.url);
+        }
+      });
+      if (state.currentChar && state.currentChar.avatar) {
+        seenAvatars.add(state.currentChar.avatar);
+        const pair = SAME_PERSON_PAIR_MAP[state.currentChar.avatar];
+        if (pair && pair.url) seenAvatars.add(pair.url);
+      }
+
+      const unseenAvatarPool = pool.filter(c => !seenAvatars.has(c.avatar));
+      if (unseenAvatarPool.length > 0) {
+        pool = unseenAvatarPool;
+      }
+
       // 별도 연령 필터를 지정하지 않은 기본 상태에서는 무조건 20~30대가 압도적 비중(약 86%)으로 매칭되도록 가중치 적용
       const hasExplicitAgeFilter = state.matchFilter.ages && state.matchFilter.ages.length > 0;
       if (!hasExplicitAgeFilter && Math.random() < 0.86) {
