@@ -570,117 +570,94 @@
     // =========================================================================
     // 1. 1,250+ KOREAN FEMALE PERSONAS ENGINE (20대 ~ 60대, 5가지 성격, 7대 지역권)
     // =========================================================================
-    // 실제 카톡/소셜 프로필처럼 다양한 유형의 프사 풀 (본인 셀카 / 프로필 사진 / 남이 찍어준 스냅 / 손 찍은 사진 / 등산·자연 사진 / 직업 관련 사진)
+    // 100% 직접 생성한 한국인 여성 및 한국 일상/풍경/직업 프로필 사진 풀 (외부 서양인 스톡 이미지 전면 배제)
     const REAL_AVATAR_GALLERY = {
-      // 1. 본인의 셀카 (거울 셀카, 클로즈업 셀카 등)
+      // 1. 본인의 셀카 (거울 셀카, 카페 셀카, 클로즈업 셀카 등)
       selfie: [
-        { url: 'avatars/avatar_02_kim_subin.jpg', desc: '작업실에서 직접 찍은 자연스러운 본인 셀카' },
-        { url: 'avatars/avatar_06_jung_yujin.jpg', desc: '쉬는 날 밝게 웃으며 찍은 본인 셀카' },
-        { url: 'avatars/avatar_08_oh_chaewon.jpg', desc: '카페에서 찍은 귀여운 본인 셀카' },
-        { url: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80', desc: '자연광 아래에서 찍은 본인 클로즈업 셀카' },
-        { url: 'https://images.unsplash.com/photo-1517841905240-472988babdf9?auto=format&fit=crop&w=400&q=80', desc: '편안한 캐주얼 차림으로 찍은 본인 셀카' },
-        { url: 'https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e?auto=format&fit=crop&w=400&q=80', desc: '외출 전 기분 좋게 찍은 본인 셀카' },
-        { url: 'https://images.unsplash.com/photo-1517365830460-955ce3ccd263?auto=format&fit=crop&w=400&q=80', desc: '미소 지으며 직접 찍은 셀카 사진' },
-        { url: 'https://images.unsplash.com/photo-1531746020798-e6953c6e8e04?auto=format&fit=crop&w=400&q=80', desc: '은은한 조명 아래에서 찍은 본인 셀카' },
-        { url: 'https://images.unsplash.com/photo-1514315384763-ba401779410f?auto=format&fit=crop&w=400&q=80', desc: '주말 나들이 중 찍은 본인 셀카' },
-        { url: 'https://images.unsplash.com/photo-1524250502761-1ac6f2e30d43?auto=format&fit=crop&w=400&q=80', desc: '차분한 분위기의 본인 셀카 사진' }
+        { url: 'avatars/kr_selfie_mirror_01.jpg', desc: '외출 전 현관 거울 앞에서 직접 찍은 본인 거울 셀카' },
+        { url: 'avatars/kr_selfie_cafe_03.jpg', desc: '창가 카페 자리에서 커피 마시며 직접 찍은 본인 셀카' },
+        { url: 'avatars/kr_selfie_closeup_04.jpg', desc: '자연광 아래에서 밝게 미소 지으며 찍은 본인 클로즈업 셀카' },
+        { url: 'avatars/avatar_02_kim_subin.jpg', desc: '꽃 작업실에서 직접 찍은 자연스러운 본인 셀카' },
+        { url: 'avatars/avatar_06_jung_yujin.jpg', desc: '쉬는 날 집에서 강아지 안고 찍은 본인 셀카' },
+        { url: 'avatars/avatar_08_oh_chaewon.jpg', desc: '베이커리 주방에서 디저트 들고 찍은 본인 사진' }
       ],
-      // 2. 단정한 본인 프로필 사진
+      // 2. 단정한 본인 프로필 사진 (20~30대 및 40~60대 한국 여성)
       profile: [
-        { url: 'avatars/avatar_01_park_hayoung.jpg', desc: '단정하고 분위기 있게 나온 본인 프로필 사진' },
-        { url: 'avatars/avatar_03_kang_daeun.jpg', desc: '깔끔한 오피스룩 차림의 본인 프로필 사진' },
-        { url: 'avatars/avatar_04_cho_yerin.jpg', desc: '청순하고 차분한 분위기의 본인 프로필 사진' },
+        { url: 'avatars/avatar_01_park_hayoung.jpg', desc: '카페 창가에서 단정하고 분위기 있게 나온 본인 프로필 사진' },
+        { url: 'avatars/kr_profile_cafe_closeup.jpg', desc: '따뜻한 햇살 아래 턱을 괴고 미소 짓는 본인 프로필 사진' },
+        { url: 'avatars/avatar_03_kang_daeun.jpg', desc: '가을 산책로에서 단정하게 찍은 본인 프로필 사진' },
+        { url: 'avatars/avatar_04_cho_yerin.jpg', desc: '따뜻한 조명 아래 차분한 분위기의 본인 프로필 사진' },
         { url: 'avatars/avatar_05_yoon_jieun.jpg', desc: '건강하고 밝은 미소가 담긴 본인 프로필 사진' },
-        { url: 'avatars/avatar_07_lee_seoyeon.jpg', desc: '세련된 무드의 본인 프로필 사진' },
-        { url: 'avatars/avatar_09_shin_sohee.jpg', desc: '우아하고 환한 미소의 본인 프로필 사진' },
-        { url: 'avatars/avatar_10_han_minseo.jpg', desc: '지적이고 단아한 본인 프로필 사진' },
-        { url: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?auto=format&fit=crop&w=400&q=80', desc: '온화한 미소가 담긴 정면 프로필 사진' },
-        { url: 'https://images.unsplash.com/photo-1508214751196-bcfd4ca60f91?auto=format&fit=crop&w=400&q=80', desc: '단아하고 교양 있는 인상의 프로필 사진' },
-        { url: 'https://images.unsplash.com/photo-1534751516642-a1af1ef26a56?auto=format&fit=crop&w=400&q=80', desc: '자연스러운 스튜디오 프로필 사진' },
-        { url: 'https://images.unsplash.com/photo-1487412720507-e7ab37603c6f?auto=format&fit=crop&w=400&q=80', desc: '성숙하고 세련된 분위기의 프로필 사진' }
+        { url: 'avatars/avatar_07_lee_seoyeon.jpg', desc: '미술관에서 찍은 세련된 무드의 본인 프로필 사진' },
+        { url: 'avatars/avatar_09_shin_sohee.jpg', desc: '한강 야경을 배경으로 환하게 웃는 본인 프로필 사진' },
+        { url: 'avatars/avatar_10_han_minseo.jpg', desc: '북카페에서 찍은 지적이고 단아한 본인 프로필 사진' },
+        { url: 'avatars/kr_profile_senior_02.jpg', desc: '식물원 카페에서 우아하고 온화한 미소로 찍은 본인 프로필 사진' },
+        { url: 'avatars/kr_profile_senior_closeup.jpg', desc: '품위 있고 따뜻한 인상의 본인 정면 프로필 사진' }
       ],
-      // 3. 남이 찍어준 일상/카페/여행 스냅 사진
+      // 3. 남이 찍어준 일상/카페/여행/한옥마을 스냅 사진
       candid: [
-        { url: 'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?auto=format&fit=crop&w=400&q=80', desc: '카페에서 친구가 자연스럽게 찍어준 일상 사진' },
-        { url: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=400&q=80', desc: '지인과 대화하던 중 남이 찍어준 활짝 웃는 사진' },
-        { url: 'https://images.unsplash.com/photo-1502823403499-6ccfcf4fb453?auto=format&fit=crop&w=400&q=80', desc: '주말 나들이 갔을 때 친구가 찍어준 스냅 사진' },
-        { url: 'https://images.unsplash.com/photo-1515886657613-9f3515b0c78f?auto=format&fit=crop&w=400&q=80', desc: '산책길에 지인이 찍어준 전신 스냅 사진' },
-        { url: 'https://images.unsplash.com/photo-1488426862026-3ee34a7d66df?auto=format&fit=crop&w=400&q=80', desc: '레스토랑에서 마주 앉은 친구가 찍어준 사진' },
-        { url: 'https://images.unsplash.com/photo-1519699047748-de8e457a634e?auto=format&fit=crop&w=400&q=80', desc: '햇살 좋은 오후에 남이 찍어준 옆모습 사진' },
-        { url: 'https://images.unsplash.com/photo-1509967419530-da38b4704bc6?auto=format&fit=crop&w=400&q=80', desc: '여행지에서 지인이 찍어준 감성 스냅 사진' },
-        { url: 'https://images.unsplash.com/photo-1464863979621-258859e62245?auto=format&fit=crop&w=400&q=80', desc: '카페 창가 자리에 앉아 있을 때 남이 찍어준 사진' },
-        { url: 'https://images.unsplash.com/photo-1496440737103-cd596325d314?auto=format&fit=crop&w=400&q=80', desc: '저녁 모임에서 지인이 찍어준 자연스러운 사진' },
-        { url: 'https://images.unsplash.com/photo-1469334031218-e382a71b716b?auto=format&fit=crop&w=400&q=80', desc: '바람 부는 날 야외에서 남이 찍어준 분위기 있는 사진' },
-        { url: 'https://images.unsplash.com/photo-1503185912284-5271ff81b9a8?auto=format&fit=crop&w=400&q=80', desc: '전시회 나들이 갔을 때 친구가 찍어준 사진' }
+        { url: 'avatars/kr_candid_cafe_01.jpg', desc: '주말 카페에서 마주 앉은 지인이 찍어준 일상 스냅 사진' },
+        { url: 'avatars/kr_candid_park_02.jpg', desc: '단풍 든 공원 산책길에 뒤돌아보며 웃을 때 지인이 찍어준 스냅 사진' },
+        { url: 'avatars/kr_candid_sea_03.jpg', desc: '동해 바닷가 노을 전망대에서 남이 찍어준 옆모습 감성 스냅' },
+        { url: 'avatars/kr_candid_hanok_04.jpg', desc: '북촌 한옥마을 골목길 나들이 중 친구가 찍어준 전신 스냅 사진' },
+        { url: 'avatars/kr_candid_hanok_closeup.jpg', desc: '한옥마을 산책 중 뒤돌아보며 환하게 웃는 남이 찍어준 사진' },
+        { url: 'avatars/avatar_03_kang_daeun.jpg', desc: '가을 가로수길에서 지인이 찍어준 자연스러운 스냅 사진' },
+        { url: 'avatars/avatar_09_shin_sohee.jpg', desc: '저녁 한강 산책길에 남이 찍어준 분위기 있는 사진' }
       ],
-      // 4. 손 찍어서 올린 사진 (커피잔/찻잔/와인잔/책/꽃을 든 손, 반려동물 쓰다듬는 손 등)
+      // 4. 손 찍어서 올린 사진 (커피잔/와인잔/꽃다발을 든 손, 반려견 쓰다듬는 손 등)
       hand: [
-        { url: 'https://images.unsplash.com/photo-1511920170033-f8396924c348?auto=format&fit=crop&w=400&q=80', desc: '따뜻한 라떼 잔을 두 손으로 감싸 쥐고 찍은 손 사진' },
-        { url: 'https://images.unsplash.com/photo-1495474472287-4d71bcdd2085?auto=format&fit=crop&w=400&q=80', desc: '카페 테이블 위 커피잔을 들고 찍은 손 사진' },
-        { url: 'https://images.unsplash.com/photo-1514432324607-a09d9b4aefdd?auto=format&fit=crop&w=400&q=80', desc: '아침 커피 한 잔을 손에 들고 찍은 감성 사진' },
-        { url: 'https://images.unsplash.com/photo-1544787219-7f47ccb76574?auto=format&fit=crop&w=400&q=80', desc: '따뜻한 찻잔에 차를 따르며 찍은 손 사진' },
-        { url: 'https://images.unsplash.com/photo-1510812431401-41d2bd2722f3?auto=format&fit=crop&w=400&q=80', desc: '저녁에 와인잔을 살짝 들고 찍은 손 사진' },
-        { url: 'https://images.unsplash.com/photo-1457369804613-52c61a468e7d?auto=format&fit=crop&w=400&q=80', desc: '좋아하는 책장을 넘기며 찍은 손 사진' },
-        { url: 'https://images.unsplash.com/photo-1461023058943-07fcbe16d735?auto=format&fit=crop&w=400&q=80', desc: '크림 올라간 커피를 들고 찍은 손 사진' },
-        { url: 'https://images.unsplash.com/photo-1442512595331-e89e73853f31?auto=format&fit=crop&w=400&q=80', desc: '창가에서 에스프레소 잔을 들고 찍은 손 사진' },
-        { url: 'https://images.unsplash.com/photo-1517701550927-30cf4ba1dba5?auto=format&fit=crop&w=400&q=80', desc: '산책길에 테이크아웃 커피를 들고 찍은 손 사진' },
-        { url: 'https://images.unsplash.com/photo-1497636577773-f1231844b336?auto=format&fit=crop&w=400&q=80', desc: '커피와 노트를 펴놓고 찍은 손 감성 사진' },
-        { url: 'https://images.unsplash.com/photo-1543466835-00a7907e9de1?auto=format&fit=crop&w=400&q=80', desc: '집에서 키우는 귀여운 강아지를 찍어 올린 사진' },
-        { url: 'https://images.unsplash.com/photo-1514888286974-6c03e2ca1dba?auto=format&fit=crop&w=400&q=80', desc: '햇살을 쬐고 있는 반려묘를 찍어 올린 사진' }
+        { url: 'avatars/kr_hand_coffee_01.jpg', desc: '카페 나무 테이블 위 따뜻한 라떼 잔을 손에 들고 찍은 손 사진' },
+        { url: 'avatars/kr_hand_wine_02.jpg', desc: '분위기 좋은 저녁 모임에서 와인잔을 살짝 들고 찍은 손 사진' },
+        { url: 'avatars/kr_hand_dog_03.jpg', desc: '집 거실에서 귀여운 말티즈 강아지를 쓰다듬으며 찍은 손 사진' },
+        { url: 'avatars/kr_hand_bouquet_04.jpg', desc: '향기로운 꽃다발 리본을 두 손으로 묶으며 찍은 손 사진' }
       ],
-      // 5. 자연 사진이나 등산 가서 직접 찍은 풍경·꽃 사진
+      // 5. 자연 사진이나 등산 가서 직접 찍은 한국 산·바다·단풍 풍경 사진
       nature_hiking: [
-        { url: 'https://images.unsplash.com/photo-1551632811-561732d1e306?auto=format&fit=crop&w=400&q=80', desc: '주말 등산 가서 산정상 능선을 걸으며 찍은 등산 사진' },
-        { url: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=400&q=80', desc: '등산 올라가서 직접 찍은 탁 트인 산봉우리 풍경 사진' },
-        { url: 'https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=400&q=80', desc: '산과 호수가 어우러진 곳으로 여행 가서 찍은 자연 풍경 사진' },
-        { url: 'https://images.unsplash.com/photo-1441974231531-c6227db76b6e?auto=format&fit=crop&w=400&q=80', desc: '아침 숲길 산책로에서 햇살이 비치는 모습을 찍은 자연 사진' },
-        { url: 'https://images.unsplash.com/photo-1470071459604-3b5ec3a7fe05?auto=format&fit=crop&w=400&q=80', desc: '새벽 산행 길에 운무가 낀 능선을 직접 찍은 등산 사진' },
-        { url: 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=400&q=80', desc: '바닷가 여행 가서 찍은 잔잔한 파도와 해변 풍경 사진' },
-        { url: 'https://images.unsplash.com/photo-1490750967868-88aa4486c946?auto=format&fit=crop&w=400&q=80', desc: '봄날 꽃밭 산책길에 예쁘게 핀 꽃들을 찍은 사진' },
-        { url: 'https://images.unsplash.com/photo-1501854140801-50d01698950b?auto=format&fit=crop&w=400&q=80', desc: '푸른 산자락이 내려다보이는 전망대에서 찍은 등산 사진' },
-        { url: 'https://images.unsplash.com/photo-1472214103451-9374bd1c798e?auto=format&fit=crop&w=400&q=80', desc: '들판과 산책로를 걸으며 찍은 초록빛 자연 풍경 사진' },
-        { url: 'https://images.unsplash.com/photo-1465146344425-f00d5f5c8f07?auto=format&fit=crop&w=400&q=80', desc: '야생화가 가득 핀 등산로 옆에서 찍은 꽃과 자연 사진' },
-        { url: 'https://images.unsplash.com/photo-1433086966358-54859d0ed716?auto=format&fit=crop&w=400&q=80', desc: '산속 계곡 폭포수 소리를 들으며 찍은 등산 풍경 사진' },
-        { url: 'https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?auto=format&fit=crop&w=400&q=80', desc: '한적한 시골길 드라이브 중에 찍은 풍경 사진' },
-        { url: 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?auto=format&fit=crop&w=400&q=80', desc: '수목원 아름드리 나무 아래에서 찍은 자연 사진' },
-        { url: 'https://images.unsplash.com/photo-1490730141103-6cac27aaab94?auto=format&fit=crop&w=400&q=80', desc: '저녁 산책길에 노을 지는 호숫가를 찍은 풍경 사진' }
+        { url: 'avatars/kr_hiking_peak_01.jpg', desc: '주말 북한산 등산 올라가서 정상 바위 능선 앞에서 찍은 등산 인증 사진' },
+        { url: 'avatars/kr_nature_mountain_ridge.jpg', desc: '등산 가서 직접 찍은 맑은 하늘과 바위 산봉우리 능선 풍경 사진' },
+        { url: 'avatars/kr_nature_eastsea_sunset.jpg', desc: '동해 바닷가 여행 가서 직접 찍은 붉은 수평선 노을 풍경 사진' },
+        { url: 'avatars/kr_nature_autumn_foliage.jpg', desc: '가을 산책길에 노랗고 붉게 물든 은행나무와 단풍을 찍은 자연 사진' },
+        { url: 'avatars/kr_candid_sea_03.jpg', desc: '바닷가 해안 전망대에서 노을을 바라보며 찍은 여행 사진' },
+        { url: 'avatars/kr_candid_park_02.jpg', desc: '가을 단풍길 산책로에서 찍은 나들이 사진' }
       ],
       // 6. 직업과 관련된 일터/작업실 사진
       job: {
         cafe: [
-          { url: 'https://images.unsplash.com/photo-1509042239860-f550ce710b93?auto=format&fit=crop&w=400&q=80', desc: '직접 내린 정성스러운 라떼아트 커피 사진 (직업 관련 프사)' },
-          { url: 'https://images.unsplash.com/photo-1554118811-1e0d58224f24?auto=format&fit=crop&w=400&q=80', desc: '일하는 카페의 따뜻한 실내 공간 사진 (직업 관련 프사)' }
+          { url: 'avatars/kr_job_barista_02.jpg', desc: '카페 에스프레소 바에서 직접 우유를 부어 라떼아트를 만드는 모습 (직업 관련 프사)' },
+          { url: 'avatars/kr_hand_coffee_01.jpg', desc: '직접 내린 따뜻한 라떼 한 잔 사진 (직업 관련 프사)' },
+          { url: 'avatars/avatar_01_park_hayoung.jpg', desc: '운영하는 로스터리 카페 창가에서 찍은 사진 (직업 관련 프사)' }
         ],
         bakery: [
-          { url: 'https://images.unsplash.com/photo-1509440159596-0249088772ff?auto=format&fit=crop&w=400&q=80', desc: '주방에서 갓 구워낸 고소한 빵과 베이커리 사진 (직업 관련 프사)' },
-          { url: 'https://images.unsplash.com/photo-1558961363-fa8fdf82db35?auto=format&fit=crop&w=400&q=80', desc: '직접 만든 달콤한 수제 디저트와 구움과자 사진 (직업 관련 프사)' }
+          { url: 'avatars/kr_job_bakery_03.jpg', desc: '베이커리에서 갓 구워낸 크루아상과 스콘, 딸기 케이크 트레이 사진 (직업 관련 프사)' },
+          { url: 'avatars/avatar_08_oh_chaewon.jpg', desc: '베이커리 주방에서 직접 만든 과일 타르트를 들고 찍은 사진 (직업 관련 프사)' }
         ],
         flower: [
-          { url: 'https://images.unsplash.com/photo-1487530811176-3780de880c2d?auto=format&fit=crop&w=400&q=80', desc: '작업실에서 직접 다듬고 묶은 화사한 꽃다발 사진 (직업 관련 프사)' },
-          { url: 'https://images.unsplash.com/photo-1513519245088-0e12902e5a38?auto=format&fit=crop&w=400&q=80', desc: '햇살 드는 창가에 놓인 화병과 꽃꽂이 사진 (직업 관련 프사)' }
+          { url: 'avatars/kr_job_florist_01.jpg', desc: '꽃 작업실에서 앞치마를 입고 꽃다발을 포장하는 모습 (직업 관련 프사)' },
+          { url: 'avatars/kr_hand_bouquet_04.jpg', desc: '작업실에서 직접 다듬고 묶은 파스텔톤 꽃다발 사진 (직업 관련 프사)' },
+          { url: 'avatars/avatar_02_kim_subin.jpg', desc: '꽃향기 가득한 플라워 작업실에서 찍은 사진 (직업 관련 프사)' }
         ],
         music: [
-          { url: 'https://images.unsplash.com/photo-1520523839897-bd0b52f945a0?auto=format&fit=crop&w=400&q=80', desc: '레슨실 그랜드피아노 건반과 악보 사진 (직업 관련 프사)' },
-          { url: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?auto=format&fit=crop&w=400&q=80', desc: '음악실 악기와 따뜻한 조명 풍경 사진 (직업 관련 프사)' }
+          { url: 'avatars/avatar_04_cho_yerin.jpg', desc: '레슨 일정을 마치고 아늑한 라운지에서 쉬는 모습 (직업 관련 프사)' },
+          { url: 'avatars/kr_profile_senior_02.jpg', desc: '연주 연습 후 차 한잔하며 여유를 즐기는 모습 (직업 관련 프사)' }
         ],
         art: [
-          { url: 'https://images.unsplash.com/photo-1513364776144-60967b0f800f?auto=format&fit=crop&w=400&q=80', desc: '화실 작업대에 놓인 붓과 물감 팔레트 사진 (직업 관련 프사)' },
-          { url: 'https://images.unsplash.com/photo-1452860606245-08befc0ff44b?auto=format&fit=crop&w=400&q=80', desc: '작업 중인 그림 도구와 드로잉북 사진 (직업 관련 프사)' }
+          { url: 'avatars/avatar_07_lee_seoyeon.jpg', desc: '갤러리 전시 공간에서 작품과 함께 찍은 사진 (직업 관련 프사)' },
+          { url: 'avatars/kr_candid_hanok_04.jpg', desc: '전통 문화 거리에서 영감을 얻으며 산책하는 모습 (직업 관련 프사)' }
         ],
         tea_craft: [
-          { url: 'https://images.unsplash.com/photo-1565193566173-7a0ee3dbe261?auto=format&fit=crop&w=400&q=80', desc: '공방에서 직접 빚은 도자기와 다기 세트 사진 (직업 관련 프사)' },
-          { url: 'https://images.unsplash.com/photo-1576092768241-dec231879fc3?auto=format&fit=crop&w=400&q=80', desc: '전통 다관에 따뜻하게 우려낸 찻자리 사진 (직업 관련 프사)' }
+          { url: 'avatars/kr_hand_coffee_01.jpg', desc: '수제 도자기 잔에 따뜻하게 담아낸 차 한 잔 사진 (직업 관련 프사)' },
+          { url: 'avatars/kr_profile_senior_02.jpg', desc: '햇살 드는 다실에서 따뜻한 차를 즐기는 모습 (직업 관련 프사)' }
         ],
         wellness: [
-          { url: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=400&q=80', desc: '채광 좋은 요가·필라테스 수련 공간 사진 (직업 관련 프사)' }
+          { url: 'avatars/avatar_05_yoon_jieun.jpg', desc: '채광 좋은 필라테스 센터 기구 앞에서 밝게 웃는 모습 (직업 관련 프사)' },
+          { url: 'avatars/kr_hiking_peak_01.jpg', desc: '주말 산행으로 건강하게 체력을 관리하는 모습 (직업 관련 프사)' }
         ],
         book_study: [
-          { url: 'https://images.unsplash.com/photo-1524995997946-a1c2e315a42f?auto=format&fit=crop&w=400&q=80', desc: '조용한 서재 책장과 펼쳐진 책 사진 (직업 관련 프사)' }
+          { url: 'avatars/avatar_10_han_minseo.jpg', desc: '책장이 가득한 서재형 북카페에서 노트와 함께 찍은 사진 (직업 관련 프사)' }
         ],
         interior_fashion: [
-          { url: 'https://images.unsplash.com/photo-1586023492125-27b2c045efd7?auto=format&fit=crop&w=400&q=80', desc: '직접 꾸민 감각적인 인테리어 공간 사진 (직업 관련 프사)' },
-          { url: 'https://images.unsplash.com/photo-1515562141207-7a88fb7ce338?auto=format&fit=crop&w=400&q=80', desc: '공방에서 세공한 주얼리와 소품 사진 (직업 관련 프사)' },
-          { url: 'https://images.unsplash.com/photo-1584992236310-6edddc08acff?auto=format&fit=crop&w=400&q=80', desc: '포근한 뜨개실과 자수 공방 작업대 사진 (직업 관련 프사)' }
+          { url: 'avatars/kr_selfie_mirror_01.jpg', desc: '깔끔하게 스타일링한 코디를 거울 앞에서 찍은 사진 (직업 관련 프사)' },
+          { url: 'avatars/avatar_07_lee_seoyeon.jpg', desc: '감각적인 갤러리 인테리어 공간에서 찍은 사진 (직업 관련 프사)' }
         ]
       }
     };
@@ -1461,7 +1438,14 @@
           if (data.savedRooms && typeof data.savedRooms === 'object') {
             Object.values(data.savedRooms).forEach(r => {
               if (r && Array.isArray(r.messages)) {
-                r.messages = r.messages.filter(m => !String(m.id || '').startsWith('m_pro_'));
+                r.messages = r.messages
+                  .filter(m => !String(m.id || '').startsWith('m_pro_'))
+                  .map(m => {
+                    if (m && m.photoUrl && (String(m.photoUrl).includes('unsplash') || String(m.photoUrl).startsWith('data:'))) {
+                      return { ...m, photoUrl: 'avatars/kr_selfie_cafe_03.jpg' };
+                    }
+                    return m;
+                  });
               }
               if (r) r.unreadCount = 0;
             });
