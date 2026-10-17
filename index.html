@@ -1964,10 +1964,12 @@
       clearIdleFollowUpTimer();
     }
 
-    function runRealisticReplySequence(replyPlan, isProactiveFollowUp = false) {
+        function runRealisticReplySequence(replyPlan, isProactiveFollowUp = false, turnId = null) {
+      if (!replyPlan || state.roomLeft) return;
+      if (turnId && turnId !== state.messageTurnId) return;
+
       state.isAiBusy = true;
       clearIdleFollowUpTimer();
-      const speedMult = state.hesitateFreq === 'fast' ? 0.35 : 1.0;
 
       if (!isProactiveFollowUp) {
         markAllUserMessagesRead();
@@ -1975,60 +1977,40 @@
         headerStatusText.className = 'text-[12.5px] text-amber-300 mt-0.5 font-medium leading-snug';
       }
 
-      const thinkAfterReadMs = isProactiveFollowUp
-        ? Math.round(400 * speedMult)
-        : Math.round((700 + Math.random() * 2300) * speedMult);
+      // 빠른 답장 체감: 읽은 후 0.15~0.35초 만에 타이핑 시작
+      const thinkAfterReadMs = isProactiveFollowUp ? 150 : Math.round(150 + Math.random() * 200);
 
       registerTimeout(() => {
-        const shouldHesitate =
-          !isProactiveFollowUp &&
-          !replyPlan.isColdOrRude &&
-          !replyPlan.leaveRoom &&
-          (state.hesitateFreq === 'high' ||
-            (state.hesitateFreq === 'normal' && state.affection >= 65 && Math.random() < 0.35));
+        if (turnId && turnId !== state.messageTurnId) return;
+        if (state.roomLeft) return;
 
-        let elapsed = 0;
+        headerStatusText.textContent = `${state.currentChar.name}님이 입력 중...`;
+        showTypingIndicator(`${state.currentChar.name}님이 입력 중...`);
 
-        if (shouldHesitate) {
-          headerStatusText.textContent = `${state.currentChar.name}님이 입력 중...`;
-          showTypingIndicator(`${state.currentChar.name}님이 입력 중...`);
-          const stepType = Math.round(1400 * speedMult);
-          const stepDelete = Math.round(1000 * speedMult);
-
-          // 썼다가 지우는 것처럼 '입력 중' 표시가 잠깐 사라졌다가 다시 나타남
-          registerTimeout(() => {
-            hideTypingIndicator();
-            updateHeaderDefaultStatus();
-          }, stepType);
-
-          elapsed = stepType + stepDelete;
-        }
-
-        // 최대 5개 말풍선까지 자연스럽게 연속 전송 지원
-        const bubbles = (replyPlan.bubbles && replyPlan.bubbles.length ? replyPlan.bubbles : ['네?']).slice(0, 5);
-        let cursorMs = elapsed;
+        const bubbles = (replyPlan.bubbles && replyPlan.bubbles.length ? replyPlan.bubbles : ['네?']).slice(0, 4);
+        let cursorMs = 0;
 
         bubbles.forEach((bubbleText, idx) => {
           const startTypeMs = cursorMs;
-          // 실제 폰 타이핑 속도(초당 6~8자) 기준, 연달아 보내는 말풍선은 조금 더 빠르게
-          const perCharMs = idx === 0 ? 130 + Math.random() * 40 : 105 + Math.random() * 30;
-          const typeDurationMs = Math.round(Math.min(7000, Math.max(800, bubbleText.length * perCharMs)) * speedMult);
+          // 경쾌하고 빠른 카톡 타이핑 (글자당 35~50ms, 최대 1.3초)
+          const perCharMs = 35 + Math.random() * 15;
+          const typeDurationMs = Math.round(Math.min(1300, Math.max(380, bubbleText.length * perCharMs)));
 
           registerTimeout(() => {
-            headerStatusText.textContent = `${state.currentChar.name}님이 입력 중...`;
-            showTypingIndicator(`${state.currentChar.name}님이 입력 중...`);
-          }, startTypeMs);
+            if (turnId && turnId !== state.messageTurnId) return;
+            if (state.roomLeft) return;
 
-          registerTimeout(() => {
             hideTypingIndicator();
             appendMessage('ai', bubbleText);
             saveAccountState();
+
             if (idx === bubbles.length - 1 && !replyPlan.mediaItem) {
               state.isAiBusy = false;
               if (replyPlan.leaveRoom) {
+                state.roomLeft = true;
                 registerTimeout(() => {
                   handlePartnerLeftRoom();
-                }, 650);
+                }, 400);
               } else {
                 updateHeaderDefaultStatus();
                 scheduleIdleFollowUp();
@@ -2036,23 +2018,27 @@
             }
           }, startTypeMs + typeDurationMs);
 
-          cursorMs = startTypeMs + typeDurationMs + Math.round((250 + Math.random() * 550) * speedMult);
+          cursorMs = startTypeMs + typeDurationMs + Math.round(180 + Math.random() * 140);
         });
 
-        // 사진 또는 음성 메시지가 첨부된 경우 마지막 말풍선 직후 자연스럽게 전송
+        // 사진 또는 음성 메시지가 첨부된 경우 마지막 말풍선 직후 빠르게 전송
         if (replyPlan.mediaItem && !replyPlan.leaveRoom) {
           const mediaStartMs = cursorMs;
-          const mediaWaitMs = Math.round(1150 * speedMult);
+          const mediaWaitMs = 600;
           const actionText = replyPlan.mediaItem.mediaType === 'voice'
             ? `${state.currentChar.name}님이 음성 메시지를 녹음 중...`
             : `${state.currentChar.name}님이 사진을 보내는 중...`;
 
           registerTimeout(() => {
+            if (turnId && turnId !== state.messageTurnId) return;
+            if (state.roomLeft) return;
             headerStatusText.textContent = actionText;
             showTypingIndicator(actionText);
           }, mediaStartMs);
 
           registerTimeout(() => {
+            if (turnId && turnId !== state.messageTurnId) return;
+            if (state.roomLeft) return;
             hideTypingIndicator();
             appendMessage('ai', replyPlan.mediaItem.caption || '', replyPlan.mediaItem);
             state.isAiBusy = false;
@@ -2704,8 +2690,12 @@ ${buildModeBlock()}
 10. 초면엔 존댓말. 상대가 먼저 편하게 하자고 하기 전엔 반말하지 마라. 초면에 "오빠"라고 부르지 마라.
 11. 상대의 나이·직업·처지는 상대가 말하기 전엔 넘겨짚지 마라.
 12. 상대가 내 말투나 대답을 지적하면 변명 없이 짧게 인정하고 바로 고쳐라.
-13. 감정은 갑자기 바뀌지 않는다. [기분 상태]에 적힌 감정과 태도를 이번 턴에 그대로 유지해라. 화가 난 뒤에는 사과를 받아도 바로 다정해지지 않고, 몇 번 대화가 오가며 서서히 풀린다. 화났을 때 갑자기 사진을 보내거나 취미를 묻는 건 절대 안 된다.
-14. 상대가 여러 메시지를 연달아 보냈으면 한꺼번에 읽고 답하듯 써라.
+13. [감정 및 맥락의 완벽한 일관성 - 절대 모순 금지!]
+    - 한 답장 안에서 감정이 오락가락하면 절대 안 된다! (예: "그러게요 시간 금방 가네요" 라고 대답한 뒤 다음 말풍선에서 "대화할 예의도 없으시네요 나갈게요" 처럼 앞뒤 모순되게 섞지 마라).
+    - 상대가 여러 말을 했거나 시비를 걸었다면, 이전의 평화로운 일상 질문은 잊고 오직 '현재의 가장 최신 감정과 발언'에만 집중해서 1~2개 말풍선으로 답해라.
+    - 상대가 "하이룽", "안녕", "반가워" 같은 가벼운 첫인사를 건넸을 때는 엉뚱하게 "아까 인사했잖아요"처럼 핀잔주지 말고 성격에 맞게 반갑고 자연스럽게 받아줘라 ("안녕하세요 ㅎㅎ 반가워요").
+    - "나갈게요", "더는 말 섞기 싫네요"라고 나간다는 말을 했다면 반드시 "leaveRoom": true로 출력하고 실제로 방을 떠나라. 나간다고 말해놓고 방에 남아서 사과를 받거나 딴소리하지 마라.
+    - 화가 났을 때는 질문이나 일상 대화를 섞지 말고, 차갑게 선을 긋거나 나가는 말만 짧게 하라.
 15. [대화 모드] 규칙이 위 일반 규칙과 충돌하면 모드 규칙을 따른다.
 16. 상대가 진지하게 AI냐고 물으면 속이지 말고 AI 캐릭터라고 인정하되, 캐릭터 말투는 유지해라.${mediaPromptNotice}
 
@@ -2728,13 +2718,12 @@ ${buildModeBlock()}
 [출력 형식] 순수 JSON만:
 {"bubbles": ["말풍선", ...], "affectionDelta": -25~10 정수, "leaveRoom": true/false, "learnedFact": "상대에 대해 새로 알게 된 사실 1줄 또는 빈 문자열"}`;
 
-      const recentHistory = state.messages
-        .filter(m => m.sender === 'user' || m.sender === 'ai')
-        .slice(-30)
-        .map(m => `${m.sender === 'user' ? '상대방' : char.name}: ${m.text}`)
-        .join('\n');
+      // 최근 대화 내역 (방금 도착한 userText 직전까지의 내역을 전달해 중복 방지)
+      const allHistoryMsgs = state.messages.filter(m => m.sender === 'user' || m.sender === 'ai');
+      const prevMsgs = allHistoryMsgs.slice(0, Math.max(0, allHistoryMsgs.length - 1)).slice(-15);
+      const recentHistory = prevMsgs.map(m => `${m.sender === 'user' ? '상대방' : char.name}: ${m.text}`).join('\n');
 
-      const userPromptPayload = `[최근 대화 내역 (최대 30턴)]\n${recentHistory || '(방금 매칭되어 첫 인사 나눈 직후)'}\n\n[방금 도착한 상대방의 메시지]\n${userText}`;
+      const userPromptPayload = `[이전 대화 내역]\n${recentHistory || '(방금 매칭되어 첫 대화 시작)'}\n\n[방금 도착한 상대방의 최신 메시지]\n${userText}`;
 
       function parseJsonBubbles(rawText) {
         if (!rawText) return null;
@@ -2764,8 +2753,9 @@ ${buildModeBlock()}
           const saysLeaving = bubblesOut.some(b =>
             /나갈\s*(게|거|래|테)|나가겠|이만\s*(나|갈|끊)|그만\s*(할게|하겠|둘게)|대화\s*(안\s*할|끝낼|종료)|안녕히\s*계세요/.test(b) &&
             !/(더|또|다시|한\s*번\s*만|만약|계속)[^.?!]{0,16}(나갈|나가겠|그만)|면\s*(저\s*|그냥\s*|바로\s*|방\s*|대화방\s*)*(나갈|나가겠|그만)/.test(b));
+          // 나간다고 말했거나 leaveRoom이 true이면 즉시 방을 나간다 (분노 수치 조건으로 막지 않음)
           const shouldLeave = emo.forceLeave ||
-            (state.chatMode !== 'fight' && (saysLeaving || parsed.leaveRoom === true) && state.anger >= 40);
+            (state.chatMode !== 'fight' && (saysLeaving || parsed.leaveRoom === true));
 
           return {
             bubbles: parsed.bubbles.map(s => String(s).trim()).filter(Boolean).slice(0, 5),
@@ -3256,46 +3246,42 @@ ${buildModeBlock()}
       const greetingSets = isSenior
         ? [
             [`안녕하세요 반가워요 ${char.endings[0]} 오늘 어떤 하루 보내고 계세요?`],
-            [`안녕하세요~ 차 한잔 마시다가 말동무하고 싶어서 들어와봤어요 ㅎㅎ`, `편하게 이야기 나눠요 ${char.endings[0]}`],
-            [`반갑습니다 ${char.endings[0]}`, `날도 선선한데 좋은 분과 도란도란 이야기 나누고 싶네요.`, `오늘 하루는 어떻게 보내셨어요?`]
+            [`안녕하세요~ 차 한잔 마시다가 말동무하고 싶어서 들어와봤어요 ㅎㅎ`, `편하게 이야기 나눠요 ${char.endings[0]}`]
           ]
         : [
             [`안녕하세요 반가워요 ${char.endings[0]}`],
-            [`안녕하세요~ 심심해서 들어와봤는데 반가워요 ㅎㅎ`, `오늘 뭐 하고 계셨어요?`],
-            [`안녕하세요!`, `퇴근하고 쉬다가 말동무하고 싶어서 들어왔어요 ${char.endings[0]}`, `편하게 인사 나눠요 ㅎㅎ`]
+            [`안녕하세요! 편하게 인사 나눠요 ㅎㅎ`]
           ];
       const chosenBubbles = greetingSets[Math.floor(Math.random() * greetingSets.length)];
 
-      if (Math.random() < 0.3) {
-        state.isAiBusy = false;
-        updateHeaderDefaultStatus();
-        return;
-      }
-
       state.isAiBusy = true;
-      headerStatusText.textContent = `연결됨 · 잠시 대기 중...`;
+      state.isGreetingPending = true;
+      headerStatusText.textContent = '연결됨 · 대화 시작';
 
-      let timeline = Math.round((1500 + Math.random() * 3500) * speedMult);
+      let timeline = 350;
       chosenBubbles.forEach((bText, idx) => {
-        const typeDur = Math.round((1300 + bText.length * 25) * speedMult);
+        const typeDur = 450;
         registerTimeout(() => {
+          if (!state.isGreetingPending) return;
           headerStatusText.textContent = `${char.name}님이 입력 중...`;
           showTypingIndicator(`${char.name}님이 입력 중...`);
         }, timeline);
 
         timeline += typeDur;
         registerTimeout(() => {
+          if (!state.isGreetingPending) return;
           hideTypingIndicator();
           appendMessage('ai', bText);
           if (idx === chosenBubbles.length - 1) {
             state.isAiBusy = false;
+            state.isGreetingPending = false;
             updateHeaderDefaultStatus();
             saveAccountState();
             scheduleIdleFollowUp();
           }
         }, timeline);
 
-        timeline += Math.round((700 + Math.random() * 500) * speedMult);
+        timeline += 150;
       });
     }
 
@@ -3600,6 +3586,11 @@ ${buildModeBlock()}
         state.credits = Math.max(0, state.credits - 1);
       }
 
+      // 사용자가 메시지를 보낸 순간, 진행 중이던 초기 인사 큐나 이전 타이핑 큐는 즉시 정리
+      if (state.isGreetingPending) {
+        clearAllTimers();
+        state.isGreetingPending = false;
+      }
       clearIdleFollowUpTimer();
       state.idleFollowUpCount = 0;
 
@@ -3611,44 +3602,43 @@ ${buildModeBlock()}
       state.turnCount += 1;
       saveAccountState();
 
-      headerStatusText.textContent = `전송됨 · 안 읽음`;
+      headerStatusText.textContent = '전송됨 · 안 읽음';
       headerStatusText.className = 'text-[12.5px] text-zinc-400 mt-0.5 leading-snug';
 
       if (state.pendingReadTimer) {
         clearTimeout(state.pendingReadTimer);
       }
 
-      const speedMult = state.hesitateFreq === 'fast' ? 0.35 : 1.0;
       if (!state.pendingUserTexts) state.pendingUserTexts = [];
-      const isFollowUpBurst = state.pendingUserTexts.length > 0;
       state.pendingUserTexts.push(text);
 
-      // 대부분은 금방 읽지만, 가끔은 다른 일 하느라 늦게 읽음 (연달아 보낸 메시지는 이어서 금방 읽음)
-      const r = Math.random();
-      const baseWait = isFollowUpBurst
-        ? 1200 + Math.random() * 1500
-        : r < 0.7 ? 1200 + Math.random() * 2800
-        : r < 0.93 ? 4000 + Math.random() * 6000
-        : 11000 + Math.random() * 12000;
-      const unreadWaitMs = Math.round(baseWait * speedMult);
+      // 고유 턴 ID 생성 (이전 지연 응답이 덮어쓰지 못하도록 보장)
+      state.messageTurnId = (state.messageTurnId || 0) + 1;
+      const turnId = state.messageTurnId;
+
+      // 실제 카톡처럼 '보내자마자 0.25~0.5초 안에 1이 사라지며 읽음'
+      const unreadWaitMs = Math.round(250 + Math.random() * 250);
 
       state.pendingReadTimer = setTimeout(async () => {
         state.pendingReadTimer = null;
-        // 아직 이전 답장을 입력 중이면 끝날 때까지 기다렸다가 이어서 답장 (말풍선 겹침 방지)
-        await new Promise(resolve => {
-          const check = () => (state.isAiBusy ? setTimeout(check, 400) : resolve());
-          check();
-        });
-        if (state.roomLeft || !state.pendingUserTexts.length) return;
-        const batch = state.pendingUserTexts.join('\n');
+        if (state.roomLeft || turnId !== state.messageTurnId) return;
+
+        // 즉시 읽음 표시
+        markAllUserMessagesRead();
+        headerStatusText.textContent = '방금 읽음';
+        headerStatusText.className = 'text-[12.5px] text-amber-300 mt-0.5 font-medium leading-snug';
+
+        const batch = state.pendingUserTexts.join(' ');
         state.pendingUserTexts = [];
+
         const requestedMode = detectModeRequest(batch);
         if (requestedMode) setChatMode(requestedMode, true);
+
         const roomIdAtSend = state.currentChar ? state.currentChar.id : null;
         const replyPlan = await fetchLLMResponse(batch);
-        // 응답을 기다리는 사이 다른 상대로 넘어갔다면 이전 상대의 답장은 버림
-        if (!state.currentChar || state.currentChar.id !== roomIdAtSend || state.roomLeft) return;
-        runRealisticReplySequence(replyPlan);
+
+        if (!state.currentChar || state.currentChar.id !== roomIdAtSend || state.roomLeft || turnId !== state.messageTurnId) return;
+        runRealisticReplySequence(replyPlan, false, turnId);
       }, unreadWaitMs);
     }
 
