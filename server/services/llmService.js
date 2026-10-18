@@ -119,18 +119,6 @@ module.exports = {
       reply = getFallbackReply(character, lastUserMsg);
     }
 
-    const latestUserText = chatHistory.filter(m=>m.role==='user').at(-1)?.content || '';
-    const wantsDetail = /자세[히하]|상세[히하]|길게|긴 이야기|차근차근|단계별|구체적으로 설명/.test(latestUserText);
-    if (isAiGenerated && reply.length > 120 && !wantsDetail && !signal.aborted) {
-      try {
-        const rewritePrompt=systemPrompt+'\n[짧게 다시 쓰기]\n방금 답변이 일반 채팅으로는 너무 깁니다. 같은 대화 맥락에 맞춰 한 가지 내용만 담은 짧은 1~2문장, 60자 안팎으로 다시 답하세요. 문장은 완성하고 소설 같은 묘사와 과장된 감탄은 빼세요.';
-        const concise=config.geminiApiKey
-          ? await callGemini(chatHistory,rewritePrompt,config.geminiApiKey,signal)
-          : await callOpenAI(chatHistory,rewritePrompt,config.openaiApiKey,signal);
-        if (concise && concise.length < reply.length) reply=concise;
-      } catch { /* Keep a complete original reply if rewriting is unavailable. */ }
-    }
-
     // Check for room left exit tag
     const roomLeft = reply.includes('[대화종료]');
     // [핵심]: 부자연스러운 이력서형 괄호 표기(예: '(식품영양학과)', '(디자인과)' 등) 원천 제거

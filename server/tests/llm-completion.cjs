@@ -7,7 +7,8 @@ if (process.env.LLM_COMPLETION_MOCK === '1') {
     const payload = JSON.parse(options.body);
     if(payload.contents.at(-1).parts[0].text.includes('verbose-test')){
       calls++;
-      const concise=payload.systemInstruction.parts[0].text.includes('[짧게 다시 쓰기]');
+      assert.ok(payload.systemInstruction.parts[0].text.includes('[최우선: 실제 메신저 답장 방식]'));
+      const concise=!payload.contents.at(-1).parts[0].text.includes('자세하게');
       return new Response(JSON.stringify({candidates:[{finishReason:'STOP',content:{parts:[{text:concise?'늦게 끝났네요. 밥은 먹었어요?':'오늘 정말 고생 많으셨어요. '.repeat(20)}]}}]}));
     }
     calls++;
@@ -60,10 +61,10 @@ if (process.env.LLM_COMPLETION_MOCK === '1') {
     const concise=await request('/chat/send',guest.token,{characterId,message:'verbose-test 퇴근했어요',messageId:'concise'});
     assert.equal(concise.partnerReply,'늦게 끝났네요. 밥은 먹었어요?');
     assert.equal(concise.heartsRemaining,35.2,'Shortening must not charge another turn');
-    assert.equal((logs.match(/Gemini result:/g)||[]).length,7);
+    assert.equal((logs.match(/Gemini result:/g)||[]).length,6,'Brief reply must come from a single generation');
     const detailed=await request('/chat/send',guest.token,{characterId,message:'verbose-test 자세하게 설명해주세요',messageId:'detailed'});
     assert.ok(detailed.partnerReply.length>120,'Explicit request for detail must remain available');
-    assert.equal((logs.match(/Gemini result:/g)||[]).length,8);
+    assert.equal((logs.match(/Gemini result:/g)||[]).length,7,'Detail requests must not trigger a shortening generation');
     assert.ok(!logs.includes('synthetic-test-key'));
     console.log('PASS: truncated Gemini response regenerated, complete reply persisted, single heart charge and replay, bounded retries, blocked content rejected and thoughts excluded');
   })().catch(e => { console.error(e); process.exitCode = 1; }).finally(async () => {
