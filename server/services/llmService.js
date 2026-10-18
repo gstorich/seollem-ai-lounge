@@ -109,7 +109,12 @@ module.exports = {
 
     // Check for room left exit tag
     const roomLeft = reply.includes('[대화종료]');
-    const cleanedText = reply.replace(/\[대화종료\]/g, '').trim();
+    // [핵심]: 부자연스러운 이력서형 괄호 표기(예: '(식품영양학과)', '(디자인과)' 등) 원천 제거
+    const cleanedText = reply
+      .replace(/\[대화종료\]/g, '')
+      .replace(/\s*\([^)]*(학과|전공|직업|일|업무|회사)[^)]*\)/g, '')
+      .replace(/\s*\([a-zA-Z가-힣0-9\s]{2,15}\)/g, '') // 일반적인 괄호 설명 제거
+      .trim();
 
     return {
       text: cleanedText,

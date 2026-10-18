@@ -4088,7 +4088,7 @@
       const areaShort = char.area ? char.area.split(' ')[0] : '';
       const name = char.name;
       const age = char.age;
-      const job = char.job;
+      const job = (char.job || '').replace(/\s*\([^)]*\)/g, '').trim() || '직장인';
       const trait = char.traitKey || 'warm';
 
       // 1. 온라인 라이브 LLM 생성 (API 키가 등록되어 있을 때: 인물 설정과 컨셉 태그를 즉시 반영한 100% 실시간 맞춤 훅 작성)
