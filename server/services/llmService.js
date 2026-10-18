@@ -17,7 +17,7 @@ async function callGemini(messages, systemInstruction, apiKey) {
     generationConfig: {
       temperature: 0.9,
       // Leave headroom for internal reasoning and a complete visible reply.
-      maxOutputTokens: 2048,
+      maxOutputTokens: 8192,
       thinkingConfig: { thinkingLevel: 'LOW' }
     },
     safetySettings: [
@@ -30,7 +30,7 @@ async function callGemini(messages, systemInstruction, apiKey) {
 
   // Retry inside the same charged chat request; never expose a truncated candidate.
   const signal = AbortSignal.timeout(45000);
-  for (const maxOutputTokens of [2048, 4096]) {
+  for (const maxOutputTokens of [8192, 16384]) {
     payload.generationConfig.maxOutputTokens = maxOutputTokens;
     const res = await fetch(url, {
       method: 'POST',
