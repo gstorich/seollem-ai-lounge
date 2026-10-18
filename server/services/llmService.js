@@ -1,7 +1,7 @@
 const config = require('../config');
 const characterService = require('./characterService');
 
-async function callGemini(messages, systemInstruction, apiKey) {
+async function callGemini(messages, systemInstruction, apiKey, signal = AbortSignal.timeout(45000)) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.geminiModel)}:generateContent`;
 
   const contents = messages.map(m => ({
@@ -29,7 +29,6 @@ async function callGemini(messages, systemInstruction, apiKey) {
   };
 
   // Retry inside the same charged chat request; never expose a truncated candidate.
-  const signal = AbortSignal.timeout(45000);
   for (const maxOutputTokens of [16384, 16384]) {
     payload.generationConfig.maxOutputTokens = maxOutputTokens;
     const res = await fetch(url, {
@@ -53,7 +52,7 @@ async function callGemini(messages, systemInstruction, apiKey) {
   throw new Error('Gemini output limit reached after retry');
 }
 
-async function callOpenAI(messages, systemInstruction, apiKey) {
+async function callOpenAI(messages, systemInstruction, apiKey, signal = AbortSignal.timeout(45000)) {
   const url = 'https://api.openai.com/v1/chat/completions';
 
   const fullMessages = [
@@ -74,6 +73,7 @@ async function callOpenAI(messages, systemInstruction, apiKey) {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`
     },
+    signal,
     body: JSON.stringify(payload)
   });
 
@@ -87,14 +87,10 @@ async function callOpenAI(messages, systemInstruction, apiKey) {
 }
 
 function getFallbackReply(character, lastUserText = '') {
-  const endings = ['ㅎㅎ', '~', '😊', '☕'];
-  const ending = endings[Math.floor(Math.random() * endings.length)];
   const fallbacks = [
-    `네 말씀 잘 들었어요! 저도 공감되는 부분이 참 많네요 ${ending}`,
-    `오늘 하루 어떠셨어요? 피곤하진 않으셨는지 궁금하네요 ${ending}`,
-    `이야기 들으니 참 다정하신 분 같아요. 편하게 더 들려주세요 ㅎㅎ`,
-    `소소한 일상 이야기 나누니까 마음이 참 따뜻해지네요 ${ending}`,
-    `맞아요, 저도 비슷한 생각 자주 하거든요. 대화가 잘 통하는 것 같아요!`
+    '아 그랬어요? 조금 더 얘기해줘요',
+    '오늘은 좀 어떠셨어요?',
+    '천천히 얘기해요. 듣고 있어요'
   ];
   return fallbacks[Math.floor(Math.random() * fallbacks.length)];
 }
@@ -104,13 +100,14 @@ module.exports = {
     const systemPrompt = characterService.buildSystemPrompt(character, userContext);
     let reply = '';
     let isAiGenerated = false;
+    const signal = AbortSignal.timeout(45000);
 
     try {
       if (config.geminiApiKey) {
-        reply = await callGemini(chatHistory, systemPrompt, config.geminiApiKey);
+        reply = await callGemini(chatHistory, systemPrompt, config.geminiApiKey, signal);
         isAiGenerated = Boolean(reply);
       } else if (config.openaiApiKey) {
-        reply = await callOpenAI(chatHistory, systemPrompt, config.openaiApiKey);
+        reply = await callOpenAI(chatHistory, systemPrompt, config.openaiApiKey, signal);
         isAiGenerated = true;
       }
     } catch (err) {
@@ -120,6 +117,18 @@ module.exports = {
     if (!reply) {
       const lastUserMsg = chatHistory[chatHistory.length - 1]?.content || '';
       reply = getFallbackReply(character, lastUserMsg);
+    }
+
+    const latestUserText = chatHistory.filter(m=>m.role==='user').at(-1)?.content || '';
+    const wantsDetail = /자세[히하]|상세[히하]|길게|긴 이야기|차근차근|단계별|구체적으로 설명/.test(latestUserText);
+    if (isAiGenerated && reply.length > 120 && !wantsDetail && !signal.aborted) {
+      try {
+        const rewritePrompt=systemPrompt+'\n[짧게 다시 쓰기]\n방금 답변이 일반 채팅으로는 너무 깁니다. 같은 대화 맥락에 맞춰 한 가지 내용만 담은 짧은 1~2문장, 60자 안팎으로 다시 답하세요. 문장은 완성하고 소설 같은 묘사와 과장된 감탄은 빼세요.';
+        const concise=config.geminiApiKey
+          ? await callGemini(chatHistory,rewritePrompt,config.geminiApiKey,signal)
+          : await callOpenAI(chatHistory,rewritePrompt,config.openaiApiKey,signal);
+        if (concise && concise.length < reply.length) reply=concise;
+      } catch { /* Keep a complete original reply if rewriting is unavailable. */ }
     }
 
     // Check for room left exit tag

@@ -33,6 +33,7 @@ async function post(route, body, token) {
     assert(ready, logs);
     assert.match(await (await fetch(base + '/')).text(), /apiClient.js/);
     assert.match(await (await fetch(base + '/apiClient.js')).text(), /checkBackendHealth/);
+    assert.match(await (await fetch(base + '/chatTiming.js')).text(), /AzitChatTiming/);
     assert.equal((await fetch(base + '/avatars/avatar_05_yoon_jieun.jpg')).status, 200);
     for (const route of ['/server/config/index.js', '/server/data/seollem.json', '/.git/config', '/.env']) {
       assert.equal((await fetch(base + route)).status, 404, route);

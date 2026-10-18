@@ -872,6 +872,7 @@
   </div>
 
   <script src="apiClient.js"></script>
+  <script src="chatTiming.js"></script>
   <script>
     // =========================================================================
     // 1. 1,250+ KOREAN FEMALE PERSONAS ENGINE (20대 ~ 60대, 5가지 성격, 7대 지역권)
@@ -3099,7 +3100,7 @@
           ? replyPlan.bubbles
           : fallbackBubbles;
 
-        // 메세지 하나당 최대 5초를 넘지 않도록 최대 2개 말풍선으로 엄격 제한
+        // 짧은 답장을 우선하되 대화 내용은 말풍선 단위로 표시
         const bubbles = rawBubbles.slice(0, 2);
 
         for (let idx = 0; idx < bubbles.length; idx++) {
@@ -3108,18 +3109,8 @@
 
           const bubbleText = bubbles[idx];
 
-          // 문장 길이에 비례한 실제 스마트폰 타자 시간 (글자당 35~45ms, 최소 1,200ms ~ 최대 3,500ms)
-          const perCharMs = 35 + Math.random() * 10;
-          const targetTypeDurationMs = Math.min(3500, Math.max(1200, Math.round(500 + bubbleText.length * perCharMs)));
-
-          // 첫 번째 말풍선 타이핑 대기: 네트워크 지연과 무관하게 최소 1,200ms 이상 타이핑 보장
-          let remainingTypeMs = targetTypeDurationMs;
-          if (idx === 0 && typingStartedAt) {
-            const elapsed = Date.now() - typingStartedAt;
-            remainingTypeMs = Math.min(3500, Math.max(1200, targetTypeDurationMs - elapsed));
-          } else {
-            remainingTypeMs = targetTypeDurationMs;
-          }
+          const elapsed = idx === 0 && typingStartedAt ? Date.now() - typingStartedAt : 0;
+          const remainingTypeMs = AzitChatTiming.remainingDelay(bubbleText, elapsed);
 
           // 각 말풍선 타이핑 시작
           headerStatusText.textContent = `${char.name}님이 입력 중...`;
@@ -3151,10 +3142,10 @@
             return;
           }
 
-          // 다음 말풍선 전송 전 숨고르기 (120~200ms)
+          // 다음 말풍선 전송 전 짧은 숨고르기
           if (idx < bubbles.length - 1) {
             await new Promise(resolve => {
-              registerTimeout(resolve, Math.round(120 + Math.random() * 80));
+              registerTimeout(resolve, Math.round(600 + Math.random() * 500));
             });
           }
         }
@@ -4531,13 +4522,17 @@
       const job = (char.job || '').replace(/\s*\([^)]*\)/g, '').trim() || '직장인';
       const trait = char.traitKey || 'warm';
 
-      if (char.gender === 'male') {
-        const greetings = [
-          [`반가워요. ${name}입니다.`, '잠깐 쉬면서 편하게 이야기 나누고 싶어서 들어왔어요. 오늘 하루는 어떠셨어요?'],
-          ['바쁜 하루 끝에 이렇게 만나니 반갑네요.', '편하게 이야기해요. 요즘 즐겁게 하는 일이 있으세요?'],
-          [`안녕하세요, ${name}이에요.`, '오늘 있었던 소소한 일부터 나눠볼까요? 저는 편하게 웃으면서 이야기하는 게 좋더라고요.']
-        ];
-        const greeting = greetings.find(items => !state.recentGreetings.includes(items.join('|||'))) || greetings[0];
+      if (window.ApiClient?.isHosted() || char.gender === 'male') {
+        const pools = {
+          warm: ['반가워요 ㅎㅎ 오늘 좀 어떠셨어요?', '안녕하세요 :) 잠깐 얘기 나눌까요?'],
+          calm: ['안녕하세요. 오늘 하루 어떠셨어요?', '반갑네요. 지금 쉬고 계세요?'],
+          lively: ['안녕하세요 ㅎㅎ 뭐 하고 계세요?', '반가워요! 오늘은 좀 여유 있으세요?'],
+          chic: ['안녕하세요. 잠깐 쉬는 중이에요', '반가워요. 오늘 어땠어요?'],
+          shy: ['안녕하세요.. 반가워요 ㅎㅎ', '반가워요. 편하게 얘기해요']
+        };
+        const options = pools[trait] || pools.warm;
+        const line = options.find(text => !state.recentGreetings.includes(text)) || options[Math.floor(Math.random()*options.length)];
+        const greeting = [line];
         recordRecentGreeting(greeting);
         return greeting;
       }
@@ -4851,11 +4846,10 @@
       const chosenBubbles = await generateUniqueFirstGreeting(char);
       if (!state.isGreetingPending || !state.currentChar || state.currentChar.id !== char.id) return;
 
-      const speedMult = state.hesitateFreq === 'fast' ? 0.35 : 1.0;
       let timeline = 300;
       chosenBubbles.forEach((bText, idx) => {
-        // 문장 길이에 비례한 실제 스마트폰 타이핑 시간 (글자당 약 100ms + 기본 준비시간 450ms)
-        const typeDur = Math.round((450 + Math.max(250, bText.length * 90)) * speedMult);
+        // 첫 인사도 일반 답장과 같은 길이별 타이핑 속도를 사용
+        const typeDur = AzitChatTiming.typingDuration(bText);
         registerTimeout(() => {
           if (!state.isGreetingPending || !state.currentChar || state.currentChar.id !== char.id) return;
           headerStatusText.textContent = `${char.name}님이 입력 중...`;
@@ -4876,7 +4870,7 @@
           }
         }, timeline);
 
-        timeline += Math.round(250 * speedMult); // 다음 인삿말 전송 전 숨고르기
+        timeline += Math.round(600 + Math.random() * 500); // 다음 인삿말 전송 전 숨고르기
       });
     }
 
@@ -5354,7 +5348,7 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
       state.messageTurnId = (state.messageTurnId || 0) + 1;
       const turnId = state.messageTurnId;
 
-      // 실제 사람이 알림을 인지하고 메신저 창을 열어 읽기까지의 자연스러운 시간 (최대 5초 엄수를 위해 450~850ms)
+      // 메시지를 확인하기 전 짧은 대기
       const unreadWaitMs = Math.round(450 + Math.min(250, text.length * 8) + Math.random() * 150);
 
       // 백그라운드 사전 요청으로 대기시간 최소화 (읽자마자 0초 딜레이로 즉시 타이핑 돌입하도록 지원)
@@ -5396,7 +5390,7 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
           return;
         }
 
-        // [핵심 3]: 읽자마자 시작된 타이핑 상태에서, 생성된 문장의 길이에 따라 정교한 타자 시간 유지 후 전송 (최대 5초 엄격 준수)
+        // 생성된 문장 길이에 맞춰 입력 중 상태를 유지한 뒤 표시합니다.
         runRealisticReplySequence(replyPlan, false, turnId, typingStartedAt);
       }, unreadWaitMs);
     }
