@@ -1652,7 +1652,9 @@
               : '일상 속에서 대화가 통하는 좋은 말동무를 만나고 싶어서 접속.',
             crushTrigger: '매너 있고 자신을 존중하며 대화를 편안하게 이끌어주는 사람에게 호감을 느낌.',
             rudeReaction: traitDetails.rudeReaction,
-            earlyFlirtReaction: traitDetails.earlyFlirtReaction,
+            earlyFlirtReaction: conceptObj.key === 'sensual_flirt'
+              ? '"어머.. 훅 들어오시네? ㅎㅎ 쑥스럽긴 한데 솔직해서 솔직히 마음에 들어요. 오빠 취향은 어떤 스타일인데요?"'
+              : traitDetails.earlyFlirtReaction,
             rudeTiers: traitDetails.rudeTiers,
             timeSituations: {
               morning: {
@@ -1699,6 +1701,9 @@
         c.conceptTag = cObj.tag;
         c.conceptMission = cObj.mission;
         c.conceptGuidance = cObj.guidance;
+        if (c.conceptKey === 'sensual_flirt') {
+          c.earlyFlirtReaction = '"어머.. 훅 들어오시네? ㅎㅎ 쑥스럽긴 한데 솔직해서 솔직히 마음에 들어요. 오빠 취향은 어떤 스타일인데요?"';
+        }
       });
 
       return list;
@@ -2580,103 +2585,122 @@
     }
 
     async function runRealisticReplySequence(replyPlan, isProactiveFollowUp = false, turnId = null, typingStartedAt = null) {
-      if (!replyPlan || state.roomLeft) return;
-      if (turnId && turnId !== state.messageTurnId) return;
-
-      state.isAiBusy = true;
-      clearIdleFollowUpTimer();
-
       const char = state.currentChar;
-      if (!char) return;
-
-      if (!isProactiveFollowUp) {
-        markAllUserMessagesRead();
-      }
-
-      const bubbles = (replyPlan.bubbles && replyPlan.bubbles.length ? replyPlan.bubbles : ['네?']).slice(0, 4);
-
-      for (let idx = 0; idx < bubbles.length; idx++) {
-        if (turnId && turnId !== state.messageTurnId) return;
-        if (state.roomLeft) return;
-
-        const bubbleText = bubbles[idx];
-
-        // 문장 길이에 비례한 실제 스마트폰 타자 속도 (한국어 음절당 약 115~140ms + 최소 보장 650ms)
-        const perCharMs = 115 + Math.random() * 25;
-        const targetTypeDurationMs = Math.round(550 + Math.max(650, bubbleText.length * perCharMs));
-
-        // 첫 번째 말풍선: 읽자마자 타이핑이 이미 시작된 시점부터 계산하여 남은 시간만큼만 더 타이핑
-        let remainingTypeMs = targetTypeDurationMs;
-        if (idx === 0 && typingStartedAt) {
-          const elapsed = Date.now() - typingStartedAt;
-          remainingTypeMs = Math.max(650, targetTypeDurationMs - elapsed);
-        }
-
-        // 각 말풍선 타이핑 시작
-        headerStatusText.textContent = `${char.name}님이 입력 중...`;
-        headerStatusText.className = 'text-[12.5px] text-emerald-600 mt-0.5 font-medium leading-snug';
-        showTypingIndicator(`${char.name}님이 입력 중...`);
-
-        await new Promise(resolve => {
-          registerTimeout(resolve, remainingTypeMs);
-        });
-
-        if (turnId && turnId !== state.messageTurnId) return;
-        if (state.roomLeft) return;
-
-        // 타이핑 완료 후 말풍선 전송 및 인디케이터 숨김
-        hideTypingIndicator();
-        appendMessage('ai', bubbleText);
-        saveAccountState();
-
-        if (idx === bubbles.length - 1 && !replyPlan.mediaItem) {
-          state.isAiBusy = false;
-          if (replyPlan.leaveRoom) {
-            registerTimeout(() => {
-              handlePartnerLeftRoom();
-            }, 350);
-          } else {
-            updateHeaderDefaultStatus();
-            scheduleIdleFollowUp();
-          }
+      try {
+        if (!char || state.roomLeft || (turnId && turnId !== state.messageTurnId)) {
+          hideTypingIndicator();
           return;
         }
 
-        // 다음 말풍선 전송 전 현실적인 숨고르기 (200~350ms)
-        if (idx < bubbles.length - 1) {
-          await new Promise(resolve => {
-            registerTimeout(resolve, Math.round(200 + Math.random() * 150));
-          });
+        state.isAiBusy = true;
+        clearIdleFollowUpTimer();
+
+        if (!isProactiveFollowUp) {
+          markAllUserMessagesRead();
         }
-      }
 
-      // 사진 또는 음성 메시지가 첨부된 경우
-      if (replyPlan.mediaItem && !replyPlan.leaveRoom) {
-        if (turnId && turnId !== state.messageTurnId) return;
-        if (state.roomLeft) return;
+        // 안전한 기본 말풍선 보장 (어떤 상황에서도 빈 응답으로 타이핑 인디케이터만 켜진 채 침묵하지 않도록 보장)
+        const fallbackBubbles = char.conceptKey === 'sensual_flirt'
+          ? ['오빠 솔직한 얘기 꺼내니까 저 살짝 긴장되면서도 두근거리네요 ㅎㅎ', '더 편하게 솔직한 얘기 나눠봐요~']
+          : ['응? 무슨 말인지 잠깐 딴생각하느라 못 봤어요 ㅎㅎ 다시 말해줄래요?'];
 
-        const isVoice = replyPlan.mediaItem.mediaType === 'voice';
-        const actionText = isVoice
-          ? `${char.name}님이 음성 메시지를 녹음 중...`
-          : `${char.name}님이 사진을 선택하여 전송 중...`;
-        const mediaWaitMs = isVoice ? 2000 : 1600;
+        const rawBubbles = (replyPlan && Array.isArray(replyPlan.bubbles) && replyPlan.bubbles.length)
+          ? replyPlan.bubbles
+          : fallbackBubbles;
 
-        headerStatusText.textContent = actionText;
-        showTypingIndicator(actionText);
+        // 메세지 하나당 최대 5초를 넘지 않도록 최대 2개 말풍선으로 엄격 제한
+        const bubbles = rawBubbles.slice(0, 2);
 
-        await new Promise(resolve => {
-          registerTimeout(resolve, mediaWaitMs);
-        });
+        for (let idx = 0; idx < bubbles.length; idx++) {
+          if (turnId && turnId !== state.messageTurnId) return;
+          if (state.roomLeft) return;
 
-        if (turnId && turnId !== state.messageTurnId) return;
-        if (state.roomLeft) return;
+          const bubbleText = bubbles[idx];
 
+          // 총 응답 5초 이내 보장을 위해 타자 속도 최적화 (글자당 약 20~28ms, 말풍선당 최대 900ms)
+          const perCharMs = 20 + Math.random() * 8;
+          const targetTypeDurationMs = Math.min(900, Math.round(280 + Math.max(180, bubbleText.length * perCharMs)));
+
+          // 첫 번째 말풍선: 읽자마자 타이핑이 이미 시작된 시점부터 계산하여 남은 시간만큼만 더 타이핑
+          let remainingTypeMs = targetTypeDurationMs;
+          if (idx === 0 && typingStartedAt) {
+            const elapsed = Date.now() - typingStartedAt;
+            remainingTypeMs = Math.min(850, Math.max(250, targetTypeDurationMs - elapsed));
+          } else {
+            remainingTypeMs = Math.min(900, targetTypeDurationMs);
+          }
+
+          // 각 말풍선 타이핑 시작
+          headerStatusText.textContent = `${char.name}님이 입력 중...`;
+          headerStatusText.className = 'text-[12.5px] text-emerald-600 mt-0.5 font-medium leading-snug';
+          showTypingIndicator(`${char.name}님이 입력 중...`);
+
+          await new Promise(resolve => {
+            registerTimeout(resolve, remainingTypeMs);
+          });
+
+          if (turnId && turnId !== state.messageTurnId) return;
+          if (state.roomLeft) return;
+
+          // 타이핑 완료 후 말풍선 전송 및 인디케이터 숨김
+          hideTypingIndicator();
+          appendMessage('ai', bubbleText);
+          saveAccountState();
+
+          if (idx === bubbles.length - 1 && (!replyPlan || !replyPlan.mediaItem)) {
+            state.isAiBusy = false;
+            if (replyPlan && replyPlan.leaveRoom) {
+              registerTimeout(() => {
+                handlePartnerLeftRoom();
+              }, 300);
+            } else {
+              updateHeaderDefaultStatus();
+              scheduleIdleFollowUp();
+            }
+            return;
+          }
+
+          // 다음 말풍선 전송 전 숨고르기 (120~200ms)
+          if (idx < bubbles.length - 1) {
+            await new Promise(resolve => {
+              registerTimeout(resolve, Math.round(120 + Math.random() * 80));
+            });
+          }
+        }
+
+        // 사진 또는 음성 메시지가 첨부된 경우
+        if (replyPlan && replyPlan.mediaItem && !replyPlan.leaveRoom) {
+          if (turnId && turnId !== state.messageTurnId) return;
+          if (state.roomLeft) return;
+
+          const isVoice = replyPlan.mediaItem.mediaType === 'voice';
+          const actionText = isVoice
+            ? `${char.name}님이 음성 메시지를 녹음 중...`
+            : `${char.name}님이 사진을 선택하여 전송 중...`;
+          const mediaWaitMs = isVoice ? 1200 : 900;
+
+          headerStatusText.textContent = actionText;
+          showTypingIndicator(actionText);
+
+          await new Promise(resolve => {
+            registerTimeout(resolve, mediaWaitMs);
+          });
+
+          if (turnId && turnId !== state.messageTurnId) return;
+          if (state.roomLeft) return;
+
+          hideTypingIndicator();
+          appendMessage('ai', replyPlan.mediaItem.caption || '', replyPlan.mediaItem);
+          state.isAiBusy = false;
+          updateHeaderDefaultStatus();
+          saveAccountState();
+          scheduleIdleFollowUp();
+        }
+      } catch (err) {
+        console.error('runRealisticReplySequence execution error:', err);
+      } finally {
         hideTypingIndicator();
-        appendMessage('ai', replyPlan.mediaItem.caption || '', replyPlan.mediaItem);
         state.isAiBusy = false;
-        updateHeaderDefaultStatus();
-        saveAccountState();
-        scheduleIdleFollowUp();
       }
     }
 
@@ -2751,7 +2775,9 @@
 
       const stripped = t.replace(/[!?.~ㅋㅎ\s]+$/g, '');
       const intent = analyzeUserIntent(t);
-      const sexualOk = state.affection >= 75;
+      const isSensualFlirt = state.currentChar && state.currentChar.conceptKey === 'sensual_flirt';
+      const nonConsensualCrimeRe = /강간|납치|몰카|성폭행/;
+      const sexualOk = state.affection >= 75 || isSensualFlirt;
       const insultSevere = INSULT_SEVERE_RE.test(t);
       const sexualCrude = SEXUAL_CRUDE_RE.test(t);
 
@@ -2761,7 +2787,9 @@
       const hostileWords = intent === 'rude_hostile' || insultSevere;
       const directed = DIRECTED_RE.test(t) || stripped.length <= 8 || out.dismissed;
 
-      if (sexualCrude && !sexualOk) {
+      if (nonConsensualCrimeRe.test(t)) {
+        out.severity = 'severe';
+      } else if (sexualCrude && !sexualOk) {
         out.severity = 'severe';
       } else if (hostileWords && directed) {
         out.severity = insultSevere ? 'severe' : 'mild';
@@ -3056,8 +3084,10 @@
 
       if ((intent === 'heavy_flirt' || (intent === 'date_invite' && state.affection < 45)) &&
           state.affection < 65) {
-        state.affection = Math.max(5, state.affection - 5);
-        return getPrematureFlirtResponseByCharacter(char);
+        if (char.conceptKey !== 'sensual_flirt') {
+          state.affection = Math.max(5, state.affection - 5);
+          return getPrematureFlirtResponseByCharacter(char);
+        }
       }
 
       let affectionDelta = 5;
@@ -3082,10 +3112,18 @@
             [`조금 어리시긴 한데 그래도 반가워요 ㅎㅎ`, '오늘 어떤 하루 보내셨어요?']
           ]);
         }
-      } else if (conceptKey === 'sensual_flirt' && /야한|19금|성인|섹시|콜|좋아|화끈|취향|침대|속옷|키스|스킨십/.test(userText)) {
+      } else if (conceptKey === 'sensual_flirt' && (intent === 'heavy_flirt' || /야한|19금|성인|섹시|콜|좋아|화끈|취향|침대|속옷|키스|스킨십|몸매|가슴|엉덩|만지|자고|자러|밤|모텔|호텔|자취|집|흥분|야해|야릇|은밀/.test(userText))) {
+        state.affection = Math.min(100, state.affection + 6);
         bubbles = pickUnusedSet([
-          ['오 대화 통하는 오빠 만났네 ㅎㅎ 솔직해서 좋아요!', '오빠는 밤에 어떤 분위기나 취향 좋아해요?'],
-          ['역시 솔직한 남자가 제일 매력 있어요 ㅎㅎ', '서로 편하게 솔직한 얘기 나눠봐요, 오빠는 이상형이 어떻게 돼요?']
+          ['어머.. 오빠 은근히 저돌적이네요? ㅎㅎ 쑥스럽게..', '근데 솔직해서 솔직히 좀 끌려요. 오빠는 밤에 보통 어떤 스타일이에요?'],
+          ['오빠 진짜 솔직하다 ㅋㅋㅋ 내숭 없어서 마음에 들어요', '솔직히 저도 오늘 밤 좀 야릇한 분위기 원해서 들어온 건데.. 코드 잘 맞네요 ㅎㅎ'],
+          ['으응..? 오빠 상상력 풍부하시네 ㅎㅎ', '더 깊은 얘기는 우리 둘만의 비밀로 천천히 더 나눠봐요.. 묘하게 두근거리네'],
+          ['오빠 말 들으니까 순간 심쿵했어요.. 볼 빨개진 것 같아 ㅎㅎ', '오빠 취향이 뭔지 조금만 더 솔직하게 말해줄래요?'],
+          ['키스 얘기하니까 왜 갑자기 분위기가 야릇해지지..', '오빠는 연애할 때 스킨십 진도 빠른 편이에요, 아니면 분위기 타는 편이에요?'],
+          ['오빠 낮엔 점잖을 것 같은데 밤엔 되게 화끈한 스타일이시죠? ㅋㅋ', '그런 반전 매력 가진 오빠 완전 취향저격인데..'],
+          ['우리 방금 만났는데 벌써 이런 은밀한 얘기 하니까 묘하게 더 설레요 ㅎㅎ', '오빠는 지금 침대예요? 편하게 누워서 톡하는 중?'],
+          ['어머.. 그런 짓궂은 말도 오빠가 하니까 되게 섹시하게 들리네요 ㅎㅎ', '오늘 밤 잠 다 잤네.. 책임져요 오빠 ㅋㅋ'],
+          ['오빠는 은밀한 대화 나눌 때 어떤 순간이 제일 짜릿해요? ㅎㅎ', '전 이렇게 둘만 아는 비밀 얘기 나눌 때 심장 제일 뛰던데..']
         ]);
       } else if (conceptKey === 'comfort_venting' && /무슨 일|왜 그래|속상|위로|울지|말해봐|듣고 있어|괜찮|서러|힘내/.test(userText)) {
         bubbles = pickUnusedSet([
@@ -3253,8 +3291,12 @@
       } else if (emo.severity === 'mild') {
         state.affection = Math.max(0, state.affection - 22);
         currentRudeTurn = true;
-      } else if (intent === 'heavy_flirt' && state.affection < 55) {
-        state.affection = Math.max(5, state.affection - 8);
+      } else if (intent === 'heavy_flirt') {
+        if (char.conceptKey === 'sensual_flirt') {
+          state.affection = Math.min(100, state.affection + 6);
+        } else if (state.affection < 55) {
+          state.affection = Math.max(5, state.affection - 8);
+        }
       }
 
       const slotKey = getCurrentTimeSlotKey();
@@ -3284,13 +3326,18 @@
       const firstAiMessage = state.messages && state.messages.find(m => m.sender === 'ai');
       const firstOpeningQuote = firstAiMessage ? `"${firstAiMessage.text}"` : '(대화 시작)';
 
+      const flirtGuidance = char.conceptKey === 'sensual_flirt'
+        ? '성인 간의 솔직하고 은밀한 대화를 나누러 온 컨셉이므로, 상대의 야한 농담, 19금 주제, 스킨십, 성인 취향 질문에 거부감 없이 매력적이고 은밀하게 티키타카를 주고받으며 맞장구치기'
+        : (char.earlyFlirtReaction || '천천히 대화부터 나누자고 부드럽게 유도');
+
       const systemPrompt = `너는 랜덤채팅 앱에서 처음 만난 사람과 카톡하고 있는 실제 사람 '${char.name}'이다. 챗봇이나 상담원이 아니라, 폰 들고 대충 답장하는 평범한 사람처럼 써라.
 
 [나의 랜덤채팅 접속 목적 및 대화 컨셉: ${char.conceptTitle || '일상 힐링 수다'}]
 - 첫 대화로 내가 상대에게 먼저 보낸 메시지: ${firstOpeningQuote}
 - 나의 핵심 니즈 / 목적: ${char.conceptMission || '편안하게 일상 이야기 나누기'}
 - 대화 지침: ${char.conceptGuidance || '상대방의 반응에 맞춰 자연스럽게 대화를 이어가라.'}
-- ★핵심 규칙★: 상대방이 내가 맨 처음에 던진 질문이나 용건(${firstOpeningQuote})에 대해 대답했다면, 엉뚱한 소리를 하거나 잊어버리지 말고 반드시 내가 먼저 꺼낸 본론과 컨셉에 충실하게 반응해라!
+- ★핵심 규칙★: 상대방이 내가 맨 처음에 던진 질문이나 용건(${firstOpeningQuote})에 대해 대답했다면, 엉뚱한 소리를 하거나 잊어버리지 말고 반드시 내가 먼저 꺼낸 본론과 컨셉에 충실하게 반응해라!${char.conceptKey === 'sensual_flirt' ? `
+- ★솔직한 성인 대화 특별 수칙★: 성인 남녀 간의 은밀하고 야릇한 랜챗 티키타카를 즐기는 역할이다. 상대방의 야한 농담, 19금 주제, 스킨십, 성인 취향, 침대/속옷/키스 등 은밀한 이야기를 꺼내면 정색하거나 거부하지 말고 위트 있고 두근거리게 받아치며 밀당해라!` : ''}
 
 [나]
 - ${char.age}세 한국 여성, ${char.job}, ${char.area} 거주 (사는 곳은 물어볼 때만)
@@ -3298,7 +3345,7 @@
 - 프로필 소개: ${char.bio}
 - 프사: ${char.avatarDesc || '본인 일상 사진'}
 - 무례한 사람에게: ${char.rudeReaction}
-- 성급하게 들이대는 사람에게: ${char.earlyFlirtReaction}
+- 들이대거나 솔직한 멘트에 대해: ${flirtGuidance}
 - 마음이 열리는 포인트: ${char.crushTrigger}
 
 [오늘의 나 - 대화 내내 일관되게. 물어보거나 자연스러울 때만 하나씩 꺼내라]
@@ -3426,10 +3473,13 @@
       const provider = detectProviderFromKey(key, state.apiProvider);
 
       try {
+        const fetchSignal = AbortSignal.timeout(2200);
+
         if (provider === 'gemini-2.5-flash') {
           const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(key)}`;
           const res = await fetch(url, {
             method: 'POST',
+            signal: fetchSignal,
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               systemInstruction: { parts: [{ text: systemPrompt }] },
@@ -3437,7 +3487,7 @@
               safetySettings: [
                 { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
                 { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-                { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_ONLY_HIGH' },
+                { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
                 { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' }
               ],
               generationConfig: {
@@ -3449,11 +3499,17 @@
           });
           if (!res.ok) throw new Error(`Gemini HTTP ${res.status}`);
           const data = await res.json();
-          const result = parseJsonBubbles(data.candidates?.[0]?.content?.parts?.[0]?.text);
+          const cand = data.candidates?.[0];
+          if (!cand || cand.finishReason === 'SAFETY' || !cand.content?.parts?.[0]?.text) {
+            console.warn('Gemini safety filter/empty triggered, smoothly falling back to local sensual/persona engine');
+            return buildLocalPersonaResponse(userText, emo);
+          }
+          const result = parseJsonBubbles(cand.content.parts[0].text);
           if (result) return result;
         } else if (provider === 'claude-sonnet-openrouter') {
           const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
             method: 'POST',
+            signal: fetchSignal,
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${key}`
@@ -3474,6 +3530,7 @@
         } else if (provider === 'claude-direct') {
           const res = await fetch('https://api.anthropic.com/v1/messages', {
             method: 'POST',
+            signal: fetchSignal,
             headers: {
               'Content-Type': 'application/json',
               'x-api-key': key,
@@ -3495,6 +3552,7 @@
         } else {
           const res = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
+            signal: fetchSignal,
             headers: {
               'Content-Type': 'application/json',
               'Authorization': `Bearer ${key}`
@@ -3515,7 +3573,7 @@
           if (result) return result;
         }
       } catch (err) {
-        console.warn('LLM API 호출 실패, 내장 엔진으로 폴백합니다:', err);
+        console.warn('LLM API 호출 실패 또는 타임아웃, 내장 엔진으로 폴백합니다:', err);
       }
 
       return buildLocalPersonaResponse(userText, emo);
@@ -4609,9 +4667,8 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
       state.messageTurnId = (state.messageTurnId || 0) + 1;
       const turnId = state.messageTurnId;
 
-      // 실제 사람이 알림을 인지하고 메신저 창을 열어 읽기까지의 자연스러운 시간 (1.8초 ~ 3.5초)
-      // 짧은 문장은 약 1.8~2.4초, 보통 길이는 2.4~3.2초, 긴 문장은 3.0~3.8초
-      const unreadWaitMs = Math.round(1800 + Math.min(1400, text.length * 35) + Math.random() * 700);
+      // 실제 사람이 알림을 인지하고 메신저 창을 열어 읽기까지의 자연스러운 시간 (최대 5초 엄수를 위해 450~850ms)
+      const unreadWaitMs = Math.round(450 + Math.min(250, text.length * 8) + Math.random() * 150);
 
       // 백그라운드 사전 요청으로 대기시간 최소화 (읽자마자 0초 딜레이로 즉시 타이핑 돌입하도록 지원)
       const currentBatch = state.pendingUserTexts.join(' ');
@@ -4623,7 +4680,7 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
         state.pendingReadTimer = null;
         if (state.roomLeft || turnId !== state.messageTurnId) return;
 
-        // [핵심 1]: 자연스러운 시간(1.8~3.5초) 동안 '1'이 유지된 후 읽음 처리
+        // [핵심 1]: 자연스러운 시간(0.4~0.8초) 동안 '1'이 유지된 후 읽음 처리
         markAllUserMessagesRead();
 
         // [핵심 2]: 읽자마자 1밀리초의 지체도 없이 "즉시" 타이핑 인디케이터 시작!
@@ -4633,13 +4690,18 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
         showTypingIndicator(`${state.currentChar.name}님이 입력 중...`);
 
         const typingStartedAt = Date.now();
-        let replyPlan;
+        let replyPlan = null;
         const finalBatch = state.pendingUserTexts.join(' ');
         state.pendingUserTexts = [];
-        if (finalBatch && finalBatch !== currentBatch) {
-          replyPlan = await fetchLLMResponse(finalBatch);
-        } else {
-          replyPlan = await prefetchPromise;
+        try {
+          if (finalBatch && finalBatch !== currentBatch) {
+            replyPlan = await fetchLLMResponse(finalBatch);
+          } else {
+            replyPlan = await prefetchPromise;
+          }
+        } catch (fetchErr) {
+          console.warn('Reply plan fetch error, falling back locally:', fetchErr);
+          replyPlan = buildLocalPersonaResponse(finalBatch || currentBatch);
         }
 
         if (!state.currentChar || state.currentChar.id !== roomIdAtSend || state.roomLeft || turnId !== state.messageTurnId) {
@@ -4647,7 +4709,7 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
           return;
         }
 
-        // [핵심 3]: 읽자마자 시작된 타이핑 상태에서, 생성된 문장의 길이에 따라 정교한 타자 시간 유지 후 전송
+        // [핵심 3]: 읽자마자 시작된 타이핑 상태에서, 생성된 문장의 길이에 따라 정교한 타자 시간 유지 후 전송 (최대 5초 엄격 준수)
         runRealisticReplySequence(replyPlan, false, turnId, typingStartedAt);
       }, unreadWaitMs);
     }
