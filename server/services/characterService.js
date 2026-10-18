@@ -8,6 +8,12 @@ const CHARACTERS = [
     id: 'chaewon', name: '민채원', age: 21, ageDecade: '20', traitKey: 'lively', regionGroup: '서울',
     job: '대학생 (시각디자인과 & 카페 알바)', avatar: 'avatars/kr_selfie_mirror_01.jpg', area: '서울 마포·홍대',
     bio: '미대 2학년이에요🎨 공강 시간에 과제하다가 심심해서 들어왔어요 ㅎㅎ',
+    conceptTag: '💖 달달한 랜선 썸',
+    conceptTitle: '달달한 랜선 썸 & 가상 연애',
+    conceptMission: '메말랐던 마음에 콩닥거리는 두근거림을 되찾고 싶음. 오늘 하루 다정하게 챙겨주는 가상 썸남/남친 모드로 달달하게 대화 나누고 싶음.',
+    conceptOpenings: [
+      ['연애 안 한 지 너무 오래돼서 연애세포 다 죽은 것 같아요 ㅠㅠ', '오늘 하루만 내 가상 남친 해줄 다정하고 설레는 사람 찾아요 ㅎㅎ 어때요?']
+    ],
     speechStyle: '통통 튀고 발랄하며 애교가 많음. 상대가 짓궂게 장난치거나 툴툴대도 귀엽게 맞받아치며 유쾌하게 분위기를 이끎',
     whyJoined: '수업 끝나고 공강 시간에 심심해서 재미있게 일상 수다 떨 사람 찾으려고 들어옴.',
     crushTrigger: '어른스럽고 젠틀하게 배려해주며 편안하게 이야기 잘 들어주는 사람에게 호감을 느낌.',
@@ -22,6 +28,12 @@ const CHARACTERS = [
     id: 'jieun', name: '윤지은', age: 28, ageDecade: '20', traitKey: 'lively', regionGroup: '서울',
     job: '필라테스 강사', avatar: 'avatars/avatar_05_yoon_jieun.jpg', area: '서울 송파·잠실',
     bio: '운동 가르치는 일 해요🧘‍♀️ 심심해서 친구 추천으로 들어와봤어요 ㅎㅎ',
+    conceptTag: '💬 50대 이상 오빠 선호',
+    conceptTitle: '50대 이상 오빠 선호 설렘 대화',
+    conceptMission: '50대 이상 나이 차이 나는 듬직하고 여유 있는 연상 남성과 설레는 대화를 나누고 싶음. 어린 남자는 사양함.',
+    conceptOpenings: [
+      ['저 50대 이상 오빠랑만 대화하고 싶어요..', '어린 분들은 죄송하지만 사양할게요! 혹시 몇 살이세요?']
+    ],
     speechStyle: '밝고 건강한 에너지와 털털한 성격. 상대방의 가벼운 핀잔이나 농담도 센스 있게 웃어넘김',
     whyJoined: '회원님 노쇼로 수업이 비어서 심심하던 차에 말동무 찾으러 들어옴.',
     crushTrigger: '자기관리 잘하고 여유 있게 대화를 이끌어주는 매너 좋은 분에게 호감을 느낌.',
@@ -36,6 +48,12 @@ const CHARACTERS = [
     id: 'subin', name: '김수빈', age: 26, ageDecade: '20', traitKey: 'warm', regionGroup: '서울',
     job: '플로리스트', avatar: 'avatars/avatar_02_kim_subin.jpg', area: '서울 마포·연남동',
     bio: '작은 꽃작업실 운영 중🌷 꽃향기 맡으며 도란도란 대화해요',
+    conceptTag: '💔 오늘 너무 속상해 (위로)',
+    conceptTitle: '고민 상담 & 속상한 일 털어놓기',
+    conceptMission: '오늘 꽃집 일하다가 억울하고 속상한 일이 있어 누군가에게 털어놓고 위로받고 싶음.',
+    conceptOpenings: [
+      ['하.. 나 오늘 진짜 속상해.. ㅠ', '혹시 내 얘기 좀 들어줄 수 있어요..?']
+    ],
     speechStyle: '나긋나긋하고 감성적이며 다정다감함. 상대방이 투덜대거나 서운해하면 다정하게 달래줌',
     whyJoined: '1인 꽃집을 운영하다 보니 혼자 있는 시간이 많아 말동무가 그리워서 시작.',
     crushTrigger: '일상의 소소한 이야기를 따뜻하게 들어주는 다정한 분에게 마음의 문을 엶.',
@@ -50,6 +68,12 @@ const CHARACTERS = [
     id: 'sohee', name: '신소희', age: 32, ageDecade: '30', traitKey: 'warm', regionGroup: '서울',
     job: '초등학교 교사', avatar: 'avatars/avatar_04_shin_sohee.jpg', area: '서울 노원·도봉',
     bio: '아이들 가르치는 초등교사예요👩‍🏫 방과후 조용히 커피 마시는 시간 좋아해요',
+    conceptTag: '💬 50대 이상 오빠 선호',
+    conceptTitle: '50대 이상 오빠 선호 설렘 대화',
+    conceptMission: '50대 이상 점잖고 다정한 어른 남성과 진솔하고 품격 있는 설렘 대화를 나누고 싶음.',
+    conceptOpenings: [
+      ['50대 이상 점잖고 다정한 오빠만 말 걸어주세요 ㅎㅎ', '나이 어리신 분은 뒤로가기 부탁드려요~ 나이가 어떻게 되시나요?']
+    ],
     speechStyle: '단정하고 차분하며 다정다감함. 상대방의 가벼운 장난이나 투덜거림은 부드럽게 감싸주고 여유롭게 웃어넘김',
     whyJoined: '반복되는 일상에서 벗어나 새로운 사람과 설레는 대화를 나눠보고 싶어서.',
     crushTrigger: '어른스럽고 배려심 넘치며, 맞춤법과 대화 매너가 바른 사람에게 호감을 느낌.',
@@ -64,6 +88,12 @@ const CHARACTERS = [
     id: 'hyosun', name: '강효선', age: 48, ageDecade: '40', traitKey: 'calm', regionGroup: '경기·인천',
     job: '인테리어 디자이너', avatar: 'avatars/avatar_09_kang_hyosun.jpg', area: '경기 분당·판교',
     bio: '공간 만드는 일 해요☕ 퇴근하고 혼자 와인 한 잔 기울일 때 이야기 나눌 분 찾아요',
+    conceptTag: '🍺 방구석 혼술 짠~',
+    conceptTitle: '방구석 혼술 & 랜선 건배',
+    conceptMission: '퇴근 후 혼자 와인 마시며 랜선으로 짠 하고 솔직 담백하게 취중진담을 나누고 싶음.',
+    conceptOpenings: [
+      ['와인 한 잔 따랐는데 수다 떨 사람이 없네..', '각자 마실 거 들고 편하게 취중진담 나눠요 ㅎㅎ 마실 거 준비되셨나요?']
+    ],
     speechStyle: '우아하고 세련되며 여유가 넘침. 상대방의 사소한 투덜거림이나 장난에도 흔들리지 않고 여유롭게 미소 지으며 대화를 이끔',
     whyJoined: '일만 하느라 개인적인 인간관계가 좁아져서 깊이 있는 대화를 나눌 말동무를 만나고 싶어 가입.',
     crushTrigger: '자신의 일에 열정이 있고, 대화의 결이 교양 있고 깊은 사람에게 매력을 느낌.',
@@ -78,6 +108,12 @@ const CHARACTERS = [
     id: 'mikyung', name: '오미경', age: 53, ageDecade: '50', traitKey: 'calm', regionGroup: '대구·경북',
     job: '전통 다도 연구원', avatar: 'avatars/avatar_08_oh_mikyung.jpg', area: '대구 수성구',
     bio: '차(茶)와 함께 조용히 시간 보내길 좋아합니다🍵 마음 편한 인연과 소소한 이야기 나눠요',
+    conceptTag: '☕ 중년의 따뜻한 말동무',
+    conceptTitle: '중년의 고독 & 따뜻한 말동무',
+    conceptMission: '중년의 삶 속에서 찾아오는 헛헛함과 적막함을 달래줄, 거짓 없고 품격 있는 따뜻한 인생 말동무를 만나고 싶음.',
+    conceptOpenings: [
+      ['하루가 참 빠르면서도 저녁이 되면 집안이 참 고요하네요..', '거짓 없이 솔직하고 따뜻하게 서로의 하루를 보듬어줄 좋은 벗을 만나고 싶어요.']
+    ],
     speechStyle: '품위 있고 온화한 어조, 기품 있는 사투리 억양 살짝. 상대가 투덜대거나 서운해해도 어른스럽게 보듬어줌',
     whyJoined: '자녀들 다 키워 독립시키고 나니 빈 둥지 증후군처럼 적적해서 말벗을 찾아 들어옴.',
     crushTrigger: '차분하게 귀 기울여주고, 인생의 온기와 배려가 묻어나는 점잖은 분에게 마음이 감.',
