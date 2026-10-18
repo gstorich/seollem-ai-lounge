@@ -11,6 +11,7 @@ CREATE TABLE IF NOT EXISTS admin_audit(id INTEGER PRIMARY KEY,actor TEXT NOT NUL
 CREATE TABLE IF NOT EXISTS app_settings(key TEXT PRIMARY KEY,value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS activity_events(id INTEGER PRIMARY KEY,event TEXT NOT NULL,user_id TEXT NOT NULL,created_at INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS activity_time ON activity_events(created_at,event);`);
+const wallet = require('./heartWallet').createWallet(sql);
 function tx(fn) { sql.exec('BEGIN IMMEDIATE');try {const result=fn();sql.exec('COMMIT');return result;}catch(e){sql.exec('ROLLBACK');throw e;} }
 function audit(actor,action,target,details={},requestId=null) {
  sql.prepare('INSERT INTO admin_audit(actor,action,target,details,request_id,created_at) VALUES(?,?,?,?,?,?)').run(actor,action,target,JSON.stringify(details),requestId,Date.now());
@@ -47,21 +48,18 @@ module.exports={
  });},
  setStatus(id,actor,status){return tx(()=>{if(!getTicket(id))return false;sql.prepare('UPDATE support_tickets SET status=?,updated_at=? WHERE id=?').run(status,Date.now(),id);audit(actor,'ticket_status',id,{status});return true;});},
  setAnalytics(actor,id,propertyId){return tx(()=>{for(const [key,value] of [['ga_measurement_id',id],['ga_property_id',propertyId]])sql.prepare('INSERT OR REPLACE INTO app_settings VALUES(?,?)').run(key,value);audit(actor,'analytics_settings','analytics',{measurementId:id,propertyId});});},
- users(query,page){const term='%'+query+'%';return {items:sql.prepare(`SELECT id,phone,json_extract(data,'$.hearts') hearts,json_extract(data,'$.createdAt') createdAt,json_extract(data,'$.updatedAt') updatedAt FROM users WHERE id LIKE ? OR phone LIKE ? ORDER BY json_extract(data,'$.createdAt') DESC LIMIT 30 OFFSET ?`).all(term,term,page*30),total:sql.prepare('SELECT count(*) n FROM users WHERE id LIKE ? OR phone LIKE ?').get(term,term).n};},
- customer(id){const user=db.getUser(id);if(!user)return null;return {id:user.id,phone:user.phone,hearts:user.hearts,createdAt:user.createdAt,updatedAt:user.updatedAt,roomCount:Object.keys(user.savedRooms||{}).length,messageCount:Object.values(user.savedRooms||{}).reduce((n,r)=>n+(r.messages||[]).length,0),ledger:sql.prepare('SELECT delta,reason,created_at FROM ledger WHERE user_id=? ORDER BY id DESC LIMIT 100').all(id).map(r=>({...r,delta:r.delta/10})),notes:sql.prepare("SELECT actor,details,created_at FROM admin_audit WHERE target=? AND action='customer_note' ORDER BY id DESC LIMIT 30").all(id).map(r=>({...r,details:JSON.parse(r.details)}))};},
+ users(query,page){db.expireHearts();const term='%'+query+'%';return {items:sql.prepare(`SELECT id,phone,json_extract(data,'$.hearts') hearts,json_extract(data,'$.createdAt') createdAt,json_extract(data,'$.updatedAt') updatedAt FROM users WHERE id LIKE ? OR phone LIKE ? ORDER BY json_extract(data,'$.createdAt') DESC LIMIT 30 OFFSET ?`).all(term,term,page*30),total:sql.prepare('SELECT count(*) n FROM users WHERE id LIKE ? OR phone LIKE ?').get(term,term).n};},
+ customer(id){const user=db.getUser(id);if(!user)return null;return {id:user.id,phone:user.phone,hearts:user.hearts,heartExpiry:db.getHeartSummary(id),heartGrants:db.getHeartGrants(id),createdAt:user.createdAt,updatedAt:user.updatedAt,roomCount:Object.keys(user.savedRooms||{}).length,messageCount:Object.values(user.savedRooms||{}).reduce((n,r)=>n+(r.messages||[]).length,0),ledger:sql.prepare('SELECT delta,reason,created_at FROM ledger WHERE user_id=? ORDER BY id DESC LIMIT 100').all(id).map(r=>({...r,delta:r.delta/10})),notes:sql.prepare("SELECT actor,details,created_at FROM admin_audit WHERE target=? AND action='customer_note' ORDER BY id DESC LIMIT 30").all(id).map(r=>({...r,details:JSON.parse(r.details)}))};},
  addNote(actor,id,body){if(!db.getUser(id))return false;audit(actor,'customer_note',id,{body});return true;},
  adjust(actor,id,delta,reason,requestId){return tx(()=>{
   const prev=sql.prepare('SELECT actor,action,target,details FROM admin_audit WHERE request_id=?').get(requestId);
   if(prev){const detail=JSON.parse(prev.details);if(prev.actor!==actor||prev.target!==id||prev.action!=='heart_adjustment'||detail.delta!==delta||detail.reason!==reason)throw Error('동일 요청 ID의 내용이 다릅니다.');return {...detail,replayed:true};}
-  const row=sql.prepare('SELECT data FROM users WHERE id=?').get(id);if(!row)throw Error('고객을 찾을 수 없습니다.');
-  const user=JSON.parse(row.data),units=Math.round(user.hearts*10)+Math.round(delta*10);if(units<0)throw Error('보유 하트보다 많이 차감할 수 없습니다.');
-  user.hearts=units/10;user.updatedAt=Date.now();
-  sql.prepare('UPDATE users SET data=? WHERE id=?').run(JSON.stringify(user),id);
-  sql.prepare('INSERT INTO ledger(user_id,delta,reason,created_at) VALUES(?,?,?,?)').run(id,Math.round(delta*10),'admin_adjustment',Date.now());
+  const user=wallet.change(id,Math.round(delta*10),'admin_adjustment');
   const detail={delta,reason,hearts:user.hearts};audit(actor,'heart_adjustment',id,detail,requestId);return detail;
  });},
  audits(page){return sql.prepare('SELECT id,actor,action,target,details,created_at FROM admin_audit ORDER BY id DESC LIMIT 50 OFFSET ?').all(page*50).map(r=>({...r,details:JSON.parse(r.details)}));},
  overview(days){
+ db.expireHearts();
  const since=Date.now()-days*86400000;
  const scalar=(q,...a)=>sql.prepare(q).get(...a).n;
  const totals={customers:scalar('SELECT count(*) n FROM users'),members:scalar('SELECT count(*) n FROM users WHERE phone IS NOT NULL'),hearts:Math.round(scalar("SELECT coalesce(sum(json_extract(data,'$.hearts')),0) n FROM users")*10)/10,openTickets:scalar("SELECT count(*) n FROM support_tickets WHERE status IN ('open','in_progress')"),chatTurns:scalar("SELECT count(*) n FROM ledger WHERE reason='chat' AND created_at>=?",since),activeAccounts:scalar("SELECT count(DISTINCT user_id) n FROM ledger WHERE reason IN ('chat','recall') AND created_at>=?",since),newAccounts:scalar("SELECT count(*) n FROM users WHERE json_extract(data,'$.createdAt')>=?",since)};

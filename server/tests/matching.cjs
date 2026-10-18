@@ -7,7 +7,7 @@ async function request(route,token,body){const response=await fetch(base+route,{
  let ready=false;for(let i=0;i<100;i++){try{if((await fetch(base+'/health')).ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,50));}assert(ready,logs);
  sql=new DatabaseSync(path.join(dir,'test.sqlite'));
  const guest=await request('/auth/guest',null,{}),token=guest.token;
- function update(updates){const user=JSON.parse(sql.prepare('SELECT data FROM users WHERE id=?').get(guest.user.id).data);Object.assign(user,updates);sql.prepare('UPDATE users SET data=? WHERE id=?').run(JSON.stringify(user),user.id);}
+ function update(updates){const wallet=require('../services/heartWallet').createWallet(sql);const {hearts,...rest}=updates;if(hearts!==undefined)wallet.change(guest.user.id,Math.round((hearts-wallet.expire(guest.user.id).hearts)*10),'test_balance');const user=JSON.parse(sql.prepare('SELECT data FROM users WHERE id=?').get(guest.user.id).data);Object.assign(user,rest);sql.prepare('UPDATE users SET data=? WHERE id=?').run(JSON.stringify(user),user.id);}
  for(const hearts of [0,1.9,3.6]){
   update({hearts});const before=await request('/account/state',token);
   const access=await request('/match/eligibility',token);assert.equal(access.canMatch,false);assert.equal(access.heartsRemaining,hearts);assert.equal(access.requiredHearts,3.7);

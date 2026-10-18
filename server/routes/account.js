@@ -6,10 +6,14 @@ const { requireAuth } = require('../middleware/auth');
 router.use(requireAuth);
 function snapshot(user) {
   return { success: true, user: { id: user.id, phone: user.phone, hearts: user.hearts,
-    isVipUnlimited: user.isVipUnlimited, phoneBonusClaimed: user.phoneBonusClaimed },
+    isVipUnlimited: user.isVipUnlimited, phoneBonusClaimed: user.phoneBonusClaimed, heartExpiry: db.getHeartSummary(user.id) },
     savedRooms: user.savedRooms || {}, metCharIds: user.metCharIds || [], matchFilter: user.matchFilter,
     unlockedMedia: user.unlockedMedia || {}, prevCharId: user.prevCharId || null };
 }
+router.get('/hearts', (req,res) => {
+  res.set('Cache-Control','no-store');
+  res.json({success:true,hearts:db.getUser(req.user.id).hearts,summary:db.getHeartSummary(req.user.id),grants:db.getHeartGrants(req.user.id)});
+});
 router.get('/state', (req, res) => res.json(snapshot(db.getUser(req.user.id))));
 const roomStrings = ['memorySummary', 'lastGreetingSlot'];
 const roomNumbers = ['firstMetAt', 'photosSentCount', 'unreadCount', 'affection', 'turnCount', 'rudeStrikes', 'anger', 'updatedAt'];

@@ -118,6 +118,7 @@ app.use((err, req, res, next) => {
   });
 });
 
+const stopHeartExpiry = require('./services/dbService').startHeartExpiryWorker();
 const server = app.listen(config.port, config.host, () => {
   console.log(`=======================================================`);
   console.log(`🚀 AzitChat Backend Running on Port ${config.port}`);
@@ -127,4 +128,5 @@ const server = app.listen(config.port, config.host, () => {
   console.log(`=======================================================`);
 });
 
+server.on('close', stopHeartExpiry);
 module.exports = { app, server };

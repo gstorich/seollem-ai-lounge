@@ -48,6 +48,7 @@
       this.user = data.user;
       return data.user;
     },
+    async getHeartWallet() { return this.request('/account/hearts'); },
     async loadState() {
       const data = await this.request('/account/state');
       this.user = data.user;

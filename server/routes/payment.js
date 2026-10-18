@@ -80,9 +80,10 @@ router.post('/verify', requireAuth, (req, res) => {
   }
 
   // Complete order and credit hearts
-  dbService.updateOrder(orderId, { status: 'completed', completedAt: Date.now() });
-  const nextHearts = user.hearts + order.hearts;
-  dbService.updateUser(user.id, { hearts: nextHearts });
+  const nextHearts = dbService.transaction(() => {
+    dbService.updateOrder(orderId, { status: 'completed', completedAt: Date.now() });
+    return dbService.creditHearts(user.id, order.hearts, 'payment').hearts;
+  });
 
   return res.json({
     success: true,

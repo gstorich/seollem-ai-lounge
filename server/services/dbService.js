@@ -20,6 +20,8 @@ CREATE TABLE IF NOT EXISTS ledger (id INTEGER PRIMARY KEY, user_id TEXT NOT NULL
 CREATE TABLE IF NOT EXISTS chat_requests (user_id TEXT NOT NULL, request_id TEXT NOT NULL,
  data TEXT NOT NULL, PRIMARY KEY(user_id,request_id));
 CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);`);
+const { createWallet, units } = require('./heartWallet');
+const wallet = createWallet(sql);
 function transaction(fn) {
   if (sql.isTransaction) return fn();
   sql.exec('BEGIN IMMEDIATE');
@@ -27,8 +29,7 @@ function transaction(fn) {
   catch (error) { sql.exec('ROLLBACK'); throw error; }
 }
 function getUser(id) {
-  const row = sql.prepare('SELECT data FROM users WHERE id=?').get(id);
-  return row ? JSON.parse(row.data) : null;
+  return wallet.expire(id);
 }
 function putUser(user) {
   user.updatedAt = Date.now();
@@ -37,17 +38,25 @@ function putUser(user) {
   return user;
 }
 function createUser(data) {
-  const user = { phone: null, hearts: config.defaultGuestHearts, isVipUnlimited: false, phoneBonusClaimed: false,
-    unlockedMedia: {}, metCharIds: [], savedRooms: {}, matchFilter: { ages: [], traits: [], regions: [] },
-    createdAt: Date.now(), ...data };
-  if (getUser(user.id)) throw new Error('Account already exists');
-  putUser(user);
-  sql.prepare('INSERT INTO ledger(user_id,delta,reason,created_at) VALUES(?,?,?,?)').run(user.id, Math.round(user.hearts * 10), 'initial', Date.now());
-  return user;
+  return transaction(() => {
+    const user = { phone: null, hearts: config.defaultGuestHearts, isVipUnlimited: false, phoneBonusClaimed: false,
+      unlockedMedia: {}, metCharIds: [], savedRooms: {}, matchFilter: { ages: [], traits: [], regions: [] },
+      createdAt: Date.now(), ...data };
+    if (getUser(user.id)) throw new Error('Account already exists');
+    const amount = units(user.hearts);
+    putUser({ ...user, hearts: 0 });
+    wallet.create(user.id, amount, user.createdAt);
+    return getUser(user.id);
+  });
 }
 function updateUser(id, updates) {
-  const user = getUser(id);
-  return user ? putUser({ ...user, ...updates, id: user.id }) : null;
+  return transaction(() => {
+    let user = getUser(id);
+    if (!user) return null;
+    const { hearts, ...rest } = updates;
+    if (hearts !== undefined) user = wallet.change(id, units(hearts) - units(user.hearts), 'account_adjustment');
+    return putUser({ ...user, ...rest, hearts: user.hearts, id: user.id });
+  });
 }
 function resolveUserId(id) {
   return sql.prepare('SELECT new_id FROM aliases WHERE old_id=?').get(id)?.new_id || id;
@@ -81,7 +90,10 @@ if (!sql.prepare("SELECT value FROM metadata WHERE key='json_imported'").get()) 
 }
 module.exports = {
   transaction, getUser, createUser, updateUser, mergeRooms, resolveUserId,
-  findUserByPhone(phone) { const row = sql.prepare('SELECT data FROM users WHERE phone=?').get(phone); return row ? JSON.parse(row.data) : null; },
+  creditHearts(id, hearts, reason) { return wallet.change(id, units(hearts), reason); },
+  getHeartSummary: wallet.summary, getHeartGrants: wallet.grants,
+  expireHearts: wallet.expireAll, startHeartExpiryWorker: wallet.startWorker,
+  findUserByPhone(phone) { const row = sql.prepare('SELECT id FROM users WHERE phone=?').get(phone); return row ? getUser(row.id) : null; },
   linkPhone(sessionId, phone) {
     return transaction(() => {
       const guest = getUser(sessionId);
@@ -90,35 +102,39 @@ module.exports = {
       let bonusAwarded = false;
       if (!user) {
         user = { ...guest, id: phone, phone, phoneBonusClaimed: true,
-          hearts: Math.round((guest.hearts + config.phoneAuthBonusHearts) * 10) / 10 };
+          hearts: guest.hearts };
+        // Create an empty destination wallet before moving the guest's original grants.
+        putUser({ ...user, hearts: 0 });
+        wallet.create(user.id, 0, Date.now());
         bonusAwarded = true;
       } else if (user.id !== sessionId) {
         user.savedRooms = mergeRooms(user.savedRooms, guest.savedRooms);
         user.metCharIds = [...new Set([...(user.metCharIds || []), ...(guest.metCharIds || [])])];
         // Keep the existing member's balance. Guest resets cannot mint new currency.
-        sql.prepare('INSERT INTO ledger(user_id,delta,reason,created_at) VALUES(?,?,?,?)').run(sessionId, -Math.round(guest.hearts * 10), 'guest_balance_not_transferred', Date.now());
+
       }
       if (user.id !== sessionId) {
+        wallet.transfer(sessionId, user.id, bonusAwarded);
         sql.prepare('DELETE FROM users WHERE id=?').run(sessionId);
         sql.prepare('INSERT OR REPLACE INTO aliases VALUES(?,?)').run(sessionId, user.id);
         sql.prepare('UPDATE ledger SET user_id=? WHERE user_id=?').run(user.id, sessionId);
         sql.prepare('UPDATE chat_requests SET user_id=? WHERE user_id=?').run(user.id, sessionId);
       }
+      user.hearts = getUser(user.id).hearts;
       putUser(user);
-      if (bonusAwarded) sql.prepare('INSERT INTO ledger(user_id,delta,reason,created_at) VALUES(?,?,?,?)').run(user.id, Math.round(config.phoneAuthBonusHearts * 10), 'phone_bonus', Date.now());
-      return { user, bonusAwarded };
+      if (bonusAwarded) wallet.change(user.id, units(config.phoneAuthBonusHearts), 'phone_bonus');
+      return { user: getUser(user.id), bonusAwarded };
     });
   },
   debit(id, cost, reason) {
-    if (!Number.isFinite(cost) || cost < 0) throw new Error('Invalid cost');
-    const user = getUser(id);
-    if (!user || (!user.isVipUnlimited && user.hearts < cost)) return null;
-    if (!user.isVipUnlimited) {
-      user.hearts = (Math.round(user.hearts * 10) - Math.round(cost * 10)) / 10;
-      putUser(user);
-      sql.prepare('INSERT INTO ledger(user_id,delta,reason,created_at) VALUES(?,?,?,?)').run(id, -Math.round(cost * 10), reason, Date.now());
-    }
-    return user;
+    const amount = units(cost);
+    return transaction(() => {
+      const user = getUser(id);
+      if (!user || (!user.isVipUnlimited && units(user.hearts) < amount)) return null;
+      if (user.isVipUnlimited) return user;
+      try { return wallet.change(id, -amount, reason); }
+      catch (error) { if (error.code === 'INSUFFICIENT_HEARTS') return null; throw error; }
+    });
   },
   appendMessages(id, characterId, messages) {
     id = resolveUserId(id);
