@@ -16,8 +16,8 @@ async function callGemini(messages, systemInstruction, apiKey) {
     },
     generationConfig: {
       temperature: 0.9,
-      // The cap includes thinking tokens; leave room for the short visible reply.
-      maxOutputTokens: 512,
+      // Leave headroom for internal reasoning and a complete visible reply.
+      maxOutputTokens: 2048,
       thinkingConfig: { thinkingLevel: 'LOW' }
     },
     safetySettings: [
@@ -28,21 +28,29 @@ async function callGemini(messages, systemInstruction, apiKey) {
     ]
   };
 
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-    signal: AbortSignal.timeout(25000),
-    body: JSON.stringify(payload)
-  });
-
-  if (!res.ok) {
-    throw new Error(`Gemini API Error (${res.status})`);
+  // Retry inside the same charged chat request; never expose a truncated candidate.
+  const signal = AbortSignal.timeout(45000);
+  for (const maxOutputTokens of [2048, 4096]) {
+    payload.generationConfig.maxOutputTokens = maxOutputTokens;
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+      signal,
+      body: JSON.stringify(payload)
+    });
+    if (!res.ok) throw new Error(`Gemini API Error (${res.status})`);
+    const data = await res.json();
+    const candidate = data.candidates?.[0];
+    const finishReason = candidate?.finishReason;
+    // Metadata only: never put customer messages or API keys in logs.
+    console.info('[LLM] Gemini result:', JSON.stringify({ finishReason: finishReason || 'MISSING',
+      outputTokens: data.usageMetadata?.candidatesTokenCount, maxOutputTokens }));
+    if (finishReason === 'MAX_TOKENS') continue;
+    if (finishReason !== 'STOP') throw new Error(`Gemini response incomplete (${finishReason || 'MISSING'})`);
+    const parts = candidate?.content?.parts || [];
+    return parts.filter(part => !part.thought).map(part => part.text || '').join('').trim();
   }
-
-  const data = await res.json();
-  const candidate = data.candidates && data.candidates[0];
-  const parts = candidate?.content?.parts || [];
-  return parts.filter(part => !part.thought).map(part => part.text || '').join('').trim();
+  throw new Error('Gemini output limit reached after retry');
 }
 
 async function callOpenAI(messages, systemInstruction, apiKey) {
