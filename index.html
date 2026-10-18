@@ -121,16 +121,43 @@
           <!-- Populated dynamically by renderChatRoomsList() -->
         </div>
 
-        <!-- AI Service Transparency Disclaimer Footer -->
-        <div class="pt-6 pb-6 text-center text-[#8e95a0] space-y-1.5 border-t border-[#eae5d8] mt-6">
-          <div class="flex items-center justify-center gap-1.5 text-[11.5px] font-medium text-[#7a828e]">
-            <svg class="w-3.5 h-3.5 text-[#9ca3af]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"/></svg>
-            <span>AI 가상 대화 서비스 안내</span>
+        <!-- Business Info & Transparency Disclaimer Footer (Collapsible) -->
+        <footer class="pt-6 pb-8 px-1 text-[#717680] border-t border-[#eae5d8] mt-6 text-[12px] space-y-3">
+          <!-- Policy Links -->
+          <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] font-medium text-[#5c616b]">
+            <button type="button" onclick="alert('이용약관 안내: 본 서비스는 만 19세 이상 성인을 위한 가상 대화 시뮬레이션 서비스입니다.')" class="hover:underline">이용약관</button>
+            <span class="text-[#cbd0d6]">|</span>
+            <button type="button" onclick="alert('개인정보처리방침 안내: 회원의 개인정보는 안전하게 보호되며 동의 없이 제3자에게 제공되지 않습니다.')" class="hover:underline font-bold">개인정보처리방침</button>
+            <span class="text-[#cbd0d6]">|</span>
+            <button type="button" onclick="alert('환불정책 안내: 미사용 하트 및 이용권은 관련 법령에 따라 결제 후 7일 이내 환불이 가능합니다.')" class="hover:underline">환불정책</button>
+            <span class="text-[#cbd0d6]">|</span>
+            <span class="text-[#8c929e]">사업자 정보</span>
           </div>
-          <p class="text-[11px] leading-relaxed max-w-[320px] mx-auto text-[#9ca3af]">
-            설렘 라운지의 모든 대화 상대는 생성형 AI 기술로 구현된 가상 인물(페르소나)입니다. 실시간 1:1 대화 시뮬레이션을 제공합니다.
+
+          <p class="text-[12.5px] font-bold text-[#2b2f36] leading-snug">
+            설렘 라운지는 상호 메이비웍스가 운영하는 온라인 가상 대화 콘텐츠 서비스입니다.
           </p>
-        </div>
+
+          <!-- Collapsible Business & Customer Support Info -->
+          <details class="group rounded-xl bg-white/70 border border-[#e5dfd3] p-3 transition">
+            <summary class="cursor-pointer select-none font-bold text-[12px] text-[#4b515d] flex items-center justify-between outline-none">
+              <span class="flex items-center gap-1.5">
+                <span class="inline-block transition-transform duration-200 group-open:rotate-180 text-[10px]">▼</span>
+                <span>사업자·고객센터 정보</span>
+              </span>
+              <span class="text-[11px] font-normal text-[#8c929e] group-open:hidden">펼쳐보기</span>
+            </summary>
+            <div class="mt-2.5 pt-2.5 border-t border-[#eee9dc] space-y-1.5 text-[11px] leading-relaxed text-[#686e7a]">
+              <div>상호 <span class="font-semibold text-[#3b404a]">메이비웍스</span> · 대표 <span class="font-semibold text-[#3b404a]">홍지민</span> · 사업자등록번호 <span class="font-semibold text-[#3b404a]">666-01-04235</span></div>
+              <div>통신판매업 신고번호 <span class="font-semibold text-[#3b404a]">2026-안양동안-0369</span> · 주소 <span class="font-semibold text-[#3b404a]">경기도 안양시 동안구 시민대로 327번길 11-41</span></div>
+              <div class="pt-0.5">고객센터 <a href="tel:010-7364-2623" class="font-semibold text-[#3b404a] underline">010-7364-2623</a> · <a href="mailto:maybeworks@naver.com" class="font-semibold text-[#3b404a] underline">maybeworks@naver.com</a></div>
+            </div>
+          </details>
+
+          <p class="text-[10.5px] leading-relaxed text-[#8f95a0]">
+            설렘 라운지는 오락·정서적 교감 목적의 자동 생성 디지털 가상 대화 콘텐츠이며, 특정 결과나 실제 인물과의 사실관계를 보장하지 않습니다.
+          </p>
+        </footer>
       </div>
 
       <!-- 3. List View Bottom Credit Bar -->
