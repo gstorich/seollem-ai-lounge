@@ -166,10 +166,16 @@
 
       <!-- 3. List View Bottom Credit Bar -->
       <footer class="shrink-0 bg-white px-4 py-2.5 border-t border-[#eaedf0] z-20 flex items-center justify-between text-[12.5px] text-[#6b7684] shadow-[0_-1px_3px_rgba(0,0,0,0.02)]">
-        <button id="btnOpenPaymentListFooter" type="button" class="hover:text-rose-600 transition flex items-center gap-1.5 font-medium">
-          <span id="listFooterCreditText" class="text-[#191f28] font-bold">내 보유: 50 하트 ❤️</span>
-          <span class="px-2 py-0.5 rounded-lg bg-[#fff1f2] text-rose-600 text-[11.5px] font-bold border border-[#fecdd3]">하트 충전소</span>
-        </button>
+        <div class="flex items-center gap-2">
+          <button id="btnOpenPaymentListFooter" type="button" class="hover:text-rose-600 transition flex items-center gap-1.5 font-medium">
+            <span id="listFooterCreditText" class="text-[#191f28] font-bold">내 보유: 50 하트 ❤️</span>
+            <span class="px-2 py-0.5 rounded-lg bg-[#fff1f2] text-rose-600 text-[11.5px] font-bold border border-[#fecdd3]">하트 충전소</span>
+          </button>
+          <span class="text-[#ced4da]">·</span>
+          <button id="btnListSwitchVip" type="button" class="text-[11px] text-[#4e5968] hover:text-[#191f28] bg-[#f1f3f5] hover:bg-[#e5e8eb] px-1.5 py-0.5 rounded border border-[#e2e5e9] font-medium transition" title="VIP 무제한 ↔ 일반 하트 모드 전환">
+            모드전환
+          </button>
+        </div>
         <span class="text-[11.5px] text-[#8b95a1]">설렘 라운지</span>
       </footer>
     </section>
@@ -280,34 +286,45 @@
       </div>
 
       <!-- 4. Clean Bottom Input Bar + Subtle Account/Credit Status Bar -->
-      <footer class="shrink-0 bg-white px-4 pt-2.5 pb-3 border-t border-[#eaedf0] z-20 shadow-[0_-1px_3px_rgba(0,0,0,0.02)]">
+      <footer class="shrink-0 bg-white px-4 pt-2.5 pb-3 border-t border-[#eaedf0] z-20 shadow-[0_-1px_3px_rgba(0,0,0,0.02)] relative">
+        <!-- Floating Heart Deduction Badge (animated when message sent) -->
+        <div id="heartDeductionToast" class="pointer-events-none opacity-0 transition-all duration-300 absolute -top-9 right-5 px-3 py-1 rounded-full bg-rose-500 text-white font-black text-[12px] shadow-lg flex items-center gap-1 z-30">
+          <span>-10 하트 ❤️</span>
+        </div>
+
         <form id="chatForm" class="flex items-end gap-2">
           <button id="btnOpenGiftModal" type="button" title="선물하기" class="shrink-0 w-11 h-11 rounded-xl bg-[#fff1f2] hover:bg-[#ffe4e6] active:scale-95 border border-[#fecdd3] flex items-center justify-center transition shadow-xs text-rose-500">
             <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V4a2 2 0 112 2h-2zm0 0V4a2 2 0 10-2 2h2zm-7 4h14a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2z"/></svg>
           </button>
 
-          <div class="flex-1 bg-[#f4f5f8] rounded-xl px-4 py-2.5 flex items-center border border-[#e2e5e9] focus-within:border-amber-400 transition">
-            <textarea id="chatInput" rows="1" placeholder="따뜻한 메시지를 입력해보세요..." class="w-full bg-transparent text-[16px] text-[#191f28] placeholder-[#8b95a1] focus:outline-none resize-none max-h-24 leading-relaxed"></textarea>
+          <div class="flex-1 bg-[#f4f5f8] rounded-xl px-4 py-2 flex items-center border border-[#e2e5e9] focus-within:border-amber-400 transition">
+            <textarea id="chatInput" rows="1" placeholder="따뜻한 메시지를 입력해보세요... (1회 전송 10하트)" class="w-full bg-transparent text-[15.5px] text-[#191f28] placeholder-[#8b95a1] focus:outline-none resize-none max-h-24 leading-relaxed"></textarea>
           </div>
 
-          <button id="btnSend" type="submit" class="shrink-0 h-11 px-5 rounded-xl bg-[#fee500] hover:bg-[#ebd300] active:scale-95 text-[#191919] font-bold text-[16px] shadow-xs transition flex items-center justify-center">
-            전송
+          <button id="btnSend" type="submit" class="shrink-0 h-11 px-3.5 min-w-[70px] rounded-xl bg-[#fee500] hover:bg-[#ebd300] active:scale-95 text-[#191919] font-bold shadow-xs transition flex flex-col items-center justify-center">
+            <span class="text-[15px] font-black leading-tight">전송</span>
+            <span id="sendCostBadge" class="text-[10px] font-bold text-[#b45309] leading-none mt-0.5">-10❤️</span>
           </button>
         </form>
         <div class="flex items-center justify-between mt-2 text-[12px] text-[#6b7684] px-0.5">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-1.5 flex-wrap">
             <button id="btnOpenPaymentFooter" type="button" class="hover:text-rose-600 transition flex items-center gap-1 font-medium">
               <span id="footerCreditText" class="text-[#191f28] font-bold">보유 50 하트 ❤️</span>
+              <span id="footerPerMsgCost" class="text-[11px] text-[#8b95a1] font-normal">(1회 10하트)</span>
               <span class="px-1.5 py-0.2 rounded bg-[#fff1f2] text-rose-600 text-[11px] font-bold border border-[#fecdd3]">충전소</span>
             </button>
             <span class="text-[#ced4da]">·</span>
-            <button id="btnOpenPhoneAuthFooter" type="button" class="hover:text-[#191f28] transition underline underline-offset-2">
-              휴대폰 인증
+            <button id="btnFooterSwitchVip" type="button" class="text-[11px] text-[#4e5968] hover:text-[#191f28] bg-[#f1f3f5] hover:bg-[#e5e8eb] px-1.5 py-0.5 rounded border border-[#e2e5e9] font-medium transition" title="VIP 무제한 ↔ 일반 하트 모드 전환">
+              하트모드
             </button>
           </div>
           <div class="flex items-center gap-1.5 text-[11.5px] text-[#6b7684]">
+            <button id="btnOpenPhoneAuthFooter" type="button" class="hover:text-[#191f28] transition underline underline-offset-2">
+              인증
+            </button>
+            <span class="text-[#ced4da]">·</span>
             <button id="btnOpenAiPolicyInfo" type="button" class="px-2 py-0.5 rounded-lg bg-[#f1f3f5] hover:bg-[#e9ecef] border border-[#e2e5e9] text-[#d97706] font-semibold transition">
-              API 키 설정
+              API
             </button>
           </div>
         </div>
@@ -474,6 +491,39 @@
             </button>
           </div>
 
+          <!-- Heart Usage Guide Card (어디서 어떻게 쓰이는지 직관적 안내) -->
+          <div class="p-3.5 rounded-2xl bg-white border border-[#e2e5e9] shadow-xs space-y-2">
+            <div class="flex items-center justify-between">
+              <span class="text-[13px] font-bold text-[#191f28] flex items-center gap-1.5">
+                <span>💡</span>
+                <span>하트는 어디에 어떻게 쓰이나요?</span>
+              </span>
+              <span class="text-[11px] font-bold text-rose-600 bg-rose-50 border border-rose-200 px-2 py-0.5 rounded-full">정기결제 없는 종량제</span>
+            </div>
+            <div class="grid grid-cols-2 gap-1.5 text-[12px]">
+              <div class="p-2 rounded-xl bg-[#f8f9fa] border border-[#f1f3f5] flex items-center justify-between">
+                <span class="text-[#4e5968]">💬 <strong>대화 1회 전송</strong></span>
+                <span class="font-extrabold text-rose-600">10 하트</span>
+              </div>
+              <div class="p-2 rounded-xl bg-[#f8f9fa] border border-[#f1f3f5] flex items-center justify-between">
+                <span class="text-[#4e5968]">📷 <strong>비밀 사진첩 열람</strong></span>
+                <span class="font-extrabold text-rose-600">20~30 하트</span>
+              </div>
+              <div class="p-2 rounded-xl bg-[#f8f9fa] border border-[#f1f3f5] flex items-center justify-between">
+                <span class="text-[#4e5968]">🎁 <strong>감성 선물 전송</strong></span>
+                <span class="font-extrabold text-rose-600">선물별 차감</span>
+              </div>
+              <div class="p-2 rounded-xl bg-[#f8f9fa] border border-[#f1f3f5] flex items-center justify-between">
+                <span class="text-[#4e5968]">🔁 <strong>스쳐간 인연 다시 부르기</strong></span>
+                <span class="font-extrabold text-rose-600">20 하트</span>
+              </div>
+            </div>
+            <p class="text-[11.5px] text-[#6b7684] leading-snug">
+              • 상대방이 보내는 답장은 <strong>완전 무료</strong>입니다.<br/>
+              • 내가 대화창에서 메시지를 1회 보낼 때마다 <strong>10 하트</strong>가 차감됩니다.
+            </p>
+          </div>
+
           <!-- Package Selection -->
           <div class="space-y-2.5">
             <div class="flex items-center justify-between">
@@ -567,6 +617,28 @@
               </button>
               <button type="button" data-paymethod="phone" class="pay-method-btn py-2.5 px-2 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] font-semibold text-[13px]">
                 휴대폰 결제
+              </button>
+            </div>
+          </div>
+
+          <!-- Test & Mode Switcher Controls for Developers / Users -->
+          <div class="p-3.5 rounded-2xl bg-amber-50/80 border border-amber-200 flex flex-col gap-2 shadow-xs">
+            <div class="flex items-center justify-between">
+              <div class="text-[12.5px] font-bold text-[#191f28] flex items-center gap-1.5">
+                <span>⚙️</span>
+                <span id="currentModeLabel">현재: 일반 하트 차감 모드</span>
+              </div>
+              <span class="text-[11px] text-[#b45309] font-medium">상태 및 모드 설정</span>
+            </div>
+            <p class="text-[11.5px] text-[#6b7684]">
+              무제한 VIP 요금제와 건당 하트 차감 모드를 자유롭게 전환하거나, 계정 데이터를 초기화할 수 있습니다.
+            </p>
+            <div class="flex items-center gap-2 pt-0.5">
+              <button id="btnModalToggleVip" type="button" class="flex-1 py-2 px-3 rounded-xl bg-white hover:bg-[#f8f9fa] border border-amber-300 text-[#b45309] font-bold text-[12px] transition shadow-xs active:scale-95 text-center">
+                VIP 무제한 ↔ 일반 하트 전환
+              </button>
+              <button id="btnModalResetData" type="button" class="py-2 px-3 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 font-bold text-[12px] transition shadow-xs active:scale-95 text-center shrink-0">
+                전체 데이터 초기화
               </button>
             </div>
           </div>
@@ -2060,21 +2132,56 @@
       }
 
       const creditEl = document.getElementById('footerCreditText');
-      if (creditEl) {
-        if (state.isVipUnlimited) {
-          creditEl.textContent = 'VIP 무제한 이용 중';
-        } else {
-          creditEl.textContent = `보유 ${state.hearts.toLocaleString()} 하트 ❤️`;
-        }
-      }
-
       const listCreditEl = document.getElementById('listFooterCreditText');
-      if (listCreditEl) {
-        if (state.isVipUnlimited) {
-          listCreditEl.textContent = 'VIP 무제한 이용 중';
-        } else {
-          listCreditEl.textContent = `내 보유: ${state.hearts.toLocaleString()} 하트 ❤️`;
+      const costBadge = document.getElementById('sendCostBadge');
+      const footerPerMsgCost = document.getElementById('footerPerMsgCost');
+      const btnFooterSwitch = document.getElementById('btnFooterSwitchVip');
+      const btnListSwitch = document.getElementById('btnListSwitchVip');
+      const currentModeLabel = document.getElementById('currentModeLabel');
+      const btnModalToggleVip = document.getElementById('btnModalToggleVip');
+      const chatInput = document.getElementById('chatInput');
+
+      if (state.isVipUnlimited) {
+        if (creditEl) creditEl.textContent = '👑 VIP 무제한';
+        if (listCreditEl) listCreditEl.textContent = '👑 VIP 무제한 (무료 이용)';
+        if (footerPerMsgCost) footerPerMsgCost.textContent = '(하트 차감 없음)';
+        if (costBadge) {
+          costBadge.textContent = '무료';
+          costBadge.className = 'text-[10px] font-bold text-emerald-800 leading-none mt-0.5';
         }
+        if (btnFooterSwitch) {
+          btnFooterSwitch.textContent = '하트모드';
+          btnFooterSwitch.className = 'text-[11px] text-purple-700 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 px-2 py-0.5 rounded-lg border border-purple-200 font-bold transition';
+          btnFooterSwitch.title = '일반 하트 차감 모드로 전환하여 테스트';
+        }
+        if (btnListSwitch) {
+          btnListSwitch.textContent = '하트모드로 전환';
+          btnListSwitch.className = 'text-[11px] text-purple-700 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 px-2 py-0.5 rounded-lg border border-purple-200 font-bold transition';
+        }
+        if (currentModeLabel) currentModeLabel.textContent = '현재: 👑 VIP 무제한 모드 (무료)';
+        if (btnModalToggleVip) btnModalToggleVip.textContent = '일반 하트 모드로 전환';
+        if (chatInput) chatInput.placeholder = '따뜻한 메시지를 입력해보세요... (VIP 무료)';
+      } else {
+        const heartsFormatted = (state.hearts || 0).toLocaleString();
+        if (creditEl) creditEl.textContent = `보유 ${heartsFormatted} 하트 ❤️`;
+        if (listCreditEl) listCreditEl.textContent = `내 보유: ${heartsFormatted} 하트 ❤️`;
+        if (footerPerMsgCost) footerPerMsgCost.textContent = '(1회 10하트)';
+        if (costBadge) {
+          costBadge.textContent = '-10❤️';
+          costBadge.className = 'text-[10px] font-bold text-[#b45309] leading-none mt-0.5';
+        }
+        if (btnFooterSwitch) {
+          btnFooterSwitch.textContent = 'VIP 전환';
+          btnFooterSwitch.className = 'text-[11px] text-[#4e5968] hover:text-[#191f28] bg-[#f1f3f5] hover:bg-[#e5e8eb] px-1.5 py-0.5 rounded border border-[#e2e5e9] font-medium transition';
+          btnFooterSwitch.title = 'VIP 무제한 요금제로 전환하여 테스트';
+        }
+        if (btnListSwitch) {
+          btnListSwitch.textContent = 'VIP 전환';
+          btnListSwitch.className = 'text-[11px] text-[#4e5968] hover:text-[#191f28] bg-[#f1f3f5] hover:bg-[#e5e8eb] px-1.5 py-0.5 rounded border border-[#e2e5e9] font-medium transition';
+        }
+        if (currentModeLabel) currentModeLabel.textContent = `현재: ❤️ 일반 하트 차감 모드 (${heartsFormatted}개 보유)`;
+        if (btnModalToggleVip) btnModalToggleVip.textContent = 'VIP 무제한 모드로 전환';
+        if (chatInput) chatInput.placeholder = '따뜻한 메시지를 입력해보세요... (1회 전송 10하트)';
       }
 
       const phoneBtn = document.getElementById('btnOpenPhoneAuthFooter');
@@ -4112,6 +4219,18 @@
       return;
     }
 
+    function triggerHeartDeductionAnimation(cost = 10) {
+      const toast = document.getElementById('heartDeductionToast');
+      if (!toast) return;
+      toast.innerHTML = `<span>-${cost} 하트 ❤️</span>`;
+      toast.classList.remove('opacity-0', '-top-9');
+      toast.classList.add('opacity-100', '-top-14');
+      setTimeout(() => {
+        toast.classList.remove('opacity-100', '-top-14');
+        toast.classList.add('opacity-0', '-top-9');
+      }, 1000);
+    }
+
     // =========================================================================
     // 9. SENDING USER MESSAGES (WITH CREDIT CHECK & AUTO-SAVE)
     // =========================================================================
@@ -4131,6 +4250,7 @@
       if (!state.isVipUnlimited) {
         state.hearts = Math.max(0, state.hearts - 10);
         state.credits = state.hearts;
+        triggerHeartDeductionAnimation(10);
       }
 
       // 사용자가 메시지를 보낸 순간, 진행 중이던 초기 인사 큐나 이전 타이핑 큐는 즉시 정리
@@ -5003,6 +5123,62 @@
         showToast(`🎉 <strong>${pkg.name}</strong> 충전이 완료되었습니다! (+${pkg.hearts.toLocaleString()} 하트 적립)`);
       }, 600);
     });
+
+    function toggleVipMode() {
+      state.isVipUnlimited = !state.isVipUnlimited;
+      if (!state.isVipUnlimited && (!state.hearts || state.hearts <= 0)) {
+        state.hearts = 50;
+        state.credits = 50;
+      }
+      saveAccountState();
+      updateAccountAndCreditUI();
+      if (state.isVipUnlimited) {
+        showToast('👑 <strong>VIP 무제한 모드</strong>로 전환되었습니다.<br/>모든 대화와 사진이 무료로 제공됩니다.');
+      } else {
+        showToast(`❤️ <strong>일반 하트 모드</strong>로 전환되었습니다.<br/>(현재 보유: ${state.hearts} 하트, 메시지 1회 전송당 10하트 차감)`);
+      }
+    }
+
+    function resetAllAccountData() {
+      if (!confirm('정말로 모든 대화 기록과 계정 데이터를 초기화하시겠습니까?\n(일반 하트 50개의 기본 상태로 깨끗하게 리셋됩니다)')) return;
+      try {
+        localStorage.removeItem('seollem_guest_account');
+        if (state.verifiedPhone) {
+          localStorage.removeItem(getStorageKeyForAccount(state.verifiedPhone));
+        }
+        localStorage.removeItem('seollem_active_phone');
+      } catch (e) {}
+      state.isVipUnlimited = false;
+      state.hearts = 50;
+      state.credits = 50;
+      state.savedRooms = {};
+      state.unlockedMedia = {};
+      state.metCharIds = [];
+      state.currentChar = null;
+      state.roomLeft = false;
+      saveAccountState();
+      location.reload();
+    }
+
+    const btnFooterSwitchVip = document.getElementById('btnFooterSwitchVip');
+    if (btnFooterSwitchVip) {
+      btnFooterSwitchVip.addEventListener('click', toggleVipMode);
+    }
+
+    const btnListSwitchVip = document.getElementById('btnListSwitchVip');
+    if (btnListSwitchVip) {
+      btnListSwitchVip.addEventListener('click', toggleVipMode);
+    }
+
+    const btnModalToggleVip = document.getElementById('btnModalToggleVip');
+    if (btnModalToggleVip) {
+      btnModalToggleVip.addEventListener('click', toggleVipMode);
+    }
+
+    const btnModalResetData = document.getElementById('btnModalResetData');
+    if (btnModalResetData) {
+      btnModalResetData.addEventListener('click', resetAllAccountData);
+    }
 
     function updateApiTestBadge() {
       const badge = document.getElementById('apiTestStatusBadge');
