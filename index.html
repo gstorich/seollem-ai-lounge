@@ -133,13 +133,14 @@
         <!-- Business Info & Transparency Disclaimer Footer (Collapsible) -->
         <footer class="pt-6 pb-8 px-1 text-[#717680] border-t border-[#eae5d8] mt-6 text-[12px] space-y-3">
           <div class="flex items-center gap-4 text-[12px]"><a href="/support" class="underline font-bold">고객센터 · 문의 내역</a><button type="button" data-analytics-preferences class="underline">쿠키 설정</button></div>
+          <a href="/products" class="underline font-bold">하트 상품 · 가격 · 이용 안내</a>
           <!-- Policy Links -->
           <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] font-medium text-[#5c616b]">
-            <button type="button" onclick="alert('이용약관 안내: 본 서비스는 만 19세 이상 성인을 위한 가상 대화 시뮬레이션 서비스입니다.')" class="hover:underline">이용약관</button>
+            <a href="/terms" class="hover:underline">이용약관</a>
             <span class="text-[#cbd0d6]">|</span>
-            <button type="button" onclick="location.href='/privacy'" class="hover:underline font-bold">개인정보처리방침</button>
+            <a href="/privacy" class="hover:underline font-bold">개인정보처리방침</a>
             <span class="text-[#cbd0d6]">|</span>
-            <button type="button" onclick="alert('환불정책 안내: 미사용 하트 및 이용권은 관련 법령에 따라 결제 후 7일 이내 환불이 가능합니다.')" class="hover:underline">환불정책</button>
+            <a href="/refund" class="hover:underline">환불 정책</a>
             <span class="text-[#cbd0d6]">|</span>
             <span class="text-[#8c929e]">사업자 정보</span>
           </div>
@@ -149,7 +150,7 @@
           </p>
 
           <!-- Collapsible Business & Customer Support Info -->
-          <details class="group rounded-xl bg-white/70 border border-[#e5dfd3] p-3 transition">
+          <details open class="group rounded-xl bg-white/70 border border-[#e5dfd3] p-3 transition">
             <summary class="cursor-pointer select-none font-bold text-[12px] text-[#4b515d] flex items-center justify-between outline-none">
               <span class="flex items-center gap-1.5">
                 <span class="inline-block transition-transform duration-200 group-open:rotate-180 text-[10px]">▼</span>
@@ -382,7 +383,7 @@
               <span>하트 충전</span>
               <span class="text-rose-500">❤️</span>
             </h3>
-            <p id="paymentModalSubtitle" class="text-[12px] text-[#6b7684] mt-0.5">1회성 결제 · 대화 영구 보관</p>
+            <p id="paymentModalSubtitle" class="text-[12px] text-[#6b7684] mt-0.5">1회성 충전 · 획득일부터 2년간 유효</p>
           </div>
           <button id="btnClosePayment" type="button" class="w-8 h-8 rounded-full bg-[#f1f3f5] text-[#495057] flex items-center justify-center font-bold hover:bg-[#e9ecef] transition">✕</button>
         </div>
@@ -402,6 +403,7 @@
           <div id="paymentAuthRequirement" role="status" class="p-3 rounded-xl bg-white border border-amber-300 text-[13px] text-[#78350f] leading-relaxed">
             <strong>휴대폰 번호 연동 전에는 결제할 수 없습니다.</strong><br>먼저 번호를 연동하고 첫 인증 혜택 100하트로 대화를 이어가세요.
           </div>
+          <div class="p-3 rounded-xl bg-white border border-[#e2e5e9] text-[12px] leading-relaxed">현재 실결제 준비 중입니다. 표시 가격은 부가세 포함 총액이며 자동 갱신되지 않습니다. <a href="/products" class="underline">상품 상세</a> · <a href="/terms" class="underline">이용약관</a> · <a href="/privacy" class="underline">개인정보처리방침</a> · <a href="/refund" class="underline">환불 정책</a><br>미사용 하트는 7일 내 전액, 일부 사용 시 미사용 유료분을 비례 환급합니다. 메이비웍스 · 대표 홍지민 · 666-01-04235 · 2026-안양동안-0369<br>경기도 안양시 동안구 시민대로 327번길 11-41<br>010-7364-2623 · maybeworks@naver.com</div>
           <div id="paymentHeartExpiry" class="p-3 rounded-xl bg-white border border-[#e2e5e9] text-[12px] text-[#6b7684] leading-relaxed" aria-live="polite">보유 하트는 각 획득일로부터 2년간 유효합니다. 먼저 획득한 하트부터 사용되며, 만료된 하트는 자동 소멸됩니다.</div>
           <!-- Ultra-clean Package Cards -->
           <div class="space-y-2.5">
@@ -410,12 +412,12 @@
               <div>
                 <div class="flex items-center gap-2">
                   <span class="font-black text-[#191f28] text-[16px]">스타터 패키지</span>
-                  <span class="px-2 py-0.5 rounded bg-rose-500 text-white text-[10px] font-black">72% 할인</span>
+
                 </div>
                 <div class="text-[14px] text-rose-600 font-black mt-1">하트 2,500개</div>
               </div>
               <div class="text-right">
-                <div class="text-[12px] text-[#8b95a1] line-through">70,000원</div>
+
                 <div class="text-[18px] font-black text-[#191f28]">19,900원</div>
               </div>
             </div>
@@ -425,13 +427,13 @@
               <div>
                 <div class="flex items-center gap-2">
                   <span class="font-black text-[#191f28] text-[16.5px]">베스트 패키지</span>
-                  <span class="px-2 py-0.5 rounded bg-amber-500 text-black text-[10px] font-black">인기 1위</span>
-                  <span class="px-1.5 py-0.5 rounded bg-rose-500 text-white text-[10px] font-black">75% 할인</span>
+
+
                 </div>
-                <div class="text-[14.5px] text-rose-600 font-black mt-1">하트 8,000개 <span class="text-[11.5px] text-amber-800 font-normal">(+2,000 보너스)</span></div>
+                <div class="text-[14.5px] text-rose-600 font-black mt-1">하트 8,000개 </div>
               </div>
               <div class="text-right">
-                <div class="text-[12px] text-[#8b95a1] line-through">198,000원</div>
+
                 <div class="text-[20px] font-black text-rose-600">49,000원</div>
               </div>
             </div>
@@ -441,12 +443,12 @@
               <div>
                 <div class="flex items-center gap-2">
                   <span class="font-black text-[#191f28] text-[16px]">VIP 메가 패키지</span>
-                  <span class="px-2 py-0.5 rounded bg-purple-600 text-white text-[10px] font-black">77% 할인</span>
+
                 </div>
                 <div class="text-[14px] text-rose-600 font-black mt-1">하트 20,000개 <span class="text-[11.5px] text-purple-700 font-normal">(대용량)</span></div>
               </div>
               <div class="text-right">
-                <div class="text-[12px] text-[#8b95a1] line-through">390,000원</div>
+
                 <div class="text-[18px] font-black text-[#191f28]">89,000원</div>
               </div>
             </div>
@@ -456,12 +458,12 @@
               <div>
                 <div class="flex items-center gap-2">
                   <span class="font-black text-[#191f28] text-[16px]">VVIP 로열 패키지</span>
-                  <span class="px-2 py-0.5 rounded bg-zinc-900 text-amber-300 text-[10px] font-black">78% 할인</span>
+
                 </div>
                 <div class="text-[14px] text-rose-600 font-black mt-1">하트 50,000개</div>
               </div>
               <div class="text-right">
-                <div class="text-[12px] text-[#8b95a1] line-through">680,000원</div>
+
                 <div class="text-[18px] font-black text-[#191f28]">149,000원</div>
               </div>
             </div>
@@ -475,7 +477,7 @@
         <!-- Sticky Footer: Payment Method & Pay Button -->
         <div class="p-4 border-t border-[#eaedf0] bg-white shrink-0 space-y-2.5 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
           <div>
-            <div class="text-[12px] font-bold text-[#333333] mb-1.5">결제 수단</div>
+            <div class="text-[12px] font-bold text-[#333333] mb-1.5">제공 예정 결제수단</div>
             <div class="grid grid-cols-3 gap-2">
               <button type="button" data-paymethod="kakaopay" class="pay-method-btn py-2.5 px-2 rounded-xl border-2 border-[#fee500] bg-[#fee500]/25 text-[#191919] font-black text-[13px] shadow-xs flex items-center justify-center gap-1 transition">
                 <span>🟡</span> 카카오페이
@@ -559,8 +561,9 @@
           </span>
           <h3 class="text-[20px] font-black text-[#111111]">어떤 분과 대화하고 싶으세요?</h3>
           <p class="text-[13px] text-[#666666] leading-relaxed">
-            회원님에게 꼭 맞는 맞춤형 대화 상대를 매칭해 드립니다.
+            가상의 AI 캐릭터와 대화하는 성인 대상 서비스입니다.
           </p>
+          <p class="text-[12px] text-[#666666] leading-relaxed"><a href="/products" class="underline">상품·가격</a> · <a href="/terms" class="underline">이용약관</a> · <a href="/privacy" class="underline">개인정보처리방침</a> · <a href="/refund" class="underline">환불 정책</a></p>
         </div>
 
         <!-- Two Big Selection Cards -->
@@ -801,7 +804,7 @@
 
         <!-- Categories Filter Tabs -->
         <div id="giftCategoryTabs" class="px-4 py-2.5 flex gap-2 overflow-x-auto chat-scroll shrink-0 border-b border-[#eaedf0] bg-[#f8f9fa]"></div>
-        
+
         <!-- Shopping Mall Products Grid -->
         <div id="giftGrid" class="p-4 grid grid-cols-2 auto-rows-max content-start gap-3 overflow-y-auto chat-scroll flex-1 bg-[#f8f9fa]"></div>
       </div>
@@ -2842,7 +2845,7 @@
         if (payBonusBanner) payBonusBanner.classList.add('hidden');
       } else {
         if (drawerTitle) drawerTitle.textContent = '📱 휴대폰 번호 미연동';
-        if (drawerSub) drawerSub.textContent = '번호를 인증하면 대화 기록 영구 보존 + 무료 100 하트 즉시 지급!';
+        if (drawerSub) drawerSub.textContent = '번호를 연결하면 대화 기록을 계정에 보관하고 첫 연결 시 100하트를 드려요';
         if (drawerBtn) drawerBtn.textContent = '3초 번호인증';
         if (payBonusBanner) payBonusBanner.classList.remove('hidden');
       }
@@ -5897,7 +5900,7 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
     function openPaymentModal(customSubtitle) {
       const sub = document.getElementById('paymentModalSubtitle');
       if (sub) {
-        sub.textContent = customSubtitle || '1회성 결제 · 대화 영구 보관';
+        sub.textContent = customSubtitle || '1회성 충전 · 획득일부터 2년간 유효';
       }
       state.selectedPkg = state.selectedPkg || 'popular';
       const pkg = PACKAGES[state.selectedPkg] || PACKAGES.popular;
@@ -5907,6 +5910,7 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
       }
       updateAccountAndCreditUI();
       document.getElementById('paymentModal').classList.remove('hidden');
+      document.querySelector(`.pkg-card[data-pkg="${state.selectedPkg}"]`)?.click();
       refreshHeartWallet();
     }
 
@@ -6296,7 +6300,7 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
     const promoBanner = document.getElementById('listPromoBanner');
     if (promoBanner) {
       promoBanner.addEventListener('click', () => {
-        openPaymentModal('오늘 자정 마감 특가 혜택! 최대 78% 파격 할인 중입니다.');
+        openPaymentModal('하트 상품의 수량·가격·유효기간을 확인하세요.');
       });
     }
     const btnClosePayment = document.getElementById('btnClosePayment');
@@ -6820,6 +6824,11 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
           applyServerAccount(await ApiClient.loadState());
         } catch { showToast('계정을 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.'); setChatInputEnabled(false); return; }
       } else loadAccountState();
+      const requestedPackage = new URLSearchParams(location.search).get('package');
+      if (Object.hasOwn(PACKAGES, requestedPackage)) {
+        state.selectedPkg = requestedPackage;
+        openPaymentModal();
+      }
       updateApiTestBadge();
       triggerSavedRoomsTimeGreetings();
       updateAccountAndCreditUI();
@@ -6835,9 +6844,9 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
         openPhoneAuthModal();
         document.getElementById('inputPhoneNumber').value = '';
         document.getElementById('inputPhoneNumber').focus();
-      } else if (!userGenderPref) {
+      } else if (!userGenderPref && !Object.hasOwn(PACKAGES, requestedPackage)) {
         document.getElementById('onboardingGenderModal')?.classList.remove('hidden');
-      } else {
+      } else if (userGenderPref) {
         state.matchFilter.gender = userGenderPref;
         localStorage.setItem('azit_user_gender_pref', userGenderPref);
         updateFilterModalUI();

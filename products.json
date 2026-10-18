@@ -1,0 +1,26 @@
+[
+  {
+    "id": "starter",
+    "name": "스타터 패키지",
+    "hearts": 2500,
+    "price": 19900
+  },
+  {
+    "id": "popular",
+    "name": "베스트 패키지",
+    "hearts": 8000,
+    "price": 49000
+  },
+  {
+    "id": "mania",
+    "name": "VIP 메가 패키지",
+    "hearts": 20000,
+    "price": 89000
+  },
+  {
+    "id": "master",
+    "name": "VVIP 로열 패키지",
+    "hearts": 50000,
+    "price": 149000
+  }
+]

@@ -17,12 +17,7 @@ router.use(['/prepare', '/verify'], requireAuth, (req, res, next) => {
   next();
 });
 
-const PACKAGES = {
-  starter: { id: 'starter', name: '아지트챗 스타터 패키지', hearts: 2500, price: 19900 },
-  popular: { id: 'popular', name: '단골 인연 베스트 패키지', hearts: 8000, price: 49000 },
-  mania: { id: 'mania', name: '아지트챗 VIP 메가 패키지', hearts: 20000, price: 89000 },
-  master: { id: 'master', name: 'VVIP 로열 하트 패키지', hearts: 50000, price: 149000 }
-};
+const PACKAGES = Object.fromEntries(require('../../products.json').map(pkg => [pkg.id, pkg]));
 
 // GET /api/payment/packages
 router.get('/packages', (req, res) => {

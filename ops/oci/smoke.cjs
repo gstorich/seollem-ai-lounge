@@ -32,6 +32,24 @@ async function post(route, body, token) {
     }
     assert(ready, logs);
     assert.match(await (await fetch(base + '/')).text(), /apiClient.js/);
+    const catalog = require('../../products.json');
+    const packages = (await (await fetch(base + '/api/payment/packages')).json()).packages;
+    for (const [route, title] of [['terms','이용약관'],['privacy','개인정보처리방침'],['refund','환불 정책'],['products','하트 상품 안내']]) {
+      const response = await fetch(base + '/' + route);
+      assert.equal(response.status,200);
+      const body = await response.text();
+      assert(body.includes('<h1>' + title + '</h1>'), route);
+      assert(body.includes('maybeworks@naver.com'), route);
+      assert(!body.includes('/analytics.js'), 'Policy pages must not load analytics');
+      assert.equal((await fetch(base + '/' + route + '.html')).status,200);
+      if(route==='products') for(const pkg of catalog) {
+        assert.deepEqual(packages[pkg.id],pkg);
+        assert(body.includes(pkg.price.toLocaleString('en-US')+'원'));
+        assert(body.includes(pkg.hearts.toLocaleString('en-US')));
+        assert(body.includes('/?package='+pkg.id));
+      }
+    }
+    assert.match((await fetch(base + '/policy.css')).headers.get('content-type'),/css/);
     assert.match(await (await fetch(base + '/apiClient.js')).text(), /checkBackendHealth/);
     assert.match(await (await fetch(base + '/chatTiming.js')).text(), /AzitChatTiming/);
     assert.equal((await fetch(base + '/avatars/avatar_05_yoon_jieun.jpg')).status, 200);

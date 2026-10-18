@@ -93,3 +93,13 @@ OCI 배포 후 지정 비밀번호 로그인 및 실제 운영 지표 표시, �
 - 사용자 나이·성별·이름·선호 호칭은 캐릭터의 선호 프로필이나 과거 AI 발화에서 추정하지 않습니다. 확인 전에는 호칭을 생략한 존댓말을 기본으로 하고, 모르는 직업·관계·혼인 여부도 단정하지 않도록 지시합니다.
 - 서버는 같은 방의 보관된 사용자 발화에서 명시적인 자기 소개와 호칭 요청·거절을 추출해 최근 12개 모델 문맥과 별도로 전달합니다. 연령·성별은 자기 진술이며 본인·성인 인증의 근거로 사용하지 않습니다. 인용·가정 문장은 근거에서 제외하고, 지원하지 않는 표현은 모르는 상태로 유지합니다.
 - 나이만 알려진 경우에는 성별이 확인되지 않아 성별 호칭을 자동 허용하지 않습니다. 구체적인 호칭을 직접 요청하면 그 선호를 우선하고, 사용자가 거부한 호칭은 제외합니다. 추출은 서버 내부에서 수행하며 새 분석 API나 외부 서비스로 보내지 않습니다.
+
+## Public commerce and policy pages (2026-10-18)
+
+- `/products`: four public, server-rendered static product descriptions with VAT-inclusive prices, quantities, delivery, two-year validity, purchase eligibility and refund links. No login or JavaScript is needed to review them. `products.json` is the payment API's catalog; smoke checks compare page prices/quantities against it.
+- `/terms`, `/refund`, `/privacy`: full service terms, refund policy and revised privacy policy; `.html` aliases also work. Shared local `policy.css` loads no external trackers/fonts. The original privacy notice is retained at `/privacy-20261018-initial`.
+- Footer and first-visit dialog link to the pages. Product links `/?package=<id>` open the selected package; payment remains unavailable in production.
+- Removed unsupported discount/reference-price/popularity claims, the misleading extra 2,000-heart bonus, and permanent conversation retention promises. Current package quantities/prices are unchanged.
+- Refund policy: unused paid orders may be withdrawn within the statutory seven-day period; unused paid balances may also be refunded proportionally without a separate cancellation fee. Free grants are excluded. Expiration of service credits does not itself eliminate statutory refund rights. Refunds are requested through support/email; no automatic PG refund flow is implemented while payments remain disabled.
+- Privacy inventory was checked against actual account/SMS/chat/admin/analytics behavior. OCI instance metadata confirms `ap-chuncheon-1`. Google processing is global and provider terms apply; do not claim a fixed processing country or guaranteed no-training status without confirming the actual API billing agreement.
+- Follow-up for payment launch: obtain a landline/070 customer service number (PortOne's published requirements exclude mobile numbers), complete PG underwriting and real checkout/webhook/refund verification, implement checkout terms acknowledgment and required identity/overseas-transfer consent as applicable, and publish verified provider/retention details before collecting new payment or identity fields. Do not mark PG approval or adult verification as live based on these pages.
