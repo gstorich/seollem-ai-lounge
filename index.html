@@ -5,6 +5,8 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
   <title>아지트챗 (AzitChat) - 1:1 실시간 AI 채팅</title>
   <meta name="application-name" content="아지트챗" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="theme-color" content="#ffe600" />
   <meta name="description" content="아지트챗에서 나만의 편안한 대화를 시작하세요. 다양한 AI 캐릭터와 나누는 1:1 실시간 대화." />
   <meta property="og:site_name" content="아지트챗" />
   <link rel="canonical" href="https://azitchat.com/" />
@@ -760,6 +762,13 @@
           </button>
         </div>
 
+        <div class="space-y-3 p-3 rounded-2xl border text-sm">
+          <strong>먼저 오는 연락 · 알림</strong>
+          <label class="flex items-center justify-between gap-3"><span>가끔 먼저 오는 연락 받기</span><input id="allowFirstContact" type="checkbox" checked class="w-5 h-5 accent-amber-400" /></label>
+          <p class="text-xs text-gray-600">일부 AI 캐릭터가 이전 대화를 떠올리며 먼저 연락할 수 있어요. 먼저 온 메시지는 무료이며 밤 10시~오전 10시에는 보내지 않아요.</p>
+          <button id="btnBrowserNotifications" type="button" class="w-full py-2.5 rounded-xl bg-amber-50 border border-amber-300 font-bold">브라우저 알림 허용</button>
+          <p id="notificationStatus" role="status" class="text-xs text-gray-600">알림을 허용하면 새 메시지가 왔을 때 알려드려요.</p>
+        </div>
         <!-- 3. Test & Developer Controls (VIP Mode, Reset) -->
         <div id="settingsDevControls" class="space-y-2 p-3 rounded-2xl bg-[#faf9f5] border border-[#e8e4d8] text-[12.5px]">
           <div class="flex items-center justify-between">
@@ -890,6 +899,7 @@
 
   <script src="apiClient.js"></script>
   <script src="chatTiming.js"></script>
+  <script src="notifications.js" defer></script>
   <script>
     // =========================================================================
     // 1. 1,250+ KOREAN FEMALE PERSONAS ENGINE (20대 ~ 60대, 5가지 성격, 7대 지역권)
@@ -2643,7 +2653,7 @@
             memorySummary: state.memorySummary || '',
             firstMetAt: state.firstMetAt || prevSaved.firstMetAt || Date.now(),
             photosSentCount: state.photosSentCount || 0,
-            unreadCount: 0,
+            unreadCount: state.currentView==='chatRoom'?0:state.messages.filter(m=>m.sender==='ai'&&m.unread).length,
             lastGreetingSlot: prevSaved.lastGreetingSlot || '',
             affection: state.affection,
             turnCount: state.turnCount,
@@ -5524,6 +5534,7 @@
       state.phoneBonusClaimed = Boolean(data.user.phoneBonusClaimed);
       serverStateReady = true;
       updateAccountAndCreditUI();
+      window.dispatchEvent(new Event('azit-account-ready'));
     }
     function renderAccountHome() {
       // 첫 방문자나 재방문자 모두 홈(대화목록 화면)에서 '대화 시작' 버튼을 직접 눌러 매칭하도록 보장
@@ -5533,6 +5544,34 @@
       }
     }
     let lastSyncWarning = 0;
+    window.addEventListener('azit-contact-inbox',event=>{
+      if(!serverStateReady||state.isAiBusy)return;
+      let changed=false;
+      for(const item of event.detail||[]){
+        const room=state.savedRooms[item.characterId],message=item.message;
+        if(!room||!message)continue;
+        const current=state.currentChar?.id===item.characterId&&!state.roomLeft;
+        const open=current&&state.currentView==='chatRoom'&&document.visibilityState==='visible';
+        if(current&&!state.messages.some(m=>m.id===message.id)){
+          state.messages.push({...message,unread:!open});
+          if(open)appendMessage('ai',message.text,{...message,unread:false,skipPush:true});
+          changed=true;
+        }
+        if(!room.messages.some(m=>m.id===message.id)){
+          room.messages.push({...message,unread:!open});
+          room.updatedAt=message.createdAt;
+          room.unreadCount=(room.messages||[]).filter(m=>m.sender==='ai'&&m.unread).length;
+          changed=true;
+        }
+      }
+      if(changed){saveAccountState();renderChatRoomsList();}
+    });
+    async function openContactRoom(id){
+      if(!serverStateReady||state.isAiBusy||!state.savedRooms[id])return;
+      const character=CHARACTERS.find(c=>c.id===id);
+      if(character){await startChatWithCharacter(character,true);showView('chatRoom');}
+    }
+    window.addEventListener('azit-open-contact',event=>openContactRoom(event.detail));
     window.addEventListener('seollem-sync-error', () => {
       if (Date.now() - lastSyncWarning > 10000) { showToast('대화 저장 연결을 확인해주세요. 페이지를 닫기 전에 다시 시도해주세요.'); lastSyncWarning = Date.now(); }
     });
@@ -5569,6 +5608,8 @@
       updateMatchCooldownUI();
       setInterval(updateMatchCooldownUI, 1000);
       renderAccountHome();
+      const requestedChat=new URLSearchParams(location.search).get('chat');
+      if(requestedChat)await openContactRoom(requestedChat);
       const userGenderPref = state.matchFilter.gender || localStorage.getItem('azit_user_gender_pref');
       if (sessionStorage.getItem('azit_switch_phone') === '1') {
         sessionStorage.removeItem('azit_switch_phone');

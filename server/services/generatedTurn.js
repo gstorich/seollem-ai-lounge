@@ -2,7 +2,7 @@ const crypto = require('node:crypto');
 const db = require('./dbService');
 const llm = require('./llmService');
 const config = require('../config');
-const active = new Set();
+const active = require('./generationLock');
 const FAILURE = '문제가 발생했습니다. 잠시 후에 다시 시도해주세요.';
 
 // A pending request records intent, never a charge. Reply + debit + replay result
@@ -43,6 +43,7 @@ module.exports = async function generatedTurn(req, res, {character, message, req
       db.saveConversationState(id,character.id,result.memory,replyId,storedState.revision);
       const value={success:true,partnerReply:result.text,replyId,roomLeft:result.roomLeft,heartsRemaining:current.hearts,costDeducted:charged.isVipUnlimited?0:cost,isAiGenerated:true,fingerprint,...(kind==='gift'?{giftMessageId:requestId}:{})};
       db.saveChatRequest(id,requestId,value);
+      if(kind==='chat'&&!result.roomLeft) require('./proactiveService').schedule(id,character.id);
       return value;
     });
     return res.json(response);

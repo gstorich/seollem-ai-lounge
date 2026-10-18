@@ -123,6 +123,7 @@
     },
     async logout() {
       await this.flushState();
+      if(window.AzitNotifications)await window.AzitNotifications.logout();
       this.pauseSync();
       this.setToken('');
       this.user = null;

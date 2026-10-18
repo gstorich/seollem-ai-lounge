@@ -13,6 +13,8 @@ node server/tests/llm-completion.cjs
 node server/tests/chat-timing.cjs
 node server/tests/chat-voice.cjs
 node server/tests/conversation-context.cjs
+node server/tests/proactive.cjs
+node server/tests/notifications.cjs
 node server/tests/address-context.cjs
 node server/tests/conversations.cjs
 host=haze-oci-a1
@@ -46,13 +48,22 @@ fi
 mv "$incoming" "$release"
 chown -R seollem:seollem "$release"
 runuser -u seollem -- sh -c 'cd "$1/server" && npm ci --omit=dev --cache /var/lib/seollem-ai-lounge/npm-cache' sh "$release"
-runuser -u seollem -- sh -c 'cd "$1" && node server/tests/accounts.cjs && node server/tests/operations.cjs && node server/tests/matching.cjs && node server/tests/heart-expiry.cjs && node server/tests/llm-completion.cjs && node server/tests/chat-timing.cjs && node server/tests/chat-voice.cjs && node server/tests/conversation-context.cjs && node server/tests/address-context.cjs && node server/tests/conversations.cjs' sh "$release"
+runuser -u seollem -- sh -c 'cd "$1" && node server/tests/accounts.cjs && node server/tests/operations.cjs && node server/tests/matching.cjs && node server/tests/heart-expiry.cjs && node server/tests/llm-completion.cjs && node server/tests/chat-timing.cjs && node server/tests/chat-voice.cjs && node server/tests/conversation-context.cjs && node server/tests/proactive.cjs && node server/tests/notifications.cjs && node server/tests/address-context.cjs && node server/tests/conversations.cjs' sh "$release"
 install -d -m 0700 /var/backups/seollem-ai-lounge
 if [ -f /var/lib/seollem-ai-lounge/seollem.json ]; then
   cp -n /var/lib/seollem-ai-lounge/seollem.json /var/backups/seollem-ai-lounge/pre-sqlite.json
   chmod 0600 /var/backups/seollem-ai-lounge/pre-sqlite.json
 fi
 python3 "$release/ops/oci/backup.py"
+# Persistent VAPID identity; never rotate at release time or print private keys.
+node - "$release" <<'NODE'
+const fs=require('node:fs'),root=process.argv[2],file='/etc/seollem-ai-lounge/app.env';
+const env=require(root+'/server/node_modules/dotenv').parse(fs.readFileSync(file));
+if(!env.VAPID_PUBLIC_KEY&&!env.VAPID_PRIVATE_KEY){
+  const keys=require(root+'/server/node_modules/web-push').generateVAPIDKeys();
+  fs.appendFileSync(file,'\nVAPID_PUBLIC_KEY='+keys.publicKey+'\nVAPID_PRIVATE_KEY='+keys.privateKey+'\n');
+}else if(!env.VAPID_PUBLIC_KEY||!env.VAPID_PRIVATE_KEY)throw Error('Incomplete VAPID identity');
+NODE
 chown -R root:root "$release"
 chmod -R go-w "$release"
 previous="$(readlink -f /opt/seollem-ai-lounge/current || true)"

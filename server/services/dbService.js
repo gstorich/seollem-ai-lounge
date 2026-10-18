@@ -109,6 +109,7 @@ if (!sql.prepare("SELECT 1 FROM metadata WHERE key='conversation_archive_v1'").g
 
 module.exports = {
   transaction, getUser, createUser, updateUser, mergeRooms, resolveUserId,
+  sql, // Internal service queries only; never expose a client SQL endpoint.
   creditHearts(id, hearts, reason) { return wallet.change(id, units(hearts), reason); },
   getHeartSummary: wallet.summary, getHeartGrants: wallet.grants,
   expireHearts: wallet.expireAll, startHeartExpiryWorker: wallet.startWorker,
@@ -148,6 +149,7 @@ module.exports = {
         sql.prepare('DELETE FROM conversation_memory_items WHERE user_id=?').run(sessionId);
         sql.prepare('INSERT OR IGNORE INTO conversation_state_events SELECT ?,character_id,reply_id,data,created_at FROM conversation_state_events WHERE user_id=?').run(user.id,sessionId);
         sql.prepare('DELETE FROM conversation_state_events WHERE user_id=?').run(sessionId);
+        require('./proactiveStore').transfer(sessionId,user.id);
         sql.prepare('UPDATE ledger SET user_id=? WHERE user_id=?').run(user.id, sessionId);
         sql.prepare('UPDATE chat_requests SET user_id=? WHERE user_id=?').run(user.id, sessionId);
       }
@@ -206,6 +208,7 @@ module.exports = {
     return sql.prepare('SELECT reply_id,data,created_at FROM conversation_state_events WHERE user_id=? AND character_id=? ORDER BY created_at DESC LIMIT 200').all(resolveUserId(id),characterId).map(row=>({replyId:row.reply_id,...JSON.parse(row.data),createdAt:new Date(row.created_at).toISOString()}));
   },
   resetConversationState(id,characterId) {
+    require('./proactiveStore').cancelRoom(resolveUserId(id),characterId);
     const state=module.exports.getConversationState(id,characterId);
     sql.prepare('DELETE FROM conversation_memory_items WHERE user_id=? AND character_id=?').run(resolveUserId(id),characterId);
     sql.prepare('DELETE FROM conversation_state_events WHERE user_id=? AND character_id=?').run(resolveUserId(id),characterId);

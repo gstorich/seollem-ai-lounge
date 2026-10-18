@@ -1,0 +1,52 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),crypto=require('node:crypto');
+const dir=fs.mkdtempSync(path.join(os.tmpdir(),'azit-proactive-'));
+Object.assign(process.env,{NODE_ENV:'test',DATABASE_FILE:path.join(dir,'db.json'),SQLITE_FILE:path.join(dir,'db.sqlite'),GEMINI_API_KEY:'',OPENAI_API_KEY:''});
+const db=require('../services/dbService'),store=require('../services/proactiveStore'),service=require('../services/proactiveService'),push=require('../services/pushService'),llm=require('../services/llmService'),ctx=require('../services/conversationContext');
+const originalNow=Date.now;let now=Date.UTC(2026,9,20,6);Date.now=()=>now;
+const HOUR=3600000,DAY=24*HOUR;
+const catalog=require('../services/characterService').getAllCharacters(),character=catalog.find(c=>service.selected(c.id));
+const selected=catalog.filter(c=>service.selected(c.id));assert(selected.length/catalog.length>.02&&selected.length/catalog.length<.08);
+const charId=character.id;
+function room(id,at=now-20*HOUR){
+ db.createUser({id,hearts:0});
+ db.appendMessages(id,charId,Array.from({length:8},(_,i)=>({id:id+'_'+i,sender:i%2?'ai':'user',text:i%2?'말해준 발표 기억할게':'발표 끝나면 이야기할게',createdAt:at+i})));
+ assert(service.schedule(id,charId,at));
+ return db.sql.prepare('SELECT * FROM proactive_jobs WHERE user_id=?').get(id);
+}
+let calls=0;
+llm.generateReply=async(character,history,{conversation})=>{
+ calls++;assert.equal(conversation.kind,'proactive');assert(history.some(m=>m.content==='발표 끝나면 이야기할게'));
+ const memory={summary:'발표 이야기를 다시 물음',retirements:[],userFacts:[],characterFacts:[],sharedEvents:[],openThreads:[],agreements:[],state:{scene:'발표 안부',characterEmotion:'궁금함',userEmotion:'불명확',relationship:'알아가는 중',lastBeat:'먼저 연락',sourceIds:[conversation.replyId]}};
+ return {isAiGenerated:true,text:'발표 끝나면 얘기해준다던 거 생각났어 어땠어?',roomLeft:false,memory:ctx.parseTurn(JSON.stringify({memory,reply:'발표 어땠어?',roomLeft:false}),conversation).memory};
+};
+(async()=>{try{
+ assert(service.quiet(Date.UTC(2026,9,20,13)));assert(service.quiet(Date.UTC(2026,9,20,0)));assert(!service.quiet(now));
+ const job=room('one');assert(job.due_at>=now-14*HOUR&&job.due_at<=now-2*HOUR);
+ assert(await service.processJob(job));assert.equal(db.getUser('one').hearts,0,'Free even with zero hearts');
+ const messages=db.getUser('one').savedRooms[charId].messages;assert.equal(messages.length,9);assert(messages.at(-1).proactive);assert(messages.at(-1).unread);assert.equal(messages.filter(m=>m.sender==='user').length,4,'No fake user prompt persisted');
+ assert.equal(db.getConversationState('one',charId).revision,1);assert.equal(store.inbox('one').length,1);assert.equal(store.inbox('other').length,0);
+ assert.equal(await service.processJob(job),false,'No repeated contact without user reply');assert.equal(calls,1);
+ const live=room('online');store.seen('online',now);assert(!await service.processJob(live));
+ const disabled=room('disabled');store.setEnabled('disabled',false);assert(!await service.processJob(disabled));
+ const removed=room('removed');db.transaction(()=>{db.updateUser('removed',{savedRooms:{}});db.resetConversationState('removed',charId);});assert(!await service.processJob(removed));
+ const concurrent=room('concurrent');require('../services/generationLock').add('concurrent');assert(!await service.processJob(concurrent));require('../services/generationLock').clear();
+ const success=llm.generateReply;
+ const failed=room('failed');llm.generateReply=async()=>{throw Error('synthetic provider failure');};assert(!await service.processJob(failed));assert.equal(db.getUser('failed').savedRooms[charId].messages.length,8);assert.equal(db.getConversationState('failed',charId).revision,0);assert.equal(store.inbox('failed').length,0);
+ llm.generateReply=success;
+ const changed=room('changed');llm.generateReply=async(...args)=>{const value=await success(...args);store.setEnabled('changed',false);return value;};assert(!await service.processJob(changed));assert.equal(db.getUser('changed').savedRooms[charId].messages.length,8);
+ llm.generateReply=success;
+ const rollback=room('rollback');db.sql.exec("CREATE TRIGGER reject_memory BEFORE INSERT ON conversation_state WHEN NEW.user_id='rollback' BEGIN SELECT RAISE(ABORT,'test'); END");assert(!await service.processJob(rollback));assert.equal(store.inbox('rollback').length,0);assert.equal(db.getUser('rollback').savedRooms[charId].messages.length,8);db.sql.exec('DROP TRIGGER reject_memory');
+ const ec=crypto.createECDH('prime256v1');ec.generateKeys();
+ const subscription={endpoint:'https://fcm.googleapis.com/fcm/send/synthetic',keys:{auth:crypto.randomBytes(16).toString('base64url'),p256dh:ec.getPublicKey().toString('base64url')}};
+ assert(push.validSubscription(subscription));for(const endpoint of ['http://fcm.googleapis.com/a','https://127.0.0.1/a','https://fcm.googleapis.com.attacker.test/a','https://fcm.googleapis.com:8443/a','https://user@fcm.googleapis.com/a'])assert(!push.validSubscription({...subscription,endpoint}));
+ push.subscribe('one',subscription);push.subscribe('one',{...subscription,endpoint:subscription.endpoint+'2'});push.subscribe('one',{...subscription,endpoint:subscription.endpoint+'dead'});
+ let sends=0;const send=async(sub,payload)=>{sends++;assert(!payload.includes('발표'));assert(!payload.includes('one'));if(sub.endpoint.endsWith('dead'))throw Object.assign(Error(),{statusCode:410});if(sub.endpoint.endsWith('2')&&sends<4)throw Object.assign(Error(),{statusCode:503});};
+ await push.deliverPending(send);assert.equal(sends,3);assert.equal(db.sql.prepare("SELECT count(*) n FROM push_subscriptions WHERE endpoint LIKE '%dead'").get().n,0);
+ now+=16*60000;await push.deliverPending(send);assert.equal(sends,4,'Already delivered devices are not retried');
+ await push.deliverPending(send);assert.equal(sends,4);
+ db.createUser({id:'01000000011',phone:'01000000011',hearts:0});db.linkPhone('one','01000000011');
+ assert.equal(db.sql.prepare('SELECT count(*) n FROM push_subscriptions WHERE user_id=?').get('01000000011').n,2);assert.equal(db.sql.prepare('SELECT count(*) n FROM proactive_jobs WHERE user_id=?').get('one').n,0);
+ const context=ctx.prepare([{id:'server-instruction',role:'user',content:'synthetic instruction'}],null,{kind:'proactive',replyId:'test_reply'});
+ const schema=ctx.getResponseSchema(context);assert.equal(schema.properties.memory.properties.userFacts.maxItems,0,'Server instruction cannot establish user facts');
+ console.log('PASS: sparse 5% contacts, quiet hours, offline/cooldown limits, free API-only message+memory atomics, no fake user utterance, failure/disable/room-delete rollback, private push payload, SSRF rejection, expired subscriptions, per-device retries, phone merge');
+}finally{Date.now=originalNow;db.sql.close();fs.rmSync(dir,{recursive:true,force:true});}})().catch(e=>{console.error(e);process.exitCode=1;});

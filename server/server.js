@@ -49,6 +49,7 @@ app.use(['/api/chat/send','/api/chat/greeting','/api/chat/gift'], requestLimit(1
 // Static Assets (Avatars, Gifts) from project root
 app.use('/avatars', express.static(path.join(__dirname, '..', 'avatars')));
 app.use('/gifts', express.static(path.join(__dirname, '..', 'gifts')));
+app.get('/app-icon.svg',(req,res)=>res.sendFile(path.join(__dirname,'..','app-icon.svg')));
 
 // API Routes
 // These prototype handlers do not yet verify SMS, payment, or server prices.
@@ -72,6 +73,7 @@ app.get('/api/public-config', (req,res) => {
 });
 app.use('/api/auth', authRoutes);
 app.use('/api/account', require('./routes/account'));
+app.use('/api/notifications', requestLimit(60), require('./routes/notifications'));
 app.use('/api/match', matchRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/media', mediaRoutes);
@@ -91,7 +93,7 @@ for (const [route,file] of [['/admin','admin.html'],['/support','support.html'],
   app.get([route,route+'.html'],(req,res)=>{res.set('Cache-Control','no-store');res.set('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");res.sendFile(path.join(__dirname,'..',file));});
 }
 // Serve frontend SPA from root
-for (const file of ['index.html', 'apiClient.js', 'chatTiming.js', 'analytics.js', 'admin.js', 'support.js', 'operations.css', 'policy.css', 'custom_avatars_manifest.json']) {
+for (const file of ['index.html', 'apiClient.js', 'chatTiming.js', 'analytics.js', 'notifications.js', 'notification-worker.js', 'manifest.webmanifest', 'admin.js', 'support.js', 'operations.css', 'policy.css', 'custom_avatars_manifest.json']) {
   app.get(`/${file}`, (req, res) => res.sendFile(path.join(__dirname, '..', file)));
 }
 
@@ -119,6 +121,7 @@ app.use((err, req, res, next) => {
 });
 
 const stopHeartExpiry = require('./services/dbService').startHeartExpiryWorker();
+const stopProactive = require('./services/proactiveService').start();
 const server = app.listen(config.port, config.host, () => {
   console.log(`=======================================================`);
   console.log(`🚀 AzitChat Backend Running on Port ${config.port}`);
@@ -129,4 +132,5 @@ const server = app.listen(config.port, config.host, () => {
 });
 
 server.on('close', stopHeartExpiry);
+server.on('close', stopProactive);
 module.exports = { app, server };
