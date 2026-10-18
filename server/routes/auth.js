@@ -80,6 +80,7 @@ router.post('/verify-otp', requireAuth, verifyLimit, (req, res) => {
   if (req.user.phone && req.user.phone !== phone) return res.status(409).json({ success: false, error: '먼저 로그아웃해주세요.' });
   const result = dbService.verifyOtp(challengeId, phone, req.user.id, otpDigest(challengeId, phone, code));
   if (!result) return res.status(400).json({ success: false, error: '인증번호가 틀렸거나 만료되었습니다. 5회 틀리면 새로 받아주세요.' });
+  require('../services/operationsService').track(result.bonusAwarded ? 'phone_verified' : 'phone_login', result.user.id);
   const token = generateToken({ userId: result.user.id });
   return res.json({ success: true, token, bonusAwarded: result.bonusAwarded, user: publicUser(result.user) });
 });

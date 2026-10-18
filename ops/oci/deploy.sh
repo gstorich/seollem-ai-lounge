@@ -5,6 +5,8 @@ release="$(date -u +%Y%m%dT%H%M%SZ)-$(git rev-parse --short HEAD)"
 node server/scripts/sync-personas.cjs
 node ops/oci/smoke.cjs
 node server/tests/accounts.cjs
+node server/tests/operations.cjs
+node server/tests/analytics.cjs
 host=haze-oci-a1
 incoming="/tmp/seollem-$release"
 ssh "$host" "test ! -e '$incoming' && mkdir -m 0755 '$incoming'"
@@ -36,7 +38,7 @@ fi
 mv "$incoming" "$release"
 chown -R seollem:seollem "$release"
 runuser -u seollem -- sh -c 'cd "$1/server" && npm ci --omit=dev --cache /var/lib/seollem-ai-lounge/npm-cache' sh "$release"
-runuser -u seollem -- sh -c 'cd "$1" && node server/tests/accounts.cjs' sh "$release"
+runuser -u seollem -- sh -c 'cd "$1" && node server/tests/accounts.cjs && node server/tests/operations.cjs' sh "$release"
 install -d -m 0700 /var/backups/seollem-ai-lounge
 if [ -f /var/lib/seollem-ai-lounge/seollem.json ]; then
   cp -n /var/lib/seollem-ai-lounge/seollem.json /var/backups/seollem-ai-lounge/pre-sqlite.json

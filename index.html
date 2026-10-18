@@ -55,6 +55,7 @@
     .typing-dot-2 { animation: dotPulse 1.2s infinite ease-in-out 0.18s; }
     .typing-dot-3 { animation: dotPulse 1.2s infinite ease-in-out 0.36s; }
   </style>
+  <script src="/analytics.js" defer></script>
 </head>
 <body class="w-full h-full flex items-center justify-center bg-[#efebe2] select-none">
 
@@ -130,11 +131,12 @@
 
         <!-- Business Info & Transparency Disclaimer Footer (Collapsible) -->
         <footer class="pt-6 pb-8 px-1 text-[#717680] border-t border-[#eae5d8] mt-6 text-[12px] space-y-3">
+          <div class="flex items-center gap-4 text-[12px]"><a href="/support" class="underline font-bold">고객센터 · 문의 내역</a><button type="button" data-analytics-preferences class="underline">방문 분석 설정</button></div>
           <!-- Policy Links -->
           <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] font-medium text-[#5c616b]">
             <button type="button" onclick="alert('이용약관 안내: 본 서비스는 만 19세 이상 성인을 위한 가상 대화 시뮬레이션 서비스입니다.')" class="hover:underline">이용약관</button>
             <span class="text-[#cbd0d6]">|</span>
-            <button type="button" onclick="alert('개인정보처리방침 안내: 회원의 개인정보는 안전하게 보호되며 동의 없이 제3자에게 제공되지 않습니다.')" class="hover:underline font-bold">개인정보처리방침</button>
+            <button type="button" onclick="location.href='/privacy'" class="hover:underline font-bold">개인정보처리방침</button>
             <span class="text-[#cbd0d6]">|</span>
             <button type="button" onclick="alert('환불정책 안내: 미사용 하트 및 이용권은 관련 법령에 따라 결제 후 7일 이내 환불이 가능합니다.')" class="hover:underline">환불정책</button>
             <span class="text-[#cbd0d6]">|</span>
@@ -279,7 +281,7 @@
             </button>
           </div>
           <div class="flex items-center gap-1.5 text-[12px] text-[#888888]">
-            <span>🔒 안심 1:1 대화</span>
+            <a href="/support" class="underline">고객센터</a>
             <!-- Hidden hooks to maintain event listeners safely -->
             <button id="btnFooterSwitchVip" type="button" class="hidden">하트모드</button>
             <button id="btnOpenPhoneAuthFooter" type="button" class="hidden">인증</button>

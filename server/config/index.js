@@ -23,6 +23,10 @@ module.exports = {
   openaiApiKey: process.env.OPENAI_API_KEY || '',
   defaultLlmProvider: process.env.DEFAULT_LLM_PROVIDER || 'gemini',
 
+  gaPropertyId: /^\d{5,20}$/.test(process.env.GA_PROPERTY_ID || '') ? process.env.GA_PROPERTY_ID : '',
+  adminPasswordHash: process.env.ADMIN_PASSWORD_HASH || '',
+  gaMeasurementId: /^G-[A-Z0-9]{6,20}$/.test(process.env.GA_MEASUREMENT_ID || '') ? process.env.GA_MEASUREMENT_ID : '',
+
   // Economy rules
   heartsPerMessage: parseFloat(process.env.HEARTS_PER_MESSAGE) || 3.7,
   defaultGuestHearts: parseFloat(process.env.DEFAULT_GUEST_HEARTS) || 50,

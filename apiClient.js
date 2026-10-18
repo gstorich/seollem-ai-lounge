@@ -23,6 +23,12 @@
         error.status = res.status;
         throw error;
       }
+      if (method === 'POST') {
+        const events = { '/chat/send':'chat_message_sent', '/match/request':'match_started', '/chat/gift':'gift_sent', '/support/tickets':'support_created' };
+        let event = events[route];
+        if (route === '/auth/verify-otp') event = data.bonusAwarded ? 'phone_verified' : 'phone_login';
+        if (event) window.dispatchEvent(new CustomEvent('azit-product-event', { detail:event }));
+      }
       return data;
     },
     async checkBackendHealth() {

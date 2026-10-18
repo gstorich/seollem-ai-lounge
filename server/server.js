@@ -64,6 +64,12 @@ if (config.nodeEnv === 'production') {
   }));
 }
 
+app.use('/api/admin', requestLimit(60), require('./routes/admin'));
+app.use('/api/support', require('./routes/support'));
+app.get('/api/public-config', (req,res) => {
+  res.set('Cache-Control','no-store');
+  res.json({gaMeasurementId: require('./services/operationsService').setting('ga_measurement_id') ?? config.gaMeasurementId});
+});
 app.use('/api/auth', authRoutes);
 app.use('/api/account', require('./routes/account'));
 app.use('/api/match', matchRoutes);
@@ -81,8 +87,11 @@ app.get('/api/health', (req, res) => {
   });
 });
 
+for (const [route,file] of [['/admin','admin.html'],['/support','support.html'],['/privacy','privacy.html']]) {
+  app.get(route,(req,res)=>{res.set('Cache-Control','no-store');res.set('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");res.sendFile(path.join(__dirname,'..',file));});
+}
 // Serve frontend SPA from root
-for (const file of ['index.html', 'apiClient.js', 'custom_avatars_manifest.json']) {
+for (const file of ['index.html', 'apiClient.js', 'analytics.js', 'admin.js', 'support.js', 'operations.css', 'custom_avatars_manifest.json']) {
   app.get(`/${file}`, (req, res) => res.sendFile(path.join(__dirname, '..', file)));
 }
 

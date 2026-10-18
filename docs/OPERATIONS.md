@@ -1,0 +1,42 @@
+# 아지트챗 운영 관리
+
+- 관리자: https://azitchat.com/admin
+- 고객센터: https://azitchat.com/support
+- 개인정보·분석 안내: https://azitchat.com/privacy
+- GA4: https://analytics.google.com/analytics/web/#/a387739930p559435429/reports/intelligenthome
+- 속성: 아지트챗 (azitchat.com), ID 559435429
+- 웹 스트림: 아지트챗 웹, ID 16152740855, 측정 ID G-65RXD1Y184
+
+## 로그인
+
+운영자가 정한 공용 비밀번호로 로그인한다. 원문은 코드/Git에 보관하지 않는다. 서버의 `/etc/seollem-ai-lounge/app.env`에 `ADMIN_PASSWORD_HASH`를 `salt:scrypt-hash` 형식으로 보관한다. 비어 있으면 관리 API에 로그인할 수 없다. scrypt는 16바이트 랜덤 salt를 hex 문자열로 변환한 후 그 문자열을 salt로 사용하며 N=16384, r=8, p=1, 결과 64바이트이다.
+
+로그인 실패는 IP별 15분에 5회까지 허용한다. 관리자 세션은 1시간이며 HttpOnly/Secure/SameSite=Strict 쿠키를 사용한다. 비밀번호 해시가 바뀌면 이전 세션도 거부한다. 변경 API는 허용 Origin과 전용 헤더를 확인한다. 공용 관리자 작업은 operator로 기록한다.
+
+## 기능
+
+- 서버 데이터 기반 현재 계정·인증 회원·하트 총합, 7/30/90일 신규 계정·활동 계정·대화·하트 사용 추이.
+- 고객 ID/번호 검색, 잔액·하트 원장·대화방/메시지 개수, 내부 고객 메모. 고객 대화 원문은 관리 화면에 노출하지 않는다.
+- 문의 접수/처리 중/답변 완료/종료, 공개 답변과 비공개 내부 메모. 고객은 같은 번호로 로그인해 문의와 답변을 확인한다. 답변 문자는 자동 발송하지 않는다.
+- 하트 보정은 사유와 확인이 필요하며 0.1 단위, 1회 ±10,000개까지 허용한다. 요청 ID에 고유 제약을 적용해 재전송에도 한 번만 처리하며 원장과 감사 기록을 한 트랜잭션으로 저장한다. 실제 PG 환불 기능과는 별개다.
+- 관리자 로그인/조회/메모/보정/문의 처리/분석 설정의 감사 기록.
+- 실결제는 계속 비활성 상태이며 매출을 가상으로 집계하지 않는다.
+
+## 데이터·백업
+
+기존 SQLite 파일에 support_tickets, support_messages, admin_audit, app_settings, activity_events 테이블을 추가한다. 기존 사용자·잔액·대화 테이블은 유지한다. 기존 SQLite 백업에 새 테이블도 함께 포함된다. 신규 인증·문의 이벤트는 이 기능 배포 이후부터 기록한다. 계정 수는 현재 존재하는 계정 기준이며 과거 삭제/병합된 게스트를 별도 신규 회원으로 세지 않는다. 활동은 기간 내 하트가 차감된 대화·재연결 기준이다. 직원 테스트 데이터도 실제 DB 지표에 포함될 수 있다.
+
+## GA4
+
+관리자 방문 분석 메뉴에서 측정 ID 및 속성 ID를 설정할 수 있다. 측정 ID를 빈 값으로 저장하면 분석 수집을 비활성화한다. DB 설정이 없으면 환경 변수 `GA_MEASUREMENT_ID`, `GA_PROPERTY_ID`를 사용한다. 측정 ID는 공개 식별자이며 비밀키가 아니다. 보고서는 GA4로 연결하고 어드민 자체 지표는 운영 DB에서 집계한다. GA4 Data API/OAuth 권한을 추가하지 않는다.
+
+방문자가 선택 분석에 동의한 경우에만 공개 서비스 화면에서 Google 태그를 로드한다. DNT=1이면 태그를 로드하지 않는다. 기본 자동 페이지뷰를 끄고 고정된 URL·제목으로 직접 전송한다. 외부 referrer는 origin만 보내며 query/hash는 보내지 않는다. 관리자/고객센터/개인정보 페이지에는 GA 태그를 로드하지 않는다. GA4 스트림의 향상된 측정은 비활성 상태로 만들었다.
+
+허용 이벤트: page_view, chat_message_sent, match_started, phone_verified, phone_login, gift_sent, open_charge, support_created. support_created는 고객센터에서 접수 후 공개 서비스로 돌아올 때 전송한다. 구매/매출 이벤트는 보내지 않는다. 전화번호·고객 ID·대화·문의 원문을 이벤트 매개변수로 사용하지 않는다. Google Signals와 광고 개인 최적화는 끈다. 방문 분석 설정에서 거부로 바꾸면 이후 수집을 중단한다.
+
+일반 GA 보고서 반영에는 시간이 걸릴 수 있다. 실시간 보고서로 수집을 확인하고, 실제 잔액/회원/문의 지표는 어드민을 기준으로 본다.
+
+## 검증
+
+`node ops/oci/smoke.cjs`, `node server/tests/accounts.cjs`, `node server/tests/operations.cjs`, `node server/tests/analytics.cjs`.
+관리자 권한/만료/시도 제한/CSRF, 고객 간 문의 격리, 내부 메모 비공개, 잔액 보정 중복 방지/음수 방지/원장/감사 기록, 재시작 복원, 분석 동의·DNT·URL 비식별 처리를 검증한다. 자동 테스트는 분리된 SQLite와 합성 계정을 사용한다.
