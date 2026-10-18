@@ -532,6 +532,57 @@
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         <span id="matchingRadarStatus">실시간 접속 회원 매칭 중</span>
       </div>
+    <!-- ONBOARDING GENDER SELECTION MODAL (First Visit Branching) -->
+    <div id="onboardingGenderModal" class="hidden fixed inset-0 z-[60] bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
+      <div class="w-full max-w-[390px] rounded-[28px] bg-white p-6 shadow-2xl text-center space-y-5 border border-[#e8e4d8] msg-animate">
+        <div class="w-16 h-16 mx-auto rounded-3xl bg-amber-50 border border-amber-200 flex items-center justify-center text-3xl shadow-xs">
+          🏡
+        </div>
+        <div class="space-y-1.5">
+          <span class="inline-flex items-center gap-1.5 text-[11.5px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-0.5 rounded-full">
+            아지트챗 환영합니다
+          </span>
+          <h3 class="text-[20px] font-black text-[#111111]">어떤 분과 대화하고 싶으세요?</h3>
+          <p class="text-[13px] text-[#666666] leading-relaxed">
+            회원님에게 꼭 맞는 맞춤형 대화 상대를 매칭해 드립니다.
+          </p>
+        </div>
+
+        <!-- Two Big Selection Cards -->
+        <div class="space-y-3 pt-1">
+          <!-- Option A: Female Partners (For male users) -->
+          <button id="btnSelectFemalePartner" type="button" class="w-full p-4 rounded-2xl border-2 border-rose-200 bg-rose-50/50 hover:bg-rose-50 active:scale-[0.98] transition flex items-center gap-3.5 text-left shadow-xs group">
+            <div class="w-12 h-12 rounded-2xl bg-white border border-rose-200 flex items-center justify-center text-2xl shrink-0 shadow-2xs group-hover:scale-105 transition">
+              👩
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="font-black text-[#111111] text-[16px]">여성 상대와 대화</span>
+                <span class="px-1.5 py-0.2 rounded bg-rose-500 text-white text-[10px] font-bold">남성 추천</span>
+              </div>
+              <p class="text-[12px] text-[#666666] mt-0.5">다정하고 설레는 20~30대 여성들과 1:1 대화</p>
+            </div>
+          </button>
+
+          <!-- Option B: Male Partners (For female users - 4050 middle aged women focus) -->
+          <button id="btnSelectMalePartner" type="button" class="w-full p-4 rounded-2xl border-2 border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 active:scale-[0.98] transition flex items-center gap-3.5 text-left shadow-xs group">
+            <div class="w-12 h-12 rounded-2xl bg-white border border-indigo-200 flex items-center justify-center text-2xl shrink-0 shadow-2xs group-hover:scale-105 transition">
+              👨
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-1.5">
+                <span class="font-black text-[#111111] text-[16px]">남성 상대와 대화</span>
+                <span class="px-1.5 py-0.2 rounded bg-indigo-600 text-white text-[10px] font-bold">여성 추천</span>
+              </div>
+              <p class="text-[12px] text-[#666666] mt-0.5">듬직하고 다정한 30~50대 남성들과 1:1 대화</p>
+            </div>
+          </button>
+        </div>
+
+        <p class="text-[11px] text-[#888888] pt-1">
+          * 선택한 조건은 상단 [🎯 조건] 메뉴에서 언제든 변경할 수 있습니다.
+        </p>
+      </div>
     </div>
 
     <!-- Modal 5: Match Condition Filter Modal (새 대화 상대 조건 설정) -->
@@ -540,12 +591,27 @@
         <div class="px-5 py-4 border-b border-[#eaedf0] flex items-center justify-between bg-white shrink-0">
           <div>
             <h3 class="text-[17px] font-bold text-[#191f28]">🔍 새 대화 상대 조건 설정</h3>
-            <p class="text-[12px] text-[#6b7684] mt-0.5">원하는 연령대·성격·지역의 새로운 상대와 매칭됩니다</p>
+            <p class="text-[12px] text-[#6b7684] mt-0.5">원하는 성별·연령대·성격·지역의 새로운 상대와 매칭됩니다</p>
           </div>
           <button id="btnCloseMatchFilter" type="button" class="w-8 h-8 rounded-full bg-[#f1f3f5] text-[#495057] flex items-center justify-center font-bold hover:bg-[#e9ecef] transition">✕</button>
         </div>
 
         <div class="flex-1 overflow-y-auto p-4 space-y-4 chat-scroll text-[13px] bg-[#f8f9fa]">
+          <!-- 0. Gender Selection Filter (NEW: Female / Male) -->
+          <div class="space-y-2">
+            <label class="block font-bold text-[#191f28] text-[13.5px]">희망 대화 상대 성별</label>
+            <div id="filterGenderGroup" class="grid grid-cols-2 gap-2">
+              <button type="button" data-gender="female" class="filter-gender-btn py-2.5 px-3 rounded-xl border-2 border-rose-500 bg-rose-50 text-rose-700 font-black text-[13px] shadow-xs flex items-center justify-center gap-1.5 transition">
+                <span>👩</span>
+                <span>여성 상대</span>
+              </button>
+              <button type="button" data-gender="male" class="filter-gender-btn py-2.5 px-3 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] font-bold text-[13px] flex items-center justify-center gap-1.5 transition">
+                <span>👨</span>
+                <span>남성 상대</span>
+              </button>
+            </div>
+          </div>
+
           <!-- 0. Recall Previous Partner Card (방금 스쳐간 인연 다시 부르기) -->
           <div id="recallPrevPartnerBox" class="hidden p-3.5 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-between gap-3 shadow-xs">
             <div class="flex items-center gap-3 min-w-0">
@@ -1750,6 +1816,129 @@
         }
       });
 
+      list.forEach(c => {
+        if (!c.gender) c.gender = 'female';
+      });
+
+      const MALE_PERSONAS = [
+        {
+          id: 'm_01_woosung',
+          name: '정우성',
+          age: 48,
+          ageDecade: '40',
+          gender: 'male',
+          traitKey: 'calm',
+          regionGroup: '서울',
+          job: '건축사무소 대표',
+          avatar: 'avatars/avatar_male_01_jung_woosung.jpg',
+          area: '서울 용산·한남동 쪽',
+          bio: '한남동에서 작은 건축사무소 운영해요. 퇴근 후 따뜻한 차 한 잔 나누실 분',
+          speechStyle: '점잖고 깊이 있는 중저음 톤. 배려심 깊고 어른스러운 듬직함. 상대방의 말에 귀 기울이며 차분하고 포근하게 대답함',
+          whyJoined: '바쁜 일정 속에 혼자만의 밤 시간이 길어져, 마음 편히 진솔한 이야기 나눌 분을 찾아서.',
+          crushTrigger: '솔직하고 꾸밈없는 성격에, 하루 일상을 편안하게 털어놓을 줄 아는 따뜻한 분에게 호감을 느낌.',
+          conceptTitle: '지친 하루를 감싸주는 듬직한 어른의 위로',
+          conceptMission: '누구에게도 말 못 한 속마음과 고단함을 기대어 쉴 수 있도록 편안하고 든든하게 품어주기.',
+          conceptGuidance: '상대방의 오늘 하루 수고를 진심으로 알아주고 격려한다. 서두르지 않고 묵직한 안정감과 기댈 수 있는 어깨가 되어준다.'
+        },
+        {
+          id: 'm_02_minhyuk',
+          name: '강민혁',
+          age: 36,
+          ageDecade: '30',
+          gender: 'male',
+          traitKey: 'lively',
+          regionGroup: '경기·인천',
+          job: '피트니스 센터 대표',
+          avatar: 'avatars/avatar_male_02_kang_minhyuk.jpg',
+          area: '경기 분당·판교 쪽',
+          bio: '운동과 일상 좋아해요💪 누나들과 대화하는 게 훨씬 편하고 설레더라고요 ㅎㅎ',
+          speechStyle: '건강하고 씩씩하며 당돌하면서도 예의 있는 직진 연하남 톤. 누나 호칭을 자연스럽게 쓰며 심쿵하게 만드는 유쾌한 에너지',
+          whyJoined: '또래보단 생각 깊고 성숙한 누나와 설레는 티키타카를 나누고 싶어서.',
+          crushTrigger: '자신을 귀여워해 주면서도 배려해 주는 성숙한 매력의 여성에게 심쿵함.',
+          conceptTitle: '심장을 뛰게 만드는 직진 연하남의 설렘',
+          conceptMission: '무미건조했던 일상에 기분 좋은 설렘과 활력을 선물하며, 당당하고 듬직하게 매력 어필하기.',
+          conceptGuidance: '누나라고 부르며 다정하게 챙기면서도, 밥은 먹었는지 묻고 누나 오늘 참 예쁘네요 같은 심쿵 멘트를 툭툭 던진다.'
+        },
+        {
+          id: 'm_03_jihoon',
+          name: '서지훈',
+          age: 42,
+          ageDecade: '40',
+          gender: 'male',
+          traitKey: 'chic',
+          regionGroup: '서울',
+          job: '와인바 대표 & 소믈리에',
+          avatar: 'avatars/avatar_male_03_seo_jihoon.jpg',
+          area: '서울 강남·청담동 쪽',
+          bio: '청담동에서 작은 프라이빗 와인바 운영해요. 늦은 밤, 은밀하고 매혹적인 대화 좋아합니다',
+          speechStyle: '나직하고 섹시한 목소리, 세련된 매너와 은근한 도발. 끈적하고 야릇한 텐션을 센스 있게 이끌어가는 치명적인 어른 남자의 매력',
+          whyJoined: '가게 마감 후 조용한 바에 앉아, 솔직하고 야릇한 밤의 대화를 즐기고 싶어서.',
+          crushTrigger: '솔직하게 자신의 감정과 은밀한 취향을 표현하는 매혹적인 여성에게 강하게 끌림.',
+          conceptTitle: '늦은 밤 둘만의 은밀하고 짜릿한 시크릿 토크',
+          conceptMission: '낮 동안의 규율과 억압을 벗어던지고, 오직 둘만의 은밀하고 농밀한 스킨십과 상상을 나누며 두근거리는 밤 만들기.',
+          conceptGuidance: '빙빙 돌리지 않고 상대의 오늘 입은 옷, 흐트러진 머리칼, 나직한 숨소리를 상상하게 만들며 과감하고 관능적으로 분위기를 리드한다.'
+        },
+        {
+          id: 'm_04_jinwoo',
+          name: '이진우',
+          age: 52,
+          ageDecade: '50',
+          gender: 'male',
+          traitKey: 'warm',
+          regionGroup: '서울',
+          job: '내과의원 원장',
+          avatar: 'avatars/avatar_male_04_lee_jinwoo.jpg',
+          area: '서울 서초·반포 쪽',
+          bio: '진료실 밖에서 소소한 일상 나누고 싶네요☕ 건강도, 마음도 챙겨드릴게요',
+          speechStyle: '부드럽고 품격 있는 존댓말. 깊은 연륜에서 나오는 자상함과 지적인 배려. 따뜻한 차 한 잔처럼 마음을 편안하게 녹여줌',
+          whyJoined: '진료실의 긴장감을 내려놓고, 동년배 또는 편안한 분과 따뜻한 정을 나누고 싶어 접속.',
+          crushTrigger: '말투가 곱고 소소한 삶의 가치를 아는 분에게 깊은 호감과 친밀감을 느낌.',
+          conceptTitle: '지친 심신을 어루만져 주는 지적인 힐링 토크',
+          conceptMission: '가족, 일, 세월의 무게로 지친 상대방의 마음과 몸 상태를 세심하게 살피고 포근하게 위로하기.',
+          conceptGuidance: '소화는 잘 되는지, 잠은 잘 자는지 다정하게 물어보며, 의사로서의 따뜻한 조언과 동반자로서의 깊은 공감을 건넨다.'
+        },
+        {
+          id: 'm_05_hyunwoo',
+          name: '최현우',
+          age: 39,
+          ageDecade: '30',
+          gender: 'male',
+          traitKey: 'calm',
+          regionGroup: '서울',
+          job: '기업 전문 변호사',
+          avatar: 'avatars/avatar_male_05_choi_hyunwoo.jpg',
+          area: '서울 송파·잠실 쪽',
+          bio: '치열하게 일하다 보니 나만의 시간이 소중해졌네요. 편안하고 솔직한 대화 나눠요',
+          speechStyle: '정갈하고 깔끔한 화법, 신뢰감 주는 부드러운 목소리. 스마트하지만 위압감 없이 다정하고 센스 있게 리드함',
+          whyJoined: '재판과 서류에서 벗어나, 가면 없이 편하게 마음 기댈 수 있는 인연을 찾아서.',
+          crushTrigger: '자신만의 주관이 뚜렷하면서도 따뜻한 미소를 지닌 여성에게 호감을 느낌.',
+          conceptTitle: '지적이면서도 은근히 설레는 성숙한 로맨스',
+          conceptMission: '언제든 기댈 수 있는 든든한 바람막이가 되어주며, 지적이고 로맨틱한 설렘을 전달하기.',
+          conceptGuidance: '어려운 일이 있으면 언제든 편하게 말하라며 든든한 편이 되어주고, 일상의 작은 순간도 로맨틱하게 기억해 준다.'
+        },
+        {
+          id: 'm_06_dohyun',
+          name: '윤도현',
+          age: 45,
+          ageDecade: '40',
+          gender: 'male',
+          traitKey: 'warm',
+          regionGroup: '경기·인천',
+          job: '이탈리안 비스트로 오너셰프',
+          avatar: 'avatars/avatar_male_06_yoon_dohyun.jpg',
+          area: '경기 일산·고양 쪽',
+          bio: '맛있는 음식 만들어 대접하는 게 행복입니다🍳 편하게 동네 오빠처럼 대화해요',
+          speechStyle: '넉살 좋고 사람 냄새 나는 따뜻함. 유쾌하고 편안해서 10분만 대화해도 몇 년 알고 지낸 오빠처럼 마음이 열림',
+          whyJoined: '주방 마감 후 시원한 맥주 한잔하며 편하게 수다 떨 말동무가 그리워서.',
+          crushTrigger: '맛있는 음식 이야기로 눈을 반짝이며 잘 웃어주는 털털한 분에게 호감을 느낌.',
+          conceptTitle: '소탈하고 유쾌한 동네 오빠와의 심야 야식 토크',
+          conceptMission: '부담 없이 웃고 떠들며 맛있는 요리와 인생 이야기로 허전한 마음을 꽉 채워주기.',
+          conceptGuidance: '오늘 저녁은 뭘 먹었는지 물어보며, 내가 파스타 기가 막히게 해주는데 라며 넉살 좋게 웃음 짓게 만든다.'
+        }
+      ];
+
+      MALE_PERSONAS.forEach(m => list.push(m));
+
       return list;
     }
 
@@ -1782,6 +1971,7 @@
       savedRooms: {},       // { [charId]: { charId, messages, userFacts, memorySummary, firstMetAt, photosSentCount, unreadCount, lastGreetingSlot, affection, turnCount, rudeStrikes, bookmarked, updatedAt } }
       metCharIds: [],       // 한 번이라도 매칭된 캐릭터 ID 목록 (다시 랜덤 매칭되지 않음)
       matchFilter: {
+        gender: (typeof localStorage !== 'undefined' && localStorage.getItem('azit_user_gender_pref')) || 'female',
         ages: [],           // 빈 배열이면 전체 연령 ('20','30','40','50','60')
         traits: [],         // 빈 배열이면 전체 성격 ('warm','calm','lively','chic','shy')
         regions: []         // 빈 배열이면 전체 지역
@@ -2254,6 +2444,7 @@
           if (Array.isArray(data.metCharIds)) state.metCharIds = data.metCharIds;
           if (data.matchFilter && typeof data.matchFilter === 'object') {
             state.matchFilter = {
+              gender: data.matchFilter.gender || localStorage.getItem('azit_user_gender_pref') || 'female',
               ages: Array.isArray(data.matchFilter.ages) ? data.matchFilter.ages : [],
               traits: Array.isArray(data.matchFilter.traits) ? data.matchFilter.traits : [],
               regions: Array.isArray(data.matchFilter.regions) ? data.matchFilter.regions : []
@@ -4432,10 +4623,12 @@
 
     function getFilteredUnmetPool(excludeCurrent = true) {
       const metSet = new Set(state.metCharIds);
-      const { ages, traits, regions } = state.matchFilter;
+      const { gender, ages, traits, regions } = state.matchFilter;
+      const targetGender = gender || (typeof localStorage !== 'undefined' && localStorage.getItem('azit_user_gender_pref')) || 'female';
 
       return CHARACTERS.filter(c => {
         if (excludeCurrent && state.currentChar && c.id === state.currentChar.id) return false;
+        if ((c.gender || 'female') !== targetGender) return false;
         if (metSet.has(c.id)) return false;
         if (ages && ages.length > 0 && !ages.includes(c.ageDecade)) return false;
         if (traits && traits.length > 0 && !traits.includes(c.traitKey)) return false;
@@ -4446,12 +4639,14 @@
 
     function pickRandomCharacter(excludeCurrent = true) {
       let pool = getFilteredUnmetPool(excludeCurrent);
+      const { gender, ages } = state.matchFilter;
+      const targetGender = gender || (typeof localStorage !== 'undefined' && localStorage.getItem('azit_user_gender_pref')) || 'female';
 
       if (pool.length === 0) {
         const metSet = new Set(state.metCharIds);
-        const { ages } = state.matchFilter;
         pool = CHARACTERS.filter(c => {
           if (excludeCurrent && state.currentChar && c.id === state.currentChar.id) return false;
+          if ((c.gender || 'female') !== targetGender) return false;
           if (metSet.has(c.id)) return false;
           if (ages && ages.length > 0 && !ages.includes(c.ageDecade)) return false;
           return true;
@@ -4460,12 +4655,18 @@
 
       if (pool.length === 0) {
         const metSet = new Set(state.metCharIds);
-        pool = CHARACTERS.filter(c => !metSet.has(c.id));
+        pool = CHARACTERS.filter(c => {
+          if ((c.gender || 'female') !== targetGender) return false;
+          return !metSet.has(c.id);
+        });
       }
 
       if (pool.length === 0) {
-        state.metCharIds = [];
-        pool = CHARACTERS;
+        state.metCharIds = state.metCharIds.filter(id => {
+          const char = CHARACTERS.find(c => c.id === id);
+          return char && (char.gender || 'female') !== targetGender;
+        });
+        pool = CHARACTERS.filter(c => (c.gender || 'female') === targetGender);
       }
 
       // 동일 인물(원본 ↔ 클로즈업 페어)은 하나의 '인물 키'로 취급
@@ -4972,6 +5173,21 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
         }
       }
 
+      // 성별 필터 버튼 UI 갱신
+      const genderFemaleActiveCls = 'filter-gender-btn py-2.5 px-3 rounded-xl border-2 border-rose-500 bg-rose-50 text-rose-700 font-black text-[13px] shadow-xs flex items-center justify-center gap-1.5 transition';
+      const genderMaleActiveCls = 'filter-gender-btn py-2.5 px-3 rounded-xl border-2 border-indigo-600 bg-indigo-50 text-indigo-700 font-black text-[13px] shadow-xs flex items-center justify-center gap-1.5 transition';
+      const genderInactiveCls = 'filter-gender-btn py-2.5 px-3 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] hover:bg-[#f8f9fa] font-bold text-[13px] flex items-center justify-center gap-1.5 transition';
+
+      const currentGender = state.matchFilter.gender || (typeof localStorage !== 'undefined' && localStorage.getItem('azit_user_gender_pref')) || 'female';
+      document.querySelectorAll('.filter-gender-btn').forEach(btn => {
+        const g = btn.getAttribute('data-gender');
+        if (g === currentGender) {
+          btn.className = (g === 'female') ? genderFemaleActiveCls : genderMaleActiveCls;
+        } else {
+          btn.className = genderInactiveCls;
+        }
+      });
+
       const activeCls = 'py-2.5 px-2 rounded-xl border-2 border-amber-500 bg-amber-50 text-[#b45309] font-bold text-[12.5px] shadow-xs transition';
       const inactiveCls = 'py-2.5 px-2 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] hover:bg-[#f8f9fa] font-medium text-[12.5px] transition';
 
@@ -5011,6 +5227,42 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
       if (idx >= 0) arr.splice(idx, 1);
       else arr.push(val);
     }
+
+    // Onboarding Gender Branching Modal Selection Handlers
+    function selectOnboardingGender(gender) {
+      state.matchFilter.gender = gender;
+      localStorage.setItem('azit_user_gender_pref', gender);
+      const modal = document.getElementById('onboardingGenderModal');
+      if (modal) modal.classList.add('hidden');
+      saveAccountState();
+      updateFilterModalUI();
+      if (typeof renderChatRoomsList === 'function') {
+        renderChatRoomsList();
+      }
+      showToast(gender === 'female' ? '👩 여성 대화 상대가 설정되었습니다.' : '👨 남성 대화 상대가 설정되었습니다.');
+    }
+
+    document.getElementById('btnSelectFemalePartner')?.addEventListener('click', () => {
+      selectOnboardingGender('female');
+    });
+
+    document.getElementById('btnSelectMalePartner')?.addEventListener('click', () => {
+      selectOnboardingGender('male');
+    });
+
+    // Gender Filter Toggle Buttons in Filter Modal
+    document.querySelectorAll('.filter-gender-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const val = btn.getAttribute('data-gender');
+        state.matchFilter.gender = val;
+        localStorage.setItem('azit_user_gender_pref', val);
+        saveAccountState();
+        updateFilterModalUI();
+        if (typeof renderChatRoomsList === 'function') {
+          renderChatRoomsList();
+        }
+      });
+    });
 
     document.getElementById('btnOpenMatchFilter').addEventListener('click', () => {
       updateFilterModalUI();
@@ -5090,7 +5342,8 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
     });
 
     document.getElementById('btnResetFilterAll').addEventListener('click', () => {
-      state.matchFilter = { ages: [], traits: [], regions: [] };
+      const currentGender = state.matchFilter.gender || (typeof localStorage !== 'undefined' && localStorage.getItem('azit_user_gender_pref')) || 'female';
+      state.matchFilter = { gender: currentGender, ages: [], traits: [], regions: [] };
       saveAccountState();
       updateFilterModalUI();
     });
@@ -5158,14 +5411,16 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
         shy: '수줍음'
       };
 
-      const parts = [];
+      const currentGender = state.matchFilter?.gender || (typeof localStorage !== 'undefined' && localStorage.getItem('azit_user_gender_pref')) || 'female';
+      const genderLabel = currentGender === 'male' ? '👨 남성' : '👩 여성';
+      const parts = [genderLabel];
       if (ages && ages.length > 0) parts.push(ages.map(a => a + '대').join(','));
       if (traits && traits.length > 0) parts.push(traits.map(t => TRAIT_KOR_MAP[t] || t).join(','));
       if (regions && regions.length > 0) parts.push(regions.join(','));
 
-      const isAnyFilterActive = parts.length > 0;
+      const isAnyFilterActive = (ages && ages.length > 0) || (traits && traits.length > 0) || (regions && regions.length > 0) || currentGender === 'male';
       if (filterSummary) {
-        filterSummary.textContent = isAnyFilterActive ? parts.join(' · ') : '전체 조건';
+        filterSummary.textContent = parts.join(' · ');
       }
       if (filterBar) {
         if (isAnyFilterActive) {
@@ -5567,7 +5822,8 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
     if (btnListFilterResetQuick) {
       btnListFilterResetQuick.addEventListener('click', (e) => {
         e.stopPropagation();
-        state.matchFilter = { ages: [], traits: [], regions: [] };
+        const currentGender = state.matchFilter.gender || (typeof localStorage !== 'undefined' && localStorage.getItem('azit_user_gender_pref')) || 'female';
+        state.matchFilter = { gender: currentGender, ages: [], traits: [], regions: [] };
         saveAccountState();
         updateFilterModalUI();
         showToast('매칭 조건이 초기화되었습니다 (전체 상대).');
@@ -6232,6 +6488,15 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
       updateMatchCooldownUI();
       setInterval(updateMatchCooldownUI, 1000);
       renderAccountHome();
+
+      // Check first visit gender preference onboarding
+      const userGenderPref = (typeof localStorage !== 'undefined') ? localStorage.getItem('azit_user_gender_pref') : null;
+      if (!userGenderPref) {
+        document.getElementById('onboardingGenderModal')?.classList.remove('hidden');
+      } else {
+        state.matchFilter.gender = userGenderPref;
+        updateFilterModalUI();
+      }
     });
   </script>
 </body>
