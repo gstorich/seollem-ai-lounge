@@ -1,8 +1,9 @@
 const config = require('../config');
 const characterService = require('./characterService');
 const chatPunctuation = require('./chatPunctuation');
+const conversationContext = require('./conversationContext');
 
-async function callGemini(messages, systemInstruction, apiKey, signal = AbortSignal.timeout(45000)) {
+async function callGemini(messages, systemInstruction, apiKey, signal = AbortSignal.timeout(45000), responseSchema = conversationContext.responseSchema) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.geminiModel)}:generateContent`;
 
   const contents = messages.map(m => ({
@@ -19,6 +20,8 @@ async function callGemini(messages, systemInstruction, apiKey, signal = AbortSig
       temperature: 0.9,
       // Leave headroom for internal reasoning and a complete visible reply.
       maxOutputTokens: 16384,
+      responseMimeType: 'application/json',
+      responseSchema,
       thinkingConfig: { thinkingLevel: 'LOW' }
     },
     safetySettings: [
@@ -65,7 +68,8 @@ async function callOpenAI(messages, systemInstruction, apiKey, signal = AbortSig
     model: 'gpt-4o-mini',
     messages: fullMessages,
     temperature: 0.85,
-    max_tokens: 350
+    max_tokens: 4096,
+    response_format: { type: 'json_object' }
   };
 
   const res = await fetch(url, {
@@ -91,16 +95,20 @@ async function callOpenAI(messages, systemInstruction, apiKey, signal = AbortSig
 module.exports = {
   async generateReply(character, chatHistory, userContext = {}) {
     const relationship = userContext.relationship || require('./relationshipContext').buildRelationshipContext(character,chatHistory);
-    const systemPrompt = characterService.buildSystemPrompt(character, {...userContext,relationship});
+    const conversation = userContext.conversation || conversationContext.prepare(chatHistory, null, {kind:userContext.greeting?'greeting':'chat',speechRegister:relationship.speechRegister});
+    const systemPrompt = characterService.buildSystemPrompt(character, {...userContext,relationship}) + '\n' + conversationContext.buildPrompt(conversation);
+    const selectedHistory = conversation.recent.map(m=>({role:m.role,content:m.content}));
     let reply;
     const signal = AbortSignal.timeout(45000);
-    if (config.geminiApiKey) reply = await callGemini(chatHistory, systemPrompt, config.geminiApiKey, signal);
-    else if (config.openaiApiKey) reply = await callOpenAI(chatHistory, systemPrompt, config.openaiApiKey, signal);
+    if (config.geminiApiKey) reply = await callGemini(selectedHistory, systemPrompt, config.geminiApiKey, signal, conversationContext.getResponseSchema(conversation));
+    else if (config.openaiApiKey) reply = await callOpenAI(selectedHistory, systemPrompt, config.openaiApiKey, signal);
     else throw new Error('LLM_NOT_CONFIGURED');
     if (!reply?.trim()) throw new Error('LLM_EMPTY_RESPONSE');
+    const turn = conversationContext.parseTurn(reply, conversation);
+    reply = turn.text;
 
     // Check for room left exit tag
-    const roomLeft = reply.includes('[대화종료]');
+    const roomLeft = turn.roomLeft || reply.includes('[대화종료]');
     // [핵심]: 부자연스러운 이력서형 괄호 표기(예: '(식품영양학과)', '(디자인과)' 등) 원천 제거
     const cleanedText = reply
       .replace(/\[대화종료\]/g, '')
@@ -113,6 +121,7 @@ module.exports = {
     return {
       text,
       roomLeft,
+      memory: turn.memory,
       isAiGenerated: true
     };
   }

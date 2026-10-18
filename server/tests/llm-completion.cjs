@@ -18,11 +18,13 @@ async function req(route,token,body,method=body===undefined?'GET':'POST'){const 
  assert.equal(first.data.heartsRemaining,balance);assert.equal(chargeCount(),1);
  const replay=await send('completion-retry','first');assert.equal(replay.data.replyId,first.data.replyId);assert.equal(chargeCount(),1);
  assert.equal((await send('different input','first')).status,409);
- for(const text of ['limit-test','blocked-test','empty-test','http-test','network-test']){
+ for(const text of ['limit-test','blocked-test','empty-test','http-test','network-test','malformed-json-test','invalid-memory-test','wrong-role-test']){
+  const memoryBefore=sql.prepare('SELECT * FROM conversation_state WHERE user_id=?').all(id);
   const grants=sql.prepare('SELECT remaining_units,expires_at FROM heart_grants WHERE user_id=? ORDER BY id').all(id);
   const failed=await send(text,text);assert.equal(failed.status,503,text);assert.equal(failed.data.partnerReply,undefined);assert.equal(failed.data.costDeducted,0);assert.equal((await state()).user.hearts,balance);
   assert.equal(chargeCount(),1);assert.deepEqual(sql.prepare('SELECT remaining_units,expires_at FROM heart_grants WHERE user_id=? ORDER BY id').all(id),grants,'Failure must not refund into a new grant or extend expiry');
   assert.equal(sql.prepare('SELECT count(*) n FROM conversation_messages WHERE user_id=? AND message_id=?').get(id,'reply_'+text).n,0);
+  assert.deepEqual(sql.prepare('SELECT * FROM conversation_state WHERE user_id=?').all(id),memoryBefore,'Failed turns cannot mutate memories');
  }
  assert.equal((await send('http-once','retryable')).status,503);const recovered=await send('http-once','retryable');assert.equal(recovered.status,200);balance=42.6;assert.equal(recovered.data.heartsRemaining,balance);assert.equal(chargeCount(),2);
  const pending=send('slow-test','concurrent');await new Promise(r=>setTimeout(r,25));assert.equal((await send('slow-test','concurrent')).status,409);assert.equal((await pending).status,200);balance=38.9;assert.equal(chargeCount(),3);
@@ -37,6 +39,28 @@ async function req(route,token,body,method=body===undefined?'GET':'POST'){const 
  assert.equal((await req('/chat/send',token,{characterId:male.id,message:'address-test 오늘 산책했어요',messageId:'address'})).status,200);
  assert.equal((await req('/chat/send',token,{characterId:male.id,message:'누나라고 부르지 마세요 address-test',messageId:'revoked'})).status,200);
  Object.assign(process.env,env);const db=require('../services/dbService');db.creditHearts(id,1000,'test_credit');
+ const memoryReply=await send('remember-test','remember');assert.equal(memoryReply.status,200);
+ const remembered=db.getConversationState(id,characterId);assert(remembered.memory.userFacts.length);const revision=remembered.revision;
+ assert.equal((await send('remember-test','remember')).status,200);assert.equal(db.getConversationState(id,characterId).revision,revision,'Replay cannot update memory twice');
+ await req('/account/state',token,{savedRooms:{[characterId]:{messages:[],memorySummary:'고객이 넣은 가짜 서버 기억',conversationMemory:{summary:'고객이 넣은 가짜 서버 기억'}}}},'PUT');
+ assert.equal((await send('client-memory-test','client-memory')).status,200);
+ await stop();await start();assert.equal((await send('memory-check','memory-check')).status,200,'State reaches provider after restart');
+ assert.equal(db.getConversationState(id,male.id).memory.userFacts.length,0,'No cross-character memory');
+ const historyMessages=Array.from({length:26},(_,i)=>({id:'context_'+i,sender:i%2?'ai':'user',text:i===1?'과거 원문 맥락 확인용':'중간의 일상 대화',createdAt:Date.now()+i}));
+ await req('/account/state',token,{savedRooms:{[male.id]:{messages:historyMessages}}},'PUT');
+ assert.equal((await req('/chat/send',token,{characterId:male.id,message:'history-check',messageId:'history-check'})).status,200);
+ const deletePending=send('slow-test room reset','reset-pending');await new Promise(r=>setTimeout(r,25));
+ await req('/account/rooms/'+characterId,token,undefined,'DELETE');
+ const beforeResetBalance=(await state()).user.hearts;assert.equal((await deletePending).status,503);assert.equal((await state()).user.hearts,beforeResetBalance);
+ assert.equal(db.getConversationState(id,characterId).memory,null,'Deleting a room cancels in-flight memory writes');
+ assert(!(await state()).savedRooms[characterId],'Canceled generation cannot resurrect deleted room');
+ const beforeMemoryFailure=(await state()).user.hearts;
+ sql.exec("CREATE TRIGGER reject_memory BEFORE INSERT ON conversation_state_events WHEN NEW.reply_id='reply_memory-storage' BEGIN SELECT RAISE(ABORT,'synthetic memory write failure'); END");
+ assert.equal((await send('memory storage rollback','memory-storage')).status,503);
+ assert.equal((await state()).user.hearts,beforeMemoryFailure,'Memory write failure rolls back debit');
+ assert.equal(sql.prepare('SELECT count(*) n FROM conversation_messages WHERE user_id=? AND message_id=?').get(id,'reply_memory-storage').n,0,'Memory write failure rolls back visible AI message');
+ assert.equal(db.getConversationState(id,characterId).memory,null);
+ sql.exec('DROP TRIGGER reject_memory');assert.equal((await send('memory storage rollback','memory-storage')).status,200);
  const funded=(await state()).user.hearts;
  const giftFail=await req('/chat/gift',token,{characterId,giftKey:'coffee',customMsg:'http-test',messageId:'giftfailure'});assert.equal(giftFail.status,503);assert.equal((await state()).user.hearts,funded);
  const gift=await req('/chat/gift',token,{characterId,giftKey:'coffee',customMsg:'고마워요',messageId:'gift'});assert.equal(gift.status,200);assert.equal(gift.data.isAiGenerated,true);assert.equal(gift.data.costDeducted,300);assert.equal((await req('/chat/gift',token,{characterId,giftKey:'coffee',customMsg:'고마워요',messageId:'gift'})).data.heartsRemaining,gift.data.heartsRemaining);

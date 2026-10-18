@@ -61,10 +61,13 @@ router.put('/state', (req, res) => {
   return res.json({ success: true, hearts: user.hearts, updatedAt: user.updatedAt });
 });
 router.delete('/rooms/:id', (req, res) => {
+  db.transaction(()=>{
   const user = db.getUser(req.user.id);
   const savedRooms = { ...user.savedRooms };
   delete savedRooms[req.params.id];
   db.updateUser(user.id, { savedRooms });
+  db.resetConversationState(user.id,req.params.id);
+  });
   return res.json({ success: true });
 });
 module.exports = router;

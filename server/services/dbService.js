@@ -21,6 +21,9 @@ CREATE TABLE IF NOT EXISTS chat_requests (user_id TEXT NOT NULL, request_id TEXT
  data TEXT NOT NULL, PRIMARY KEY(user_id,request_id));
 CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS conversation_messages(user_id TEXT NOT NULL,character_id TEXT NOT NULL,message_id TEXT NOT NULL,data TEXT NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(user_id,character_id,message_id));
+CREATE TABLE IF NOT EXISTS conversation_state(user_id TEXT NOT NULL,character_id TEXT NOT NULL,data TEXT,last_reply_id TEXT,revision INTEGER NOT NULL DEFAULT 0,updated_at INTEGER NOT NULL,PRIMARY KEY(user_id,character_id));
+CREATE TABLE IF NOT EXISTS conversation_memory_items(user_id TEXT NOT NULL,character_id TEXT NOT NULL,note_id TEXT NOT NULL,kind TEXT NOT NULL,data TEXT NOT NULL,active INTEGER NOT NULL DEFAULT 1,retired_source_id TEXT,created_at INTEGER NOT NULL,PRIMARY KEY(user_id,character_id,note_id));
+CREATE TABLE IF NOT EXISTS conversation_state_events(user_id TEXT NOT NULL,character_id TEXT NOT NULL,reply_id TEXT NOT NULL,data TEXT NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(user_id,character_id,reply_id));
 CREATE INDEX IF NOT EXISTS conversation_time ON conversation_messages(created_at,user_id,character_id);`);
 const { createWallet, units } = require('./heartWallet');
 const wallet = createWallet(sql);
@@ -135,6 +138,16 @@ module.exports = {
         sql.prepare('INSERT OR REPLACE INTO aliases VALUES(?,?)').run(sessionId, user.id);
         sql.prepare('INSERT OR IGNORE INTO conversation_messages SELECT ?,character_id,message_id,data,created_at FROM conversation_messages WHERE user_id=?').run(user.id,sessionId);
         sql.prepare('DELETE FROM conversation_messages WHERE user_id=?').run(sessionId);
+        sql.prepare(`INSERT INTO conversation_state SELECT ?,character_id,data,last_reply_id,revision+1,updated_at FROM conversation_state WHERE user_id=?
+          ON CONFLICT(user_id,character_id) DO UPDATE SET
+          data=CASE WHEN excluded.updated_at>conversation_state.updated_at THEN excluded.data ELSE conversation_state.data END,
+          last_reply_id=CASE WHEN excluded.updated_at>conversation_state.updated_at THEN excluded.last_reply_id ELSE conversation_state.last_reply_id END,
+          revision=MAX(conversation_state.revision,excluded.revision)+1,updated_at=MAX(conversation_state.updated_at,excluded.updated_at)`).run(user.id,sessionId);
+        sql.prepare('DELETE FROM conversation_state WHERE user_id=?').run(sessionId);
+        sql.prepare('INSERT OR IGNORE INTO conversation_memory_items SELECT ?,character_id,note_id,kind,data,active,retired_source_id,created_at FROM conversation_memory_items WHERE user_id=?').run(user.id,sessionId);
+        sql.prepare('DELETE FROM conversation_memory_items WHERE user_id=?').run(sessionId);
+        sql.prepare('INSERT OR IGNORE INTO conversation_state_events SELECT ?,character_id,reply_id,data,created_at FROM conversation_state_events WHERE user_id=?').run(user.id,sessionId);
+        sql.prepare('DELETE FROM conversation_state_events WHERE user_id=?').run(sessionId);
         sql.prepare('UPDATE ledger SET user_id=? WHERE user_id=?').run(user.id, sessionId);
         sql.prepare('UPDATE chat_requests SET user_id=? WHERE user_id=?').run(user.id, sessionId);
       }
@@ -166,6 +179,40 @@ module.exports = {
     return row ? JSON.parse(row.data) : null;
   },
   saveChatRequest(id, requestId, data) { sql.prepare('INSERT OR REPLACE INTO chat_requests VALUES(?,?,?)').run(resolveUserId(id), requestId, JSON.stringify(data)); },
+  getConversationState(id,characterId) {
+    const row=sql.prepare('SELECT * FROM conversation_state WHERE user_id=? AND character_id=?').get(resolveUserId(id),characterId);
+    return row?{memory:row.data?JSON.parse(row.data):null,revision:row.revision,lastReplyId:row.last_reply_id}:{memory:null,revision:0,lastReplyId:null};
+  },
+  saveConversationState(id,characterId,memory,replyId,expectedRevision) {
+    id=resolveUserId(id);
+    if(module.exports.getConversationState(id,characterId).revision!==expectedRevision)throw Error('CONVERSATION_CHANGED');
+    const now=Date.now();
+    for(const [kind,notes]of Object.entries(memory.addedNotes||{}))for(const note of notes)
+      sql.prepare('INSERT OR IGNORE INTO conversation_memory_items VALUES(?,?,?,?,?,1,NULL,?)').run(id,characterId,note.id,kind,JSON.stringify(note),now);
+    for(const note of memory.retirements||[])sql.prepare('UPDATE conversation_memory_items SET active=0,retired_source_id=? WHERE user_id=? AND character_id=? AND note_id=?').run(note.sourceId,id,characterId,note.memoryId);
+    sql.prepare('INSERT INTO conversation_state_events VALUES(?,?,?,?,?)').run(id,characterId,replyId,JSON.stringify({summary:memory.summary,state:memory.state}),now);
+    const {addedNotes,retirements,...saved}=memory;
+    sql.prepare(`INSERT INTO conversation_state VALUES(?,?,?,?,?,?) ON CONFLICT(user_id,character_id)
+      DO UPDATE SET data=excluded.data,last_reply_id=excluded.last_reply_id,revision=excluded.revision,updated_at=excluded.updated_at`)
+      .run(id,characterId,JSON.stringify(saved),replyId,expectedRevision+1,now);
+  },
+  getConversationNotes(id,characterId) {
+    return sql.prepare('SELECT kind,data FROM conversation_memory_items WHERE user_id=? AND character_id=? AND active=1 ORDER BY created_at DESC LIMIT 1000').all(resolveUserId(id),characterId).map(row=>({...JSON.parse(row.data),kind:row.kind}));
+  },
+  getConversationSources(id,characterId,sourceIds) {
+    return [...new Set(sourceIds)].slice(0,100).map(sourceId=>sql.prepare('SELECT data FROM conversation_messages WHERE user_id=? AND character_id=? AND message_id=?').get(resolveUserId(id),characterId,sourceId)).filter(Boolean).map(row=>JSON.parse(row.data)).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+  },
+  getConversationStateHistory(id,characterId) {
+    return sql.prepare('SELECT reply_id,data,created_at FROM conversation_state_events WHERE user_id=? AND character_id=? ORDER BY created_at DESC LIMIT 200').all(resolveUserId(id),characterId).map(row=>({replyId:row.reply_id,...JSON.parse(row.data),createdAt:new Date(row.created_at).toISOString()}));
+  },
+  resetConversationState(id,characterId) {
+    const state=module.exports.getConversationState(id,characterId);
+    sql.prepare('DELETE FROM conversation_memory_items WHERE user_id=? AND character_id=?').run(resolveUserId(id),characterId);
+    sql.prepare('DELETE FROM conversation_state_events WHERE user_id=? AND character_id=?').run(resolveUserId(id),characterId);
+    sql.prepare(`INSERT INTO conversation_state VALUES(?,?,NULL,NULL,?,?) ON CONFLICT(user_id,character_id)
+      DO UPDATE SET data=NULL,last_reply_id=NULL,revision=excluded.revision,updated_at=excluded.updated_at`)
+      .run(resolveUserId(id),characterId,state.revision+1,Date.now());
+  },
   reserveOtp(challenge) {
     return transaction(() => {
       const now = Date.now();
