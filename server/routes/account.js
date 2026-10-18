@@ -54,6 +54,7 @@ router.put('/state', (req, res) => {
     if (characters.getCharacterById(prevCharId)) updates.prevCharId = prevCharId;
     const filter = req.body.matchFilter;
     if (filter && typeof filter === 'object') updates.matchFilter = Object.fromEntries(['ages','traits','regions'].map(key => [key, Array.isArray(filter[key]) ? filter[key].filter(x => typeof x === 'string').slice(0,20) : []]));
+    if (filter && ['female','male'].includes(filter.gender)) updates.matchFilter.gender = filter.gender;
     return db.updateUser(user.id, updates);
   });
   // Deliberately excludes client-supplied balances, phone, VIP, or bonuses.

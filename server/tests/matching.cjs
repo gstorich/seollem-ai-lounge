@@ -18,6 +18,19 @@ async function request(route,token,body){const response=await fetch(base+route,{
   assert.equal((await request(route,null,{})).status,401);
   const denied=await request(route,token,{phone:'01000000001',pkgKey:'starter'});assert.equal(denied.status,403);assert.equal(denied.error,'PHONE_VERIFICATION_REQUIRED');
  }
+ const service=require('../services/characterService');
+ const catalog=service.getAllCharacters();
+ assert.equal(catalog.filter(c=>c.gender==='male').length,1106);
+ assert.equal(catalog.filter(c=>c.gender==='female').length,1250);
+ for(const gender of ['male','female']){
+  const ids=catalog.filter(c=>c.gender===gender).map(c=>c.id);
+  assert.equal(service.findMatch({gender},ids).gender,gender,'Exhausted preferred gender pool resets within that gender');
+ }
+ const stateResponse=await fetch(base+'/account/state',{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({matchFilter:{gender:'male',ages:['40'],traits:[],regions:[]}})});
+ assert.equal(stateResponse.status,200);assert.equal((await request('/account/state',token)).matchFilter.gender,'male');
+ update({hearts:3.7});
+ const maleMatch=await request('/match/request',token,{});assert.equal(maleMatch.character.gender,'male');assert.equal(maleMatch.character.ageDecade,'40');
+ assert.match(service.buildSystemPrompt(service.getCharacterById(maleMatch.character.id)),/문장을 중간에서 끊지/);
  update({hearts:3.7});assert.equal((await request('/match/eligibility',token)).canMatch,true);
  const matched=await request('/match/request',token,{characterId:'p_0001'});assert.equal(matched.status,200);assert.equal(matched.character.id,'p_0001');assert.equal(matched.heartsRemaining,3.7);assert.equal((await request('/account/state',token)).user.hearts,3.7,'Matching itself does not debit hearts');
  update({hearts:0});assert.equal((await request('/match/request',token,{characterId:'p_0002'})).status,402,'Balance is checked again after preflight');

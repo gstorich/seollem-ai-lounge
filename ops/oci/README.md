@@ -17,7 +17,7 @@ Gemini is configured in the server environment with the service-specific
 `시니어 AI 챗` key; the key is never included in frontend files.
 Model: `gemini-3.1-flash-lite` (override with `GEMINI_MODEL`).
 The frontend persona catalog is exported by `server/scripts/sync-personas.cjs`
-so all 1,250 displayed IDs resolve on the backend.
+so all 2,356 displayed IDs (1,250 female and 1,106 male) resolve on the backend.
 Chat is limited to 12 requests per minute per IP, guest creation to 10.
 These are in-memory limits and reset when the process restarts.
 Phone authentication uses the existing registered Aligo account and sender,
