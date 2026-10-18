@@ -2654,7 +2654,7 @@
         let remainingTypeMs = targetTypeDurationMs;
         if (idx === 0 && typingStartedAt) {
           const elapsed = Date.now() - typingStartedAt;
-          remainingTypeMs = Math.max(350, targetTypeDurationMs - elapsed);
+          remainingTypeMs = Math.max(650, targetTypeDurationMs - elapsed);
         }
 
         // 각 말풍선 타이핑 시작
@@ -4425,36 +4425,45 @@
       state.messageTurnId = (state.messageTurnId || 0) + 1;
       const turnId = state.messageTurnId;
 
-      // 실제 사람이 메시지를 확인(읽음 처리)하는 시간 (글자 길이에 따른 가벼운 확인 시간: 0.35초~0.75초)
-      const unreadWaitMs = Math.round(350 + Math.min(400, text.length * 15) + Math.random() * 200);
+      // 실제 사람이 알림을 인지하고 메신저 창을 열어 읽기까지의 자연스러운 시간 (1.8초 ~ 3.5초)
+      // 짧은 문장은 약 1.8~2.4초, 보통 길이는 2.4~3.2초, 긴 문장은 3.0~3.8초
+      const unreadWaitMs = Math.round(1800 + Math.min(1400, text.length * 35) + Math.random() * 700);
+
+      // 백그라운드 사전 요청으로 대기시간 최소화 (읽자마자 0초 딜레이로 즉시 타이핑 돌입하도록 지원)
+      const currentBatch = state.pendingUserTexts.join(' ');
+      const char = state.currentChar;
+      const roomIdAtSend = char ? char.id : null;
+      let prefetchPromise = fetchLLMResponse(currentBatch);
 
       state.pendingReadTimer = setTimeout(async () => {
         state.pendingReadTimer = null;
         if (state.roomLeft || turnId !== state.messageTurnId) return;
 
-        // [핵심 1]: 읽자마자 즉시 '1' 제거 및 읽음 처리
+        // [핵심 1]: 자연스러운 시간(1.8~3.5초) 동안 '1'이 유지된 후 읽음 처리
         markAllUserMessagesRead();
 
         // [핵심 2]: 읽자마자 1밀리초의 지체도 없이 "즉시" 타이핑 인디케이터 시작!
-        const char = state.currentChar;
-        if (!char) return;
-        headerStatusText.textContent = `${char.name}님이 입력 중...`;
+        if (!state.currentChar || state.currentChar.id !== roomIdAtSend) return;
+        headerStatusText.textContent = `${state.currentChar.name}님이 입력 중...`;
         headerStatusText.className = 'text-[12.5px] text-emerald-600 mt-0.5 font-medium leading-snug';
-        showTypingIndicator(`${char.name}님이 입력 중...`);
+        showTypingIndicator(`${state.currentChar.name}님이 입력 중...`);
 
         const typingStartedAt = Date.now();
-        const batch = state.pendingUserTexts.join(' ');
+        let replyPlan;
+        const finalBatch = state.pendingUserTexts.join(' ');
         state.pendingUserTexts = [];
-
-        const roomIdAtSend = char.id;
-        const replyPlan = await fetchLLMResponse(batch);
+        if (finalBatch && finalBatch !== currentBatch) {
+          replyPlan = await fetchLLMResponse(finalBatch);
+        } else {
+          replyPlan = await prefetchPromise;
+        }
 
         if (!state.currentChar || state.currentChar.id !== roomIdAtSend || state.roomLeft || turnId !== state.messageTurnId) {
           hideTypingIndicator();
           return;
         }
 
-        // [핵심 3]: 생성된 문장의 길이에 따라 정확한 타이핑 시간 유지 후 전송
+        // [핵심 3]: 읽자마자 시작된 타이핑 상태에서, 생성된 문장의 길이에 따라 정교한 타자 시간 유지 후 전송
         runRealisticReplySequence(replyPlan, false, turnId, typingStartedAt);
       }, unreadWaitMs);
     }
