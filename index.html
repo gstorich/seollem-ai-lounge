@@ -267,8 +267,9 @@
             <textarea id="chatInput" rows="1" placeholder="따뜻한 이야기를 건네보세요..." class="w-full bg-transparent text-[16.5px] text-[#111111] placeholder-[#888888] focus:outline-none resize-none max-h-24 leading-relaxed font-medium"></textarea>
           </div>
 
-          <button id="btnSend" type="submit" class="shrink-0 h-12 px-5 min-w-[70px] rounded-xl bg-[#fee500] hover:bg-[#ebd300] active:scale-95 text-[#111111] font-black text-[16px] shadow-xs transition flex items-center justify-center">
-            전송
+          <button id="btnSend" type="submit" aria-label="전송" aria-describedby="sendHeartCost" class="shrink-0 h-12 px-5 min-w-[70px] rounded-xl bg-[#fee500] hover:bg-[#ebd300] active:scale-95 text-[#111111] font-black text-[16px] shadow-xs transition flex flex-col items-center justify-center gap-0.5">
+            <span>전송</span>
+            <span id="sendHeartCost" class="text-[9px] leading-none font-normal text-[#75672e] whitespace-nowrap">♥ -3.7</span>
           </button>
         </form>
 
@@ -2771,6 +2772,8 @@
         }
       }
 
+      const sendCostEl = document.getElementById('sendHeartCost');
+      if (sendCostEl) sendCostEl.textContent = state.isVipUnlimited ? '♥ -0' : '♥ -3.7';
       const creditEl = document.getElementById('footerCreditText');
       const listCreditEl = document.getElementById('listFooterCreditText');
       const btnFooterSwitch = document.getElementById('btnFooterSwitchVip');
@@ -3904,7 +3907,6 @@
               state.hearts = serverRes.heartsRemaining;
               state.credits = serverRes.heartsRemaining;
               updateAccountAndCreditUI();
-              triggerHeartDeductionAnimation(3.7);
             }
             return {
               bubbles: [serverRes.partnerReply],
@@ -5295,25 +5297,6 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
     // 보관된 인연 선톡 기능 비활성화
     function triggerSavedRoomsTimeGreetings() {
       return;
-    }
-
-    function triggerHeartDeductionAnimation(cost = 3.7) {
-      const footerCreditText = document.getElementById('footerCreditText');
-      if (!footerCreditText) return;
-      const wrap = footerCreditText.parentElement;
-      if (!wrap) return;
-
-      const badge = document.createElement('span');
-      badge.textContent = `-${cost} ❤️`;
-      badge.className = 'text-[11px] font-black text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded-full border border-rose-200 shadow-xs animate-bounce pointer-events-none transition-all duration-700';
-      badge.style.marginLeft = '4px';
-      wrap.appendChild(badge);
-
-      setTimeout(() => {
-        badge.style.opacity = '0';
-        badge.style.transform = 'translateY(-6px)';
-        setTimeout(() => badge.remove(), 700);
-      }, 1200);
     }
 
     // =========================================================================
