@@ -553,6 +553,7 @@
     const REAL_AVATAR_GALLERY = {
       // 1. 본인의 셀카 (거울 셀카, 카페 셀카, 클로즈업 셀카 등)
       selfie: [
+        { url: 'avatars/kr_gen_selfie_01.jpg', desc: '분위기 좋은 카페 전신 거울 앞에서 찍은 본인 거울 셀카' },
         { url: 'avatars/kr_selfie_mirror_01.jpg', desc: '외출 전 현관 거울 앞에서 직접 찍은 본인 거울 셀카' },
         { url: 'avatars/kr_selfie_cafe_03.jpg', desc: '창가 카페 자리에서 커피 마시며 직접 찍은 본인 셀카' },
         { url: 'avatars/kr_selfie_closeup_04.jpg', desc: '자연광 아래에서 밝게 미소 지으며 찍은 본인 클로즈업 셀카' },
@@ -592,6 +593,7 @@
       ],
       // 2. 단정한 본인 프로필 사진 (20~30대 및 40~60대 한국 여성)
       profile: [
+        { url: 'avatars/kr_gen_profile_01.jpg', desc: '햇살 드는 카페 창가에서 따뜻하게 미소 지은 본인 프로필 사진' },
         { url: 'avatars/avatar_01_park_hayoung.jpg', desc: '카페 창가에서 단정하고 분위기 있게 나온 본인 프로필 사진' },
         { url: 'avatars/kr_profile_cafe_closeup.jpg', desc: '따뜻한 햇살 아래 턱을 괴고 미소 짓는 본인 프로필 사진' },
         { url: 'avatars/avatar_03_kang_daeun.jpg', desc: '가을 산책로에서 단정하게 찍은 본인 프로필 사진' },
@@ -612,6 +614,7 @@
       ],
       // 3. 남이 찍어준 일상/카페/여행/한옥마을 스냅 사진
       candid: [
+        { url: 'avatars/kr_gen_candid_01.jpg', desc: '가을 노란 은행나무 산책길을 걸으며 지인이 찍어준 자연스러운 야외 스냅' },
         { url: 'avatars/kr_candid_cafe_01.jpg', desc: '주말 카페에서 마주 앉은 지인이 찍어준 일상 스냅 사진' },
         { url: 'avatars/kr_candid_park_02.jpg', desc: '단풍 든 공원 산책길에 뒤돌아보며 웃을 때 지인이 찍어준 스냅 사진' },
         { url: 'avatars/kr_candid_sea_03.jpg', desc: '동해 바닷가 노을 전망대에서 남이 찍어준 옆모습 감성 스냅' },
@@ -659,6 +662,7 @@
           { url: 'avatars/avatar_08_oh_chaewon.jpg', desc: '베이커리 주방에서 직접 만든 과일 타르트를 들고 찍은 사진 (직업 관련 프사)' }
         ],
         flower: [
+          { url: 'avatars/kr_gen_job_01.jpg', desc: '햇살 가득한 꽃 작업실에서 앞치마를 입고 장미를 다듬는 모습 (직업 관련 프사)' },
           { url: 'avatars/kr_job_florist_01.jpg', desc: '꽃 작업실에서 앞치마를 입고 꽃다발을 포장하는 모습 (직업 관련 프사)' },
           { url: 'avatars/kr_hand_bouquet_04.jpg', desc: '작업실에서 직접 다듬고 묶은 파스텔톤 꽃다발 사진 (직업 관련 프사)' },
           { url: 'avatars/avatar_02_kim_subin.jpg', desc: '꽃향기 가득한 플라워 작업실에서 찍은 사진 (직업 관련 프사)' }
@@ -1363,6 +1367,10 @@
 
     // 동일 인물 원본 ↔ 클로즈업 1:1 매칭 맵 (절대 다른 사람 얼굴이 섞이지 않도록 보장)
     const SAME_PERSON_PAIR_MAP = {
+      'avatars/kr_gen_selfie_01.jpg': { url: 'avatars/same_kr_gen_selfie_01.jpg', desc: '카페 거울 앞에서 미소 지으며 찍은 본인 클로즈업 셀카' },
+      'avatars/kr_gen_profile_01.jpg': { url: 'avatars/same_kr_gen_profile_01.jpg', desc: '창가 자연광 아래 온화하게 웃는 본인 정면 클로즈업 사진' },
+      'avatars/kr_gen_candid_01.jpg': { url: 'avatars/same_kr_gen_candid_01.jpg', desc: '단풍길 산책 중 활짝 웃는 본인 클로즈업 사진' },
+      'avatars/kr_gen_job_01.jpg': { url: 'avatars/same_kr_gen_job_01.jpg', desc: '꽃 작업실에서 다정하게 미소 짓는 본인 클로즈업 사진' },
       'avatars/avatar_01_park_hayoung.jpg': { url: 'avatars/same_01_park_hayoung.jpg', desc: '카페 창가에서 밝게 미소 지으며 찍은 본인 클로즈업 사진' },
       'avatars/avatar_02_kim_subin.jpg': { url: 'avatars/same_02_kim_subin.jpg', desc: '꽃 작업실에서 다정하게 웃으며 찍은 본인 클로즈업 셀카' },
       'avatars/avatar_03_kang_daeun.jpg': { url: 'avatars/same_03_kang_daeun.jpg', desc: '산책길에 기분 좋게 미소 지은 본인 클로즈업 사진' },
