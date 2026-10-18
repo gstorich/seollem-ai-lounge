@@ -911,9 +911,13 @@
     // =========================================================================
     // 1. 1,250+ KOREAN FEMALE PERSONAS ENGINE (20대 ~ 60대, 5가지 성격, 7대 지역권)
     // =========================================================================
-    // 100% 직접 생성한 한국인 여성 및 한국 일상/풍경/직업 프로필 사진 풀 (외부 서양인 스톡 이미지 전면 배제)
-    const REAL_AVATAR_GALLERY = {
-      // 1. 본인의 셀카 (거울 셀카, 카페 셀카, 클로즈업 셀카 등)
+    // =========================================================================
+    // 연령대별 완전 격리 아바타 갤러리 (2030대, 40대, 5060대 완전 분리)
+    // 20~30대에는 40대/시니어 사진이 단 1장도 섞여 들어가지 않도록 물리적 격리
+    // =========================================================================
+
+    // 1. 20대 & 30대 전용 아바타 풀 (순수 20~30대 젊은 한국 여성 이미지)
+    const AVATARS_20_30 = {
       selfie: [
         { url: 'avatars/kr_gen_selfie_01.jpg', desc: '분위기 좋은 카페 전신 거울 앞에서 찍은 본인 거울 셀카' },
         { url: 'avatars/kr_selfie_mirror_01.jpg', desc: '외출 전 현관 거울 앞에서 직접 찍은 본인 거울 셀카' },
@@ -935,7 +939,7 @@
         { url: 'avatars/kr_user_2030_car_01.jpg', desc: '차 안에서 자연광 받으며 기분 좋게 찍은 정면 셀카' },
         { url: 'avatars/kr_user_2030_car_02.jpg', desc: '주차 후 차 안에서 살짝 미소 머금고 찍은 내추럴 셀카' },
         { url: 'avatars/kr_user_2030_car_03.jpg', desc: '드라이브 가다 신호 대기 중 가볍게 찍은 차안 셀카' },
-        { url: 'avatars/kr_user_2030_mirror_01.jpg', desc: '현관 전신 거울 앞에서 오늘의 데일리룩 찍은 전신 거울 셀카' },
+        { url: 'avatars/kr_user_2030_mirror_01.jpg', desc: '현관 전신 거울 앞에서 데일리룩 찍은 전신 거울 셀카' },
         { url: 'avatars/kr_user_2030_mirror_02.jpg', desc: '감성 카페 포토존 거울 앞에서 자연스럽게 찍은 거울 셀카' },
         { url: 'avatars/kr_user_2030_mirror_03.jpg', desc: '화사한 조명 거울 앞에서 살짝 고개 기울이고 찍은 거울 셀카' },
         { url: 'avatars/kr_user_2030_mirror_04.jpg', desc: '원피스 입고 단정하게 찍은 실내 전신 거울 셀카' },
@@ -946,14 +950,8 @@
         { url: 'avatars/kr_user_2030_pilates_01.jpg', desc: '필라테스 기구실에서 스트레칭 후 깔끔하게 찍은 셀카' },
         { url: 'avatars/kr_user_2030_subway_01.jpg', desc: '지하철 플랫폼에서 열차 기다리며 조용히 찍은 일상 셀카' },
         { url: 'avatars/kr_user_2030_subway_02.jpg', desc: '퇴근 지하철 환승 통로에서 거울 보고 찍은 셀카' },
-        { url: 'avatars/kr_user_2030_subway_03.jpg', desc: '지하철 스크린도어 앞에서 차분하게 찍은 일상 셀카' },
-        { url: 'avatars/kr_user_40_bus_01.jpg', desc: '주말 버스 창가에서 우아하고 부드럽게 미소 지은 셀카' },
-        { url: 'avatars/kr_user_40_gym_01.jpg', desc: '피트니스 센터에서 건강미 넘치게 운동하고 찍은 셀카' },
-        { url: 'avatars/kr_user_40_bus_02.jpg', desc: '가을 햇살 아래 버스 정류장에서 단아하게 찍은 셀카' },
-        { url: 'avatars/kr_user_40_subway_01.jpg', desc: '지하철 에스컬레이터 앞에서 지적인 분위기로 찍은 셀카' },
-        { url: 'avatars/kr_user_40_car_01.jpg', desc: '차 안에서 여유롭고 다정한 미소로 찍은 드라이브 셀카' }
+        { url: 'avatars/kr_user_2030_subway_03.jpg', desc: '지하철 스크린도어 앞에서 차분하게 찍은 일상 셀카' }
       ],
-      // 2. 단정한 본인 프로필 사진 (20~30대 및 40~60대 한국 여성)
       profile: [
         { url: 'avatars/kr_gen_profile_01.jpg', desc: '햇살 드는 카페 창가에서 따뜻하게 미소 지은 본인 프로필 사진' },
         { url: 'avatars/avatar_01_park_hayoung.jpg', desc: '카페 창가에서 단정하고 분위기 있게 나온 본인 프로필 사진' },
@@ -964,8 +962,6 @@
         { url: 'avatars/avatar_07_lee_seoyeon.jpg', desc: '미술관에서 찍은 세련된 무드의 본인 프로필 사진' },
         { url: 'avatars/avatar_09_shin_sohee.jpg', desc: '한강 야경을 배경으로 환하게 웃는 본인 프로필 사진' },
         { url: 'avatars/avatar_10_han_minseo.jpg', desc: '북카페에서 찍은 지적이고 단아한 본인 프로필 사진' },
-        { url: 'avatars/kr_profile_senior_02.jpg', desc: '식물원 카페에서 우아하고 온화한 미소로 찍은 본인 프로필 사진' },
-        { url: 'avatars/kr_profile_senior_closeup.jpg', desc: '품위 있고 따뜻한 인상의 본인 정면 프로필 사진' },
         { url: 'avatars/kr_user_2030_cafe_01.jpg', desc: '분위기 좋은 카페 테이블에 앉아 부드럽게 미소 지은 일상 사진' },
         { url: 'avatars/kr_user_2030_cat_01.jpg', desc: '반려묘를 품에 안고 사랑스럽게 웃으며 찍은 홈 스냅' },
         { url: 'avatars/kr_user_2030_puppy_01.jpg', desc: '귀여운 강아지와 얼굴을 맞대고 다정하게 찍은 사진' },
@@ -974,7 +970,6 @@
         { url: 'avatars/kr_user_2030_travel_01.jpg', desc: '여행지 바닷가 산책로에서 기분 좋게 바람 맞으며 찍은 셀카' },
         { url: 'avatars/kr_user_2030_winter_01.jpg', desc: '포근한 목도리 두르고 겨울 감성 가득 담아 찍은 셀카' }
       ],
-      // 3. 남이 찍어준 일상/카페/여행/한옥마을 스냅 사진
       candid: [
         { url: 'avatars/kr_gen_candid_01.jpg', desc: '가을 노란 은행나무 산책길을 걸으며 지인이 찍어준 자연스러운 야외 스냅' },
         { url: 'avatars/kr_candid_cafe_01.jpg', desc: '주말 카페에서 마주 앉은 지인이 찍어준 일상 스냅 사진' },
@@ -982,8 +977,6 @@
         { url: 'avatars/kr_candid_sea_03.jpg', desc: '동해 바닷가 노을 전망대에서 남이 찍어준 옆모습 감성 스냅' },
         { url: 'avatars/kr_candid_hanok_04.jpg', desc: '북촌 한옥마을 골목길 나들이 중 친구가 찍어준 전신 스냅 사진' },
         { url: 'avatars/kr_candid_hanok_closeup.jpg', desc: '한옥마을 산책 중 뒤돌아보며 환하게 웃는 남이 찍어준 사진' },
-        { url: 'avatars/avatar_03_kang_daeun.jpg', desc: '가을 가로수길에서 지인이 찍어준 자연스러운 스냅 사진' },
-        { url: 'avatars/avatar_09_shin_sohee.jpg', desc: '저녁 한강 산책길에 남이 찍어준 분위기 있는 사진' },
         { url: 'avatars/kr_user_2030_hanriver_01.jpg', desc: '노을 지는 한강 둔치에서 남이 찍어준 자연스러운 일상 스냅' },
         { url: 'avatars/kr_user_2030_hanriver_02.jpg', desc: '한강 다리를 바라보며 폰으로 풍경 찍는 뒷모습 감성 사진' },
         { url: 'avatars/kr_user_2030_hanriver_03.jpg', desc: '한강 공원에서 시원한 강바람 맞으며 찍은 단정한 전신 사진' },
@@ -991,133 +984,171 @@
         { url: 'avatars/kr_user_2030_night_walk_01.jpg', desc: '선선한 저녁 거리 산책하며 남이 찍어준 감성 스냅' },
         { url: 'avatars/kr_user_2030_dog_walk_01.jpg', desc: '밤에 반려견과 동네 산책로 걷다 찍은 훈훈한 일상 사진' },
         { url: 'avatars/kr_user_2030_dog_walk_02.jpg', desc: '공원 벤치에 강아지와 나란히 앉아 찍은 밤 산책 사진' },
-        { url: 'avatars/kr_user_2030_dog_walk_03.jpg', desc: '강아지 줄 잡고 산책하며 밝게 웃는 일상 스냅' },
-        { url: 'avatars/kr_user_40_night_walk_01.jpg', desc: '달빛 아래 한적한 산책길 걷다 온화하게 미소 지은 셀카' }
+        { url: 'avatars/kr_user_2030_dog_walk_03.jpg', desc: '강아지 줄 잡고 산책하며 밝게 웃는 일상 스냅' }
       ],
-      // 4. 손 찍어서 올린 사진 (커피잔/와인잔/꽃다발을 든 손, 반려견 쓰다듬는 손 등)
       hand: [
         { url: 'avatars/kr_hand_coffee_01.jpg', desc: '카페 나무 테이블 위 따뜻한 라떼 잔을 손에 들고 찍은 손 사진' },
         { url: 'avatars/kr_hand_wine_02.jpg', desc: '분위기 좋은 저녁 모임에서 와인잔을 살짝 들고 찍은 손 사진' },
         { url: 'avatars/kr_hand_dog_03.jpg', desc: '집 거실에서 귀여운 말티즈 강아지를 쓰다듬으며 찍은 손 사진' },
         { url: 'avatars/kr_hand_bouquet_04.jpg', desc: '향기로운 꽃다발 리본을 두 손으로 묶으며 찍은 손 사진' }
-      ],
-      // 5. 자연 사진이나 등산 가서 직접 찍은 한국 산·바다·단풍 풍경 사진
-      nature_hiking: [
-        { url: 'avatars/kr_hiking_peak_01.jpg', desc: '주말 북한산 등산 올라가서 정상 바위 능선 앞에서 찍은 등산 인증 사진' },
-        { url: 'avatars/kr_nature_mountain_ridge.jpg', desc: '등산 가서 직접 찍은 맑은 하늘과 바위 산봉우리 능선 풍경 사진' },
-        { url: 'avatars/kr_nature_eastsea_sunset.jpg', desc: '동해 바닷가 여행 가서 직접 찍은 붉은 수평선 노을 풍경 사진' },
-        { url: 'avatars/kr_nature_autumn_foliage.jpg', desc: '가을 산책길에 노랗고 붉게 물든 은행나무와 단풍을 찍은 자연 사진' },
-        { url: 'avatars/kr_candid_sea_03.jpg', desc: '바닷가 해안 전망대에서 노을을 바라보며 찍은 여행 사진' },
-        { url: 'avatars/kr_candid_park_02.jpg', desc: '가을 단풍길 산책로에서 찍은 나들이 사진' },
-        { url: 'avatars/kr_user_2030_mountain_01.jpg', desc: '주말 등산 정상에서 청량한 가을 하늘 배경으로 찍은 인증 셀카' },
-        { url: 'avatars/kr_user_40_mountain_01.jpg', desc: '산 정상 전망대에서 상쾌한 바람 맞으며 찍은 품격 있는 사진' }
-      ],
-      // 6. 직업과 관련된 일터/작업실 사진
-      job: {
-        cafe: [
-          { url: 'avatars/kr_job_barista_02.jpg', desc: '카페 에스프레소 바에서 직접 우유를 부어 라떼아트를 만드는 모습 (직업 관련 프사)' },
-          { url: 'avatars/kr_hand_coffee_01.jpg', desc: '직접 내린 따뜻한 라떼 한 잔 사진 (직업 관련 프사)' },
-          { url: 'avatars/avatar_01_park_hayoung.jpg', desc: '운영하는 로스터리 카페 창가에서 찍은 사진 (직업 관련 프사)' }
-        ],
-        bakery: [
-          { url: 'avatars/kr_job_bakery_03.jpg', desc: '베이커리에서 갓 구워낸 크루아상과 스콘, 딸기 케이크 트레이 사진 (직업 관련 프사)' },
-          { url: 'avatars/avatar_08_oh_chaewon.jpg', desc: '베이커리 주방에서 직접 만든 과일 타르트를 들고 찍은 사진 (직업 관련 프사)' }
-        ],
-        flower: [
-          { url: 'avatars/kr_gen_job_01.jpg', desc: '햇살 가득한 꽃 작업실에서 앞치마를 입고 장미를 다듬는 모습 (직업 관련 프사)' },
-          { url: 'avatars/kr_job_florist_01.jpg', desc: '꽃 작업실에서 앞치마를 입고 꽃다발을 포장하는 모습 (직업 관련 프사)' },
-          { url: 'avatars/kr_hand_bouquet_04.jpg', desc: '작업실에서 직접 다듬고 묶은 파스텔톤 꽃다발 사진 (직업 관련 프사)' },
-          { url: 'avatars/avatar_02_kim_subin.jpg', desc: '꽃향기 가득한 플라워 작업실에서 찍은 사진 (직업 관련 프사)' }
-        ],
-        music: [
-          { url: 'avatars/avatar_04_cho_yerin.jpg', desc: '레슨 일정을 마치고 아늑한 라운지에서 쉬는 모습 (직업 관련 프사)' },
-          { url: 'avatars/kr_profile_senior_02.jpg', desc: '연주 연습 후 차 한잔하며 여유를 즐기는 모습 (직업 관련 프사)' }
-        ],
-        art: [
-          { url: 'avatars/avatar_07_lee_seoyeon.jpg', desc: '갤러리 전시 공간에서 작품과 함께 찍은 사진 (직업 관련 프사)' },
-          { url: 'avatars/kr_candid_hanok_04.jpg', desc: '전통 문화 거리에서 영감을 얻으며 산책하는 모습 (직업 관련 프사)' }
-        ],
-        tea_craft: [
-          { url: 'avatars/kr_hand_coffee_01.jpg', desc: '수제 도자기 잔에 따뜻하게 담아낸 차 한 잔 사진 (직업 관련 프사)' },
-          { url: 'avatars/kr_profile_senior_02.jpg', desc: '햇살 드는 다실에서 따뜻한 차를 즐기는 모습 (직업 관련 프사)' }
-        ],
-        wellness: [
-          { url: 'avatars/avatar_05_yoon_jieun.jpg', desc: '채광 좋은 필라테스 센터 기구 앞에서 밝게 웃는 모습 (직업 관련 프사)' },
-          { url: 'avatars/kr_hiking_peak_01.jpg', desc: '주말 산행으로 건강하게 체력을 관리하는 모습 (직업 관련 프사)' }
-        ],
-        book_study: [
-          { url: 'avatars/avatar_10_han_minseo.jpg', desc: '책장이 가득한 서재형 북카페에서 노트와 함께 찍은 사진 (직업 관련 프사)' }
-        ],
-        interior_fashion: [
-          { url: 'avatars/kr_selfie_mirror_01.jpg', desc: '깔끔하게 스타일링한 코디를 거울 앞에서 찍은 사진 (직업 관련 프사)' },
-          { url: 'avatars/avatar_07_lee_seoyeon.jpg', desc: '감각적인 갤러리 인테리어 공간에서 찍은 사진 (직업 관련 프사)' }
-        ]
-      }
+      ]
     };
 
-    function getJobAvatarPool(jobName) {
-      if (/바리스타|카페|한식/.test(jobName)) return REAL_AVATAR_GALLERY.job.cafe;
-      if (/파티시에|베이커리|수제청|디저트/.test(jobName)) return REAL_AVATAR_GALLERY.job.bakery;
-      if (/플로리스트|플라워|꽃|정원|숲/.test(jobName)) return REAL_AVATAR_GALLERY.job.flower;
-      if (/피아노|음악|합창/.test(jobName)) return REAL_AVATAR_GALLERY.job.music;
-      if (/일러스트|큐레이터|서예|민화|수채화|문화센터|뷰티/.test(jobName)) return REAL_AVATAR_GALLERY.job.art;
-      if (/도자기|전통찻집|다도|아로마/.test(jobName)) return REAL_AVATAR_GALLERY.job.tea_craft;
-      if (/요가|필라테스|약국|약사|상담/.test(jobName)) return REAL_AVATAR_GALLERY.job.wellness;
-      if (/교사|번역|북카페|수필|시 낭송|독서/.test(jobName)) return REAL_AVATAR_GALLERY.job.book_study;
-      return REAL_AVATAR_GALLERY.job.interior_fashion;
+    // 2. 40대 전용 아바타 풀 (우아하고 성숙한 40대 한국 여성 이미지 및 일상)
+    const AVATARS_40 = {
+      people: [
+        { url: 'avatars/kr_user_40_bus_01.jpg', desc: '주말 버스 창가에서 우아하고 부드럽게 미소 지은 셀카' },
+        { url: 'avatars/kr_user_40_gym_01.jpg', desc: '피트니스 센터에서 건강미 넘치게 운동하고 찍은 셀카' },
+        { url: 'avatars/kr_user_40_bus_02.jpg', desc: '가을 햇살 아래 버스 정류장에서 단아하게 찍은 셀카' },
+        { url: 'avatars/kr_user_40_subway_01.jpg', desc: '지하철 에스컬레이터 앞에서 지적인 분위기로 찍은 셀카' },
+        { url: 'avatars/kr_user_40_car_01.jpg', desc: '차 안에서 여유롭고 다정한 미소로 찍은 드라이브 셀카' },
+        { url: 'avatars/kr_user_40_night_walk_01.jpg', desc: '달빛 아래 한적한 산책길 걷다 온화하게 미소 지은 셀카' },
+        { url: 'avatars/kr_user_40_mountain_01.jpg', desc: '산 정상 전망대에서 상쾌한 바람 맞으며 찍은 품격 있는 사진' }
+      ],
+      atmosphere: [
+        { url: 'avatars/kr_candid_hanok_04.jpg', desc: '고즈넉한 한옥 갤러리 골목에서 찍은 단아한 스냅 사진' },
+        { url: 'avatars/kr_candid_sea_03.jpg', desc: '조용한 바닷가 카페에서 차 한잔하며 찍은 분위기 있는 사진' },
+        { url: 'avatars/kr_hand_coffee_01.jpg', desc: '원목 테이블 위 정갈하게 내린 커피 사진' },
+        { url: 'avatars/kr_hand_wine_02.jpg', desc: '퇴근 후 편안한 와인 한 잔 사진' },
+        { url: 'avatars/kr_hand_bouquet_04.jpg', desc: '직접 꽃꽂이한 단아한 꽃다발 사진' }
+      ],
+      nature: [
+        { url: 'avatars/kr_nature_autumn_foliage.jpg', desc: '가을 숲길 산책로에서 직접 담은 단풍 풍경' },
+        { url: 'avatars/kr_nature_eastsea_sunset.jpg', desc: '노을 지는 바닷가 풍경' },
+        { url: 'avatars/kr_hiking_peak_01.jpg', desc: '주말 산행 정상에서 찍은 맑은 풍경' }
+      ]
+    };
+
+    // 3. 50대 & 60대 시니어 전용 아바타 풀 (기품 있고 온화한 시니어 여성 프로필 및 풍경)
+    const AVATARS_50_60 = {
+      seniorProfile: [
+        { url: 'avatars/kr_profile_senior_02.jpg', desc: '식물원 카페에서 우아하고 온화한 미소로 찍은 본인 프로필 사진' },
+        { url: 'avatars/kr_profile_senior_closeup.jpg', desc: '품위 있고 따뜻한 인상의 단아한 정면 프로필 사진' }
+      ],
+      nature: [
+        { url: 'avatars/kr_nature_mountain_ridge.jpg', desc: '수목원 산책길에서 바라본 맑은 능선 풍경' },
+        { url: 'avatars/kr_nature_autumn_foliage.jpg', desc: '가을 정원 산책하며 직접 찍은 고운 단풍 사진' },
+        { url: 'avatars/kr_nature_eastsea_sunset.jpg', desc: '바닷가 여행에서 담아온 잔잔한 일몰 사진' },
+        { url: 'avatars/kr_hiking_peak_01.jpg', desc: '산책 삼아 다녀온 산 정상 바위 풍경' }
+      ],
+      hobby: [
+        { url: 'avatars/kr_scene_hanok_alley.jpg', desc: '한옥 마당 정갈한 기와지붕 풍경' },
+        { url: 'avatars/kr_hand_coffee_01.jpg', desc: '따뜻하게 우려낸 차 한 잔 손 사진' },
+        { url: 'avatars/kr_hand_bouquet_04.jpg', desc: '정원에서 가꾼 고운 꽃 화병 사진' }
+      ]
+    };
+
+    function get2030JobAvatarPool(jobName) {
+      if (/바리스타|카페|커피/.test(jobName)) {
+        return [
+          { url: 'avatars/kr_job_barista_02.jpg', desc: '카페 에스프레소 바에서 라떼아트 만드는 모습' },
+          { url: 'avatars/kr_hand_coffee_01.jpg', desc: '직접 내린 따뜻한 라떼 한 잔 사진' },
+          { url: 'avatars/avatar_01_park_hayoung.jpg', desc: '로스터리 카페 창가에서 찍은 사진' }
+        ];
+      }
+      if (/파티시에|베이커리|빵|디저트/.test(jobName)) {
+        return [
+          { url: 'avatars/kr_job_bakery_03.jpg', desc: '베이커리 오븐에서 갓 구운 크루아상 트레이' },
+          { url: 'avatars/avatar_08_oh_chaewon.jpg', desc: '베이커리 주방에서 디저트 들고 찍은 사진' }
+        ];
+      }
+      if (/플로리스트|플라워|꽃/.test(jobName)) {
+        return [
+          { url: 'avatars/kr_gen_job_01.jpg', desc: '꽃 작업실 앞치마 차림으로 장미 다듬는 모습' },
+          { url: 'avatars/kr_job_florist_01.jpg', desc: '작업실에서 꽃다발 포장하는 모습' },
+          { url: 'avatars/avatar_02_kim_subin.jpg', desc: '플라워 작업실에서 찍은 셀카' }
+        ];
+      }
+      if (/피아노|음악|실용음악/.test(jobName)) {
+        return [
+          { url: 'avatars/avatar_04_cho_yerin.jpg', desc: '피아노 연습실 라운지에서 찍은 단정한 사진' },
+          { url: 'avatars/avatar_10_han_minseo.jpg', desc: '음악 학원 교실에서 찍은 단아한 프로필' },
+          { url: 'avatars/kr_selfie_cafe_03.jpg', desc: '레슨 비는 시간 카페에서 찍은 셀카' },
+          { url: 'avatars/kr_user_2030_home_01.jpg', desc: '방에서 편안하게 음악 들으며 찍은 셀카' }
+        ];
+      }
+      if (/디자이너|일러스트|에디터|마케터|미술|미대/.test(jobName)) {
+        return [
+          { url: 'avatars/avatar_07_lee_seoyeon.jpg', desc: '갤러리 전시 공간에서 찍은 세련된 사진' },
+          { url: 'avatars/kr_selfie_mirror_01.jpg', desc: '작업실 거울 앞에서 찍은 셀카' },
+          { url: 'avatars/kr_gen_selfie_01.jpg', desc: '카페에서 디자인 작업하다 찍은 셀카' }
+        ];
+      }
+      if (/필라테스|강사|트레이너|운동|체육/.test(jobName)) {
+        return [
+          { url: 'avatars/avatar_05_yoon_jieun.jpg', desc: '필라테스 센터 기구 앞에서 찍은 사진' },
+          { url: 'avatars/kr_user_2030_pilates_01.jpg', desc: '필라테스 기구실 스트레칭 셀카' },
+          { url: 'avatars/kr_user_2030_gym_01.jpg', desc: '피트니스 센터 거울 셀카' }
+        ];
+      }
+      if (/간호|치위생|병원/.test(jobName)) {
+        return [
+          { url: 'avatars/avatar_06_jung_yujin.jpg', desc: '퇴근 후 편안하게 쉰 일상 셀카' },
+          { url: 'avatars/kr_user_2030_selfie_01.jpg', desc: '창가에서 밝게 웃는 정면 셀카' }
+        ];
+      }
+      // 기본 2030 일상/프로필
+      return [
+        { url: 'avatars/kr_gen_profile_01.jpg', desc: '창가에서 따뜻하게 미소 지은 프로필' },
+        { url: 'avatars/kr_gen_candid_01.jpg', desc: '가을 산책길에서 찍은 자연스러운 스냅' },
+        { url: 'avatars/kr_selfie_cafe_03.jpg', desc: '카페에서 찍은 셀카' }
+      ];
     }
 
-    // 연령대·직업·성향에 맞춰 실제 카톡처럼 다양한 유형의 프사(셀카/프로필/남이 찍어준 사진/손 사진/등산·자연 사진/직업 사진) 배정
+    // 연령대·직업에 맞춰 연령대 혼입 없이 100% 철저하게 격리된 프사 배정
     function pickRealisticAvatar(decade, jobName, idx) {
       const decNum = Number(decade);
-      const roll = idx % 20;
 
-      // 20~30대: 본인 셀카(30%) + 남이 찍어준 사진(25%) + 프로필 사진(15%) + 손 찍은 사진(10%) + 직업 관련 사진(10%) + 자연/등산 사진(10%)
+      // 20대 & 30대: 100% 2030 전용 젊은 여성 이미지에서만 배정 (40대/시니어 절대 차단)
       if (decNum <= 30) {
-        if (roll < 6) {
-          const p = REAL_AVATAR_GALLERY.selfie[idx % REAL_AVATAR_GALLERY.selfie.length];
+        const roll = idx % 20;
+        if (roll < 7) {
+          const p = AVATARS_20_30.selfie[idx % AVATARS_20_30.selfie.length];
           return { avatar: p.url, avatarDesc: p.desc };
         }
-        if (roll < 11) {
-          const p = REAL_AVATAR_GALLERY.candid[idx % REAL_AVATAR_GALLERY.candid.length];
-          return { avatar: p.url, avatarDesc: p.desc };
-        }
-        if (roll < 14) {
-          const p = REAL_AVATAR_GALLERY.profile[idx % REAL_AVATAR_GALLERY.profile.length];
+        if (roll < 13) {
+          const p = AVATARS_20_30.candid[idx % AVATARS_20_30.candid.length];
           return { avatar: p.url, avatarDesc: p.desc };
         }
         if (roll < 16) {
-          const p = REAL_AVATAR_GALLERY.hand[idx % REAL_AVATAR_GALLERY.hand.length];
+          const p = AVATARS_20_30.profile[idx % AVATARS_20_30.profile.length];
           return { avatar: p.url, avatarDesc: p.desc };
         }
-        if (roll < 18) {
-          const jobPool = getJobAvatarPool(jobName);
+        if (roll < 19) {
+          const jobPool = get2030JobAvatarPool(jobName);
           const p = jobPool[idx % jobPool.length];
           return { avatar: p.url, avatarDesc: p.desc };
         }
-        const p = REAL_AVATAR_GALLERY.nature_hiking[idx % REAL_AVATAR_GALLERY.nature_hiking.length];
+        const p = AVATARS_20_30.hand[idx % AVATARS_20_30.hand.length];
         return { avatar: p.url, avatarDesc: p.desc };
       }
 
-      // 40~60대: 등산·자연·꽃 사진(30%) + 손/찻잔/반려동물 사진(20%) + 직업/작업실 사진(20%) + 남이 찍어준 스냅(15%) + 단정한 프로필/셀카(15%)
-      if (roll < 6) {
-        const p = REAL_AVATAR_GALLERY.nature_hiking[idx % REAL_AVATAR_GALLERY.nature_hiking.length];
+      // 40대: 40대 전용 이미지 풀에서만 배정
+      if (decNum === 40) {
+        const roll = idx % 10;
+        if (roll < 5) {
+          const p = AVATARS_40.people[idx % AVATARS_40.people.length];
+          return { avatar: p.url, avatarDesc: p.desc };
+        }
+        if (roll < 8) {
+          const p = AVATARS_40.atmosphere[idx % AVATARS_40.atmosphere.length];
+          return { avatar: p.url, avatarDesc: p.desc };
+        }
+        const p = AVATARS_40.nature[idx % AVATARS_40.nature.length];
         return { avatar: p.url, avatarDesc: p.desc };
       }
-      if (roll < 10) {
-        const p = REAL_AVATAR_GALLERY.hand[idx % REAL_AVATAR_GALLERY.hand.length];
+
+      // 50대 및 60대: 5060 시니어 전용 프로필 및 자연/풍경/다도 풀에서만 배정
+      const roll = idx % 10;
+      if (roll < 4) {
+        const p = AVATARS_50_60.seniorProfile[idx % AVATARS_50_60.seniorProfile.length];
         return { avatar: p.url, avatarDesc: p.desc };
       }
-      if (roll < 14) {
-        const jobPool = getJobAvatarPool(jobName);
-        const p = jobPool[idx % jobPool.length];
+      if (roll < 7) {
+        const p = AVATARS_50_60.nature[idx % AVATARS_50_60.nature.length];
         return { avatar: p.url, avatarDesc: p.desc };
       }
-      if (roll < 17) {
-        const p = REAL_AVATAR_GALLERY.candid[idx % REAL_AVATAR_GALLERY.candid.length];
-        return { avatar: p.url, avatarDesc: p.desc };
-      }
-      const p = REAL_AVATAR_GALLERY.profile[idx % REAL_AVATAR_GALLERY.profile.length];
+      const p = AVATARS_50_60.hobby[idx % AVATARS_50_60.hobby.length];
       return { avatar: p.url, avatarDesc: p.desc };
     }
 
