@@ -16,7 +16,7 @@ async function callGemini(messages, systemInstruction, apiKey) {
     },
     generationConfig: {
       temperature: 0.85,
-      maxOutputTokens: 512,
+      maxOutputTokens: 120,
       thinkingConfig: { thinkingLevel: 'LOW' }
     }
   };

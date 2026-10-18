@@ -202,10 +202,10 @@
             </div>
 
             <div class="min-w-0 flex-1">
-              <div class="flex items-center gap-1.5">
-                <h1 id="headerName" class="text-[16.5px] font-black text-[#111111] truncate leading-tight">윤지은</h1>
+              <div class="flex items-center gap-1.5 flex-wrap">
+                <h1 id="headerName" class="text-[16px] font-black text-[#111111] whitespace-nowrap leading-tight">윤지은</h1>
                 <span class="px-1.5 py-0.5 text-[10px] font-bold text-[#8c94a0] bg-[#f4f1e8] border border-[#e5dfd3] rounded-md shrink-0">AI</span>
-                <span id="headerAgeJob" class="text-[13px] text-[#b45309] font-bold truncate">28세 · 강사</span>
+                <span id="headerAgeJob" class="text-[12.5px] text-[#b45309] font-bold truncate">28세 · 강사</span>
               </div>
               <p id="headerStatusText" class="text-[12px] text-[#555555] truncate mt-0.5 leading-snug">
                 ● 대화 가능
@@ -213,12 +213,12 @@
             </div>
           </div>
 
-          <!-- Right: GagaLive Classic "다음 대화" Button -->
+          <!-- Right: Clear Next Partner Button -->
           <div class="flex items-center gap-1.5 shrink-0">
-            <!-- Next Partner Button (GagaLive style instant rematch) -->
-            <button id="btnHeaderNextMatch" type="button" class="px-3.5 py-2 rounded-xl bg-[#fee500] hover:bg-[#ebd300] border border-[#e6ce00] text-[#111111] transition active:scale-95 flex items-center gap-1.5 text-[14px] font-black shadow-xs" title="다른 인연 만나기 (새 대화)">
-              <span>🔄</span>
-              <span>다음 대화</span>
+            <!-- Next Partner Button -->
+            <button id="btnHeaderNextMatch" type="button" class="px-3 py-2 rounded-xl bg-[#fee500] hover:bg-[#ebd300] border border-[#e6ce00] text-[#111111] transition active:scale-95 flex items-center gap-1 text-[13px] font-black shadow-xs whitespace-nowrap" title="다른 인연과 새로 대화하기">
+              <span>🔀</span>
+              <span>다른 사람</span>
             </button>
 
             <!-- Hidden hooks to maintain event listeners safely -->
@@ -369,153 +369,147 @@
         <div class="px-5 py-4 border-b border-[#eaedf0] flex items-center justify-between bg-white shrink-0">
           <div>
             <h3 class="text-[18px] font-bold text-[#191f28] flex items-center gap-1.5">
-              <span>하트 충전소</span>
+              <span>하트 충전</span>
               <span class="text-rose-500">❤️</span>
             </h3>
-            <p id="paymentModalSubtitle" class="text-[12.5px] text-[#6b7684] mt-0.5">정기 결제 없는 1회성 충전 · 대화 기록 영구 보관</p>
+            <p id="paymentModalSubtitle" class="text-[12px] text-[#6b7684] mt-0.5">1회성 결제 · 대화 영구 보관</p>
           </div>
           <button id="btnClosePayment" type="button" class="w-8 h-8 rounded-full bg-[#f1f3f5] text-[#495057] flex items-center justify-center font-bold hover:bg-[#e9ecef] transition">✕</button>
         </div>
 
         <div class="flex-1 overflow-y-auto p-4 space-y-3 chat-scroll text-[13.5px] bg-[#FAF7EE]">
-          <!-- Calm, Reassuring Info Banner -->
-          <div class="py-2.5 px-3.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between shadow-xs">
-            <span class="text-[13px] font-bold text-amber-900">❤️ 충전된 하트는 기한 없이 안전하게 보관됩니다</span>
-            <span class="text-[11.5px] text-[#854d0e] font-medium">1회성 안심결제</span>
+          <!-- Simple Free Bonus Banner -->
+          <div id="paymentBonusAuthBanner" class="py-2.5 px-3.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between gap-2 shadow-xs">
+            <div class="text-[12.5px] text-[#78350f]">
+              🎁 번호 인증 시 <strong>100 하트 무료 지급!</strong>
+            </div>
+            <button id="btnAuthFromPayment" type="button" class="shrink-0 px-3 py-1 rounded-lg bg-[#fee500] hover:bg-[#ebd300] text-[#111] font-bold text-[12px] border border-amber-300">
+              무료 받기
+            </button>
             <span id="paymentUrgencyTimer" class="hidden"></span>
           </div>
 
-          <!-- Free bonus banner if not verified -->
-          <div id="paymentBonusAuthBanner" class="py-2 px-3 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between gap-2 shadow-xs">
-            <div class="text-[12px] text-[#78350f] leading-snug">
-              <strong>첫 방문 혜택</strong>: 휴대폰 번호 인증 시 <strong>보너스 100 하트</strong> 즉시 지급!
-            </div>
-            <button id="btnAuthFromPayment" type="button" class="shrink-0 px-2.5 py-1 rounded-lg bg-[#f59e0b] hover:bg-[#d97706] text-white font-bold text-[11px]">
-              무료 받기
-            </button>
-          </div>
-
-          <!-- Package Selection (TOP PRIORITY: Immediately visible without scrolling) -->
+          <!-- Ultra-clean Package Cards -->
           <div class="space-y-2.5">
-            <div class="flex items-center justify-between">
-              <label class="block text-[13.5px] text-[#191f28] font-bold">1. 충전할 하트 패키지 선택</label>
-              <span class="text-[11.5px] text-[#b45309] font-medium">1회성 결제 (자동결제 없음)</span>
-            </div>
-
-            <!-- Package 1: Starter (2,500 하트) 19,900원 -->
-            <div data-pkg="starter" class="pkg-card cursor-pointer p-3.5 rounded-2xl border border-[#e2e5e9] bg-white hover:bg-[#f8f9fa] flex items-center justify-between transition shadow-xs">
-              <div class="min-w-0 pr-2">
-                <div class="flex items-center gap-1.5 flex-wrap">
-                  <span class="font-bold text-[#191f28] text-[15.5px]">아지트챗 스타터 패키지</span>
-                  <span class="px-2 py-0.5 rounded bg-rose-500 text-white text-[10.5px] font-black">첫 결제 특가</span>
-                  <span class="px-1.5 py-0.5 rounded bg-[#fff1f2] text-rose-600 text-[10.5px] font-bold border border-[#fecdd3]">72% OFF</span>
+            <!-- Package 1: Starter -->
+            <div data-pkg="starter" class="pkg-card cursor-pointer p-4 rounded-2xl border border-[#e2e5e9] bg-white hover:bg-[#f8f9fa] flex items-center justify-between transition shadow-xs">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-black text-[#191f28] text-[16px]">스타터 패키지</span>
+                  <span class="px-2 py-0.5 rounded bg-rose-500 text-white text-[10px] font-black">72% 할인</span>
                 </div>
-                <div class="text-[13px] text-[#333d4b] mt-0.5 font-medium">하트 <strong class="text-rose-600 text-[14.5px]">2,500개</strong> (2,000개 + 첫 결제 500개)</div>
-                <div class="text-[11.5px] text-[#6b7684]">설레는 일상 대화 & 기프티콘 선물 · 대화방 자동 보관</div>
+                <div class="text-[14px] text-rose-600 font-black mt-1">하트 2,500개</div>
               </div>
-              <div class="text-right shrink-0">
+              <div class="text-right">
                 <div class="text-[12px] text-[#8b95a1] line-through">70,000원</div>
-                <div class="text-[17px] font-extrabold text-[#191f28]">19,900원</div>
-                <div class="text-[10.5px] text-rose-600 font-bold">첫 결제 혜택</div>
+                <div class="text-[18px] font-black text-[#191f28]">19,900원</div>
               </div>
             </div>
 
-            <!-- Package 2: Popular (8,000 하트) 49,000원 [기본 선택] -->
-            <div data-pkg="popular" class="pkg-card cursor-pointer p-3.5 rounded-2xl border-2 border-amber-400 bg-amber-50/70 hover:bg-amber-50 flex items-center justify-between transition shadow-sm">
-              <div class="min-w-0 pr-2">
-                <div class="flex items-center gap-1.5 flex-wrap">
-                  <span class="font-bold text-[#191f28] text-[16px]">단골 인연 베스트 패키지</span>
-                  <span class="px-2 py-0.5 rounded bg-rose-500 text-white text-[10.5px] font-black">인기 1위</span>
-                  <span class="px-1.5 py-0.5 rounded bg-amber-400 text-zinc-950 text-[10.5px] font-black">75% OFF</span>
-                  <span class="px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 text-[10px] font-bold">오늘만 +2,000개</span>
+            <!-- Package 2: Popular [BEST] -->
+            <div data-pkg="popular" class="pkg-card cursor-pointer p-4 rounded-2xl border-2 border-amber-400 bg-amber-50/80 hover:bg-amber-50 flex items-center justify-between transition shadow-sm">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-black text-[#191f28] text-[16.5px]">베스트 패키지</span>
+                  <span class="px-2 py-0.5 rounded bg-amber-500 text-black text-[10px] font-black">인기 1위</span>
+                  <span class="px-1.5 py-0.5 rounded bg-rose-500 text-white text-[10px] font-black">75% 할인</span>
                 </div>
-                <div class="text-[13px] text-[#b45309] mt-0.5 font-medium">하트 <strong class="text-rose-600 text-[15.5px]">8,000개</strong> (6,000개 + 오늘만 2,000개 추가)</div>
-                <div class="text-[11.5px] text-[#6b7684]">장기 인연 이어가기 + 감성 기프티콘 선물 무제한</div>
+                <div class="text-[14.5px] text-rose-600 font-black mt-1">하트 8,000개 <span class="text-[11.5px] text-amber-800 font-normal">(+2,000 보너스)</span></div>
               </div>
-              <div class="text-right shrink-0">
+              <div class="text-right">
                 <div class="text-[12px] text-[#8b95a1] line-through">198,000원</div>
-                <div class="text-[18px] font-black text-rose-600">49,000원</div>
-                <div class="text-[10.5px] text-[#b45309] font-bold">오늘 한정 특가</div>
+                <div class="text-[20px] font-black text-rose-600">49,000원</div>
               </div>
             </div>
 
-            <!-- Package 3: Mania (20,000 하트) 89,000원 -->
-            <div data-pkg="mania" class="pkg-card cursor-pointer p-3.5 rounded-2xl border border-[#e2e5e9] bg-white hover:bg-[#f8f9fa] flex items-center justify-between transition shadow-xs">
-              <div class="min-w-0 pr-2">
-                <div class="flex items-center gap-1.5 flex-wrap">
-                  <span class="font-bold text-[#191f28] text-[15.5px]">아지트챗 VIP 메가 패키지</span>
-                  <span class="px-2 py-0.5 rounded bg-amber-500 text-zinc-950 text-[10.5px] font-black">최고 가성비</span>
-                  <span class="px-1.5 py-0.5 rounded bg-[#fff1f2] text-rose-600 text-[10.5px] font-bold border border-[#fecdd3]">77% OFF</span>
+            <!-- Package 3: Mania -->
+            <div data-pkg="mania" class="pkg-card cursor-pointer p-4 rounded-2xl border border-[#e2e5e9] bg-white hover:bg-[#f8f9fa] flex items-center justify-between transition shadow-xs">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-black text-[#191f28] text-[16px]">VIP 메가 패키지</span>
+                  <span class="px-2 py-0.5 rounded bg-purple-600 text-white text-[10px] font-black">77% 할인</span>
                 </div>
-                <div class="text-[13px] text-[#333d4b] mt-0.5 font-medium">하트 <strong class="text-rose-600 text-[14.5px]">20,000개</strong> (15,000개 + 보너스 5,000개)</div>
-                <div class="text-[11.5px] text-[#6b7684]">VIP 전용 대용량 하트 · 프리미엄 선물 & 매칭 프리패스</div>
+                <div class="text-[14px] text-rose-600 font-black mt-1">하트 20,000개 <span class="text-[11.5px] text-purple-700 font-normal">(대용량)</span></div>
               </div>
-              <div class="text-right shrink-0">
+              <div class="text-right">
                 <div class="text-[12px] text-[#8b95a1] line-through">390,000원</div>
-                <div class="text-[17px] font-extrabold text-[#191f28]">89,000원</div>
-                <div class="text-[10.5px] text-[#b45309] font-bold">보너스 +5,000개</div>
+                <div class="text-[18px] font-black text-[#191f28]">89,000원</div>
               </div>
             </div>
 
-            <!-- Package 4: Master (50,000 하트) 149,000원 -->
-            <div data-pkg="master" class="pkg-card cursor-pointer p-3.5 rounded-2xl border border-[#e2e5e9] bg-white hover:bg-[#f8f9fa] flex items-center justify-between transition shadow-xs">
-              <div class="min-w-0 pr-2">
-                <div class="flex items-center gap-1.5 flex-wrap">
-                  <span class="font-bold text-[#191f28] text-[15.5px]">VVIP 로열 하트 패키지</span>
-                  <span class="px-2 py-0.5 rounded bg-purple-600 text-white text-[10.5px] font-black">VVIP 한정특가</span>
-                  <span class="px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 text-[10.5px] font-bold">78% OFF</span>
+            <!-- Package 4: Master -->
+            <div data-pkg="master" class="pkg-card cursor-pointer p-4 rounded-2xl border border-[#e2e5e9] bg-white hover:bg-[#f8f9fa] flex items-center justify-between transition shadow-xs">
+              <div>
+                <div class="flex items-center gap-2">
+                  <span class="font-black text-[#191f28] text-[16px]">VVIP 로열 패키지</span>
+                  <span class="px-2 py-0.5 rounded bg-zinc-900 text-amber-300 text-[10px] font-black">78% 할인</span>
                 </div>
-                <div class="text-[13px] text-[#333d4b] mt-0.5 font-medium">하트 <strong class="text-rose-600 text-[14.5px]">50,000개</strong> (35,000개 + 15,000개 보너스)</div>
-                <div class="text-[11.5px] text-[#6b7684]">하트 소진 걱정 없는 VVIP 마스터 특권 패키지</div>
+                <div class="text-[14px] text-rose-600 font-black mt-1">하트 50,000개</div>
               </div>
-              <div class="text-right shrink-0">
+              <div class="text-right">
                 <div class="text-[12px] text-[#8b95a1] line-through">680,000원</div>
-                <div class="text-[17px] font-extrabold text-[#191f28]">149,000원</div>
-                <div class="text-[10.5px] text-purple-600 font-bold">VVIP 전용 패키지</div>
+                <div class="text-[18px] font-black text-[#191f28]">149,000원</div>
               </div>
             </div>
           </div>
 
-          <!-- Safe Reassurance Notice (No unit cost calculations) -->
-          <div class="p-3.5 rounded-2xl bg-white border border-[#e2e5e9] text-[12px] text-[#6b7684] space-y-1 shadow-xs">
-            <div class="flex items-center gap-1.5 font-bold text-[#191f28]">
-              <span>🔒</span>
-              <span>1회성 안심 결제 안내</span>
-            </div>
-            <p class="leading-relaxed text-[11.5px]">
-              • 충전된 하트는 대화, 사진 열람, 선물 등에 자유롭게 사용되며 유효기간 없이 영구 보관됩니다.<br/>
-              • 정기 결제나 매월 자동 청구가 일절 없는 <strong>1회성 안전 결제</strong>입니다.
-            </p>
+          <div class="text-center text-[11.5px] text-[#888888] pt-1">
+            🔒 자동결제 없는 1회성 결제이며, 하트는 영구 보관됩니다.
           </div>
-
         </div>
 
-        <!-- Sticky Footer: Always Visible Payment Method Selection + Execute Button (Zero Scroll Required) -->
+        <!-- Sticky Footer: Payment Method & Pay Button -->
         <div class="p-4 border-t border-[#eaedf0] bg-white shrink-0 space-y-2.5 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
-          <!-- Payment Method Selection - Permanently visible above execute button for seniors -->
           <div>
-            <div class="flex items-center justify-between mb-1.5">
-              <label class="block text-[13px] text-[#191f28] font-bold flex items-center gap-1.5">
-                <span>2. 결제 수단 선택</span>
-                <span class="text-[11px] font-normal text-rose-600">(터치하여 선택)</span>
-              </label>
-              <span class="text-[11px] text-[#6b7684]">안전 암호화 결제</span>
-            </div>
+            <div class="text-[12px] font-bold text-[#333333] mb-1.5">결제 수단</div>
             <div class="grid grid-cols-3 gap-2">
               <button type="button" data-paymethod="kakaopay" class="pay-method-btn py-2.5 px-2 rounded-xl border-2 border-[#fee500] bg-[#fee500]/25 text-[#191919] font-black text-[13px] shadow-xs flex items-center justify-center gap-1 transition">
                 <span>🟡</span> 카카오페이
               </button>
               <button type="button" data-paymethod="card" class="pay-method-btn py-2.5 px-2 rounded-xl border border-[#e2e5e9] bg-white text-[#4e5968] font-semibold text-[13px] flex items-center justify-center gap-1 transition">
-                <span>💳</span> 신용/체크카드
+                <span>💳</span> 카드결제
               </button>
               <button type="button" data-paymethod="phone" class="pay-method-btn py-2.5 px-2 rounded-xl border border-[#e2e5e9] bg-white text-[#4e5968] font-semibold text-[13px] flex items-center justify-center gap-1 transition">
-                <span>📱</span> 휴대폰 결제
+                <span>📱</span> 휴대폰결제
               </button>
             </div>
           </div>
 
           <button id="btnExecutePayment" type="button" class="w-full py-4 rounded-xl bg-[#fee500] hover:bg-[#ebd300] active:scale-[0.99] text-[#191919] font-black text-[16.5px] shadow-md transition">
-            49,000원 결제하고 8,000 하트 충전하기
+            49,000원 결제하고 8,000 하트 받기
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- HEART NEEDED DIALOG (Clear explanation before payment) -->
+    <div id="heartNeededModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
+      <div class="w-full max-w-[360px] rounded-3xl bg-white p-6 shadow-2xl text-center space-y-4 border border-[#e8e4d8] msg-animate">
+        <div class="w-16 h-16 mx-auto rounded-3xl bg-rose-50 border border-rose-200 flex items-center justify-center text-3xl text-rose-500 shadow-xs">
+          💔
+        </div>
+        <div class="space-y-1.5">
+          <h3 class="text-[18px] font-black text-[#191919]">하트가 부족해요!</h3>
+          <p id="heartNeededDesc" class="text-[13.5px] text-[#666666] leading-relaxed">
+            상대방과 대화를 이어가려면 <strong class="text-rose-600">3.7 하트</strong>가 필요합니다.
+          </p>
+        </div>
+        <div class="p-3.5 rounded-2xl bg-[#FAF7EE] border border-[#ded8cb] text-left text-[12.5px] space-y-1">
+          <div class="flex justify-between text-[#555]">
+            <span>현재 보유 하트</span>
+            <span id="heartNeededCurrent" class="font-black text-[#191919]">0 하트</span>
+          </div>
+          <div class="flex justify-between text-[#555]">
+            <span>1회 대화 차감</span>
+            <span class="font-bold text-rose-600">-3.7 하트</span>
+          </div>
+        </div>
+        <div class="space-y-2 pt-1">
+          <button id="btnGoToCharge" type="button" class="w-full py-3.5 rounded-2xl bg-[#fee500] hover:bg-[#ebd300] active:scale-95 text-[#191919] font-black text-[15px] shadow-sm transition">
+            하트 충전하고 계속 대화하기 ❤️
+          </button>
+          <button id="btnCloseHeartNeeded" type="button" class="w-full py-2.5 text-[#888888] font-bold text-[13px] hover:text-[#333] transition">
+            다음에 할게요
           </button>
         </div>
       </div>
@@ -2673,17 +2667,17 @@
 
           const bubbleText = bubbles[idx];
 
-          // 총 응답 5초 이내 보장을 위해 타자 속도 최적화 (글자당 약 20~28ms, 말풍선당 최대 900ms)
-          const perCharMs = 20 + Math.random() * 8;
-          const targetTypeDurationMs = Math.min(900, Math.round(280 + Math.max(180, bubbleText.length * perCharMs)));
+          // 문장 길이에 비례한 실제 스마트폰 타자 시간 (글자당 35~45ms, 최소 1,200ms ~ 최대 3,500ms)
+          const perCharMs = 35 + Math.random() * 10;
+          const targetTypeDurationMs = Math.min(3500, Math.max(1200, Math.round(500 + bubbleText.length * perCharMs)));
 
-          // 첫 번째 말풍선: 읽자마자 타이핑이 이미 시작된 시점부터 계산하여 남은 시간만큼만 더 타이핑
+          // 첫 번째 말풍선 타이핑 대기: 네트워크 지연과 무관하게 최소 1,200ms 이상 타이핑 보장
           let remainingTypeMs = targetTypeDurationMs;
           if (idx === 0 && typingStartedAt) {
             const elapsed = Date.now() - typingStartedAt;
-            remainingTypeMs = Math.min(850, Math.max(250, targetTypeDurationMs - elapsed));
+            remainingTypeMs = Math.min(3500, Math.max(1200, targetTypeDurationMs - elapsed));
           } else {
-            remainingTypeMs = Math.min(900, targetTypeDurationMs);
+            remainingTypeMs = targetTypeDurationMs;
           }
 
           // 각 말풍선 타이핑 시작
@@ -3462,6 +3456,7 @@
               state.hearts = serverRes.heartsRemaining;
               state.credits = serverRes.heartsRemaining;
               updateAccountAndCreditUI();
+              triggerHeartDeductionAnimation(3.7);
             }
             return {
               bubbles: [serverRes.partnerReply],
@@ -4825,8 +4820,23 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
       return;
     }
 
-    function triggerHeartDeductionAnimation() {
-      // Intentionally silent: 매 메시지마다 하트 차감 팝업/공지를 띄우지 않고 자연스럽게 잔여 하트에만 반영
+    function triggerHeartDeductionAnimation(cost = 3.7) {
+      const footerCreditText = document.getElementById('footerCreditText');
+      if (!footerCreditText) return;
+      const wrap = footerCreditText.parentElement;
+      if (!wrap) return;
+
+      const badge = document.createElement('span');
+      badge.textContent = `-${cost} ❤️`;
+      badge.className = 'text-[11px] font-black text-rose-500 bg-rose-50 px-1.5 py-0.5 rounded-full border border-rose-200 shadow-xs animate-bounce pointer-events-none transition-all duration-700';
+      badge.style.marginLeft = '4px';
+      wrap.appendChild(badge);
+
+      setTimeout(() => {
+        badge.style.opacity = '0';
+        badge.style.transform = 'translateY(-6px)';
+        setTimeout(() => badge.remove(), 700);
+      }, 1200);
     }
 
     // =========================================================================
@@ -4843,7 +4853,7 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
 
       const MSG_HEART_COST = 3.7;
       if (!state.isVipUnlimited && (state.hearts < MSG_HEART_COST || state.credits < MSG_HEART_COST)) {
-        openPaymentModal(`${state.currentChar.name}님과의 대화가 무르익고 있어요! 하트를 충전하고 바로 답장을 받아보세요.`);
+        openHeartNeededModal(state.currentChar?.name || '상대방');
         return;
       }
 
@@ -5264,8 +5274,8 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
           <div class="flex-1 min-w-0">
             <div class="flex items-center justify-between gap-1.5 mb-0.5">
               <div class="flex items-center gap-2 min-w-0">
-                <span class="font-black text-[#111111] text-[16px] truncate">${char.name}</span>
-                <span class="text-[13px] text-[#854d0e] font-bold truncate">${char.age}세 · ${char.job}</span>
+                <span class="font-black text-[#111111] text-[16px] whitespace-nowrap shrink-0">${char.name}</span>
+                <span class="text-[12.5px] text-[#854d0e] font-bold truncate">${char.age}세 · ${char.job}</span>
               </div>
               <span class="text-[12px] text-[#888888] shrink-0 whitespace-nowrap">${timeDisplay}</span>
             </div>
@@ -5306,16 +5316,39 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
     // Alias for backward compatibility
     const renderSavedRoomsList = renderChatRoomsList;
 
+    function openHeartNeededModal(charName = '상대방') {
+      const modal = document.getElementById('heartNeededModal');
+      const desc = document.getElementById('heartNeededDesc');
+      const cur = document.getElementById('heartNeededCurrent');
+      if (desc) desc.innerHTML = `'${charName}'님에게 답장을 보내려면 <strong class="text-rose-600">3.7 하트</strong>가 필요합니다.`;
+      if (cur) cur.textContent = `${state.hearts || 0} 하트`;
+      if (modal) modal.classList.remove('hidden');
+    }
+
+    const btnGoToCharge = document.getElementById('btnGoToCharge');
+    if (btnGoToCharge) {
+      btnGoToCharge.addEventListener('click', () => {
+        document.getElementById('heartNeededModal')?.classList.add('hidden');
+        openPaymentModal('하트를 충전하고 대화를 계속 이어가세요!');
+      });
+    }
+    const btnCloseHeartNeeded = document.getElementById('btnCloseHeartNeeded');
+    if (btnCloseHeartNeeded) {
+      btnCloseHeartNeeded.addEventListener('click', () => {
+        document.getElementById('heartNeededModal')?.classList.add('hidden');
+      });
+    }
+
     function openPaymentModal(customSubtitle) {
       const sub = document.getElementById('paymentModalSubtitle');
       if (sub) {
-        sub.textContent = customSubtitle || '소중한 인연과의 대화가 끊기지 않게 이어가세요';
+        sub.textContent = customSubtitle || '1회성 결제 · 대화 영구 보관';
       }
       state.selectedPkg = state.selectedPkg || 'popular';
       const pkg = PACKAGES[state.selectedPkg] || PACKAGES.popular;
       const btnPay = document.getElementById('btnExecutePayment');
       if (btnPay) {
-        btnPay.textContent = `${pkg.priceText} 결제하고 ${pkg.hearts.toLocaleString()} 하트 충전하기`;
+        btnPay.textContent = `${pkg.priceText} 결제하고 ${pkg.hearts.toLocaleString()} 하트 받기`;
       }
       updateAccountAndCreditUI();
       document.getElementById('paymentModal').classList.remove('hidden');
@@ -6160,8 +6193,11 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
       updateAccountAndCreditUI();
     }
     function renderAccountHome() {
-      if (Object.keys(state.savedRooms).length > 0) showView('chatList');
-      else { startChatWithCharacter(pickRandomCharacter(false), false); showView('chatRoom'); }
+      // 첫 방문자나 재방문자 모두 홈(대화목록 화면)에서 '대화 시작' 버튼을 직접 눌러 매칭하도록 보장
+      showView('chatList');
+      if (typeof renderChatRoomsList === 'function') {
+        renderChatRoomsList();
+      }
     }
     let lastSyncWarning = 0;
     window.addEventListener('seollem-sync-error', () => {
