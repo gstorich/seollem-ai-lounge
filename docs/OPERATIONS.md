@@ -40,3 +40,7 @@
 
 `node ops/oci/smoke.cjs`, `node server/tests/accounts.cjs`, `node server/tests/operations.cjs`, `node server/tests/analytics.cjs`.
 관리자 권한/만료/시도 제한/CSRF, 고객 간 문의 격리, 내부 메모 비공개, 잔액 보정 중복 방지/음수 방지/원장/감사 기록, 재시작 복원, 분석 동의·DNT·URL 비식별 처리를 검증한다. 자동 테스트는 분리된 SQLite와 합성 계정을 사용한다.
+
+## 운영 확인 — 2026-10-18
+
+OCI 배포 후 지정 비밀번호 로그인 및 실제 운영 지표 표시, 비로그인 관리 API 401, 고객센터의 번호 인증 화면을 확인했다. GA4 실시간 보고서에서 활성 사용자 1명과 page_view/first_visit/session_start 수신을 확인했다. 실제 고객 문의·하트 보정은 운영 DB에 테스트 데이터를 넣지 않고 분리된 환경에서 검증했다. 실제 문자 수신 확인은 사용자가 사이트에서 진행한다.

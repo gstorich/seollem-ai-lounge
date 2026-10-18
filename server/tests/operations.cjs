@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),{spawn}=require('node:child_process'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),crypto=require('node:crypto'),{DatabaseSync}=require('node:sqlite'),jwt=require('jsonwebtoken');
 const root=path.resolve(__dirname,'../..'),dir=fs.mkdtempSync(path.join(os.tmpdir(),'azit-operations-')),secret=crypto.randomBytes(48).toString('hex'),password=crypto.randomBytes(18).toString('hex'),salt=crypto.randomBytes(16).toString('hex'),hash=salt+':'+crypto.scryptSync(password,salt,64).toString('hex'),base='http://127.0.0.1:19412',origin='https://example.com';
-const env={...process.env,NODE_ENV:'production',HOST:'127.0.0.1',PORT:'19412',DATABASE_FILE:path.join(dir,'legacy.json'),SQLITE_FILE:path.join(dir,'test.sqlite'),JWT_SECRET:secret,ADMIN_PASSWORD_HASH:hash,ALLOWED_ORIGINS:origin,GEMINI_API_KEY:'',OPENAI_API_KEY:'',GA_MEASUREMENT_ID:''};
+const env={...process.env,NODE_ENV:'production',HOST:'127.0.0.1',PORT:'19412',DATABASE_FILE:path.join(dir,'legacy.json'),SQLITE_FILE:path.join(dir,'test.sqlite'),JWT_SECRET:secret,ADMIN_PASSWORD_HASH:hash,ALLOWED_ORIGINS:origin,GEMINI_API_KEY:'',OPENAI_API_KEY:'',GA_MEASUREMENT_ID:'G-ZZZZZZ9999'};
 let child,logs='',sql;
 async function start(){child=spawn(process.execPath,['server/server.js'],{cwd:root,env,stdio:['ignore','pipe','pipe']});child.stdout.on('data',x=>logs+=x);child.stderr.on('data',x=>logs+=x);for(let i=0;i<100;i++){try{if((await fetch(base+'/api/health')).ok)return;}catch{}await new Promise(r=>setTimeout(r,50));}throw Error(logs);}
 async function stop(){if(child&&child.exitCode===null){const exit=new Promise(r=>child.once('exit',r));child.kill();await exit;}}
@@ -33,6 +33,8 @@ async function req(route,{method='GET',body,token,cookie,headers={}}={}){const r
  assert.equal((await req('/admin/analytics',{method:'PUT',cookie,body:{measurementId:'G-ABCDEF1234',propertyId:'123456789'}})).status,200);
  assert.equal((await req('/public-config')).data.gaMeasurementId,'G-ABCDEF1234');
  assert.deepEqual(Object.keys((await req('/public-config')).data),['gaMeasurementId']);
+ await req('/admin/analytics',{method:'PUT',cookie,body:{measurementId:'',propertyId:''}});assert.equal((await req('/public-config')).data.gaMeasurementId,'','Empty saved setting disables environment default');
+ await req('/admin/analytics',{method:'PUT',cookie,body:{measurementId:'G-ABCDEF1234',propertyId:'123456789'}});
  const audits=(await req('/admin/audit',{cookie})).data.items;assert(audits.some(x=>x.action==='heart_adjustment'));assert(!JSON.stringify(audits).includes(password));
  await stop();await start();assert.equal((await req('/admin/tickets/'+ticketId,{cookie})).data.ticket.messages.length,4);assert.equal((await req('/admin/customers/'+phone,{cookie})).data.customer.hearts,60);
  const expired=jwt.sign({role:'admin',version:crypto.createHash('sha256').update(hash).digest('hex')},secret,{audience:'azit-admin',expiresIn:-1});assert.equal((await req('/admin/overview',{cookie:'__Host-azit_admin='+expired})).status,401);
