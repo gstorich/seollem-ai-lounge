@@ -54,6 +54,7 @@
     .typing-dot-1 { animation: dotPulse 1.2s infinite ease-in-out 0s; }
     .typing-dot-2 { animation: dotPulse 1.2s infinite ease-in-out 0.18s; }
     .typing-dot-3 { animation: dotPulse 1.2s infinite ease-in-out 0.36s; }
+    #headerStatusText:empty { display: none; }
   </style>
   <script src="/analytics.js" defer></script>
 </head>
@@ -209,9 +210,7 @@
                 <span class="px-1.5 py-0.5 text-[10px] font-bold text-[#8c94a0] bg-[#f4f1e8] border border-[#e5dfd3] rounded-md shrink-0">AI</span>
                 <span id="headerAgeJob" class="text-[12.5px] text-[#b45309] font-bold truncate">28세 · 강사</span>
               </div>
-              <p id="headerStatusText" class="text-[12px] text-[#555555] truncate mt-0.5 leading-snug">
-                ● 대화 가능
-              </p>
+              <p id="headerStatusText" class="text-[12px] text-[#555555] truncate mt-0.5 leading-snug"></p>
             </div>
           </div>
 
@@ -2554,9 +2553,7 @@
         headerStatusText.className = 'text-[12.5px] text-rose-400 mt-0.5 font-medium leading-snug';
         return;
       }
-      const slotKey = getCurrentTimeSlotKey();
-      const slotInfo = state.currentChar.timeSituations[slotKey];
-      headerStatusText.textContent = slotInfo ? slotInfo.short : '대화 중';
+      headerStatusText.textContent = '';
       headerStatusText.className = 'text-[12.5px] text-[#777777] mt-0.5 leading-snug font-medium';
     }
 
