@@ -9,7 +9,7 @@ if (process.env.LLM_COMPLETION_MOCK === '1') {
     const exhausted = payload.contents.at(-1).parts[0].text === 'limit-test';
     const blocked = payload.contents.at(-1).parts[0].text === 'blocked-test';
     const truncated = exhausted || calls === 1;
-    if (calls === 1) assert.equal(payload.generationConfig.maxOutputTokens, 8192);
+    if (calls === 1) assert.equal(payload.generationConfig.maxOutputTokens, 16384);
     if (calls === 2) assert.equal(payload.generationConfig.maxOutputTokens, 16384);
     return new Response(JSON.stringify({ candidates: [{ finishReason: blocked ? 'SAFETY' : truncated ? 'MAX_TOKENS' : 'STOP',
       content: { parts: [{ thought: true, text: 'private internal reasoning' }, { text: blocked ? 'blocked fragment' : truncated ? '말이 중간에서' : '오늘 이야기 즐거웠어요. 다음에도 편하게 이야기해요.' }] } }], usageMetadata: { candidatesTokenCount: 30 } }));
