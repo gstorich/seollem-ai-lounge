@@ -5,6 +5,14 @@ if (process.env.LLM_COMPLETION_MOCK === '1') {
   global.fetch = async (url, options) => {
     if (!String(url).startsWith('https://generativelanguage.googleapis.com/')) return realFetch(url, options);
     const payload = JSON.parse(options.body);
+    if(payload.contents.at(-1).parts[0].text.includes('address-test')){
+      calls++;
+      const prompt=payload.systemInstruction.parts[0].text;
+      assert.ok(prompt.includes('"age":45'));assert.ok(prompt.includes('"gender":"female"'));
+      if(payload.contents.at(-1).parts[0].text.includes('부르지'))assert.ok(prompt.includes('"allowedAddressTerms":[]'));
+      else assert.ok(prompt.includes('"allowedAddressTerms":["누나"]'));
+      return new Response(JSON.stringify({candidates:[{finishReason:'STOP',content:{parts:[{text:'오늘은 좀 어땠어요?'}]}}]}));
+    }
     if(payload.contents.at(-1).parts[0].text.includes('verbose-test')){
       calls++;
       assert.ok(payload.systemInstruction.parts[0].text.includes('[최우선: 실제 메신저 답장 방식]'));
@@ -65,6 +73,12 @@ if (process.env.LLM_COMPLETION_MOCK === '1') {
     const detailed=await request('/chat/send',guest.token,{characterId,message:'verbose-test 자세하게 설명해주세요',messageId:'detailed'});
     assert.ok(detailed.partnerReply.length>120,'Explicit request for detail must remain available');
     assert.equal((logs.match(/Gemini result:/g)||[]).length,7,'Detail requests must not trigger a shortening generation');
+    const male=require('../services/characterService').getAllCharacters().find(c=>c.gender==='male'&&c.age<40);
+    const oldMessages=[{id:'self_age',sender:'user',text:'저는 45살 여자예요',createdAt:1},...Array.from({length:25},(_,i)=>({id:'past_'+i,sender:'ai',text:'편하게 이야기해요.',createdAt:i+2}))];
+    assert.equal((await fetch(base+'/account/state',{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+guest.token},body:JSON.stringify({savedRooms:{[male.id]:{charId:male.id,messages:oldMessages}}})})).status,200);
+    await request('/chat/send',guest.token,{characterId:male.id,message:'address-test 오늘 산책했어요',messageId:'established'});
+    await request('/chat/send',guest.token,{characterId:male.id,message:'누나라고 부르지 마세요 address-test',messageId:'revoke'});
+    assert.equal((logs.match(/Gemini result:/g)||[]).length,9);
     assert.ok(!logs.includes('synthetic-test-key'));
     console.log('PASS: truncated Gemini response regenerated, complete reply persisted, single heart charge and replay, bounded retries, blocked content rejected and thoughts excluded');
   })().catch(e => { console.error(e); process.exitCode = 1; }).finally(async () => {

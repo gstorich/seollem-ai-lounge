@@ -1,0 +1,22 @@
+const assert=require('node:assert/strict');
+const {buildRelationshipContext:build}=require('../services/relationshipContext');
+const male={age:31,gender:'male'},female={age:25,gender:'female'};
+const user=text=>({sender:'user',text}),ai=text=>({sender:'ai',text});
+assert.deepEqual(build(male,[ai('누나 오늘 어땠어요?'),user('안녕하세요')]).allowedAddressTerms,[]);
+assert.equal(build(male,[user('우리 누나는 45살이에요')]).age,null);
+assert.equal(build(male,[user('만약 저는 45살이라면요?')]).age,null);
+assert.equal(build(male,[user('"나는 45살"이라고 했어요')]).age,null);
+assert.equal(build(male,[user('저는 45살 아니에요')]).age,null);
+assert.deepEqual(build(male,[user('저는 45살이에요')]).allowedAddressTerms,[],'Age alone cannot establish gender');
+assert.deepEqual(build(male,[user('저는 45살 여자예요')]).allowedAddressTerms,['누나']);
+assert.deepEqual(build(male,[user('저는 여자예요'),user('제 나이는 45살이에요')]).allowedAddressTerms,['누나']);
+assert.deepEqual(build(female,[user('저는 45살 남자예요')]).allowedAddressTerms,['오빠']);
+assert.deepEqual(build(male,[user('저는 25살 여자예요')]).allowedAddressTerms,[]);
+assert.deepEqual(build(male,[user('누나라고 불러줘')]).allowedAddressTerms,['누나']);
+assert.equal(build(male,[user('누나라고 불러줘')]).age,null,'An address preference is not an age fact');
+assert.deepEqual(build(male,[user('저는 45살 여자예요'),user('누나라고 부르지 마세요')]).allowedAddressTerms,[]);
+const established=[user('저는 45살 여자예요'),...Array.from({length:25},()=>user('오늘은 그냥 쉬어요'))];
+assert.deepEqual(build(male,established).allowedAddressTerms,['누나'],'Server room history retains facts outside recent model context');
+const service=require('../services/characterService');
+for(const gender of ['male','female']){const c=service.getAllCharacters().find(c=>c.gender===gender);const prompt=service.buildSystemPrompt(service.getCharacterById(c.id));assert(prompt.includes('allowedAddressTerms'));assert(prompt.includes('과거 AI 답변'));assert(prompt.includes('나이·성별부터 캐묻지'));}
+console.log('PASS: unknown age/gender use neutral address, persona and AI claims ignored, explicit self-disclosure/preference respected, correction/revocation, quotes/hypotheticals excluded and older room context retained');

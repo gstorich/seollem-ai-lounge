@@ -97,7 +97,8 @@ function getFallbackReply(character, lastUserText = '') {
 
 module.exports = {
   async generateReply(character, chatHistory, userContext = {}) {
-    const systemPrompt = characterService.buildSystemPrompt(character, userContext);
+    const relationship = userContext.relationship || require('./relationshipContext').buildRelationshipContext(character,chatHistory);
+    const systemPrompt = characterService.buildSystemPrompt(character, {...userContext,relationship});
     let reply = '';
     let isAiGenerated = false;
     const signal = AbortSignal.timeout(45000);

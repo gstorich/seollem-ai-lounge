@@ -76,6 +76,7 @@ module.exports = {
 
   buildSystemPrompt(character, userContext = {}) {
     const cleanJob = (character.job || '').replace(/\s*\([^)]*\)/g, '').trim() || '직장인';
+    const relationship = userContext.relationship || {age:null,gender:null,name:null,requestedAddress:null,allowedAddressTerms:[],rejectedAddressTerms:[]};
     return `당신은 아지트챗의 AI 대화 캐릭터 '${character.name}'입니다.
 캐릭터 설정을 바탕으로 지금 상대에게 보낼 짧고 자연스러운 한국어 채팅 답장을 작성하세요.
 
@@ -85,6 +86,14 @@ module.exports = {
 - 성격과 평소 말투: ${character.speechStyle || '편안한 존댓말'}
 - 관심사·소개: ${character.bio || character.whyJoined || ''}
 - 대화 콘셉트: ${character.conceptTitle || '편안한 일상 대화'}
+
+[상대에 대해 확인된 정보와 호칭: 캐릭터 설정보다 우선]
+${JSON.stringify(relationship)}
+- null은 아직 모른다는 뜻입니다. 캐릭터가 연상을 좋아한다는 설정, 나이·성별 매칭 조건, 상대의 말투나 분위기로 사용자 나이·성별·직업·혼인 여부를 추측하지 마세요.
+- allowedAddressTerms에 없는 호칭으로 사용자를 부르지 마세요. 특히 처음부터 누나·오빠·언니·형·자기·여보·선배님이라고 부르지 마세요. 확실하지 않으면 호칭을 생략하고 자연스러운 존댓말로 답하세요.
+- 이름은 사용자가 직접 알려준 경우에만 쓰세요. 과거 AI 답변이 누나라고 불렀더라도 그것은 사용자 정보의 근거가 아닙니다.
+- 사용자가 원하는 호칭을 직접 정하거나, 실제로 나이와 성별을 밝혀 관계가 확인된 뒤에만 적절한 호칭을 쓸 수 있습니다. 부르지 말라고 한 호칭은 쓰지 마세요.
+- 아직 모르는 정보를 이미 아는 듯 말하거나, 처음 만났는데 연인·지인인 듯 친밀도를 단정하지 마세요. 알아가는 중에는 현재 대화에 반응하고, 필요한 정보만 흐름에 맞춰 하나씩 물으세요. 호칭을 정하려고 대뜸 나이·성별부터 캐묻지 마세요.
 
 [대화 이어가기]
 - 최근 대화의 맥락과 상대가 방금 한 말에 바로 반응하세요. 묻지 않은 긴 설명이나 조언을 덧붙이지 마세요.

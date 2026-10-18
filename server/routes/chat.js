@@ -28,9 +28,11 @@ router.post('/send', requireAuth, async (req, res) => {
   if (activeChats.has(req.user.id)) return res.status(429).json({ success: false, error: '이전 답변을 받은 후 메시지를 보내주세요.' });
   let user;
   let history;
+  let relationship;
   dbService.transaction(() => {
     user = dbService.debit(req.user.id, config.heartsPerMessage, 'chat');
     if (!user) return;
+    relationship = require('../services/relationshipContext').buildRelationshipContext(character,[...(user.savedRooms?.[characterId]?.messages||[]),{sender:'user',text:message.trim()}]);
     history = (user.savedRooms?.[characterId]?.messages || []).filter(m => ['user','ai'].includes(m.sender) && m.text && m.id !== requestId)
       .slice(-12).map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text }));
     dbService.appendMessages(user.id, characterId, [{ id: requestId, sender: 'user', text: message.trim(), createdAt: Date.now(), time: new Date().toLocaleTimeString('ko-KR', {timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'}) }]);
@@ -39,7 +41,7 @@ router.post('/send', requireAuth, async (req, res) => {
   if (!user) return res.status(402).json({ success: false, error: 'INSUFFICIENT_HEARTS', message: '하트가 부족합니다.' });
   activeChats.add(user.id);
   try {
-    const result = await llmService.generateReply(character, [...history, { role: 'user', content: message.trim() }], { affection: 30 });
+    const result = await llmService.generateReply(character, [...history, { role: 'user', content: message.trim() }], { affection: 30, relationship });
     const replyId = `reply_${requestId}`;
     const response = dbService.transaction(() => {
       const current = dbService.appendMessages(user.id, characterId, [{ id: replyId, sender: 'ai', text: result.text, createdAt: Date.now(), time: new Date().toLocaleTimeString('ko-KR', {timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'}) }]);

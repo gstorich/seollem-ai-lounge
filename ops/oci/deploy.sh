@@ -11,6 +11,7 @@ node server/tests/matching.cjs
 node server/tests/heart-expiry.cjs
 node server/tests/llm-completion.cjs
 node server/tests/chat-timing.cjs
+node server/tests/address-context.cjs
 node server/tests/conversations.cjs
 host=haze-oci-a1
 incoming="/tmp/seollem-$release"
@@ -43,7 +44,7 @@ fi
 mv "$incoming" "$release"
 chown -R seollem:seollem "$release"
 runuser -u seollem -- sh -c 'cd "$1/server" && npm ci --omit=dev --cache /var/lib/seollem-ai-lounge/npm-cache' sh "$release"
-runuser -u seollem -- sh -c 'cd "$1" && node server/tests/accounts.cjs && node server/tests/operations.cjs && node server/tests/matching.cjs && node server/tests/heart-expiry.cjs && node server/tests/llm-completion.cjs && node server/tests/chat-timing.cjs && node server/tests/conversations.cjs' sh "$release"
+runuser -u seollem -- sh -c 'cd "$1" && node server/tests/accounts.cjs && node server/tests/operations.cjs && node server/tests/matching.cjs && node server/tests/heart-expiry.cjs && node server/tests/llm-completion.cjs && node server/tests/chat-timing.cjs && node server/tests/address-context.cjs && node server/tests/conversations.cjs' sh "$release"
 install -d -m 0700 /var/backups/seollem-ai-lounge
 if [ -f /var/lib/seollem-ai-lounge/seollem.json ]; then
   cp -n /var/lib/seollem-ai-lounge/seollem.json /var/backups/seollem-ai-lounge/pre-sqlite.json
