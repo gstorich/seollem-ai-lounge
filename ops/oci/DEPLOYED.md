@@ -47,3 +47,11 @@ Release: 20261018T112937Z-064014a. User-facing branding unified as 아지트챗 
 - Domain auto-renewal remains OFF as set by the user. No real SMS receipt was tested; the user will verify on the site.
 
 New-domain live browser check: real AI reply succeeded; refreshing restored the saved conversation and 46.3-heart balance. Real SMS receipt remains for user testing. Certificate renewal service completed successfully and its timer is active.
+
+## Gemini 3.1 Flash-Lite — 2026-10-18
+
+- Switched configured production model and source/example defaults to `gemini-3.1-flash-lite` at the user's request.
+- Release: 20261018T121000Z-aa5967a. Existing LOW thinking configuration is supported and passed a real provider preflight.
+- Verified the running process has GEMINI_MODEL=gemini-3.1-flash-lite.
+- Public API returned a real Korean AI response; chat and 46.3-heart remaining balance persisted after one message.
+- Heart pricing remains 3.7 per successful chat turn. Local smoke and local/OCI account integration checks passed.

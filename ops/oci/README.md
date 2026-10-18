@@ -15,7 +15,7 @@ restart unrelated services. This application has its own `seollem` user,
 
 Gemini is configured in the server environment with the service-specific
 `시니어 AI 챗` key; the key is never included in frontend files.
-Model: `gemini-3.8-flash` (override with `GEMINI_MODEL`).
+Model: `gemini-3.1-flash-lite` (override with `GEMINI_MODEL`).
 The frontend persona catalog is exported by `server/scripts/sync-personas.cjs`
 so all 1,250 displayed IDs resolve on the backend.
 Chat is limited to 12 requests per minute per IP, guest creation to 10.

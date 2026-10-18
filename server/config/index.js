@@ -19,7 +19,7 @@ module.exports = {
 
   // LLM Config
   geminiApiKey: process.env.GEMINI_API_KEY || '',
-  geminiModel: process.env.GEMINI_MODEL || 'gemini-3.8-flash',
+  geminiModel: process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite',
   openaiApiKey: process.env.OPENAI_API_KEY || '',
   defaultLlmProvider: process.env.DEFAULT_LLM_PROVIDER || 'gemini',
 
