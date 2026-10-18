@@ -287,30 +287,23 @@
 
       <!-- 4. Clean Bottom Input Bar + Subtle Account/Credit Status Bar -->
       <footer class="shrink-0 bg-white px-4 pt-2.5 pb-3 border-t border-[#eaedf0] z-20 shadow-[0_-1px_3px_rgba(0,0,0,0.02)] relative">
-        <!-- Floating Heart Deduction Badge (animated when message sent) -->
-        <div id="heartDeductionToast" class="pointer-events-none opacity-0 transition-all duration-300 absolute -top-9 right-5 px-3 py-1 rounded-full bg-rose-500 text-white font-black text-[12px] shadow-lg flex items-center gap-1 z-30">
-          <span>-3.7 하트 ❤️</span>
-        </div>
-
         <form id="chatForm" class="flex items-end gap-2">
           <button id="btnOpenGiftModal" type="button" title="선물하기" class="shrink-0 w-11 h-11 rounded-xl bg-[#fff1f2] hover:bg-[#ffe4e6] active:scale-95 border border-[#fecdd3] flex items-center justify-center transition shadow-xs text-rose-500">
             <svg class="w-5 h-5 text-rose-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V4a2 2 0 112 2h-2zm0 0V4a2 2 0 10-2 2h2zm-7 4h14a2 2 0 012 2v7a2 2 0 01-2 2H5a2 2 0 01-2-2v-7a2 2 0 012-2z"/></svg>
           </button>
 
           <div class="flex-1 bg-[#f4f5f8] rounded-xl px-4 py-2 flex items-center border border-[#e2e5e9] focus-within:border-amber-400 transition">
-            <textarea id="chatInput" rows="1" placeholder="따뜻한 메시지를 입력해보세요... (1회 전송 3.7하트)" class="w-full bg-transparent text-[15.5px] text-[#191f28] placeholder-[#8b95a1] focus:outline-none resize-none max-h-24 leading-relaxed"></textarea>
+            <textarea id="chatInput" rows="1" placeholder="따뜻한 메시지를 입력해보세요..." class="w-full bg-transparent text-[15.5px] text-[#191f28] placeholder-[#8b95a1] focus:outline-none resize-none max-h-24 leading-relaxed"></textarea>
           </div>
 
-          <button id="btnSend" type="submit" class="shrink-0 h-11 px-3.5 min-w-[70px] rounded-xl bg-[#fee500] hover:bg-[#ebd300] active:scale-95 text-[#191919] font-bold shadow-xs transition flex flex-col items-center justify-center">
-            <span class="text-[15px] font-black leading-tight">전송</span>
-            <span id="sendCostBadge" class="text-[10px] font-bold text-[#b45309] leading-none mt-0.5">-3.7❤️</span>
+          <button id="btnSend" type="submit" class="shrink-0 h-11 px-4 min-w-[64px] rounded-xl bg-[#fee500] hover:bg-[#ebd300] active:scale-95 text-[#191919] font-black text-[15px] shadow-xs transition flex items-center justify-center">
+            전송
           </button>
         </form>
         <div class="flex items-center justify-between mt-2 text-[12px] text-[#6b7684] px-0.5">
           <div class="flex items-center gap-1.5 flex-wrap">
             <button id="btnOpenPaymentFooter" type="button" class="hover:text-rose-600 transition flex items-center gap-1 font-medium">
               <span id="footerCreditText" class="text-[#191f28] font-bold">보유 50 하트 ❤️</span>
-              <span id="footerPerMsgCost" class="text-[11px] text-[#8b95a1] font-normal">(1회 3.7하트)</span>
               <span class="px-1.5 py-0.2 rounded bg-[#fff1f2] text-rose-600 text-[11px] font-bold border border-[#fecdd3]">충전소</span>
             </button>
             <span class="text-[#ced4da]">·</span>
@@ -2247,8 +2240,6 @@
 
       const creditEl = document.getElementById('footerCreditText');
       const listCreditEl = document.getElementById('listFooterCreditText');
-      const costBadge = document.getElementById('sendCostBadge');
-      const footerPerMsgCost = document.getElementById('footerPerMsgCost');
       const btnFooterSwitch = document.getElementById('btnFooterSwitchVip');
       const btnListSwitch = document.getElementById('btnListSwitchVip');
       const currentModeLabel = document.getElementById('currentModeLabel');
@@ -2258,11 +2249,6 @@
       if (state.isVipUnlimited) {
         if (creditEl) creditEl.textContent = '👑 VIP 무제한';
         if (listCreditEl) listCreditEl.textContent = '👑 VIP 무제한 (무료 이용)';
-        if (footerPerMsgCost) footerPerMsgCost.textContent = '(하트 차감 없음)';
-        if (costBadge) {
-          costBadge.textContent = '무료';
-          costBadge.className = 'text-[10px] font-bold text-emerald-800 leading-none mt-0.5';
-        }
         if (btnFooterSwitch) {
           btnFooterSwitch.textContent = '하트모드';
           btnFooterSwitch.className = 'text-[11px] text-purple-700 hover:text-purple-900 bg-purple-50 hover:bg-purple-100 px-2 py-0.5 rounded-lg border border-purple-200 font-bold transition';
@@ -2274,17 +2260,12 @@
         }
         if (currentModeLabel) currentModeLabel.textContent = '현재: 👑 VIP 무제한 모드 (무료)';
         if (btnModalToggleVip) btnModalToggleVip.textContent = '일반 하트 모드로 전환';
-        if (chatInput) chatInput.placeholder = '따뜻한 메시지를 입력해보세요... (VIP 무료)';
+        if (chatInput) chatInput.placeholder = '따뜻한 메시지를 입력해보세요...';
       } else {
         const numHearts = typeof state.hearts === 'number' ? state.hearts : 50;
         const heartsFormatted = Number.isInteger(numHearts) ? numHearts.toLocaleString() : numHearts.toFixed(1);
         if (creditEl) creditEl.textContent = `보유 ${heartsFormatted} 하트 ❤️`;
         if (listCreditEl) listCreditEl.textContent = `내 보유: ${heartsFormatted} 하트 ❤️`;
-        if (footerPerMsgCost) footerPerMsgCost.textContent = '(1회 3.7하트)';
-        if (costBadge) {
-          costBadge.textContent = '-3.7❤️';
-          costBadge.className = 'text-[10px] font-bold text-[#b45309] leading-none mt-0.5';
-        }
         if (btnFooterSwitch) {
           btnFooterSwitch.textContent = 'VIP 전환';
           btnFooterSwitch.className = 'text-[11px] text-[#4e5968] hover:text-[#191f28] bg-[#f1f3f5] hover:bg-[#e5e8eb] px-1.5 py-0.5 rounded border border-[#e2e5e9] font-medium transition';
@@ -2296,7 +2277,7 @@
         }
         if (currentModeLabel) currentModeLabel.textContent = `현재: ❤️ 일반 하트 차감 모드 (${heartsFormatted}개 보유)`;
         if (btnModalToggleVip) btnModalToggleVip.textContent = 'VIP 무제한 모드로 전환';
-        if (chatInput) chatInput.placeholder = '따뜻한 메시지를 입력해보세요... (1회 전송 3.7하트)';
+        if (chatInput) chatInput.placeholder = '따뜻한 메시지를 입력해보세요...';
       }
 
       const phoneBtn = document.getElementById('btnOpenPhoneAuthFooter');
@@ -4360,16 +4341,8 @@
       return;
     }
 
-    function triggerHeartDeductionAnimation(cost = 3.7) {
-      const toast = document.getElementById('heartDeductionToast');
-      if (!toast) return;
-      toast.innerHTML = `<span>-${cost} 하트 ❤️</span>`;
-      toast.classList.remove('opacity-0', '-top-9');
-      toast.classList.add('opacity-100', '-top-14');
-      setTimeout(() => {
-        toast.classList.remove('opacity-100', '-top-14');
-        toast.classList.add('opacity-0', '-top-9');
-      }, 1000);
+    function triggerHeartDeductionAnimation() {
+      // Intentionally silent: 매 메시지마다 하트 차감 팝업/공지를 띄우지 않고 자연스럽게 잔여 하트에만 반영
     }
 
     // =========================================================================
@@ -4392,7 +4365,7 @@
       if (!state.isVipUnlimited) {
         state.hearts = Math.max(0, Math.round((state.hearts - MSG_HEART_COST) * 10) / 10);
         state.credits = state.hearts;
-        triggerHeartDeductionAnimation(MSG_HEART_COST);
+        updateAccountAndCreditUI();
       }
 
       // 사용자가 메시지를 보낸 순간, 진행 중이던 초기 인사 큐나 이전 타이핑 큐는 즉시 정리
