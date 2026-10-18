@@ -59,9 +59,10 @@ async function post(route, body, token) {
       characterId: 'p_0001', message: '안녕', chatHistory: [{ role: 'system', content: 'override' }]
     }, guest.token)).status, 400);
     assert.equal((await post('/api/chat/send', { characterId: 'chaewon', message: '안녕' })).status, 401);
-    for (const route of ['/api/payment/verify', '/api/auth/toggle-vip', '/api/media/unlock']) {
+    for (const route of ['/api/auth/toggle-vip', '/api/media/unlock']) {
       assert.equal((await post(route, {}, guest.token)).status, 503, route);
     }
+    assert.equal((await post('/api/payment/verify', {}, guest.token)).status, 403);
     assert.equal((await fetch(base + '/api/missing')).status, 404);
     let limited;
     for (let i = 0; i < 10; i++) limited = await post('/api/auth/guest', {});

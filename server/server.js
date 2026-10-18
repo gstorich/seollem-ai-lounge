@@ -56,7 +56,7 @@ app.use('/gifts', express.static(path.join(__dirname, '..', 'gifts')));
 if (config.nodeEnv === 'production') {
   app.post([
     '/api/auth/toggle-vip',
-    '/api/auth/reset', '/api/payment/prepare', '/api/payment/verify',
+    '/api/auth/reset',
     '/api/media/unlock'
   ], (req, res) => res.status(503).json({
     success: false,

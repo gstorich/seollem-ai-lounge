@@ -383,14 +383,17 @@
           <!-- Simple Free Bonus Banner -->
           <div id="paymentBonusAuthBanner" class="py-2.5 px-3.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between gap-2 shadow-xs">
             <div class="text-[12.5px] text-[#78350f]">
-              🎁 번호 인증 시 <strong>100 하트 무료 지급!</strong>
+              🎁 첫 휴대폰 연동 시 <strong>100하트 무료 지급!</strong>
             </div>
             <button id="btnAuthFromPayment" type="button" class="shrink-0 px-3 py-1 rounded-lg bg-[#fee500] hover:bg-[#ebd300] text-[#111] font-bold text-[12px] border border-amber-300">
-              무료 받기
+              번호 연동하기
             </button>
             <span id="paymentUrgencyTimer" class="hidden"></span>
           </div>
 
+          <div id="paymentAuthRequirement" role="status" class="p-3 rounded-xl bg-white border border-amber-300 text-[13px] text-[#78350f] leading-relaxed">
+            <strong>휴대폰 번호 연동 전에는 결제할 수 없습니다.</strong><br>먼저 번호를 연동하고 첫 인증 혜택 100하트로 대화를 이어가세요.
+          </div>
           <!-- Ultra-clean Package Cards -->
           <div class="space-y-2.5">
             <!-- Package 1: Starter -->
@@ -506,6 +509,7 @@
             <span class="font-bold text-rose-600">-3.7 하트</span>
           </div>
         </div>
+        <p id="heartNeededAuthNotice" class="text-[13px] text-[#78350f] leading-relaxed"></p>
         <div class="space-y-2 pt-1">
           <button id="btnGoToCharge" type="button" class="w-full py-3.5 rounded-2xl bg-[#fee500] hover:bg-[#ebd300] active:scale-95 text-[#191919] font-black text-[15px] shadow-sm transition">
             하트 충전하고 계속 대화하기 ❤️
@@ -2386,6 +2390,7 @@
         if (drawerBtn) drawerBtn.textContent = '3초 번호인증';
         if (payBonusBanner) payBonusBanner.classList.remove('hidden');
       }
+      updatePaymentEligibilityUI();
     }
 
     function showToast(message) {
@@ -3466,6 +3471,11 @@
             };
           }
         } catch (serverErr) {
+          if (serverErr.code === 'INSUFFICIENT_HEARTS') {
+            try { updateMatchAccess(await ApiClient.getMatchEligibility()); } catch {}
+            openHeartNeededModal(char.name);
+            return { bubbles: [], failed: true };
+          }
           showToast(escapeHtml(serverErr.message || '서버 연결을 확인해주세요.'));
           return { bubbles: [], failed: true };
         }
@@ -5120,7 +5130,7 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
         state.currentView = 'chatRoom';
         updateChatListBadges();
         updateAccountAndCreditUI();
-        scrollChatToBottom();
+        scrollToBottom();
       }
     }
 
@@ -5317,20 +5327,41 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
     // Alias for backward compatibility
     const renderSavedRoomsList = renderChatRoomsList;
 
-    function openHeartNeededModal(charName = '상대방') {
+    function openHeartNeededModal(charName = '상대방', forMatch = false) {
       const modal = document.getElementById('heartNeededModal');
       const desc = document.getElementById('heartNeededDesc');
-      const cur = document.getElementById('heartNeededCurrent');
-      if (desc) desc.innerHTML = `'${charName}'님에게 답장을 보내려면 <strong class="text-rose-600">3.7 하트</strong>가 필요합니다.`;
-      if (cur) cur.textContent = `${state.hearts || 0} 하트`;
+      if (desc) desc.textContent = forMatch
+        ? '새로운 상대와 대화를 시작하려면 최소 3.7하트가 필요합니다. 하트를 채운 후 다시 매칭해주세요.'
+        : `${charName}님에게 답장을 보내려면 3.7하트가 필요합니다.`;
+      document.getElementById('heartNeededCurrent').textContent = `${state.hearts || 0} 하트`;
+      document.getElementById('heartNeededAuthNotice').textContent = state.verifiedPhone
+        ? '하트를 충전하면 대화를 이어가거나 새로운 상대를 만날 수 있습니다.'
+        : '휴대폰 번호를 연동하면 첫 인증 시 100하트를 무료로 받습니다. 번호 연동 전에는 결제할 수 없습니다.';
+      document.getElementById('btnGoToCharge').textContent = state.verifiedPhone
+        ? '하트 충전 안내 보기 ❤️' : '휴대폰 연동하고 100하트 받기';
       if (modal) modal.classList.remove('hidden');
+    }
+
+    function updatePaymentEligibilityUI() {
+      const verified = Boolean(state.verifiedPhone);
+      document.getElementById('paymentAuthRequirement')?.classList.toggle('hidden', verified);
+      const pkg = PACKAGES[state.selectedPkg] || PACKAGES.popular;
+      const button = document.getElementById('btnExecutePayment');
+      if (button) button.textContent = verified
+        ? (window.ApiClient?.isHosted() ? '실결제 서비스 준비 중' : `${pkg.priceText} 결제하고 ${pkg.hearts.toLocaleString()} 하트 받기`)
+        : '휴대폰 연동하고 100하트 받기';
+      document.querySelectorAll('.pay-method-btn').forEach(button => {
+        button.disabled = !verified;
+        button.classList.toggle('opacity-50', !verified);
+      });
     }
 
     const btnGoToCharge = document.getElementById('btnGoToCharge');
     if (btnGoToCharge) {
       btnGoToCharge.addEventListener('click', () => {
         document.getElementById('heartNeededModal')?.classList.add('hidden');
-        openPaymentModal('하트를 충전하고 대화를 계속 이어가세요!');
+        if (!state.verifiedPhone) openPhoneAuthModal();
+        else openPaymentModal('하트를 충전하고 대화를 계속 이어가세요!');
       });
     }
     const btnCloseHeartNeeded = document.getElementById('btnCloseHeartNeeded');
@@ -5357,6 +5388,7 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
 
     function openPhoneAuthModal() {
       document.getElementById('paymentModal').classList.add('hidden');
+      document.getElementById('heartNeededModal')?.classList.add('hidden');
       const inputPhone = document.getElementById('inputPhoneNumber');
       if (state.verifiedPhone) {
         inputPhone.value = state.verifiedPhone;
@@ -5738,7 +5770,7 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
         });
         card.className = 'pkg-card cursor-pointer p-3.5 rounded-2xl border-2 border-rose-500 bg-rose-50/50 flex items-center justify-between transition shadow-sm';
         const pkg = PACKAGES[pkgKey] || PACKAGES.popular;
-        document.getElementById('btnExecutePayment').textContent = `${pkg.priceText} 결제하고 ${pkg.hearts.toLocaleString()} 하트 충전하기`;
+        updatePaymentEligibilityUI();
       });
     });
 
@@ -5757,6 +5789,7 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
     });
 
     document.getElementById('btnExecutePayment').addEventListener('click', () => {
+      if (!state.verifiedPhone) { openPhoneAuthModal(); return; }
       if (window.ApiClient?.isHosted()) { showToast('결제 서비스는 준비 중입니다. 결제나 하트 적립은 발생하지 않습니다.'); return; }
       const pkg = PACKAGES[state.selectedPkg] || PACKAGES.popular;
       const btn = document.getElementById('btnExecutePayment');
@@ -6000,43 +6033,60 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
       }
     }
 
-    function requestNewRandomMatch(isFiltered = false) {
+    function updateMatchAccess(access) {
+      if (typeof access.heartsRemaining === 'number') state.hearts = state.credits = access.heartsRemaining;
+      if (typeof access.isVipUnlimited === 'boolean') state.isVipUnlimited = access.isVipUnlimited;
+      if ('phone' in access) state.verifiedPhone = access.phone ? formatPhoneInput(access.phone) : '';
+      updateAccountAndCreditUI();
+    }
+
+    async function requestNewRandomMatch(isFiltered = false) {
       if (state.isMatchingBusy) return;
-
-      const remain = getRemainingMatchCooldown();
-      if (remain > 0) {
-        showToast(`⏳ 잠시만요! 새로운 인연을 신중히 찾고 있습니다. (${remain}초 후 다시 매칭 가능)`);
-        return;
+      if (window.ApiClient?.isHosted() && (!serverStateReady || !ApiClient.isConnected())) {
+        showToast('서버에 연결 중입니다. 잠시 후 다시 시도해주세요.'); return;
       }
-
-      const radarModal = document.getElementById('matchingRadarModal');
-      const radarSubtext = document.getElementById('matchingRadarSubtext');
-      const radarStatus = document.getElementById('matchingRadarStatus');
-
       state.isMatchingBusy = true;
-      if (radarModal) radarModal.classList.remove('hidden');
-      if (radarSubtext) radarSubtext.textContent = '조건에 맞는 주변 접속 회원을 검색 중입니다...';
-      if (radarStatus) radarStatus.textContent = '실시간 접속 회원 매칭 중';
-
-      setTimeout(() => {
-        const nextChar = pickRandomCharacter(true);
-        if (radarSubtext) {
-          radarSubtext.textContent = `📍 ${nextChar.area || '인근 지역'} 접속자와 매칭 성공! 연결 중...`;
+      const radarModal = document.getElementById('matchingRadarModal');
+      try {
+        // Recheck the server balance before selecting a partner, including admin adjustments.
+        if (ApiClient.isHosted()) {
+          const access = await ApiClient.getMatchEligibility();
+          updateMatchAccess(access);
+          if (!access.canMatch) { openHeartNeededModal('상대방', true); return; }
+        } else if (!state.isVipUnlimited && state.hearts < 3.7) {
+          openHeartNeededModal('상대방', true); return;
         }
-        if (radarStatus) {
-          radarStatus.textContent = `'${nextChar.name}'님과 1:1 대화 연결`;
-        }
-
-        setTimeout(() => {
-          state.lastMatchTime = Date.now();
-          state.isMatchingBusy = false;
-          if (radarModal) radarModal.classList.add('hidden');
+        const remain = getRemainingMatchCooldown();
+        if (remain > 0) { showToast(`⏳ ${remain}초 후 새로운 상대를 만날 수 있습니다.`); return; }
+        let nextChar = pickRandomCharacter(true);
+        if (ApiClient.isHosted()) {
           saveAccountState();
-          startChatWithCharacter(nextChar, false);
-          showView('chatRoom');
-          updateMatchCooldownUI();
-        }, 700);
-      }, 750);
+          await ApiClient.flushState();
+          const match = await ApiClient.requestMatch(state.matchFilter, nextChar.id);
+          updateMatchAccess(match);
+          nextChar = CHARACTERS.find(character => character.id === match.character.id);
+          if (!nextChar) throw new Error('대화 상대 정보를 불러오지 못했습니다.');
+        }
+        if (radarModal) radarModal.classList.remove('hidden');
+        const subtext = document.getElementById('matchingRadarSubtext');
+        const status = document.getElementById('matchingRadarStatus');
+        if (subtext) subtext.textContent = '조건에 맞는 새로운 대화 상대를 찾았습니다.';
+        if (status) status.textContent = `${nextChar.name}님과 대화 연결 중`;
+        await new Promise(resolve => setTimeout(resolve, 700));
+        state.lastMatchTime = Date.now();
+        saveAccountState();
+        startChatWithCharacter(nextChar, false);
+        showView('chatRoom');
+        updateMatchCooldownUI();
+      } catch (error) {
+        if (error.code === 'INSUFFICIENT_HEARTS') {
+          updateMatchAccess(error.data || {});
+          openHeartNeededModal('상대방', true);
+        } else showToast(escapeHtml(error.message || '매칭하지 못했습니다. 다시 시도해주세요.'));
+      } finally {
+        state.isMatchingBusy = false;
+        if (radarModal) radarModal.classList.add('hidden');
+      }
     }
 
     function handleRematchRequest() {

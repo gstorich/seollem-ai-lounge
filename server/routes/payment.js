@@ -3,6 +3,19 @@ const crypto = require('crypto');
 const router = express.Router();
 const dbService = require('../services/dbService');
 const { requireAuth } = require('../middleware/auth');
+const config = require('../config');
+
+// Verification is mandatory before any checkout or payment completion request.
+router.use(['/prepare', '/verify'], requireAuth, (req, res, next) => {
+  if (!req.user.phone) return res.status(403).json({
+    success: false, error: 'PHONE_VERIFICATION_REQUIRED',
+    message: '휴대폰 번호 연동 후 결제할 수 있습니다. 첫 번호 인증 시 100하트를 드립니다.'
+  });
+  if (config.nodeEnv === 'production') return res.status(503).json({
+    success: false, error: 'PAYMENT_NOT_READY', message: '실결제 서비스는 준비 중입니다. 결제나 하트 적립은 발생하지 않습니다.'
+  });
+  next();
+});
 
 const PACKAGES = {
   starter: { id: 'starter', name: '아지트챗 스타터 패키지', hearts: 2500, price: 19900 },

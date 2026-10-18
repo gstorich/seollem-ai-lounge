@@ -21,6 +21,8 @@
       if (!res.ok || data.success === false) {
         const error = new Error(data.message || data.error || '서버 요청에 실패했습니다.');
         error.status = res.status;
+        error.code = data.error;
+        error.data = data;
         throw error;
       }
       if (method === 'POST') {
@@ -101,7 +103,8 @@
       await this.flushState();
       return this.request('/chat/send', 'POST', { characterId, message, chatHistory, affection, messageId });
     },
-    async requestMatch(filters) { const data = await this.request('/match/request', 'POST', { filters }); return data.character; },
+    async getMatchEligibility() { return this.request('/match/eligibility'); },
+    async requestMatch(filters, characterId) { return this.request('/match/request', 'POST', { filters, characterId }); },
     async sendGift(characterId, giftKey) { return this.request('/chat/gift', 'POST', { characterId, giftKey }); },
     async unlockMedia(mediaId) { return this.request('/media/unlock', 'POST', { mediaId }); },
     async recall(characterId) { return this.request('/match/recall-previous', 'POST', { characterId }); },

@@ -3,6 +3,7 @@ const router = express.Router();
 const characterService = require('../services/characterService');
 const dbService = require('../services/dbService');
 const { requireAuth } = require('../middleware/auth');
+const { eligibility } = require('../services/matchAccess');
 
 // GET /api/match/characters
 router.get('/characters', (req, res) => {
@@ -10,12 +11,27 @@ router.get('/characters', (req, res) => {
   return res.json({ success: true, characters });
 });
 
+router.get('/eligibility', requireAuth, (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.json({ success: true, ...eligibility(req.user) });
+});
+
 // POST /api/match/request
 router.post('/request', requireAuth, (req, res) => {
   const user = req.user;
-  const { filters } = req.body;
-
-  const matchedChar = characterService.findMatch(filters || user.matchFilter, user.metCharIds || []);
+  const access = eligibility(user);
+  if (!access.canMatch) return res.status(402).json({
+    success: false, error: 'INSUFFICIENT_HEARTS', ...access,
+    message: user.phone
+      ? '대화를 시작할 하트가 부족합니다. 하트 충전 후 새로운 상대를 만나보세요.'
+      : '휴대폰 번호를 연동하면 첫 인증 시 100하트를 받을 수 있습니다. 번호 연동 전에는 결제할 수 없습니다.'
+  });
+  const { filters, characterId } = req.body;
+  if (characterId !== undefined && (typeof characterId !== 'string' || !characterService.getCharacterById(characterId))) {
+    return res.status(400).json({ success: false, error: '대화 상대를 찾을 수 없습니다.' });
+  }
+  const matchedChar = characterId ? characterService.getCharacterById(characterId)
+    : characterService.findMatch(filters || user.matchFilter, user.metCharIds || []);
 
   // Update met character history
   const metIds = Array.isArray(user.metCharIds) ? [...user.metCharIds] : [];
@@ -30,7 +46,8 @@ router.post('/request', requireAuth, (req, res) => {
 
   return res.json({
     success: true,
-    character: matchedChar
+    character: matchedChar,
+    ...access
   });
 });
 
