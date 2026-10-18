@@ -909,6 +909,7 @@
 
   </div>
 
+  <script src="apiClient.js"></script>
   <script>
     // =========================================================================
     // 1. 1,250+ KOREAN FEMALE PERSONAS ENGINE (20대 ~ 60대, 5가지 성격, 7대 지역권)
@@ -3099,6 +3100,32 @@
 
     async function fetchLLMResponse(userText) {
       const char = state.currentChar;
+      if (!char) return { bubbles: ['안녕하세요 ㅎㅎ'] };
+
+      // [OCI 백엔드 연동 모드]: 서버가 구동 중이면 안전한 서버사이드 LLM 및 하트 검증 호출
+      if (window.ApiClient && typeof ApiClient.isConnected === 'function' && ApiClient.isConnected()) {
+        try {
+          const history = (state.savedRooms[char.id]?.messages || []).slice(-6).map(m => ({
+            role: m.sender === 'user' ? 'user' : 'assistant',
+            content: m.text
+          }));
+          const serverRes = await ApiClient.sendMessage(char.id, userText, history, state.affection);
+          if (serverRes && serverRes.success) {
+            if (typeof serverRes.heartsRemaining === 'number') {
+              state.hearts = serverRes.heartsRemaining;
+              state.credits = serverRes.heartsRemaining;
+              updateAccountAndCreditUI();
+            }
+            return {
+              bubbles: [serverRes.partnerReply],
+              forceLeave: Boolean(serverRes.roomLeft)
+            };
+          }
+        } catch (serverErr) {
+          console.warn('[ApiClient] OCI 백엔드 호출 실패, 로컬 시뮬레이션 모드로 전환:', serverErr);
+        }
+      }
+
       const intent = analyzeUserIntent(userText);
 
       // 사용자의 발언에서 기억할 만한 핵심 정보를 추출해 백그라운드 장기 기억에 저장
@@ -5499,6 +5526,13 @@
     }
 
     window.addEventListener('DOMContentLoaded', () => {
+      if (window.ApiClient && typeof ApiClient.checkBackendHealth === 'function') {
+        ApiClient.checkBackendHealth().then(connected => {
+          if (connected) {
+            console.log('✅ [OCI 백엔드 연동 성공] 서버 보안 모드로 동작합니다.');
+          }
+        });
+      }
       loadAccountState();
       updateApiTestBadge();
       triggerSavedRoomsTimeGreetings();
