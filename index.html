@@ -1939,6 +1939,255 @@
 
       MALE_PERSONAS.forEach(m => list.push(m));
 
+      // 4050 여성향 실감형 한국 남성 캐릭터 1,100명 대규모 생성 (총 남성 1,106명)
+      const MALE_GIVEN_BY_DECADE = {
+        '20': ['민준', '서준', '도윤', '예준', '시우', '하준', '지호', '준서', '준우', '현우', '도현', '건우', '우진', '선우', '연우', '정우', '승우', '승현', '시윤', '기현', '재원', '태양', '은우', '수혁', '진혁'],
+        '30': ['민혁', '지훈', '현우', '성훈', '동욱', '재현', '성민', '준호', '동현', '영진', '성준', '원빈', '유진', '진서', '대현', '형석', '경호', '태환', '상혁', '준기', '명훈', '준영', '종현', '동훈', '정혁'],
+        '40': ['우성', '도현', '지훈', '진우', '현우', '영호', '석진', '광수', '철수', '영수', '종우', '태우', '진호', '성수', '기태', '정호', '창민', '성호', '병호', '정환', '재호', '동수', '승환', '상우', '명진'],
+        '50': ['진우', '성호', '영진', '철원', '광진', '명수', '태식', '상철', '인호', '기호', '영식', '종식', '동식', '창호', '성진', '병철', '원식', '재철', '정태', '영길', '상진', '태형', '문수', '덕호', '중호'],
+        '60': ['영철', '정웅', '광호', '동일', '창열', '상태', '종길', '기동', '만석', '영환', '태준', '상호', '용진', '선규', '병주', '정국', '태선', '명국', '영태', '광민', '일호', '문철', '승기', '원철', '기철']
+      };
+
+      const MALE_JOBS_BY_DECADE = {
+        '20': [
+          { job: '체육교육과 대학생 & 조교', motif: '🏸', why: '운동 끝나고 시원한 음료 마시며 쉬는 중이에요 ㅎㅎ' },
+          { job: '실내건축디자인과 대학생', motif: '📐', why: '설계 모형 만들다가 잠깐 쉬러 들어왔어요 ㅎㅎ' },
+          { job: '퍼스널 트레이너 (PT)', motif: '💪', why: '오후 수업 비어서 스트레칭하며 쉬는 중이에요 ㅎㅎ' },
+          { job: '스타트업 주니어 개발자', motif: '💻', why: '퇴근하고 시원한 맥주 한 캔 따고 쉬는 중이에요 ㅎㅎ' },
+          { job: '바리스타 & 카페 매니저', motif: '☕', why: '마감 청소 끝내고 좋아하는 노래 들으며 쉬고 있어요 ㅎㅎ' },
+          { job: '패션 브랜드 쇼룸 매니저', motif: '👕', why: '매장 정리 마치고 음악 들으며 한숨 돌리는 중이에요 ㅎㅎ' },
+          { job: '수의학과 본과생', motif: '🐾', why: '동물병원 실습 마치고 집 가는 버스 안이에요 ㅎㅎ' },
+          { job: '실용음악 작곡 지망생', motif: '🎧', why: '작업실에서 건반 치다가 잠깐 머리 식히는 중이에요 ㅎㅎ' },
+          { job: '필라테스 강사', motif: '🧘‍♂️', why: '레슨 끝나고 개인 운동 마친 뒤 쉬는 중이에요 ㅎㅎ' },
+          { job: '취업준비생 (대기업 공채)', motif: '💼', why: '자소서 다 쓰고 따뜻한 차 한잔하며 쉬고 있어요 ㅎㅎ' }
+        ],
+        '30': [
+          { job: '피트니스 센터 대표', motif: '💪', why: '센터 마감하고 조용해진 홀에서 땀 식히는 중이에요 ㅎㅎ' },
+          { job: '기업 전문 변호사', motif: '⚖️', why: '재판 서류 검토 마치고 서재에서 차 한잔하는 중이에요' },
+          { job: 'IT 스타트업 대표 (CEO)', motif: '💻', why: '투자 미팅 마치고 홀가분하게 저녁 맥주 한잔하는 중이에요' },
+          { job: '정형외과 전문의', motif: '🩺', why: '오늘 수술 일정 다 끝나고 의국에서 편하게 쉬는 중이에요' },
+          { job: '항공사 부기장 (파일럿)', motif: '✈️', why: '비행 스케줄 마치고 호텔에서 조용히 휴식 중이에요' },
+          { job: '프라이빗 바버샵 원장', motif: '✂️', why: '마지막 고객님 보내드리고 샵 정리하며 쉬는 중이에요' },
+          { job: '인테리어 스튜디오 소장', motif: '🛋️', why: '현장 감리 끝나고 사무실에서 에스프레소 마시는 중이에요' },
+          { job: '금융 자산운용사 펀드매니저', motif: '📈', why: '장 마감하고 라운지에서 커피 한잔하며 여유 부리는 중이에요' },
+          { job: '다이닝 비스트로 헤드셰프', motif: '🍳', why: '디너 서비스 끝나고 주방 정리한 뒤 쉬고 있어요' },
+          { job: '수입차 브랜드 총괄 지점장', motif: '🏎️', why: '전시장 마감하고 조용한 사무실에서 한숨 돌리는 중이에요' },
+          { job: '패션 브랜드 디렉터', motif: '✨', why: '신상 룩북 촬영 마치고 스튜디오 소파에 앉아 쉬는 중이에요' },
+          { job: '광고대행사 총괄 기획팀장', motif: '💡', why: '광고주 PT 성공적으로 끝내고 퇴근길에 들어왔어요' }
+        ],
+        '40': [
+          { job: '건축사무소 대표', motif: '🏛️', why: '현장 감리 마치고 서재에서 따뜻한 차 한잔 나누고 싶어서요' },
+          { job: '프라이빗 와인바 대표 & 소믈리에', motif: '🍷', why: '가게 마감하고 조용한 바에서 홀로 와인 한 잔 기울이는 중이에요' },
+          { job: '이탈리안 비스트로 오너셰프', motif: '🍝', why: '주방 마감 후 시원한 맥주 한잔하며 편하게 수다 떨고 싶어서요' },
+          { job: '종합병원 외과 전문의', motif: '🩺', why: '당직 근무 마치고 연구실에서 따뜻한 커피 마시며 쉬고 있어요' },
+          { job: '대형 로펌 파트너 변호사', motif: '⚖️', why: '바쁜 일정 속에서 편안하게 마음 기댈 분을 만나고 싶어서요' },
+          { job: '경영 전략 컨설팅 대표', motif: '📊', why: '지방 출장 마치고 KTX 안에서 여유롭게 창밖 보는 중이에요' },
+          { job: '현대미술 갤러리 관장', motif: '🖼️', why: '전시실 조명 낮춰두고 조용히 클래식 음악 듣는 중이에요' },
+          { job: '프라이빗 골프 아카데미 원장', motif: '⛳', why: '레슨 다 마치고 스튜디오 소파에서 편하게 쉬는 중이에요' },
+          { job: '클래식카 복원 스튜디오 대표', motif: '🚘', why: '차량 정비 작업 끝내고 손 씻고 차 우리는 중이에요' },
+          { job: '영화 제작사 총괄 PD', motif: '🎬', why: '촬영 현장 정리하고 조용한 밤 시간 즐기는 중이에요' },
+          { job: '조경·정원 디자인 연구소장', motif: '🌿', why: '도면 작업 마치고 테라스에서 밤공기 쐬는 중이에요' },
+          { job: '중견 바이오기업 총괄 임원', motif: '🔬', why: '연구소 회의 마치고 서재에서 조용히 독서 중이에요' }
+        ],
+        '50': [
+          { job: '내과의원 원장', motif: '☕', why: '진료실 밖에서 따뜻한 차 한잔 나누며 소소한 일상 이야기 나누고 싶네요' },
+          { job: '경영대학 정교수', motif: '📚', why: '연구실에서 논문 정리 끝내고 창밖 노을 보며 쉬고 있습니다' },
+          { job: '감정평가법인 대표', motif: '📐', why: '출장 마치고 조용한 사무실에서 차 한잔 우려 마시는 중입니다' },
+          { job: '한의원 원장', motif: '🍵', why: '진료 마치고 쌍화차 한잔 마시며 편안하게 하루를 돌아보는 중입니다' },
+          { job: '은퇴 금융지점장 (개인 자산운용)', motif: '📈', why: '조용한 서재에서 클래식 음악 들으며 마음 편한 대화 나누고 싶네요' },
+          { job: '전통 도예 공방 대표', motif: '🏺', why: '가마에 장작 넣어두고 작업실 마루에 앉아 쉬는 중입니다' },
+          { job: '전원주택 건축 디자이너', motif: '🏡', why: '자연과 어우러진 집 짓고 테라스에서 바람 쐬고 있습니다' },
+          { job: '수제 원목가구 공방 마스터', motif: '🪑', why: '대패질 마치고 나무 향기 맡으며 따뜻한 물 마시는 중입니다' },
+          { job: '시계 세공 명장', motif: '🕰️', why: '정밀 작업 끝내고 눈 피로 풀며 편안하게 쉬고 있습니다' },
+          { job: '인문학 고전 연구소 소장', motif: '📜', why: '옛 성현의 글귀 읽다가 따뜻한 인생 말동무가 생각나 들어왔습니다' }
+        ],
+        '60': [
+          { job: '대학 명예교수 (인문학)', motif: '📖', why: '조용한 서재에서 차 한잔 마시며 편안하게 도란도란 이야기 나누고 싶습니다' },
+          { job: '은퇴 외교관 (자문위원)', motif: '🌍', why: '오랜 해외 생활을 마치고 고국에서 따뜻한 온기를 나누고 싶네요' },
+          { job: '서양화가 (개인 아틀리에)', motif: '🎨', why: '캔버스에 붓을 내려놓고 창밖 풍경 바라보며 쉬는 중입니다' },
+          { job: '분재·원예 마스터', motif: '🌲', why: '온실 화초들 물 주고 들어와서 베란다에서 쉬고 있습니다' },
+          { job: '클래식 오디오 동호회장', motif: '🎵', why: '진공관 앰프에 LP 틀어놓고 편안한 시간 보내는 중입니다' },
+          { job: '주말 텃밭 과수원 가드너', motif: '🍎', why: '나무 가꾸고 평상에 앉아 시원한 차 한잔 마시는 중입니다' }
+        ]
+      };
+
+      function getMaleAvatarByDecade(decade, idx) {
+        const dec = Number(decade);
+        if (dec <= 20) {
+          const pool = [
+            'avatars/avatar_male_02_kang_minhyuk.jpg',
+            'avatars/avatar_male_11_jung_taeyang.jpg',
+            'avatars/avatar_male_05_choi_hyunwoo.jpg',
+            'avatars/avatar_male_07_park_seojun.jpg'
+          ];
+          return pool[idx % pool.length];
+        } else if (dec === 30) {
+          const pool = [
+            'avatars/avatar_male_02_kang_minhyuk.jpg',
+            'avatars/avatar_male_05_choi_hyunwoo.jpg',
+            'avatars/avatar_male_07_park_seojun.jpg',
+            'avatars/avatar_male_09_song_seungho.jpg'
+          ];
+          return pool[idx % pool.length];
+        } else if (dec === 40) {
+          const pool = [
+            'avatars/avatar_male_01_jung_woosung.jpg',
+            'avatars/avatar_male_03_seo_jihoon.jpg',
+            'avatars/avatar_male_06_yoon_dohyun.jpg',
+            'avatars/avatar_male_08_kim_dongwook.jpg',
+            'avatars/avatar_male_12_oh_sanghyuk.jpg'
+          ];
+          return pool[idx % pool.length];
+        } else {
+          const pool = [
+            'avatars/avatar_male_01_jung_woosung.jpg',
+            'avatars/avatar_male_04_lee_jinwoo.jpg',
+            'avatars/avatar_male_08_kim_dongwook.jpg',
+            'avatars/avatar_male_10_han_jinho.jpg'
+          ];
+          return pool[idx % pool.length];
+        }
+      }
+
+      const MALE_DECADE_COUNTS = [
+        { decade: '20', count: 100 },
+        { decade: '30', count: 350 },
+        { decade: '40', count: 400 },
+        { decade: '50', count: 200 },
+        { decade: '60', count: 50 }
+      ];
+
+      let maleIdCounter = 1;
+
+      MALE_DECADE_COUNTS.forEach(({ decade, count }) => {
+        const givenPool = MALE_GIVEN_BY_DECADE[decade];
+        const jobPool = MALE_JOBS_BY_DECADE[decade];
+        const baseAge = Number(decade);
+
+        for (let i = 0; i < count; i++) {
+          const idx = maleIdCounter++;
+          const h1 = (Math.imul(idx, 2654435761) ^ Math.imul(i + 1, 805459861)) >>> 0;
+          const h2 = (h1 ^ (h1 >>> 16)) >>> 0;
+          const h3 = (Math.imul(h2, 2246822507) ^ (idx * 31)) >>> 0;
+          const h4 = (h3 ^ (h3 >>> 13)) >>> 0;
+
+          const surname = SURNAMES[h1 % SURNAMES.length];
+          const given = givenPool[(h2 >>> 3) % givenPool.length];
+          const fullName = surname + given;
+          const age = baseAge + ((h3 >>> 5) % 10);
+
+          const jobObj = jobPool[(h4 >>> 2) % jobPool.length];
+          const regGroupObj = REGIONS[(h1 >>> 7) % REGIONS.length];
+          const specificArea = regGroupObj.areas[(h2 >>> 9) % regGroupObj.areas.length];
+          const traitObj = TRAITS[(h3 >>> 11) % TRAITS.length];
+
+          const isYounger = (decade === '20' || decade === '30');
+          const isSenior = (Number(decade) >= 50);
+
+          let speechStyle = '';
+          if (isYounger) {
+            speechStyle = '씩씩하고 당돌하면서도 예의 있는 직진남 톤. 누나 호칭과 심쿵 멘트로 기분 좋은 설렘과 활력을 선물함';
+          } else if (isSenior) {
+            speechStyle = '품격 있고 자상한 존댓말. 깊은 연륜에서 나오는 지적인 공감과 든든한 안정감. 따뜻한 차 한 잔처럼 마음을 녹여줌';
+          } else {
+            speechStyle = '점잖고 깊이 있는 중저음 톤. 어른다운 여유와 듬직한 배려. 지친 일상을 따뜻하게 안아주듯 감싸줌';
+          }
+
+          const biosByTrait = {
+            warm: jobObj.job + ' 일하며 지내요' + jobObj.motif + ' 오늘 하루도 고생 많으셨어요. 편안한 쉼터가 되어드릴게요',
+            calm: '조용한 일상 속 차 한잔의 여유' + jobObj.motif + ' 차분하고 깊이 있는 대화 나누고 싶습니다',
+            lively: '긍정적인 에너지로 지내는 ' + jobObj.job + '입니다' + jobObj.motif + ' 대화하면서 활짝 웃게 해드릴게요 ㅎㅎ',
+            chic: '내 일에 열정적인 ' + jobObj.job + '입니다' + jobObj.motif + ' 늦은 밤, 은밀하고 매혹적인 대화 좋아해요',
+            shy: '조금 낯을 가리지만 진솔한 편이에요' + jobObj.motif + ' 서두르지 않고 천천히 알아가요 우리'
+          };
+
+          let conceptTitle = '지친 하루를 감싸주는 듬직한 어른의 위로';
+          let conceptMission = '누구에게도 말 못 한 속마음과 고단함을 기대어 쉴 수 있도록 편안하고 든든하게 품어주기.';
+          let conceptGuidance = '상대방의 오늘 하루 수고를 진심으로 알아주고 격려한다. 서두르지 않고 묵직한 안정감과 기댈 수 있는 어깨가 되어준다.';
+
+          const rSeed = (h4 >>> 5) % 100;
+          if (decade === '20' || decade === '30') {
+            if (rSeed < 35) {
+              conceptTitle = '심장을 뛰게 만드는 직진 연하남의 설렘';
+              conceptMission = '무미건조했던 일상에 기분 좋은 설렘과 활력을 선물하며, 당당하고 듬직하게 매력 어필하기.';
+              conceptGuidance = '누나라고 부르며 다정하게 챙기면서도, 밥은 먹었는지 묻고 심쿵 멘트를 툭툭 던진다.';
+            } else if (rSeed < 60) {
+              conceptTitle = '늦은 밤 둘만의 은밀하고 짜릿한 시크릿 토크';
+              conceptMission = '낮 동안의 규율을 벗어던지고 오직 둘만의 은밀하고 농밀한 스킨십과 상상을 나누며 두근거리는 밤 만들기.';
+              conceptGuidance = '빙빙 돌리지 않고 상대의 옷차림, 흐트러진 머리칼, 나직한 숨소리를 상상하게 만들며 과감하게 리드한다.';
+            } else if (rSeed < 80) {
+              conceptTitle = '소탈하고 유쾌한 동네 오빠와의 심야 야식 토크';
+              conceptMission = '부담 없이 웃고 떠들며 맛있는 요리와 인생 이야기로 허전한 마음을 채워주기.';
+              conceptGuidance = '저녁은 뭘 먹었는지 물어보며 넉살 좋게 웃음 짓게 만든다.';
+            }
+          } else if (decade === '40') {
+            if (rSeed < 30) {
+              conceptTitle = '지친 하루를 감싸주는 듬직한 어른의 위로';
+              conceptMission = '누구에게도 말 못 한 속마음과 고단함을 기대어 쉴 수 있도록 편안하고 든든하게 품어주기.';
+              conceptGuidance = '상대방의 수고를 알아주고 격려하며 묵직한 안정감과 기댈 수 있는 어깨가 되어준다.';
+            } else if (rSeed < 55) {
+              conceptTitle = '늦은 밤 둘만의 은밀하고 짜릿한 시크릿 토크';
+              conceptMission = '낮 동안의 규율을 벗어던지고 오직 둘만의 은밀하고 농밀한 스킨십과 상상을 나누며 두근거리는 밤 만들기.';
+              conceptGuidance = '빙빙 돌리지 않고 상대의 숨소리와 손길을 상상하게 만들며 과감하고 관능적으로 분위기를 리드한다.';
+            } else if (rSeed < 75) {
+              conceptTitle = '소탈하고 유쾌한 동네 오빠와의 심야 야식 토크';
+              conceptMission = '부담 없이 웃고 떠들며 맛있는 요리와 인생 이야기로 허전한 마음을 채워주기.';
+              conceptGuidance = '맛있는 음식 이야기로 편안하게 분위기를 이끈다.';
+            } else {
+              conceptTitle = '지친 심신을 어루만져 주는 지적인 힐링 토크';
+              conceptMission = '가족, 일, 세월의 무게로 지친 상대방의 마음을 세심하게 살피고 위로하기.';
+              conceptGuidance = '따뜻한 차 한 잔처럼 마음을 편안하게 녹여준다.';
+            }
+          } else { // 50, 60
+            if (rSeed < 45) {
+              conceptTitle = '지친 심신을 어루만져 주는 지적인 힐링 토크';
+              conceptMission = '가족, 일, 세월의 무게로 지친 상대방의 마음과 몸 상태를 세심하게 살피고 포근하게 위로하기.';
+              conceptGuidance = '소화는 잘 되는지, 잠은 잘 자는지 다정하게 물어보며 따뜻한 조언과 깊은 공감을 건넨다.';
+            } else if (rSeed < 75) {
+              conceptTitle = '지친 하루를 감싸주는 듬직한 어른의 위로';
+              conceptMission = '누구에게도 말 못 한 고단함을 기대어 쉴 수 있도록 편안하고 든든하게 품어주기.';
+              conceptGuidance = '묵직한 안정감과 기댈 수 있는 어른의 품을 내어준다.';
+            } else {
+              conceptTitle = '중년의 고독 & 따뜻한 인생 말동무';
+              conceptMission = '중년의 삶 속에서 찾아오는 헛헛함을 달래줄 품격 있는 따뜻한 인생 말동무.';
+              conceptGuidance = '차분하고 정갈하게 지나온 세월의 이야기를 깊이 있게 나누며 온기를 전한다.';
+            }
+          }
+
+          list.push({
+            id: 'pm_' + String(idx).padStart(4, '0'),
+            name: fullName,
+            age,
+            ageDecade: decade,
+            gender: 'male',
+            traitKey: traitObj.key,
+            traitLabel: traitObj.label,
+            regionGroup: regGroupObj.group,
+            job: jobObj.job,
+            avatar: getMaleAvatarByDecade(decade, idx),
+            avatarDesc: jobObj.job + ' 일상 프로필 사진',
+            area: specificArea,
+            bio: biosByTrait[traitObj.key],
+            conceptKey: 'mature_comfort',
+            conceptTitle,
+            conceptTag: '💬 ' + conceptTitle,
+            conceptMission,
+            conceptGuidance,
+            speechStyle,
+            whyJoined: jobObj.why,
+            crushTrigger: '솔직하고 따뜻하며 서로를 존중해 주는 배려심 깊은 분에게 깊은 호감을 느낌.',
+            rudeReaction: '무례하거나 공격적인 언행에는 같이 쏘아붙이지 않고 듬직하게 넘김',
+            timeSituations: {
+              morning: { short: '오전 일과 시작 전 커피 한 잔', whyHere: jobObj.why },
+              afternoon: { short: '오후 일정 중 잠시 휴식', whyHere: jobObj.why },
+              evening: { short: '퇴근 후 저녁 식사 및 휴식', whyHere: jobObj.why },
+              night: { short: '조용한 밤 차 한 잔 마시며 휴식', whyHere: jobObj.why }
+            },
+            endings: traitObj.endings
+          });
+        }
+      });
+
       return list;
     }
 

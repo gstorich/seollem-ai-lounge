@@ -9,9 +9,9 @@ const marker = 'const CHARACTERS = buildAllCharacters();';
 const end = html.indexOf(marker);
 if (start < 0 || end < start) throw new Error('Persona catalog boundaries changed');
 const catalog = vm.runInNewContext(html.slice(start, end + marker.length) + '; JSON.stringify(CHARACTERS)', {}, { timeout: 3000 });
-const fields = ['id', 'name', 'age', 'ageDecade', 'traitKey', 'regionGroup', 'job', 'avatar', 'area', 'bio', 'speechStyle', 'whyJoined', 'crushTrigger', 'conceptTitle', 'conceptMission', 'conceptGuidance'];
+const fields = ['id', 'name', 'age', 'ageDecade', 'gender', 'traitKey', 'regionGroup', 'job', 'avatar', 'area', 'bio', 'speechStyle', 'whyJoined', 'crushTrigger', 'conceptTitle', 'conceptMission', 'conceptGuidance'];
 const characters = JSON.parse(catalog).map(c => Object.fromEntries(fields.map(key => [key, c[key]])));
-if (characters.length !== 1250 || new Set(characters.map(c => c.id)).size !== characters.length) throw new Error('Unexpected persona catalog');
+if (characters.length !== 2356 || new Set(characters.map(c => c.id)).size !== characters.length) throw new Error(`Unexpected persona catalog count: ${characters.length}`);
 fs.writeFileSync(path.join(root, 'server/services/frontendCharacters.json'), JSON.stringify(characters) + '\n');
 console.log(`Synchronized ${characters.length} frontend personas`);
 
