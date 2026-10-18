@@ -569,6 +569,23 @@
       </div>
     </div>
 
+    <!-- Modal: Live Matching Radar Overlay (현장감 있는 실시간 매칭 탐색) -->
+    <div id="matchingRadarModal" class="hidden absolute inset-0 z-50 bg-[#0e1017]/90 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center select-none">
+      <div class="relative w-24 h-24 mb-5 flex items-center justify-center">
+        <span class="absolute inset-0 rounded-full border border-[#fee500]/25 animate-ping"></span>
+        <span class="absolute inset-2 rounded-full border border-[#fee500]/40 animate-pulse"></span>
+        <div class="w-16 h-16 rounded-2xl bg-[#fee500]/15 border border-[#fee500]/50 flex items-center justify-center text-[#fee500] shadow-lg">
+          <svg class="w-8 h-8 animate-spin" style="animation-duration: 3s;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
+        </div>
+      </div>
+      <h3 class="text-[18px] font-bold text-white mb-1.5 tracking-tight">새로운 인연을 탐색 중입니다</h3>
+      <p id="matchingRadarSubtext" class="text-[13px] text-zinc-400 leading-relaxed max-w-xs">조건에 맞는 주변 접속 회원을 확인하고 있습니다...</p>
+      <div class="mt-5 px-3.5 py-1.5 rounded-full bg-white/[0.06] border border-white/10 flex items-center gap-2 text-[12px] text-zinc-300">
+        <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
+        <span id="matchingRadarStatus">실시간 접속 회원 매칭 중</span>
+      </div>
+    </div>
+
     <!-- Modal 5: Match Condition Filter Modal (새 대화 상대 조건 설정) -->
     <div id="matchFilterModal" class="hidden absolute inset-0 z-50 bg-black/85 backdrop-blur-md flex flex-col justify-end">
       <div class="bg-[#12151f] border-t border-white/15 rounded-t-3xl max-h-[90%] flex flex-col overflow-hidden shadow-2xl text-zinc-100">
@@ -1416,15 +1433,21 @@
 
         for (let i = 0; i < count; i++) {
           const idx = idCounter++;
-          const surname = SURNAMES[(idx * 7 + i * 3) % SURNAMES.length];
-          const given = givenPool[(idx * 5 + i) % givenPool.length];
-          const fullName = surname + given;
-          const age = baseAge + ((idx + i) % 10);
+          // High-dispersion 32-bit hash per character to completely prevent repeated surnames, jobs, and ages
+          const h1 = (Math.imul(idx, 2654435761) ^ Math.imul(i + 1, 805459861)) >>> 0;
+          const h2 = (h1 ^ (h1 >>> 16)) >>> 0;
+          const h3 = (Math.imul(h2, 2246822507) ^ (idx * 31)) >>> 0;
+          const h4 = (h3 ^ (h3 >>> 13)) >>> 0;
 
-          const jobObj = jobPool[(idx * 3 + i) % jobPool.length];
-          const regGroupObj = REGIONS[(idx + i * 2) % REGIONS.length];
-          const specificArea = regGroupObj.areas[(idx * 11 + i) % regGroupObj.areas.length];
-          const traitObj = TRAITS[(idx + i) % TRAITS.length];
+          const surname = SURNAMES[h1 % SURNAMES.length];
+          const given = givenPool[(h2 >>> 3) % givenPool.length];
+          const fullName = surname + given;
+          const age = baseAge + ((h3 >>> 5) % 10);
+
+          const jobObj = jobPool[(h4 >>> 2) % jobPool.length];
+          const regGroupObj = REGIONS[(h1 >>> 7) % REGIONS.length];
+          const specificArea = regGroupObj.areas[(h2 >>> 9) % regGroupObj.areas.length];
+          const traitObj = TRAITS[(h3 >>> 11) % TRAITS.length];
           const traitDetails = traitObj.buildDetails(decade);
 
           const biosByTrait = {
@@ -3485,6 +3508,126 @@
       updateAccountAndCreditUI();
     }
 
+    // 캐릭터 성격·직업·지역·시간대별 고유 첫인삿말 생성기 (중복 원천 차단)
+    function generateUniqueFirstGreeting(char) {
+      state.recentGreetings = state.recentGreetings || [];
+
+      const now = new Date();
+      const hour = now.getHours();
+      let timeContext = '';
+      if (hour >= 23 || hour < 5) timeContext = 'late_night';
+      else if (hour >= 5 && hour < 11) timeContext = 'morning';
+      else if (hour >= 11 && hour < 17) timeContext = 'afternoon';
+      else timeContext = 'evening';
+
+      const isSenior = Number(char.ageDecade) >= 50;
+      const areaShort = char.area ? char.area.split(' ')[0] + ' 쪽' : '';
+      const trait = char.traitKey || 'warm';
+
+      const candidateLists = [];
+
+      if (isSenior) {
+        candidateLists.push(
+          [`안녕하세요, 반갑습니다. 오늘 어떤 하루 보내고 계신지요?`, `차 한잔 우려 마시다가 좋은 분과 이야기 나누고 싶어 들어왔습니다.`],
+          [`반갑습니다. 일상 속에서 편안하게 소통할 수 있는 인연이 닿았네요.`, `부담 갖지 마시고 편안하게 말씀 나눠요.`],
+          [`안녕하세요~ ${areaShort ? areaShort + ' 사는 ' : ''}${char.name}입니다.`, `도란도란 살아가는 이야기 나눌 말동무가 생겨 참 반갑네요.`],
+          [`안녕하세요. 오늘 하루도 평안하셨는지요?`, `${char.job} 일 마치고 차 한잔하는 시간인데, 타이밍 좋게 닿았네요.`],
+          [`반갑습니다. 서로 예의 지키며 따뜻한 대화 나눴으면 좋겠습니다.`, `편안하게 인사 나눠요.`]
+        );
+      } else {
+        // Trait: warm (다정·상냥함)
+        if (trait === 'warm') {
+          candidateLists.push(
+            [`안녕하세요! 방금 연결됐네요 ㅎㅎ 반갑습니다~`, `오늘 어떤 하루 보내고 계셨어요?`],
+            [`안녕하세요~ ${areaShort ? areaShort + ' 사는 ' : ''}${char.name}이에요 ㅎㅎ`, `편하게 말동무해요 우리 :)]`],
+            [`반가워요! 일상 속에서 좋은 인연 닿았으면 좋겠네요 ㅎㅎ`, `편하게 말씀해 주셔도 돼요~`],
+            [`안녕하세요~ ${char.job} 일 마치고 차 한잔 마시다가 들어와 봤어요 ㅎㅎ`, `좋은 분과 대화 나누고 싶네요 ^^`],
+            [`안녕하세요! 프로필 보고 인사드려요 ㅎㅎ`, `오늘 하루 고생 많으셨어요~ 편하게 이야기 나눠요!`],
+            [`안녕하세요~ 날씨도 좋은데 이렇게 대화 나누게 되어 기분 좋네요 ㅎㅎ`]
+          );
+        }
+        // Trait: calm (차분·지적인 교양)
+        else if (trait === 'calm') {
+          candidateLists.push(
+            [`안녕하세요. 반갑습니다. 조용히 차 한잔 마시며 시간 보내다 들어왔어요.`],
+            [`안녕하세요. ${char.name}입니다. 좋은 하루 보내고 계신가요?`, `편안하게 도란도란 이야기 나눴으면 좋겠습니다.`],
+            [`반갑습니다. 일상 속에서 편안하게 대화 나눌 말동무를 찾고 있었어요.`],
+            [`안녕하세요~ ${char.job} 일 잠시 쉬어가는 틈에 접속해 봤어요.`, `예의 바르고 따뜻한 분과 닿아서 다행이네요.`],
+            [`안녕하세요. 반갑습니다. 오늘 어떤 하루 보내셨는지 궁금하네요.`],
+            [`안녕하세요. 서로 좋은 대화 나눌 수 있는 인연이 되었으면 해요.`]
+          );
+        }
+        // Trait: lively (유쾌·솔직담백)
+        else if (trait === 'lively') {
+          candidateLists.push(
+            [`안녕하세요! 반가워요 ㅋㅋ`, `심심하던 참인데 타이밍 딱 맞게 매칭됐네요!`],
+            [`오 안녕하세요! 반갑습니다 ㅎㅎ`, `저는 ${char.name}이라고 해요. 편하게 수다 떨어요 우리 ㅋㅋ`],
+            [`반가워요! 일하다가 잠깐 숨 좀 돌리려고 들어왔어요 ㅎㅎ`, `오늘 기분 좋은 일 있으셨나요?`],
+            [`안녕하세요! 어떤 분이실지 궁금했는데 인상이 되게 좋으시네요 ㅎㅎ`, `재밌게 대화 나눠봐요!`],
+            [`안녕하세요 ㅋㅋ 오늘 날씨도 좋은데 편하게 인사 나눠요~`],
+            [`반갑습니다! 저 낯 별로 안 가리니까 부담 없이 말 걸어주세요 ㅎㅎ`]
+          );
+        }
+        // Trait: chic (도도·쿨한 매력)
+        else if (trait === 'chic') {
+          candidateLists.push(
+            [`안녕하세요. 방금 연결됐네요. 반갑습니다.`],
+            [`안녕하세요~ ${char.job} 하는 ${char.name}이에요.`, `대화 결이 잘 통하는 분이면 좋겠네요 ㅎㅎ`],
+            [`반가워요. 퇴근하고 혼자 음악 듣다가 들어와 봤어요.`, `어떤 분이실지 궁금하네요.`],
+            [`안녕하세요. 첫인사가 조금 늦었나요? 편하게 대화 시작해요.`],
+            [`안녕하세요, 반갑습니다. 조급하지 않게 천천히 이야기 나눠봐요.`],
+            [`반가워요~ 대화 수준과 매너가 맞는 분을 찾고 있었어요.`]
+          );
+        }
+        // Trait: shy (조심스럽고 수줍음)
+        else {
+          candidateLists.push(
+            [`저기.. 안녕하세요..! 반갑습니다..ㅎㅎ`],
+            [`안녕하세요.. 낯을 조금 가리는 편이라 조심스럽게 인사드려요..ㅎㅎ`, `편하게 말씀해 주셔도 괜찮아요..!`],
+            [`반가워요.. 좋은 분과 닿기를 바라면서 들어왔어요..ㅎㅎ`, `오늘 하루 잘 보내셨나요..?`],
+            [`안녕하세요..! 서두르지 않고 천천히 친해졌으면 좋겠습니다..ㅎㅎ`],
+            [`안녕하세요.. ${char.job} 일 마치고 조용히 들어와 봤어요..ㅎㅎ`],
+            [`반갑습니다..! 긴장되지만 편하게 도란도란 이야기 나눠요..ㅎㅎ`]
+          );
+        }
+
+        // 시간대별 맞춤 후보 추가
+        if (timeContext === 'late_night') {
+          candidateLists.push(
+            [`안녕하세요~ 늦은 밤인데 아직 안 주무시네요 ㅎㅎ`, `오늘 하루도 고생 많으셨어요!`],
+            [`안녕하세요! 야식 생각나는 밤인데 편하게 대화 나눠요 ㅎㅎ`]
+          );
+        } else if (timeContext === 'morning') {
+          candidateLists.push(
+            [`좋은 아침이에요! 오늘도 활기찬 하루 시작하고 계신가요 ㅎㅎ`],
+            [`안녕하세요~ 아침부터 기분 좋은 인연이 닿았네요 ㅎㅎ 편하게 인사해요!`]
+          );
+        } else if (timeContext === 'afternoon') {
+          candidateLists.push(
+            [`안녕하세요! 나른한 오후인데 커피 한잔 드셨나요 ㅎㅎ`],
+            [`반가워요~ 점심 맛있게 드시고 오후 일과 파이팅하고 계신가요? ㅎㅎ`]
+          );
+        }
+      }
+
+      // 최근 15회 이내에 이미 사용된 인삿말은 후보에서 제외 (연속 중복 원천 차단)
+      const available = candidateLists.filter(arr => {
+        const key = arr.join('|||');
+        return !state.recentGreetings.includes(key);
+      });
+
+      const finalPool = available.length > 0 ? available : candidateLists;
+      const chosen = finalPool[Math.floor(Math.random() * finalPool.length)];
+
+      const chosenKey = chosen.join('|||');
+      state.recentGreetings.push(chosenKey);
+      if (state.recentGreetings.length > 15) {
+        state.recentGreetings.shift();
+      }
+
+      return chosen;
+    }
+
     function startChatWithCharacter(char, forceResume = false) {
       if (state.currentChar && state.currentChar.id !== char.id) {
         state.prevCharId = state.currentChar.id;
@@ -3567,18 +3710,7 @@
       saveAccountState();
 
       const speedMult = state.hesitateFreq === 'fast' ? 0.35 : 1.0;
-
-      const isSenior = Number(char.ageDecade) >= 50;
-      const greetingSets = isSenior
-        ? [
-            [`안녕하세요 반가워요 ${char.endings[0]} 오늘 어떤 하루 보내고 계세요?`],
-            [`안녕하세요~ 차 한잔 마시다가 말동무하고 싶어서 들어와봤어요 ㅎㅎ`, `편하게 이야기 나눠요 ${char.endings[0]}`]
-          ]
-        : [
-            [`안녕하세요 반가워요 ${char.endings[0]}`],
-            [`안녕하세요! 편하게 인사 나눠요 ㅎㅎ`]
-          ];
-      const chosenBubbles = greetingSets[Math.floor(Math.random() * greetingSets.length)];
+      const chosenBubbles = generateUniqueFirstGreeting(char);
 
       state.isAiBusy = true;
       state.isGreetingPending = true;
@@ -3687,9 +3819,21 @@
       if (!hasExplicitAgeFilter && Math.random() < 0.86) {
         const youngPool = pool.filter(c => c.ageDecade === '20' || c.ageDecade === '30');
         if (youngPool.length > 0) {
-          return youngPool[Math.floor(Math.random() * youngPool.length)];
+          pool = youngPool;
         }
       }
+
+      // 최근 저장된 대화방 및 현재 상대와 동일한 성씨 + 동일한 직업을 가진 캐릭터는 우선 배제 (다양성 보장)
+      const existingCombos = new Set();
+      Object.values(state.savedRooms || {}).forEach(r => {
+        const c = CHARACTERS.find(ch => ch.id === r.charId);
+        if (c && c.name && c.job) existingCombos.add(`${c.name[0]}_${c.job}`);
+      });
+      if (state.currentChar && state.currentChar.name && state.currentChar.job) {
+        existingCombos.add(`${state.currentChar.name[0]}_${state.currentChar.job}`);
+      }
+      const diversePool = pool.filter(c => !existingCombos.has(`${c.name[0]}_${c.job}`));
+      if (diversePool.length > 0) pool = diversePool;
 
       return pool[Math.floor(Math.random() * pool.length)];
     }
@@ -4124,8 +4268,7 @@
       saveAccountState();
       updateFilterModalUI();
       document.getElementById('matchFilterModal').classList.add('hidden');
-      startChatWithCharacter(pickRandomCharacter(true), false);
-      showView('chatRoom');
+      requestNewRandomMatch(true);
     });
 
     function showView(viewName) {
@@ -4231,8 +4374,7 @@
         const btnEmpty = document.getElementById('btnEmptyStateNewMatch');
         if (btnEmpty) {
           btnEmpty.addEventListener('click', () => {
-            startChatWithCharacter(pickRandomCharacter(true), false);
-            showView('chatRoom');
+            requestNewRandomMatch(false);
           });
         }
         return;
@@ -4590,8 +4732,7 @@
     const btnListNewMatch = document.getElementById('btnListNewMatch');
     if (btnListNewMatch) {
       btnListNewMatch.addEventListener('click', () => {
-        startChatWithCharacter(pickRandomCharacter(true), false);
-        showView('chatRoom');
+        requestNewRandomMatch(false);
       });
     }
 
@@ -4856,10 +4997,78 @@
       showToast(`'${char.name}'님과의 대화방을 나갔습니다.`);
     }
 
+    const MATCH_COOLDOWN_MS = 10000; // 10초 쿨타임 (신중한 매칭 유도 및 현실적인 인연 탐색 대기)
+
+    function getRemainingMatchCooldown() {
+      const last = state.lastMatchTime || 0;
+      const elapsed = Date.now() - last;
+      if (elapsed < MATCH_COOLDOWN_MS) {
+        return Math.ceil((MATCH_COOLDOWN_MS - elapsed) / 1000);
+      }
+      return 0;
+    }
+
+    function updateMatchCooldownUI() {
+      const remain = getRemainingMatchCooldown();
+      const btnMatch = document.getElementById('btnListNewMatch');
+      if (btnMatch) {
+        if (remain > 0) {
+          btnMatch.innerHTML = `
+            <svg class="w-5 h-5 text-[#191919] animate-spin" fill="none" stroke="currentColor" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10" stroke-width="3" stroke-dasharray="32" stroke-linecap="round"/></svg>
+            <span>새 인연 탐색 대기 중 (${remain}초)</span>
+          `;
+          btnMatch.classList.add('opacity-75');
+        } else {
+          btnMatch.innerHTML = `
+            <svg class="w-5 h-5 text-[#191919]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
+            <span>새로운 상대와 대화 시작</span>
+          `;
+          btnMatch.classList.remove('opacity-75');
+        }
+      }
+    }
+
+    function requestNewRandomMatch(isFiltered = false) {
+      if (state.isMatchingBusy) return;
+
+      const remain = getRemainingMatchCooldown();
+      if (remain > 0) {
+        showToast(`⏳ 잠시만요! 새로운 인연을 신중히 찾고 있습니다. (${remain}초 후 다시 매칭 가능)`);
+        return;
+      }
+
+      const radarModal = document.getElementById('matchingRadarModal');
+      const radarSubtext = document.getElementById('matchingRadarSubtext');
+      const radarStatus = document.getElementById('matchingRadarStatus');
+
+      state.isMatchingBusy = true;
+      if (radarModal) radarModal.classList.remove('hidden');
+      if (radarSubtext) radarSubtext.textContent = '조건에 맞는 주변 접속 회원을 검색 중입니다...';
+      if (radarStatus) radarStatus.textContent = '실시간 접속 회원 매칭 중';
+
+      setTimeout(() => {
+        const nextChar = pickRandomCharacter(true);
+        if (radarSubtext) {
+          radarSubtext.textContent = `📍 ${nextChar.area || '인근 지역'} 접속자와 매칭 성공! 연결 중...`;
+        }
+        if (radarStatus) {
+          radarStatus.textContent = `'${nextChar.name}'님과 1:1 대화 연결`;
+        }
+
+        setTimeout(() => {
+          state.lastMatchTime = Date.now();
+          state.isMatchingBusy = false;
+          if (radarModal) radarModal.classList.add('hidden');
+          saveAccountState();
+          startChatWithCharacter(nextChar, false);
+          showView('chatRoom');
+          updateMatchCooldownUI();
+        }, 700);
+      }, 750);
+    }
+
     function handleRematchRequest() {
-      saveAccountState();
-      startChatWithCharacter(pickRandomCharacter(true), false);
-      showView('chatRoom');
+      requestNewRandomMatch(false);
     }
 
     // Pinned Header Bookmark Button Event
@@ -4978,6 +5187,8 @@
       updateAccountAndCreditUI();
       updateFilterModalUI();
       initUrgencyTimer();
+      updateMatchCooldownUI();
+      setInterval(updateMatchCooldownUI, 1000);
 
       const savedRoomsKeys = Object.keys(state.savedRooms || {});
       if (savedRoomsKeys.length > 0) {
