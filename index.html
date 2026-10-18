@@ -353,10 +353,10 @@
       </div>
 
       <div class="grid grid-cols-2 gap-2.5 pt-2">
-        <button id="btnToggleBookmarkProfile" type="button" class="py-3.5 rounded-2xl bg-white/10 hover:bg-white/15 border border-white/15 text-amber-300 font-bold text-[14.5px]">
-          ⭐ 인연 보관하기
+        <button id="btnToggleBookmarkProfile" type="button" class="py-3.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] border border-white/15 text-zinc-200 hover:text-amber-300 font-bold text-[14.5px] transition">
+          인연 보관하기
         </button>
-        <button id="btnProfileContinueChat" type="button" class="py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 text-zinc-950 font-bold text-[14.5px] shadow-lg">
+        <button id="btnProfileContinueChat" type="button" class="py-3.5 rounded-xl bg-[#fee500] hover:bg-[#ebd300] text-[#191919] font-bold text-[14.5px] shadow-sm transition">
           대화 계속하기
         </button>
       </div>
@@ -415,7 +415,7 @@
           </div>
         </div>
 
-        <button id="btnConfirmPhoneAuth" type="button" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 text-zinc-950 font-bold text-[15px] shadow-lg">
+        <button id="btnConfirmPhoneAuth" type="button" class="w-full py-3.5 rounded-xl bg-[#fee500] hover:bg-[#ebd300] text-[#191919] font-bold text-[15.5px] shadow-sm transition">
           인증 완료 및 대화 이어가기
         </button>
       </div>
@@ -651,11 +651,11 @@
         </div>
 
         <div class="p-4 border-t border-white/10 bg-[#0d0f15] flex gap-2">
-          <button id="btnResetFilterAll" type="button" class="px-4 py-3.5 rounded-2xl bg-white/10 hover:bg-white/15 text-zinc-300 font-bold text-[13.5px] shrink-0">
+          <button id="btnResetFilterAll" type="button" class="px-4 py-3.5 rounded-xl bg-white/[0.08] hover:bg-white/[0.14] text-zinc-300 font-bold text-[13.5px] shrink-0 transition">
             조건 초기화
           </button>
-          <button id="btnApplyFilterAndMatch" type="button" class="flex-1 py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 text-zinc-950 font-bold text-[15px] shadow-lg">
-            조건 적용하고 새 상대 매칭 ↻
+          <button id="btnApplyFilterAndMatch" type="button" class="flex-1 py-3.5 rounded-xl bg-[#fee500] hover:bg-[#ebd300] text-[#191919] font-bold text-[15.5px] shadow-sm transition">
+            조건 적용하고 대화 시작
           </button>
         </div>
       </div>
@@ -2081,7 +2081,7 @@
 
       const profileBookmarkBtn = document.getElementById('btnToggleBookmarkProfile');
       if (profileBookmarkBtn) {
-        profileBookmarkBtn.textContent = isBookmarked ? '⭐ 인연 보관됨 ✓ (보관 해제)' : '⭐ 인연 보관하기';
+        profileBookmarkBtn.textContent = isBookmarked ? '인연 보관됨 ✓ (해제)' : '인연 보관하기';
       }
 
       const drawerTitle = document.getElementById('savedDrawerAuthTitle');
@@ -4281,10 +4281,7 @@
               <span class="text-[11.5px] text-zinc-400 shrink-0 whitespace-nowrap">${timeDisplay}</span>
             </div>
 
-            <div class="flex items-center justify-between gap-2">
-              <p class="text-[13.5px] ${unreadCnt > 0 ? 'text-white font-semibold' : 'text-zinc-300'} truncate leading-snug">${escapeHtml(lastMsg.text || '대화가 시작되었습니다.')}</p>
-              <span class="shrink-0 px-2 py-0.5 rounded-full bg-white/[0.06] border border-white/10 text-zinc-300 text-[10.5px] font-medium">호감도 ${room.affection || 20}%</span>
-            </div>
+            <p class="text-[13.5px] ${unreadCnt > 0 ? 'text-white font-semibold' : 'text-zinc-400'} truncate leading-snug">${escapeHtml(lastMsg.text || '대화가 시작되었습니다.')}</p>
           </div>
 
           <div class="shrink-0 pl-1 flex items-center">
