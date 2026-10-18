@@ -2535,8 +2535,7 @@
       }
       const slotKey = getCurrentTimeSlotKey();
       const slotInfo = state.currentChar.timeSituations[slotKey];
-      const tagPrefix = state.currentChar.conceptTag ? `${state.currentChar.conceptTag} · ` : '';
-      headerStatusText.textContent = `${tagPrefix}${slotInfo.short}`;
+      headerStatusText.textContent = slotInfo ? slotInfo.short : '대화 중';
       headerStatusText.className = 'text-[12.5px] text-[#777777] mt-0.5 leading-snug font-medium';
     }
 
@@ -3632,11 +3631,6 @@
 
     function renderMatchNotice(isResumed = false) {
       const char = state.currentChar;
-      const isBookmarked = state.bookmarked || Boolean(state.savedRooms[char.id]);
-
-      const conceptBadge = char.conceptTag
-        ? `<div class="mt-1"><span class="inline-block px-3 py-1 rounded-full bg-[#fcf2ed] border border-[#f3d2c3] text-[#b44322] text-[12.5px] font-bold shadow-2xs">${escapeHtml(char.conceptTag)}</span></div>`
-        : '';
 
       const banner = document.createElement('div');
       banner.className = 'my-2 mx-auto w-full max-w-[94%] bg-white border border-[#e5dfd3] rounded-2xl p-4 text-center shadow-xs msg-animate';
@@ -3645,7 +3639,6 @@
           <p class="font-black text-[15.5px] text-[#111111]">
             ${isResumed ? `🌸 '${char.name}'님과의 대화를 이어갑니다` : `🌸 ${char.name} (${char.age}세 · ${char.job || char.area || '인연'}) 님과 대화가 시작되었습니다`}
           </p>
-          ${conceptBadge}
           <p class="text-[#666666] text-[13px] leading-relaxed">
             따뜻하고 고운 말을 나누어 주세요.
           </p>
@@ -5067,7 +5060,6 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
               <div class="flex items-center gap-2 min-w-0">
                 <span class="font-black text-[#111111] text-[16px] truncate">${char.name}</span>
                 <span class="text-[13px] text-[#854d0e] font-bold truncate">${char.age}세 · ${char.job}</span>
-                ${char.conceptTag ? `<span class="px-2 py-0.5 rounded-full bg-[#fcf2ed] border border-[#f3d2c3] text-[#b44322] text-[11px] font-bold truncate">${escapeHtml(char.conceptTag)}</span>` : ''}
               </div>
               <span class="text-[12px] text-[#888888] shrink-0 whitespace-nowrap">${timeDisplay}</span>
             </div>
