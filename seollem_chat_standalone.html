@@ -2371,25 +2371,31 @@
         headerStatusText.className = 'text-[12.5px] text-amber-300 mt-0.5 font-medium leading-snug';
       }
 
-      // 빠른 답장 체감: 읽은 후 0.15~0.35초 만에 타이핑 시작
-      const thinkAfterReadMs = isProactiveFollowUp ? 150 : Math.round(150 + Math.random() * 200);
+      // 읽은 후 실제 사람이 답장을 고민하는 시간 (약 0.9초~1.6초)
+      const thinkAfterReadMs = isProactiveFollowUp ? 350 : Math.round(900 + Math.random() * 700);
 
       registerTimeout(() => {
         if (turnId && turnId !== state.messageTurnId) return;
         if (state.roomLeft) return;
-
-        headerStatusText.textContent = `${state.currentChar.name}님이 입력 중...`;
-        showTypingIndicator(`${state.currentChar.name}님이 입력 중...`);
 
         const bubbles = (replyPlan.bubbles && replyPlan.bubbles.length ? replyPlan.bubbles : ['네?']).slice(0, 4);
         let cursorMs = 0;
 
         bubbles.forEach((bubbleText, idx) => {
           const startTypeMs = cursorMs;
-          // 경쾌하고 빠른 카톡 타이핑 (글자당 35~50ms, 최대 1.3초)
-          const perCharMs = 35 + Math.random() * 15;
-          const typeDurationMs = Math.round(Math.min(1300, Math.max(380, bubbleText.length * perCharMs)));
+          // 실제 스마트폰 모바일 타자 속도 (글자당 110~150ms + 준비시간 550ms)
+          const perCharMs = 110 + Math.random() * 40;
+          const typeDurationMs = Math.round(550 + Math.max(300, bubbleText.length * perCharMs));
 
+          // 각 말풍선 타이핑 시작 시 "OOO님이 입력 중..." 노출
+          registerTimeout(() => {
+            if (turnId && turnId !== state.messageTurnId) return;
+            if (state.roomLeft) return;
+            headerStatusText.textContent = `${state.currentChar.name}님이 입력 중...`;
+            showTypingIndicator(`${state.currentChar.name}님이 입력 중...`);
+          }, startTypeMs);
+
+          // 타이핑 완료 시점에 말풍선 전송 및 인디케이터 숨김
           registerTimeout(() => {
             if (turnId && turnId !== state.messageTurnId) return;
             if (state.roomLeft) return;
@@ -2412,16 +2418,17 @@
             }
           }, startTypeMs + typeDurationMs);
 
-          cursorMs = startTypeMs + typeDurationMs + Math.round(180 + Math.random() * 140);
+          // 다음 말풍선 전송 전 현실적인 숨고르기 (0.6초~1.1초)
+          cursorMs = startTypeMs + typeDurationMs + Math.round(650 + Math.random() * 450);
         });
 
-        // 사진 또는 음성 메시지가 첨부된 경우 마지막 말풍선 직후 빠르게 전송
+        // 사진 또는 음성 메시지가 첨부된 경우 마지막 말풍선 직후 현실적인 준비 시간 후 전송
         if (replyPlan.mediaItem && !replyPlan.leaveRoom) {
           const mediaStartMs = cursorMs;
-          const mediaWaitMs = 600;
+          const mediaWaitMs = replyPlan.mediaItem.mediaType === 'voice' ? 2200 : 1800;
           const actionText = replyPlan.mediaItem.mediaType === 'voice'
             ? `${state.currentChar.name}님이 음성 메시지를 녹음 중...`
-            : `${state.currentChar.name}님이 사진을 보내는 중...`;
+            : `${state.currentChar.name}님이 사진을 선택하여 전송 중...`;
 
           registerTimeout(() => {
             if (turnId && turnId !== state.messageTurnId) return;
@@ -3716,9 +3723,10 @@
       state.isGreetingPending = true;
       headerStatusText.textContent = '연결됨 · 대화 시작';
 
-      let timeline = 350;
+      let timeline = 600;
       chosenBubbles.forEach((bText, idx) => {
-        const typeDur = 450;
+        // 문장 길이에 비례한 실제 스마트폰 타이핑 시간 (글자당 약 110ms + 기본 준비시간 500ms)
+        const typeDur = Math.round(500 + Math.max(300, bText.length * 110));
         registerTimeout(() => {
           if (!state.isGreetingPending) return;
           headerStatusText.textContent = `${char.name}님이 입력 중...`;
@@ -3739,7 +3747,7 @@
           }
         }, timeline);
 
-        timeline += 150;
+        timeline += 650; // 다음 인삿말 전송 전 숨고르기
       });
     }
 
@@ -4095,8 +4103,8 @@
       state.messageTurnId = (state.messageTurnId || 0) + 1;
       const turnId = state.messageTurnId;
 
-      // 실제 카톡처럼 '보내자마자 0.25~0.5초 안에 1이 사라지며 읽음'
-      const unreadWaitMs = Math.round(250 + Math.random() * 250);
+      // 실제 사람이 메시지를 확인(읽음 처리)하는 시간 (글자 길이에 따른 읽기 시간 반영: 약 0.8초~2.0초)
+      const unreadWaitMs = Math.round(750 + Math.min(1500, text.length * 35) + Math.random() * 450);
 
       state.pendingReadTimer = setTimeout(async () => {
         state.pendingReadTimer = null;
