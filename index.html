@@ -605,7 +605,7 @@
         <div id="giftCategoryTabs" class="px-4 py-2.5 flex gap-2 overflow-x-auto chat-scroll shrink-0 border-b border-white/5 bg-[#141724]"></div>
         
         <!-- Shopping Mall Products Grid -->
-        <div id="giftGrid" class="p-4 grid grid-cols-2 gap-3 overflow-y-auto chat-scroll flex-1"></div>
+        <div id="giftGrid" class="p-4 grid grid-cols-2 auto-rows-max content-start gap-3 overflow-y-auto chat-scroll flex-1"></div>
       </div>
     </div>
 
@@ -4299,8 +4299,8 @@ ${buildModeBlock()}
           const card = document.createElement('div');
           card.className = 'gift-mall-card rounded-2xl overflow-hidden bg-[#181c2b] border border-white/10 hover:border-amber-400/50 transition flex flex-col justify-between shadow-lg group';
           card.innerHTML = `
-            <div class="relative aspect-[4/3] w-full bg-[#0e1017] overflow-hidden cursor-pointer">
-              <img src="${g.image}" alt="${escapeHtml(g.name)}" loading="lazy" class="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
+            <div class="relative w-full aspect-[4/3] shrink-0 bg-[#0e1017] overflow-hidden cursor-pointer">
+              <img src="${g.image}" alt="${escapeHtml(g.name)}" loading="lazy" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-300" />
               <span class="absolute top-2 left-2 px-1.5 py-0.5 rounded text-[9.5px] font-black bg-[#FEE500] text-zinc-950 shadow">
                 ${g.tag || '베스트'}
               </span>
