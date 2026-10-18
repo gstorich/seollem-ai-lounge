@@ -19,7 +19,9 @@ CREATE TABLE IF NOT EXISTS ledger (id INTEGER PRIMARY KEY, user_id TEXT NOT NULL
  delta INTEGER NOT NULL, reason TEXT NOT NULL, created_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS chat_requests (user_id TEXT NOT NULL, request_id TEXT NOT NULL,
  data TEXT NOT NULL, PRIMARY KEY(user_id,request_id));
-CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);`);
+CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS conversation_messages(user_id TEXT NOT NULL,character_id TEXT NOT NULL,message_id TEXT NOT NULL,data TEXT NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(user_id,character_id,message_id));
+CREATE INDEX IF NOT EXISTS conversation_time ON conversation_messages(created_at,user_id,character_id);`);
 const { createWallet, units } = require('./heartWallet');
 const wallet = createWallet(sql);
 function transaction(fn) {
@@ -31,7 +33,15 @@ function transaction(fn) {
 function getUser(id) {
   return wallet.expire(id);
 }
+function archiveRooms(user) {
+  const insert=sql.prepare('INSERT OR IGNORE INTO conversation_messages VALUES(?,?,?,?,?)');
+  for(const [characterId,room] of Object.entries(user.savedRooms||{}))for(const message of room.messages||[]){
+    if(!message.id || !['user','ai'].includes(message.sender))continue;
+    insert.run(user.id,characterId,String(message.id),JSON.stringify(message),Number.isFinite(message.createdAt)?message.createdAt:(room.firstMetAt||user.createdAt||0));
+  }
+}
 function putUser(user) {
+  archiveRooms(user);
   user.updatedAt = Date.now();
   sql.prepare('INSERT INTO users(id,phone,data) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET phone=excluded.phone,data=excluded.data')
     .run(user.id, user.phone || null, JSON.stringify(user));
@@ -88,6 +98,12 @@ if (!sql.prepare("SELECT value FROM metadata WHERE key='json_imported'").get()) 
     sql.prepare('INSERT INTO metadata VALUES(?,?)').run('json_imported', new Date().toISOString());
   });
 }
+// Backfill currently retained chats once. Already deleted historical messages cannot be reconstructed.
+if (!sql.prepare("SELECT 1 FROM metadata WHERE key='conversation_archive_v1'").get()) transaction(()=>{
+  for(const row of sql.prepare('SELECT data FROM users').all())archiveRooms(JSON.parse(row.data));
+  sql.prepare("INSERT INTO metadata VALUES('conversation_archive_v1',?)").run(new Date().toISOString());
+});
+
 module.exports = {
   transaction, getUser, createUser, updateUser, mergeRooms, resolveUserId,
   creditHearts(id, hearts, reason) { return wallet.change(id, units(hearts), reason); },
@@ -117,6 +133,8 @@ module.exports = {
         wallet.transfer(sessionId, user.id, bonusAwarded);
         sql.prepare('DELETE FROM users WHERE id=?').run(sessionId);
         sql.prepare('INSERT OR REPLACE INTO aliases VALUES(?,?)').run(sessionId, user.id);
+        sql.prepare('INSERT OR IGNORE INTO conversation_messages SELECT ?,character_id,message_id,data,created_at FROM conversation_messages WHERE user_id=?').run(user.id,sessionId);
+        sql.prepare('DELETE FROM conversation_messages WHERE user_id=?').run(sessionId);
         sql.prepare('UPDATE ledger SET user_id=? WHERE user_id=?').run(user.id, sessionId);
         sql.prepare('UPDATE chat_requests SET user_id=? WHERE user_id=?').run(user.id, sessionId);
       }

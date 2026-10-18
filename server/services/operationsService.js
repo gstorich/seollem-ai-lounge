@@ -48,7 +48,17 @@ module.exports={
  });},
  setStatus(id,actor,status){return tx(()=>{if(!getTicket(id))return false;sql.prepare('UPDATE support_tickets SET status=?,updated_at=? WHERE id=?').run(status,Date.now(),id);audit(actor,'ticket_status',id,{status});return true;});},
  setAnalytics(actor,id,propertyId){return tx(()=>{for(const [key,value] of [['ga_measurement_id',id],['ga_property_id',propertyId]])sql.prepare('INSERT OR REPLACE INTO app_settings VALUES(?,?)').run(key,value);audit(actor,'analytics_settings','analytics',{measurementId:id,propertyId});});},
- users(query,page){db.expireHearts();const term='%'+query+'%';return {items:sql.prepare(`SELECT id,phone,json_extract(data,'$.hearts') hearts,json_extract(data,'$.createdAt') createdAt,json_extract(data,'$.updatedAt') updatedAt FROM users WHERE id LIKE ? OR phone LIKE ? ORDER BY json_extract(data,'$.createdAt') DESC LIMIT 30 OFFSET ?`).all(term,term,page*30),total:sql.prepare('SELECT count(*) n FROM users WHERE id LIKE ? OR phone LIKE ?').get(term,term).n};},
+ users(query,page,kind='all',engagement='all'){
+  db.expireHearts();const term='%'+query+'%',args=[term,term];
+  const filters=['(u.id LIKE ? OR u.phone LIKE ?)'];
+  if(kind==='members')filters.push('u.phone IS NOT NULL');
+  if(kind==='guests')filters.push('u.phone IS NULL');
+  const active="EXISTS(SELECT 1 FROM conversation_messages m WHERE m.user_id=u.id AND json_extract(m.data,'$.sender')='user')";
+  if(engagement==='active')filters.push(active);
+  if(engagement==='unused')filters.push('NOT '+active);
+  const where=filters.join(' AND ');
+  return {items:sql.prepare(`SELECT u.id,u.phone,json_extract(u.data,'$.hearts') hearts,json_extract(u.data,'$.createdAt') createdAt,json_extract(u.data,'$.updatedAt') updatedAt,json_extract(u.data,'$.lastSeenAt') lastSeenAt,(SELECT count(*) FROM conversation_messages m WHERE m.user_id=u.id AND json_extract(m.data,'$.sender')='user') userTurns FROM users u WHERE ${where} ORDER BY coalesce(json_extract(u.data,'$.lastSeenAt'),json_extract(u.data,'$.updatedAt')) DESC,u.id LIMIT 30 OFFSET ?`).all(...args,page*30),total:sql.prepare(`SELECT count(*) n FROM users u WHERE ${where}`).get(...args).n};
+ },
  customer(id){const user=db.getUser(id);if(!user)return null;return {id:user.id,phone:user.phone,hearts:user.hearts,heartExpiry:db.getHeartSummary(id),heartGrants:db.getHeartGrants(id),createdAt:user.createdAt,updatedAt:user.updatedAt,roomCount:Object.keys(user.savedRooms||{}).length,messageCount:Object.values(user.savedRooms||{}).reduce((n,r)=>n+(r.messages||[]).length,0),ledger:sql.prepare('SELECT delta,reason,created_at FROM ledger WHERE user_id=? ORDER BY id DESC LIMIT 100').all(id).map(r=>({...r,delta:r.delta/10})),notes:sql.prepare("SELECT actor,details,created_at FROM admin_audit WHERE target=? AND action='customer_note' ORDER BY id DESC LIMIT 30").all(id).map(r=>({...r,details:JSON.parse(r.details)}))};},
  addNote(actor,id,body){if(!db.getUser(id))return false;audit(actor,'customer_note',id,{body});return true;},
  adjust(actor,id,delta,reason,requestId){return tx(()=>{
@@ -63,6 +73,9 @@ module.exports={
  const since=Date.now()-days*86400000;
  const scalar=(q,...a)=>sql.prepare(q).get(...a).n;
  const totals={customers:scalar('SELECT count(*) n FROM users'),members:scalar('SELECT count(*) n FROM users WHERE phone IS NOT NULL'),hearts:Math.round(scalar("SELECT coalesce(sum(json_extract(data,'$.hearts')),0) n FROM users")*10)/10,openTickets:scalar("SELECT count(*) n FROM support_tickets WHERE status IN ('open','in_progress')"),chatTurns:scalar("SELECT count(*) n FROM ledger WHERE reason='chat' AND created_at>=?",since),activeAccounts:scalar("SELECT count(DISTINCT user_id) n FROM ledger WHERE reason IN ('chat','recall') AND created_at>=?",since),newAccounts:scalar("SELECT count(*) n FROM users WHERE json_extract(data,'$.createdAt')>=?",since)};
+ totals.guests=totals.customers-totals.members;
+ totals.engagedGuests=scalar("SELECT count(*) n FROM users u WHERE phone IS NULL AND EXISTS(SELECT 1 FROM conversation_messages m WHERE m.user_id=u.id AND json_extract(m.data,'$.sender')='user')");
+ totals.unusedGuests=totals.guests-totals.engagedGuests;
  const daily=sql.prepare("SELECT date(created_at/1000,'unixepoch','+9 hours') day,count(*) chatTurns,round(-sum(delta)/10.0,1) heartsUsed,count(DISTINCT user_id) activeAccounts FROM ledger WHERE reason='chat' AND created_at>=? GROUP BY day ORDER BY day").all(since);
  const events=sql.prepare('SELECT event,count(*) count FROM activity_events WHERE created_at>=? GROUP BY event').all(since);
  return {totals,daily,events,days};

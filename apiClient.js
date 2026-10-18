@@ -3,6 +3,7 @@
   const API_BASE = hosted ? `${window.location.origin}/api` : 'http://localhost:4000/api';
   let authToken = localStorage.getItem('seollem_auth_token') || '';
   let connected = false;
+  let guestInit = null;
   let pending = null;
   let timer = null;
   let saving = Promise.resolve();
@@ -43,10 +44,15 @@
       } catch { connected = false; return false; }
     },
     async initGuest() {
-      const data = await this.request('/auth/guest', 'POST', {});
-      this.setToken(data.token);
-      this.user = data.user;
-      return data.user;
+      if (guestInit) return guestInit;
+      const initialize=async()=>{
+        // Another tab may have established a session while this tab was starting.
+        authToken=localStorage.getItem('seollem_auth_token')||authToken;
+        const data=await this.request('/auth/guest','POST',{});
+        this.setToken(data.token);this.user=data.user;return data.user;
+      };
+      guestInit=(navigator.locks?navigator.locks.request('azit-session-bootstrap',initialize):initialize());
+      try{return await guestInit;}finally{guestInit=null;}
     },
     async getHeartWallet() { return this.request('/account/hearts'); },
     async loadState() {

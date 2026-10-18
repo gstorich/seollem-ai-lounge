@@ -4,11 +4,14 @@ const router = express.Router();
 const dbService = require('../services/dbService');
 const { generateToken, requireAuth, optionalAuth } = require('../middleware/auth');
 const config = require('../config');
+const browserSession = require('../services/browserSession');
+router.use((req,res,next)=>{res.set('Cache-Control','no-store');next();});
 
 // POST /api/auth/guest - Issue or restore guest session
 router.post('/guest', optionalAuth, (req, res) => {
   // Restore only a session whose JWT was verified; an ID alone is not proof.
-  let user = req.user || null;
+  let user = req.user || browserSession.restore(req);
+  const restored = Boolean(user);
 
   if (!user) {
     const newId = `guest_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
@@ -18,6 +21,9 @@ router.post('/guest', optionalAuth, (req, res) => {
     });
   }
 
+  browserSession.save(res,user);
+  user = dbService.updateUser(user.id,{lastSeenAt:Date.now()});
+  if(!restored)require('../services/operationsService').track('guest_created',user.id);
   const token = generateToken({ userId: user.id });
   return res.json({
     success: true,
@@ -86,6 +92,7 @@ router.post('/verify-otp', requireAuth, requireLoggedOutForOtp, verifyLimit, (re
   const result = dbService.verifyOtp(challengeId, phone, req.user.id, otpDigest(challengeId, phone, code));
   if (!result) return res.status(400).json({ success: false, error: '인증번호가 틀렸거나 만료되었습니다. 5회 틀리면 새로 받아주세요.' });
   require('../services/operationsService').track(result.bonusAwarded ? 'phone_verified' : 'phone_login', result.user.id);
+  browserSession.save(res,result.user);
   const token = generateToken({ userId: result.user.id });
   return res.json({ success: true, token, bonusAwarded: result.bonusAwarded, user: publicUser(result.user) });
 });

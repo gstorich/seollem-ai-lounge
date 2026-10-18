@@ -18,8 +18,17 @@ router.get('/session',(req,res)=>res.json({success:true,operator:'관리자'}));
 router.delete('/session',(req,res)=>{res.clearCookie(cookieName,{httpOnly:true,secure:config.nodeEnv==='production',sameSite:'strict',path:'/'});res.json({success:true});});
 const page=req=>Math.max(0,Math.min(10000,parseInt(req.query.page)||0));
 router.get('/overview',(req,res)=>res.json({success:true,...ops.overview([7,30,90].includes(Number(req.query.days))?Number(req.query.days):30),runtime:{model:config.geminiModel,smsConfigured:sms.configured(),uptimeSeconds:Math.floor(process.uptime()),paymentEnabled:false},analytics:{measurementId:ops.setting('ga_measurement_id')??config.gaMeasurementId,propertyId:ops.setting('ga_property_id')??config.gaPropertyId}}));
-router.get('/customers',(req,res)=>res.json({success:true,...ops.users(String(req.query.q||'').slice(0,80),page(req))}));
+router.get('/customers',(req,res)=>res.json({success:true,...ops.users(String(req.query.q||'').slice(0,80),page(req),req.query.kind,req.query.engagement)}));
 router.get('/customers/:id',(req,res)=>{const customer=ops.customer(req.params.id);if(!customer)return res.sendStatus(404);ops.audit(req.admin.id,'customer_view',req.params.id);res.json({success:true,customer});});
+const conversations=require('../services/conversationService');
+const chatKind=req=>['members','guests'].includes(req.query.kind)?req.query.kind:'all';
+const chatDays=req=>[7,30,90].includes(Number(req.query.days))?Number(req.query.days):0;
+router.get('/conversations',(req,res)=>{const result=conversations.rooms({kind:chatKind(req),days:chatDays(req),q:String(req.query.q||'').slice(0,100),userId:String(req.query.userId||'').slice(0,100),characterId:String(req.query.characterId||'').slice(0,100),page:page(req)});ops.audit(req.admin.id,'conversation_list',chatKind(req),{page:page(req),filtered:Boolean(req.query.q||req.query.userId||req.query.characterId)});res.json({success:true,...result});});
+router.get('/conversations/:userId/:characterId',(req,res)=>{
+ const conversation=conversations.transcript(req.params.userId,req.params.characterId,page(req));if(!conversation)return res.sendStatus(404);
+ ops.audit(req.admin.id,'conversation_view',req.params.userId,{characterId:req.params.characterId,page:page(req)});res.json({success:true,conversation});
+});
+router.get('/conversation-insights',(req,res)=>res.json({success:true,...conversations.insights(chatKind(req),chatDays(req)||30)}));
 router.post('/customers/:id/notes',(req,res)=>{const body=String(req.body.body||'').trim();if(!body||body.length>3000)return res.status(400).json({error:'메모는 1~3,000자입니다.'});if(!ops.addNote(req.admin.id,req.params.id,body))return res.sendStatus(404);res.json({success:true});});
 router.post('/customers/:id/hearts',(req,res)=>{
  const {delta,reason,requestId}=req.body;
