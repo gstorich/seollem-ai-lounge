@@ -424,42 +424,78 @@
           </div>
 
           <!-- Package Selection -->
-          <div class="space-y-2">
-            <label class="block text-[12px] text-zinc-400 font-semibold">1. 충전할 상품 선택</label>
+          <div class="space-y-2.5">
+            <div class="flex items-center justify-between">
+              <label class="block text-[12.5px] text-zinc-300 font-bold">1. 충전할 대화 패키지 선택</label>
+              <span class="text-[11px] text-amber-300 font-medium">※ 정기결제 없는 1회성 충전</span>
+            </div>
 
-            <div data-pkg="starter" class="pkg-card cursor-pointer p-3.5 rounded-2xl border border-white/15 bg-[#191d2b] flex items-center justify-between transition">
-              <div>
-                <div class="font-bold text-white text-[15px]">☕ 가벼운 커피 한 잔 세트</div>
-                <div class="text-[12.5px] text-zinc-400 mt-0.5">대화 30회 충전 · 인연 보관함 이용</div>
+            <!-- Package 1: Starter (200회) 19,900원 -->
+            <div data-pkg="starter" class="pkg-card cursor-pointer p-3.5 rounded-2xl border border-white/15 bg-[#191d2b] hover:bg-[#202538] flex items-center justify-between transition">
+              <div class="min-w-0 pr-2">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="font-bold text-white text-[15px]">🌱 설렘 스타터 패키지</span>
+                  <span class="px-1.5 py-0.5 rounded bg-white/10 text-zinc-300 text-[10px] font-bold">실속</span>
+                </div>
+                <div class="text-[12.5px] text-zinc-400 mt-0.5 font-medium">대화 <strong class="text-white">200회</strong> 충전 · 인연 영구 보관</div>
               </div>
-              <div class="text-right">
-                <div class="text-[16px] font-extrabold text-amber-300">4,900원</div>
+              <div class="text-right shrink-0">
+                <div class="text-[16px] font-extrabold text-amber-300">19,900원</div>
+                <div class="text-[10.5px] text-zinc-500">회당 약 99원</div>
               </div>
             </div>
 
-            <div data-pkg="popular" class="pkg-card cursor-pointer p-3.5 rounded-2xl border-2 border-amber-400 bg-amber-500/10 flex items-center justify-between transition">
-              <div>
-                <div class="flex items-center gap-1.5">
-                  <span class="font-bold text-white text-[15px]">💝 설레는 단골 인연 패키지</span>
-                  <span class="px-1.5 py-0.5 rounded bg-rose-500 text-white text-[10px] font-bold">인기</span>
+            <!-- Package 2: Popular (700회) 49,000원 [기본 선택] -->
+            <div data-pkg="popular" class="pkg-card cursor-pointer p-3.5 rounded-2xl border-2 border-amber-400 bg-amber-500/10 hover:bg-amber-500/15 flex items-center justify-between transition shadow-md">
+              <div class="min-w-0 pr-2">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="font-bold text-white text-[15px]">🔥 단골 인연 베스트 패키지</span>
+                  <span class="px-1.5 py-0.5 rounded bg-rose-500 text-white text-[10px] font-black animate-pulse">인기 1위</span>
+                  <span class="px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 text-[10px] font-bold">30% OFF</span>
                 </div>
-                <div class="text-[12.5px] text-zinc-300 mt-0.5">대화 120회 충전 (20% 보너스) · 인연 영구 보관</div>
+                <div class="text-[12.5px] text-amber-200 mt-0.5 font-medium">대화 <strong class="text-white">700회</strong> (600회 + 100회 보너스)</div>
+                <div class="text-[11px] text-zinc-400">비밀 사진첩 및 일상 사진 전권 열람 가능</div>
               </div>
-              <div class="text-right">
-                <div class="text-[11px] text-zinc-500 line-through">19,600원</div>
-                <div class="text-[16px] font-extrabold text-amber-300">14,900원</div>
+              <div class="text-right shrink-0">
+                <div class="text-[11px] text-zinc-500 line-through">69,000원</div>
+                <div class="text-[17px] font-black text-amber-300">49,000원</div>
+                <div class="text-[10.5px] text-amber-400/80">회당 약 70원</div>
               </div>
             </div>
 
-            <div data-pkg="vip" class="pkg-card cursor-pointer p-3.5 rounded-2xl border border-white/15 bg-[#191d2b] flex items-center justify-between transition">
-              <div>
-                <div class="flex items-center gap-1.5">
-                  <span class="font-bold text-white text-[15px]">👑 VIP 라운지 30일 자유이용권</span>
+            <!-- Package 3: Mania (1,800회) 89,000원 -->
+            <div data-pkg="mania" class="pkg-card cursor-pointer p-3.5 rounded-2xl border border-white/15 bg-[#191d2b] hover:bg-[#202538] flex items-center justify-between transition">
+              <div class="min-w-0 pr-2">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="font-bold text-white text-[15px]">👑 설렘 마니아 메가 패키지</span>
+                  <span class="px-1.5 py-0.5 rounded bg-amber-500 text-zinc-950 text-[10px] font-black">가성비 최고</span>
+                  <span class="px-1.5 py-0.5 rounded bg-amber-400/20 text-amber-300 text-[10px] font-bold">36% OFF</span>
                 </div>
-                <div class="text-[12.5px] text-zinc-400 mt-0.5">30일간 모든 인연과 무제한 대화 + 무제한 매칭</div>
+                <div class="text-[12.5px] text-zinc-300 mt-0.5 font-medium">대화 <strong class="text-white">1,800회</strong> (1,500회 + 300회 보너스)</div>
+                <div class="text-[11px] text-zinc-400">선물하기 마음껏 전송 + 전 캐릭터 매칭 프리패스</div>
               </div>
-              <div class="text-right">
-                <div class="text-[16px] font-extrabold text-amber-300">29,900원</div>
+              <div class="text-right shrink-0">
+                <div class="text-[11px] text-zinc-500 line-through">139,000원</div>
+                <div class="text-[16px] font-extrabold text-amber-300">89,000원</div>
+                <div class="text-[10.5px] text-zinc-400">회당 약 49원</div>
+              </div>
+            </div>
+
+            <!-- Package 4: Master (4,500회) 149,000원 -->
+            <div data-pkg="master" class="pkg-card cursor-pointer p-3.5 rounded-2xl border border-white/15 bg-[#191d2b] hover:bg-[#202538] flex items-center justify-between transition">
+              <div class="min-w-0 pr-2">
+                <div class="flex items-center gap-1.5 flex-wrap">
+                  <span class="font-bold text-white text-[15px]">💎 VVIP 로열 하트 패키지</span>
+                  <span class="px-1.5 py-0.5 rounded bg-purple-500 text-white text-[10px] font-black">VVIP 한정특가</span>
+                  <span class="px-1.5 py-0.5 rounded bg-purple-400/20 text-purple-300 text-[10px] font-bold">40% OFF</span>
+                </div>
+                <div class="text-[12.5px] text-zinc-300 mt-0.5 font-medium">대화 <strong class="text-white">4,500회</strong> (3,500회 + 1,000회 보너스)</div>
+                <div class="text-[11px] text-zinc-400">최대 할인율 · 대화 끊김 걱정 없는 평생 든든 패키지</div>
+              </div>
+              <div class="text-right shrink-0">
+                <div class="text-[11px] text-zinc-500 line-through">249,000원</div>
+                <div class="text-[16px] font-extrabold text-amber-300">149,000원</div>
+                <div class="text-[10.5px] text-zinc-400">회당 약 33원</div>
               </div>
             </div>
           </div>
@@ -483,7 +519,7 @@
 
         <div class="p-4 border-t border-white/10 bg-[#0d0f15]">
           <button id="btnExecutePayment" type="button" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 text-zinc-950 font-bold text-[15.5px] shadow-lg">
-            14,900원 결제하고 대화 이어가기
+            49,000원 결제하고 700회 충전하기
           </button>
         </div>
       </div>
@@ -1441,9 +1477,10 @@
     };
 
     const PACKAGES = {
-      starter: { name: '가벼운 커피 한 잔 세트 (30회)', credits: 30, price: 4900, priceText: '4,900원', vip: false },
-      popular: { name: '설레는 단골 인연 패키지 (120회)', credits: 120, price: 14900, priceText: '14,900원', vip: false },
-      vip: { name: 'VIP 라운지 30일 자유이용권', credits: 9999, price: 29900, priceText: '29,900원', vip: true }
+      starter: { name: '설렘 스타터 패키지 (200회)', credits: 200, price: 19900, priceText: '19,900원' },
+      popular: { name: '단골 인연 베스트 패키지 (700회)', credits: 700, price: 49000, priceText: '49,000원' },
+      mania: { name: '설렘 마니아 메가 패키지 (1,800회)', credits: 1800, price: 89000, priceText: '89,000원' },
+      master: { name: 'VVIP 로열 하트 패키지 (4,500회)', credits: 4500, price: 149000, priceText: '149,000원' }
     };
 
     // 카카오톡 선물하기 스타일 선물 목록 (브랜드·상품명은 모두 가상의 이름입니다)
@@ -4234,6 +4271,12 @@
       if (sub) {
         sub.textContent = customSubtitle || '소중한 인연과의 대화가 끊기지 않게 이어가세요';
       }
+      state.selectedPkg = state.selectedPkg || 'popular';
+      const pkg = PACKAGES[state.selectedPkg] || PACKAGES.popular;
+      const btnPay = document.getElementById('btnExecutePayment');
+      if (btnPay) {
+        btnPay.textContent = `${pkg.priceText} 결제하고 ${pkg.credits.toLocaleString()}회 충전하기`;
+      }
       updateAccountAndCreditUI();
       document.getElementById('paymentModal').classList.remove('hidden');
     }
@@ -4602,11 +4645,11 @@
         const pkgKey = card.getAttribute('data-pkg');
         state.selectedPkg = pkgKey;
         document.querySelectorAll('.pkg-card').forEach(c => {
-          c.className = 'pkg-card cursor-pointer p-3.5 rounded-2xl border border-white/15 bg-[#191d2b] flex items-center justify-between transition';
+          c.className = 'pkg-card cursor-pointer p-3.5 rounded-2xl border border-white/15 bg-[#191d2b] hover:bg-[#202538] flex items-center justify-between transition';
         });
-        card.className = 'pkg-card cursor-pointer p-3.5 rounded-2xl border-2 border-amber-400 bg-amber-500/10 flex items-center justify-between transition';
-        const pkg = PACKAGES[pkgKey];
-        document.getElementById('btnExecutePayment').textContent = `${pkg.priceText} 결제하고 대화 이어가기`;
+        card.className = 'pkg-card cursor-pointer p-3.5 rounded-2xl border-2 border-amber-400 bg-amber-500/10 hover:bg-amber-500/15 flex items-center justify-between transition shadow-md';
+        const pkg = PACKAGES[pkgKey] || PACKAGES.popular;
+        document.getElementById('btnExecutePayment').textContent = `${pkg.priceText} 결제하고 ${pkg.credits.toLocaleString()}회 충전하기`;
       });
     });
 
@@ -4628,15 +4671,13 @@
       btn.disabled = true;
 
       setTimeout(() => {
-        if (pkg.vip) {
-          state.isVipUnlimited = true;
-        } else {
-          state.credits += pkg.credits;
-        }
+        state.credits += pkg.credits;
         saveAccountState();
+        updateAccountAndCreditUI();
         btn.disabled = false;
         btn.textContent = origText;
         document.getElementById('paymentModal').classList.add('hidden');
+        showToast(`🎉 <strong>${pkg.name}</strong> 충전이 완료되었습니다! (+${pkg.credits.toLocaleString()}회 지급)`);
       }, 600);
     });
 
