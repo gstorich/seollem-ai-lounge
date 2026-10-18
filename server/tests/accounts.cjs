@@ -69,7 +69,14 @@ async function verify(token, phone, challenge, code=challenge.code) { return req
   assert.equal(account.user.hearts,146.3);
   assert.equal(account.bonusAwarded,true);
   assert.equal((await getState(a.token)).status,401,'old guest JWT revoked');
-  assert.equal((await verify(account.token,'01000000001',otp)).status,400,'challenge consumed');
+  const challengeCount = sql.prepare('SELECT count(*) n FROM otp_challenges').get().n;
+  const repeatSend = await request('/auth/send-otp',account.token,{phone:'01000000001'});
+  assert.equal(repeatSend.status,409,'signed-in account cannot request the same phone OTP');
+  assert.equal(repeatSend.error,'ALREADY_AUTHENTICATED');
+  assert.equal((await request('/auth/send-otp',account.token,{phone:'01000000004'})).status,409,'switching requires logout');
+  assert.equal((await verify(account.token,'01000000001',otp)).status,409,'signed-in account cannot verify again');
+  assert.equal(sql.prepare('SELECT count(*) n FROM otp_challenges').get().n,challengeCount,'no extra SMS challenge reserved');
+  assert.equal(sql.prepare('SELECT status FROM otp_challenges WHERE id=?').get(otp.challengeId).status,'consumed');
   assert((await getState(account.token)).savedRooms.chaewon.messages.some(m=>m.text==='방 A 이전 대화'));
   assert((await getState(account.token)).savedRooms.chaewon.messages.some(m=>m.text===message.message));
   // Existing phone login restores its own balance and merges new guest conversation, without repeated bonuses.

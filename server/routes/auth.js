@@ -50,10 +50,16 @@ function publicUser(user) {
   return { id: user.id, phone: user.phone, hearts: user.hearts, isVipUnlimited: user.isVipUnlimited,
     phoneBonusClaimed: user.phoneBonusClaimed };
 }
-router.post('/send-otp', requireAuth, otpLimit, async (req, res) => {
+function requireLoggedOutForOtp(req, res, next) {
+  if (req.user.phone) return res.status(409).json({
+    success: false, error: 'ALREADY_AUTHENTICATED',
+    message: '이미 인증된 계정으로 로그인되어 있습니다. 재인증할 수 없으며, 다른 번호를 사용하려면 먼저 로그아웃해주세요.'
+  });
+  next();
+}
+router.post('/send-otp', requireAuth, requireLoggedOutForOtp, otpLimit, async (req, res) => {
   const phone = normalizePhone(req.body.phone);
   if (!phone) return res.status(400).json({ success: false, error: '010으로 시작하는 휴대폰 번호 11자리를 입력해주세요.' });
-  if (req.user.phone && req.user.phone !== phone) return res.status(409).json({ success: false, error: '다른 번호로 로그인하려면 먼저 로그아웃해주세요.' });
   if (!smsService.configured()) return res.status(503).json({ success: false, error: '문자 인증 서비스를 준비 중입니다.' });
   const id = crypto.randomUUID();
   const code = crypto.randomInt(100000, 1000000).toString();
@@ -71,13 +77,12 @@ router.post('/send-otp', requireAuth, otpLimit, async (req, res) => {
     return res.status(502).json({ success: false, error: '문자를 발송하지 못했습니다. 잠시 후 다시 시도해주세요.' });
   }
 });
-router.post('/verify-otp', requireAuth, verifyLimit, (req, res) => {
+router.post('/verify-otp', requireAuth, requireLoggedOutForOtp, verifyLimit, (req, res) => {
   const phone = normalizePhone(req.body.phone);
   const { code, challengeId } = req.body;
   if (!phone || typeof code !== 'string' || !/^\d{6}$/.test(code) || typeof challengeId !== 'string' || challengeId.length > 64) {
     return res.status(400).json({ success: false, error: '휴대폰 번호와 인증번호 6자리를 확인해주세요.' });
   }
-  if (req.user.phone && req.user.phone !== phone) return res.status(409).json({ success: false, error: '먼저 로그아웃해주세요.' });
   const result = dbService.verifyOtp(challengeId, phone, req.user.id, otpDigest(challengeId, phone, code));
   if (!result) return res.status(400).json({ success: false, error: '인증번호가 틀렸거나 만료되었습니다. 5회 틀리면 새로 받아주세요.' });
   require('../services/operationsService').track(result.bonusAwarded ? 'phone_verified' : 'phone_login', result.user.id);
