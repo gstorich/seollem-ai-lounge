@@ -16,7 +16,8 @@ async function callGemini(messages, systemInstruction, apiKey) {
     },
     generationConfig: {
       temperature: 0.9,
-      maxOutputTokens: 140,
+      // The cap includes thinking tokens; leave room for the short visible reply.
+      maxOutputTokens: 512,
       thinkingConfig: { thinkingLevel: 'LOW' }
     },
     safetySettings: [
