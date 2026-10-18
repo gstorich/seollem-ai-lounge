@@ -81,7 +81,7 @@ ${greeting?`[이 방의 첫마디 연출]
 function buildDialogueCard(character,{greeting=false,seed=''}={}){
  if(character.creatorDefinition){
    const d=character.creatorDefinition;
-   return `[크리에이터가 직접 작성한 캐릭터 설정: 자동 성향·공통 예시보다 우선]\n${JSON.stringify({personality:d.personality,backstory:d.backstory,motivation:d.motivation,flaws:d.flaws,likes:d.likes,dislikes:d.dislikes,interactionRules:d.interactionRules})}
+   return `[크리에이터가 직접 작성한 캐릭터 설정: 자동 성향·공통 예시보다 우선]\n${JSON.stringify({personality:d.personality,backstory:d.backstory,motivation:d.motivation,flaws:d.flaws,likes:d.likes,dislikes:d.dislikes,interactionRules:d.interactionRules,usualReplyLength:getProfile(character).length})}
 - 위 인물의 목표·신념·결점·취향으로 매번 실제 반응을 고릅니다. 성격을 자기소개로 나열하지 않고, 말끝만 흉내 내지도 않습니다. 이 설정에 없는 무작위 기본 성향이나 취향을 덮어씌우지 않습니다. 실제 대화에서 겪은 일·확인된 사용자 요청은 함께 유지합니다.
 [작성자가 준 대화 예시: 실제 사용자 발화나 확정 사건이 아님]
 ${(d.dialogueExamples||[]).map(e=>`가상 상대: ${e.user}\n${character.name}: ${e.reply}`).join('\n')||'예시 없음. 성격과 말투 지침으로 새로 작성합니다.'}
