@@ -1,0 +1,35 @@
+[Unit]
+Description=Seollem AI Lounge
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=seollem
+Group=seollem
+WorkingDirectory=/opt/seollem-ai-lounge/current/server
+EnvironmentFile=/etc/seollem-ai-lounge/app.env
+ExecStart=/usr/bin/node server.js
+Restart=on-failure
+RestartSec=5
+TimeoutStopSec=20
+NoNewPrivileges=true
+PrivateTmp=true
+PrivateDevices=true
+ProtectHome=true
+ProtectSystem=strict
+ProtectKernelTunables=true
+ProtectKernelModules=true
+ProtectControlGroups=true
+RestrictSUIDSGID=true
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6
+CapabilityBoundingSet=
+UMask=0077
+StateDirectory=seollem-ai-lounge
+StateDirectoryMode=0700
+MemoryMax=384M
+CPUQuota=100%
+TasksMax=64
+
+[Install]
+WantedBy=multi-user.target

@@ -1,4 +1,6 @@
-# 🏛️ 설렘 AI 라운지 - OCI(Oracle Cloud Infrastructure) 백엔드 아키텍처 및 배포 가이드
+> **현재 공유 OCI 서버 배포:** 실제 배포 구성과 명령은 [ops/oci/README.md](../ops/oci/README.md)를 따르세요. 기존 서버는 Nginx + systemd를 사용하며 4000번 포트를 이미 다른 서비스가 사용합니다. 아래 Docker 절차는 별도 신규 서버용 참고 자료입니다. SMS·결제 및 과금 보안은 아직 완성되지 않았습니다.
+
+# 🏛️ 아지트챗 - OCI(Oracle Cloud Infrastructure) 백엔드 아키텍처 및 배포 가이드
 
 본 문서는 프론트엔드에 노출되면 심각한 보안 취약점(LLM API Key 탈취, 프롬프트 인젝션, 하트/결제 위변조)이 발생하는 핵심 로직들을 **서버 사이드(OCI 백엔드)**로 완전히 격리하고 배포하기 위한 아키텍처 명세서입니다.
 
@@ -13,7 +15,7 @@
 [OCI Load Balancer / Nginx Reverse Proxy]
        │
        ▼ (내부망 포트 4000)
-[Seollem Backend Container (Node.js / Express)]
+[AzitChat Backend Container (Node.js / Express)]
    ├── 🛡️ JWT Session Guard (인증/세션 토큰 검증)
    ├── 💰 Economy & Heart Engine (하트 차감, 결제 무결성 검증)
    ├── 🎭 Confidential Persona Engine (시스템 프롬프트 & 비밀 사진첩 보호)

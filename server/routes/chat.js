@@ -5,112 +5,70 @@ const llmService = require('../services/llmService');
 const dbService = require('../services/dbService');
 const { requireAuth } = require('../middleware/auth');
 const config = require('../config');
+const crypto = require('node:crypto');
+const activeChats = new Set();
 
 // POST /api/chat/send
 router.post('/send', requireAuth, async (req, res) => {
-  const user = req.user;
-  const { characterId, message, chatHistory = [], affection = 30 } = req.body;
-
-  if (!characterId || !message || !message.trim()) {
-    return res.status(400).json({ success: false, error: '대화 상대와 메시지 내용이 필요합니다.' });
+  const { characterId, message, chatHistory = [] } = req.body;
+  const requestId = req.body.messageId || crypto.randomUUID();
+  if (typeof characterId !== 'string' || typeof message !== 'string' || !message.trim() || message.length > 2000 ||
+      typeof requestId !== 'string' || !/^[a-zA-Z0-9_-]{1,100}$/.test(requestId) ||
+      !Array.isArray(chatHistory) || chatHistory.length > 12 || chatHistory.some(m =>
+        !m || !['user', 'assistant'].includes(m.role) || typeof m.content !== 'string' || m.content.length > 2000)) {
+    return res.status(400).json({ success: false, error: '메시지 내용을 확인해주세요. (최대 2,000자)' });
   }
-
   const character = characterService.getCharacterById(characterId);
-  if (!character) {
-    return res.status(404).json({ success: false, error: '대화 상대를 찾을 수 없습니다.' });
+  if (!character) return res.status(404).json({ success: false, error: '대화 상대를 찾을 수 없습니다.' });
+  const existing = dbService.getChatRequest(req.user.id, requestId);
+  if (existing) {
+    if (existing.status === 'pending') return res.status(409).json({ success: false, error: '답변을 생성 중입니다.' });
+    return res.json({ ...existing, heartsRemaining: dbService.getUser(req.user.id).hearts });
   }
-
-  // Heart deduction verification on server
-  const cost = config.heartsPerMessage;
-  if (!user.isVipUnlimited && user.hearts < cost) {
-    return res.status(402).json({
-      success: false,
-      error: 'INSUFFICIENT_HEARTS',
-      required: cost,
-      current: user.hearts,
-      message: `${character.name}님과의 대화에 필요한 하트가 부족합니다. 충전 후 바로 이어가보세요!`
-    });
-  }
-
-  // Deduct heart
-  let nextHearts = user.hearts;
-  if (!user.isVipUnlimited) {
-    nextHearts = Math.max(0, Math.round((user.hearts - cost) * 10) / 10);
-    dbService.updateUser(user.id, { hearts: nextHearts });
-  }
-
-  // Prepare full message history for LLM
-  const historyWithUserMsg = [
-    ...chatHistory,
-    { role: 'user', content: message.trim() }
-  ];
-
+  if (activeChats.has(req.user.id)) return res.status(429).json({ success: false, error: '이전 답변을 받은 후 메시지를 보내주세요.' });
+  let user;
+  let history;
+  dbService.transaction(() => {
+    user = dbService.debit(req.user.id, config.heartsPerMessage, 'chat');
+    if (!user) return;
+    history = (user.savedRooms?.[characterId]?.messages || []).filter(m => ['user','ai'].includes(m.sender) && m.text && m.id !== requestId)
+      .slice(-12).map(m => ({ role: m.sender === 'user' ? 'user' : 'assistant', content: m.text }));
+    dbService.appendMessages(user.id, characterId, [{ id: requestId, sender: 'user', text: message.trim(), createdAt: Date.now(), time: new Date().toLocaleTimeString('ko-KR', {timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'}) }]);
+    dbService.saveChatRequest(user.id, requestId, { status: 'pending' });
+  });
+  if (!user) return res.status(402).json({ success: false, error: 'INSUFFICIENT_HEARTS', message: '하트가 부족합니다.' });
+  activeChats.add(user.id);
   try {
-    const result = await llmService.generateReply(character, historyWithUserMsg, { affection });
-
-    return res.json({
-      success: true,
-      partnerReply: result.text,
-      roomLeft: result.roomLeft,
-      heartsRemaining: nextHearts,
-      costDeducted: user.isVipUnlimited ? 0 : cost,
-      isAiGenerated: result.isAiGenerated
+    const result = await llmService.generateReply(character, [...history, { role: 'user', content: message.trim() }], { affection: 30 });
+    const replyId = `reply_${requestId}`;
+    const response = dbService.transaction(() => {
+      const current = dbService.appendMessages(user.id, characterId, [{ id: replyId, sender: 'ai', text: result.text, createdAt: Date.now(), time: new Date().toLocaleTimeString('ko-KR', {timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'}) }]);
+      const response = { success: true, partnerReply: result.text, replyId, roomLeft: result.roomLeft,
+        heartsRemaining: current.hearts, costDeducted: user.isVipUnlimited ? 0 : config.heartsPerMessage, isAiGenerated: result.isAiGenerated };
+      dbService.saveChatRequest(user.id, requestId, response);
+      return response;
     });
-  } catch (err) {
-    console.error('[CHAT ERROR]', err);
-    return res.status(500).json({
-      success: false,
-      error: '답장 생성 중 서버 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'
-    });
-  }
+    return res.json(response);
+  } catch {
+    // Retrying this message cannot charge it a second time.
+    dbService.saveChatRequest(user.id, requestId, { success: false, error: '답변 생성에 실패했습니다. 잠시 후 다시 시도해주세요.' });
+    return res.status(500).json({ success: false, error: '답변 생성에 실패했습니다.' });
+  } finally { activeChats.delete(user.id); }
 });
 
 // POST /api/chat/gift
 router.post('/gift', requireAuth, (req, res) => {
-  const user = req.user;
-  const { characterId, giftKey, giftCost } = req.body;
-
-  const cost = parseInt(giftCost, 10) || 50;
-  if (!user.isVipUnlimited && user.hearts < cost) {
-    return res.status(402).json({
-      success: false,
-      error: 'INSUFFICIENT_HEARTS',
-      required: cost,
-      current: user.hearts,
-      message: `선물을 보내기에 하트가 부족합니다. (필요: ${cost}개, 보유: ${user.hearts}개)`
-    });
-  }
-
-  let nextHearts = user.hearts;
-  if (!user.isVipUnlimited) {
-    nextHearts = Math.max(0, user.hearts - cost);
-    dbService.updateUser(user.id, { hearts: nextHearts });
-  }
-
-  // Realistic proof photo mapping
-  const PROOF_PHOTOS = {
-    coffee: 'gifts/thanks_coffee.jpg',
-    dessert: 'gifts/thanks_dessert.jpg',
-    macaron: 'gifts/thanks_macaron.jpg',
-    chicken: 'gifts/thanks_chicken.jpg',
-    icecream: 'gifts/thanks_icecream.jpg',
-    handcream: 'gifts/thanks_handcream.jpg',
-    maskpack: 'gifts/thanks_maskpack.jpg',
-    cake: 'gifts/thanks_cake.jpg',
-    wine: 'gifts/thanks_wine.jpg',
-    ginseng: 'gifts/thanks_ginseng.jpg',
-    flower: 'gifts/thanks_flower.jpg',
-    spa: 'gifts/thanks_spa.jpg'
-  };
-
-  const proofUrl = PROOF_PHOTOS[giftKey] || 'gifts/thanks_coffee.jpg';
-
-  return res.json({
-    success: true,
-    proofUrl,
-    heartsRemaining: nextHearts,
-    costDeducted: user.isVipUnlimited ? 0 : cost
+  const { characterId, giftKey } = req.body;
+  const gift = typeof giftKey === 'string' && Object.hasOwn(require('../services/gifts.json'), giftKey) ? require('../services/gifts.json')[giftKey] : null;
+  if (!gift || !characterService.getCharacterById(characterId)) return res.status(400).json({ success: false, error: '선물 정보를 확인해주세요.' });
+  const giftMessageId = `gift_${crypto.randomUUID()}`;
+  const user = dbService.transaction(() => {
+    const user = dbService.debit(req.user.id, gift.cost, `gift:${giftKey}`);
+    if (!user) return null;
+    dbService.appendMessages(user.id, characterId, [{ id: giftMessageId, sender: 'user', text: `${gift.name} 선물을 보냈습니다.`, mediaType: 'gift', giftName: gift.name, giftImage: gift.image, createdAt: Date.now() }]);
+    return user;
   });
+  if (!user) return res.status(402).json({ success: false, error: '하트가 부족합니다.' });
+  return res.json({ success: true, heartsRemaining: user.hearts, costDeducted: user.isVipUnlimited ? 0 : gift.cost, proofUrl: gift.proofImage, giftMessageId });
 });
-
 module.exports = router;

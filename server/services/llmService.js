@@ -2,7 +2,7 @@ const config = require('../config');
 const characterService = require('./characterService');
 
 async function callGemini(messages, systemInstruction, apiKey) {
-  const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
+  const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.geminiModel)}:generateContent`;
 
   const contents = messages.map(m => ({
     role: m.role === 'assistant' ? 'model' : 'user',
@@ -16,25 +16,26 @@ async function callGemini(messages, systemInstruction, apiKey) {
     },
     generationConfig: {
       temperature: 0.85,
-      maxOutputTokens: 350
+      maxOutputTokens: 512,
+      thinkingConfig: { thinkingLevel: 'LOW' }
     }
   };
 
   const res = await fetch(url, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+    signal: AbortSignal.timeout(25000),
     body: JSON.stringify(payload)
   });
 
   if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`Gemini API Error (${res.status}): ${errText}`);
+    throw new Error(`Gemini API Error (${res.status})`);
   }
 
   const data = await res.json();
   const candidate = data.candidates && data.candidates[0];
-  const part = candidate && candidate.content && candidate.content.parts && candidate.content.parts[0];
-  return (part && part.text) ? part.text.trim() : '';
+  const parts = candidate?.content?.parts || [];
+  return parts.filter(part => !part.thought).map(part => part.text || '').join('').trim();
 }
 
 async function callOpenAI(messages, systemInstruction, apiKey) {
@@ -92,7 +93,7 @@ module.exports = {
     try {
       if (config.geminiApiKey) {
         reply = await callGemini(chatHistory, systemPrompt, config.geminiApiKey);
-        isAiGenerated = true;
+        isAiGenerated = Boolean(reply);
       } else if (config.openaiApiKey) {
         reply = await callOpenAI(chatHistory, systemPrompt, config.openaiApiKey);
         isAiGenerated = true;

@@ -1,0 +1,8 @@
+[Unit]
+Description=Daily SalonChat account backup
+[Timer]
+OnCalendar=*-*-* 03:30:00 Asia/Seoul
+Persistent=true
+RandomizedDelaySec=20m
+[Install]
+WantedBy=timers.target

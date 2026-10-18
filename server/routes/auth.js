@@ -2,13 +2,13 @@ const express = require('express');
 const crypto = require('crypto');
 const router = express.Router();
 const dbService = require('../services/dbService');
-const { generateToken, requireAuth } = require('../middleware/auth');
+const { generateToken, requireAuth, optionalAuth } = require('../middleware/auth');
 const config = require('../config');
 
 // POST /api/auth/guest - Issue or restore guest session
-router.post('/guest', (req, res) => {
-  const { guestId } = req.body;
-  let user = guestId ? dbService.getUser(guestId) : null;
+router.post('/guest', optionalAuth, (req, res) => {
+  // Restore only a session whose JWT was verified; an ID alone is not proof.
+  let user = req.user || null;
 
   if (!user) {
     const newId = `guest_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
@@ -32,79 +32,56 @@ router.post('/guest', (req, res) => {
   });
 });
 
-// POST /api/auth/send-otp - Request SMS verification code
-router.post('/send-otp', (req, res) => {
-  const { phone } = req.body;
-  const cleanPhone = (phone || '').replace(/[^0-9]/g, '');
-
-  if (cleanPhone.length < 10 || cleanPhone.length > 11) {
-    return res.status(400).json({ success: false, error: '유효한 10~11자리 휴대폰 번호를 입력해주세요.' });
+const smsService = require('../services/smsService');
+const { rateLimit } = require('express-rate-limit');
+const otpLimit = rateLimit({ windowMs: 10 * 60 * 1000, limit: 6, standardHeaders: true, legacyHeaders: false,
+  message: { success: false, error: '문자 요청이 많습니다. 잠시 후 다시 시도해주세요.' } });
+const verifyLimit = rateLimit({ windowMs: 10 * 60 * 1000, limit: 30, standardHeaders: true, legacyHeaders: false,
+  message: { success: false, error: '인증 시도가 많습니다. 잠시 후 다시 시도해주세요.' } });
+function normalizePhone(value) {
+  if (typeof value !== 'string') return '';
+  const phone = value.replace(/[-\s]/g, '');
+  return /^010\d{8}$/.test(phone) ? phone : '';
+}
+function otpDigest(id, phone, code) {
+  return crypto.createHmac('sha256', config.jwtSecret).update(`${id}:${phone}:${code}`).digest('hex');
+}
+function publicUser(user) {
+  return { id: user.id, phone: user.phone, hearts: user.hearts, isVipUnlimited: user.isVipUnlimited,
+    phoneBonusClaimed: user.phoneBonusClaimed };
+}
+router.post('/send-otp', requireAuth, otpLimit, async (req, res) => {
+  const phone = normalizePhone(req.body.phone);
+  if (!phone) return res.status(400).json({ success: false, error: '010으로 시작하는 휴대폰 번호 11자리를 입력해주세요.' });
+  if (req.user.phone && req.user.phone !== phone) return res.status(409).json({ success: false, error: '다른 번호로 로그인하려면 먼저 로그아웃해주세요.' });
+  if (!smsService.configured()) return res.status(503).json({ success: false, error: '문자 인증 서비스를 준비 중입니다.' });
+  const id = crypto.randomUUID();
+  const code = crypto.randomInt(100000, 1000000).toString();
+  const status = dbService.reserveOtp({ id, phone, sessionId: req.user.id, ip: req.ip, digest: otpDigest(id, phone, code) });
+  if (status !== 'ok') return res.status(429).json({ success: false,
+    error: status === 'cooldown' ? '인증번호는 60초 후 다시 받을 수 있습니다.' : '오늘 인증번호 발송 한도를 초과했습니다.' });
+  try {
+    const providerId = await smsService.sendOtp(phone, code);
+    dbService.markOtp(id, 'sent', providerId);
+    return res.json({ success: true, challengeId: id, expiresIn: 300, retryAfter: 60,
+      message: '인증번호를 발송했습니다. 5분 안에 입력해주세요.' });
+  } catch (error) {
+    dbService.markOtp(id, 'failed');
+    console.warn('[SMS] Sending failed:', error.name === 'TimeoutError' ? 'timeout' : 'provider_failure');
+    return res.status(502).json({ success: false, error: '문자를 발송하지 못했습니다. 잠시 후 다시 시도해주세요.' });
   }
-
-  // Generate 6-digit verification code
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
-  dbService.setOtp(cleanPhone, code, 300); // 5 min TTL
-
-  // In production OCI, integrate with CoolSMS / Aligo / Twilio here
-  console.log(`[SMS AUTH] Sent code ${code} to ${cleanPhone}`);
-
-  return res.json({
-    success: true,
-    message: '인증번호가 발송되었습니다. (5분 내 입력)',
-    debugCode: config.nodeEnv === 'development' ? code : undefined
-  });
 });
-
-// POST /api/auth/verify-otp - Verify code & link account
-router.post('/verify-otp', (req, res) => {
-  const { phone, code, guestId } = req.body;
-  const cleanPhone = (phone || '').replace(/[^0-9]/g, '');
-
-  const validCode = dbService.getOtp(cleanPhone);
-  if (!validCode || validCode !== (code || '').trim()) {
-    return res.status(400).json({ success: false, error: '인증번호가 일치하지 않거나 만료되었습니다.' });
+router.post('/verify-otp', requireAuth, verifyLimit, (req, res) => {
+  const phone = normalizePhone(req.body.phone);
+  const { code, challengeId } = req.body;
+  if (!phone || typeof code !== 'string' || !/^\d{6}$/.test(code) || typeof challengeId !== 'string' || challengeId.length > 64) {
+    return res.status(400).json({ success: false, error: '휴대폰 번호와 인증번호 6자리를 확인해주세요.' });
   }
-
-  dbService.removeOtp(cleanPhone);
-
-  let user = dbService.findUserByPhone(cleanPhone);
-  let bonusAwarded = false;
-
-  if (!user) {
-    // If guest exists, upgrade guest to phone account
-    if (guestId && dbService.getUser(guestId)) {
-      user = dbService.updateUser(guestId, { phone: cleanPhone });
-    } else {
-      user = dbService.createUser({
-        id: `user_${cleanPhone}`,
-        phone: cleanPhone,
-        hearts: config.defaultGuestHearts
-      });
-    }
-
-    // Award first-time phone auth bonus
-    if (!user.phoneBonusClaimed) {
-      user = dbService.updateUser(user.id, {
-        hearts: user.hearts + config.phoneAuthBonusHearts,
-        phoneBonusClaimed: true
-      });
-      bonusAwarded = true;
-    }
-  }
-
-  const token = generateToken({ userId: user.id });
-  return res.json({
-    success: true,
-    bonusAwarded,
-    token,
-    user: {
-      id: user.id,
-      phone: user.phone,
-      hearts: user.hearts,
-      isVipUnlimited: user.isVipUnlimited,
-      phoneBonusClaimed: user.phoneBonusClaimed
-    }
-  });
+  if (req.user.phone && req.user.phone !== phone) return res.status(409).json({ success: false, error: '먼저 로그아웃해주세요.' });
+  const result = dbService.verifyOtp(challengeId, phone, req.user.id, otpDigest(challengeId, phone, code));
+  if (!result) return res.status(400).json({ success: false, error: '인증번호가 틀렸거나 만료되었습니다. 5회 틀리면 새로 받아주세요.' });
+  const token = generateToken({ userId: result.user.id });
+  return res.json({ success: true, token, bonusAwarded: result.bonusAwarded, user: publicUser(result.user) });
 });
 
 // GET /api/auth/me - Get current user profile

@@ -3,7 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>살롱챗 (SalonChat) - 1:1 실시간 AI 채팅</title>
+  <title>아지트챗 (AzitChat) - 1:1 실시간 AI 채팅</title>
+  <meta name="application-name" content="아지트챗" />
+  <meta name="description" content="아지트챗에서 나만의 편안한 대화를 시작하세요. 다양한 AI 캐릭터와 나누는 1:1 실시간 대화." />
+  <meta property="og:site_name" content="아지트챗" />
+  <link rel="canonical" href="https://azitchat.com/" />
+  <meta property="og:url" content="https://azitchat.com/" />
+  <meta property="og:title" content="아지트챗 (AzitChat) - 1:1 실시간 AI 채팅" />
+  <meta property="og:description" content="나만의 편안한 아지트, AI 캐릭터와 함께하는 1:1 대화." />
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -59,8 +66,8 @@
       <!-- 1. Chat List Header -->
       <header class="shrink-0 bg-white border-b border-[#e8e4d8] px-4 py-3 z-30 flex items-center justify-between shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
         <div class="flex items-center gap-2">
-          <span class="text-2xl">🍸</span>
-          <h1 class="text-[19px] font-black text-[#191919] tracking-tight">살롱 대화방</h1>
+          <span class="text-2xl">🏡</span>
+          <h1 class="text-[19px] font-black text-[#191919] tracking-tight">아지트 대화방</h1>
           <span id="listTotalRoomsBadge" class="px-2 py-0.5 rounded-full bg-[#f4efe4] text-[#605a4e] text-[12px] font-bold">0</span>
         </div>
         <div class="flex items-center gap-2">
@@ -135,7 +142,7 @@
           </div>
 
           <p class="text-[12.5px] font-bold text-[#2b2f36] leading-snug">
-            살롱챗(SalonChat)은 상호 메이비웍스가 운영하는 온라인 가상 대화 콘텐츠 서비스입니다.
+            아지트챗(AzitChat)은 상호 메이비웍스가 운영하는 온라인 가상 대화 콘텐츠 서비스입니다.
           </p>
 
           <!-- Collapsible Business & Customer Support Info -->
@@ -155,7 +162,7 @@
           </details>
 
           <p class="text-[10.5px] leading-relaxed text-[#8f95a0]">
-            살롱챗(SalonChat)은 오락·정서적 교감 목적의 자동 생성 디지털 가상 대화 콘텐츠이며, 특정 결과나 실제 인물과의 사실관계를 보장하지 않습니다.
+            아지트챗(AzitChat)은 오락·정서적 교감 목적의 자동 생성 디지털 가상 대화 콘텐츠이며, 특정 결과나 실제 인물과의 사실관계를 보장하지 않습니다.
           </p>
         </footer>
       </div>
@@ -397,7 +404,7 @@
             <div data-pkg="starter" class="pkg-card cursor-pointer p-3.5 rounded-2xl border border-[#e2e5e9] bg-white hover:bg-[#f8f9fa] flex items-center justify-between transition shadow-xs">
               <div class="min-w-0 pr-2">
                 <div class="flex items-center gap-1.5 flex-wrap">
-                  <span class="font-bold text-[#191f28] text-[15.5px]">살롱 스타터 패키지</span>
+                  <span class="font-bold text-[#191f28] text-[15.5px]">아지트챗 스타터 패키지</span>
                   <span class="px-2 py-0.5 rounded bg-rose-500 text-white text-[10.5px] font-black">첫 결제 특가</span>
                   <span class="px-1.5 py-0.5 rounded bg-[#fff1f2] text-rose-600 text-[10.5px] font-bold border border-[#fecdd3]">72% OFF</span>
                 </div>
@@ -434,7 +441,7 @@
             <div data-pkg="mania" class="pkg-card cursor-pointer p-3.5 rounded-2xl border border-[#e2e5e9] bg-white hover:bg-[#f8f9fa] flex items-center justify-between transition shadow-xs">
               <div class="min-w-0 pr-2">
                 <div class="flex items-center gap-1.5 flex-wrap">
-                  <span class="font-bold text-[#191f28] text-[15.5px]">살롱 VIP 메가 패키지</span>
+                  <span class="font-bold text-[#191f28] text-[15.5px]">아지트챗 VIP 메가 패키지</span>
                   <span class="px-2 py-0.5 rounded bg-amber-500 text-zinc-950 text-[10.5px] font-black">최고 가성비</span>
                   <span class="px-1.5 py-0.5 rounded bg-[#fff1f2] text-rose-600 text-[10.5px] font-bold border border-[#fecdd3]">77% OFF</span>
                 </div>
@@ -1800,9 +1807,9 @@
     };
 
     const PACKAGES = {
-      starter: { name: '살롱 스타터 패키지 (2,500 하트)', hearts: 2500, price: 19900, priceText: '19,900원' },
+      starter: { name: '아지트챗 스타터 패키지 (2,500 하트)', hearts: 2500, price: 19900, priceText: '19,900원' },
       popular: { name: '단골 인연 베스트 패키지 (8,000 하트)', hearts: 8000, price: 49000, priceText: '49,000원' },
-      mania: { name: '살롱 VIP 메가 패키지 (20,000 하트)', hearts: 20000, price: 89000, priceText: '89,000원' },
+      mania: { name: '아지트챗 VIP 메가 패키지 (20,000 하트)', hearts: 20000, price: 89000, priceText: '89,000원' },
       master: { name: 'VVIP 로열 하트 패키지 (50,000 하트)', hearts: 50000, price: 149000, priceText: '149,000원' }
     };
 

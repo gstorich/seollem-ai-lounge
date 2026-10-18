@@ -1,7 +1,7 @@
 {
-  "name": "seollem-ai-backend",
+  "name": "azitchat-backend",
   "version": "1.0.0",
-  "description": "Seollem AI Lounge Secure Backend API Server for OCI (Oracle Cloud Infrastructure)",
+  "description": "AzitChat secure backend API for OCI",
   "main": "server.js",
   "type": "commonjs",
   "scripts": {
@@ -12,10 +12,16 @@
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "express-rate-limit": "^8.7.1",
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2"
   },
-  "keywords": ["ai-chat", "oci", "oracle-cloud", "backend"],
-  "author": "Seollem AI Team",
+  "keywords": [
+    "ai-chat",
+    "oci",
+    "oracle-cloud",
+    "backend"
+  ],
+  "author": "MaybeWorks",
   "license": "MIT"
 }

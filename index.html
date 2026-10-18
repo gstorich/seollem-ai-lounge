@@ -3,7 +3,14 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-  <title>살롱챗 (SalonChat) - 1:1 실시간 AI 채팅</title>
+  <title>아지트챗 (AzitChat) - 1:1 실시간 AI 채팅</title>
+  <meta name="application-name" content="아지트챗" />
+  <meta name="description" content="아지트챗에서 나만의 편안한 대화를 시작하세요. 다양한 AI 캐릭터와 나누는 1:1 실시간 대화." />
+  <meta property="og:site_name" content="아지트챗" />
+  <link rel="canonical" href="https://azitchat.com/" />
+  <meta property="og:url" content="https://azitchat.com/" />
+  <meta property="og:title" content="아지트챗 (AzitChat) - 1:1 실시간 AI 채팅" />
+  <meta property="og:description" content="나만의 편안한 아지트, AI 캐릭터와 함께하는 1:1 대화." />
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -59,8 +66,8 @@
       <!-- 1. Chat List Header -->
       <header class="shrink-0 bg-white border-b border-[#e8e4d8] px-4 py-3 z-30 flex items-center justify-between shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
         <div class="flex items-center gap-2">
-          <span class="text-2xl">🍸</span>
-          <h1 class="text-[19px] font-black text-[#191919] tracking-tight">살롱 대화방</h1>
+          <span class="text-2xl">🏡</span>
+          <h1 class="text-[19px] font-black text-[#191919] tracking-tight">아지트 대화방</h1>
           <span id="listTotalRoomsBadge" class="px-2 py-0.5 rounded-full bg-[#f4efe4] text-[#605a4e] text-[12px] font-bold">0</span>
         </div>
         <div class="flex items-center gap-2">
@@ -105,7 +112,7 @@
 
         <!-- Hidden hooks for promo and auth banners to keep JS references valid without visual clutter -->
         <div id="listPromoBanner" class="hidden"><span id="listBannerTimer"></span></div>
-        <div id="listAuthNoticeBox" class="hidden"><button id="btnListAuthCta"></button></div>
+        <div id="listAuthNoticeBox"><button id="btnListAuthCta" type="button" class="w-full py-3 px-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[13px] font-bold"><span id="listAuthBtnText">휴대폰 번호로 로그인 · 대화 보관</span></button></div>
 
         <!-- Section Title: 진행 중인 대화 -->
         <div class="flex items-center justify-between px-1 pt-1">
@@ -135,7 +142,7 @@
           </div>
 
           <p class="text-[12.5px] font-bold text-[#2b2f36] leading-snug">
-            살롱챗(SalonChat)은 상호 메이비웍스가 운영하는 온라인 가상 대화 콘텐츠 서비스입니다.
+            아지트챗(AzitChat)은 상호 메이비웍스가 운영하는 온라인 가상 대화 콘텐츠 서비스입니다.
           </p>
 
           <!-- Collapsible Business & Customer Support Info -->
@@ -155,7 +162,7 @@
           </details>
 
           <p class="text-[10.5px] leading-relaxed text-[#8f95a0]">
-            살롱챗(SalonChat)은 오락·정서적 교감 목적의 자동 생성 디지털 가상 대화 콘텐츠이며, 특정 결과나 실제 인물과의 사실관계를 보장하지 않습니다.
+            아지트챗(AzitChat)은 오락·정서적 교감 목적의 자동 생성 디지털 가상 대화 콘텐츠이며, 특정 결과나 실제 인물과의 사실관계를 보장하지 않습니다.
           </p>
         </footer>
       </div>
@@ -338,16 +345,18 @@
           <div id="smsCodeStepBox" class="hidden space-y-2 pt-1">
             <div class="flex items-center justify-between">
               <label class="text-[12px] text-[#6b7684]">인증번호 6자리 입력</label>
-              <span class="text-[11.5px] text-emerald-600 font-semibold">테스트 번호: <strong>123456</strong> (자동입력됨)</span>
+              <span id="smsExpiryNotice" class="text-[11.5px] text-emerald-600 font-semibold">유효시간 5분 · 재발송 60초</span>
             </div>
-            <input id="inputSmsCode" type="text" maxlength="6" placeholder="123456" class="w-full px-3.5 py-2.5 rounded-xl bg-[#f8f9fa] border border-amber-400 text-[#191f28] text-[16px] font-bold tracking-widest text-center focus:outline-none" />
+            <input id="inputSmsCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="인증번호 6자리" class="w-full px-3.5 py-2.5 rounded-xl bg-[#f8f9fa] border border-amber-400 text-[#191f28] text-[16px] font-bold tracking-widest text-center focus:outline-none" />
           </div>
 
           <div id="phoneAuthNotice" class="p-3 rounded-xl bg-[#fffbeb] border border-[#fde68a] text-[12px] text-[#78350f] leading-relaxed">
-            🎁 <strong>첫 번호 인증 혜택:</strong> 인증 즉시 <strong>무료 100 하트</strong>가 추가 충전되며, 이전에 나눈 대화나 충전 내역이 있다면 자동으로 불러옵니다.
+            🎁 <strong>첫 번호 인증 혜택:</strong> 인증 즉시 <strong>무료 100 하트</strong>가 추가 충전됩니다. 인증한 번호가 고객 ID가 되며, 하트 잔액과 대화는 서버에 보관되어 다른 기기에서도 복원됩니다.
           </div>
         </div>
 
+        <p id="phoneAuthStatus" role="status" class="text-[12px] text-rose-600" aria-live="polite"></p>
+        <button id="btnLogoutAccount" type="button" class="hidden text-[12px] text-[#6b7684] underline">다른 번호로 로그인 / 로그아웃</button>
         <button id="btnConfirmPhoneAuth" type="button" class="w-full py-3.5 rounded-xl bg-[#fee500] hover:bg-[#ebd300] text-[#191919] font-bold text-[15.5px] shadow-xs transition">
           인증 완료 및 대화 이어가기
         </button>
@@ -397,7 +406,7 @@
             <div data-pkg="starter" class="pkg-card cursor-pointer p-3.5 rounded-2xl border border-[#e2e5e9] bg-white hover:bg-[#f8f9fa] flex items-center justify-between transition shadow-xs">
               <div class="min-w-0 pr-2">
                 <div class="flex items-center gap-1.5 flex-wrap">
-                  <span class="font-bold text-[#191f28] text-[15.5px]">살롱 스타터 패키지</span>
+                  <span class="font-bold text-[#191f28] text-[15.5px]">아지트챗 스타터 패키지</span>
                   <span class="px-2 py-0.5 rounded bg-rose-500 text-white text-[10.5px] font-black">첫 결제 특가</span>
                   <span class="px-1.5 py-0.5 rounded bg-[#fff1f2] text-rose-600 text-[10.5px] font-bold border border-[#fecdd3]">72% OFF</span>
                 </div>
@@ -434,7 +443,7 @@
             <div data-pkg="mania" class="pkg-card cursor-pointer p-3.5 rounded-2xl border border-[#e2e5e9] bg-white hover:bg-[#f8f9fa] flex items-center justify-between transition shadow-xs">
               <div class="min-w-0 pr-2">
                 <div class="flex items-center gap-1.5 flex-wrap">
-                  <span class="font-bold text-[#191f28] text-[15.5px]">살롱 VIP 메가 패키지</span>
+                  <span class="font-bold text-[#191f28] text-[15.5px]">아지트챗 VIP 메가 패키지</span>
                   <span class="px-2 py-0.5 rounded bg-amber-500 text-zinc-950 text-[10.5px] font-black">최고 가성비</span>
                   <span class="px-1.5 py-0.5 rounded bg-[#fff1f2] text-rose-600 text-[10.5px] font-bold border border-[#fecdd3]">77% OFF</span>
                 </div>
@@ -633,7 +642,7 @@
         </div>
 
         <!-- 1. AI API Key Configuration -->
-        <div class="space-y-2 text-[12.5px] p-3 rounded-2xl bg-[#faf9f5] border border-[#e8e4d8]">
+        <div id="settingsAiConfig" class="space-y-2 text-[12.5px] p-3 rounded-2xl bg-[#faf9f5] border border-[#e8e4d8]">
           <div class="flex items-center justify-between">
             <span class="text-[#191f28] font-bold">🔑 AI 모델 및 API 키 설정</span>
             <span id="apiTestStatusBadge" class="text-[11.5px] text-[#b45309] font-medium">기본 엔진</span>
@@ -672,7 +681,7 @@
         </div>
 
         <!-- 3. Test & Developer Controls (VIP Mode, Reset) -->
-        <div class="space-y-2 p-3 rounded-2xl bg-[#faf9f5] border border-[#e8e4d8] text-[12.5px]">
+        <div id="settingsDevControls" class="space-y-2 p-3 rounded-2xl bg-[#faf9f5] border border-[#e8e4d8] text-[12.5px]">
           <div class="flex items-center justify-between">
             <span class="font-bold text-[#191f28] flex items-center gap-1">
               <span>👑</span>
@@ -1753,6 +1762,7 @@
     // =========================================================================
     // 2. APPLICATION STATE, ACCOUNT PERSISTENCE, MET HISTORY & MATCH FILTER
     // =========================================================================
+    let serverStateReady = false;
     const DEFAULT_API_KEY = '';
     const DEFAULT_MODEL = 'gemini-2.5-flash';
 
@@ -1800,9 +1810,9 @@
     };
 
     const PACKAGES = {
-      starter: { name: '살롱 스타터 패키지 (2,500 하트)', hearts: 2500, price: 19900, priceText: '19,900원' },
+      starter: { name: '아지트챗 스타터 패키지 (2,500 하트)', hearts: 2500, price: 19900, priceText: '19,900원' },
       popular: { name: '단골 인연 베스트 패키지 (8,000 하트)', hearts: 8000, price: 49000, priceText: '49,000원' },
-      mania: { name: '살롱 VIP 메가 패키지 (20,000 하트)', hearts: 20000, price: 89000, priceText: '89,000원' },
+      mania: { name: '아지트챗 VIP 메가 패키지 (20,000 하트)', hearts: 20000, price: 89000, priceText: '89,000원' },
       master: { name: 'VVIP 로열 하트 패키지 (50,000 하트)', hearts: 50000, price: 149000, priceText: '149,000원' }
     };
 
@@ -2205,16 +2215,21 @@
           lastCharId: state.currentChar ? state.currentChar.id : null
         };
 
+        if (window.ApiClient?.isHosted()) {
+          if (serverStateReady) ApiClient.saveState(payload);
+        } else {
         localStorage.setItem('seollem_guest_account', JSON.stringify(payload));
         if (state.verifiedPhone) {
           localStorage.setItem(getStorageKeyForAccount(state.verifiedPhone), JSON.stringify(payload));
           localStorage.setItem('seollem_active_phone', state.verifiedPhone);
+        }
         }
       } catch (e) {}
       updateAccountAndCreditUI();
     }
 
     function loadAccountState() {
+      if (window.ApiClient?.isHosted()) return;
       try {
         const activePhone = localStorage.getItem('seollem_active_phone') || '';
         const raw =
@@ -2571,7 +2586,8 @@
       clearIdleFollowUpTimer();
       state.bookmarked = false;
       if (state.savedRooms[char.id]) {
-        delete state.savedRooms[char.id];
+        if (ApiClient.isHosted() && serverStateReady) ApiClient.removeRoom(char.id).catch(() => showToast('대화방 삭제를 완료하지 못했습니다. 다시 시도해주세요.'));
+          delete state.savedRooms[char.id];
       }
       saveAccountState();
       updateHeaderDefaultStatus();
@@ -2631,6 +2647,7 @@
           return;
         }
 
+        if (replyPlan?.failed) { hideTypingIndicator(); return; }
         state.isAiBusy = true;
         clearIdleFollowUpTimer();
 
@@ -2683,7 +2700,7 @@
 
           // 타이핑 완료 후 말풍선 전송 및 인디케이터 숨김
           hideTypingIndicator();
-          appendMessage('ai', bubbleText);
+          appendMessage('ai', bubbleText, { id: replyPlan.replyId });
           saveAccountState();
 
           if (idx === bubbles.length - 1 && (!replyPlan || !replyPlan.mediaItem)) {
@@ -3057,6 +3074,7 @@
       const char = state.currentChar;
       const slotKey = getCurrentTimeSlotKey();
       const slotInfo = char.timeSituations[slotKey];
+      if (window.ApiClient?.isHosted()) { showToast('서버 연결을 확인해주세요. 새로고침 후 다시 시도해주세요.'); return { bubbles: [], failed: true }; }
       const intent = analyzeUserIntent(userText);
       const complaint = detectStyleComplaint(userText);
       const hasComplaint = complaint.laugh || complaint.age || complaint.nonsense;
@@ -3437,7 +3455,8 @@
             role: m.sender === 'user' ? 'user' : 'assistant',
             content: m.text
           }));
-          const serverRes = await ApiClient.sendMessage(char.id, userText, history, state.affection);
+          if (history.at(-1)?.role === 'user' && history.at(-1)?.content === userText) history.pop();
+          const serverRes = await ApiClient.sendMessage(char.id, userText, history, state.affection, state.messages.filter(m => m.sender === 'user').at(-1)?.id);
           if (serverRes && serverRes.success) {
             if (typeof serverRes.heartsRemaining === 'number') {
               state.hearts = serverRes.heartsRemaining;
@@ -3446,11 +3465,13 @@
             }
             return {
               bubbles: [serverRes.partnerReply],
+              replyId: serverRes.replyId,
               forceLeave: Boolean(serverRes.roomLeft)
             };
           }
         } catch (serverErr) {
-          console.warn('[ApiClient] OCI 백엔드 호출 실패, 로컬 시뮬레이션 모드로 전환:', serverErr);
+          showToast(escapeHtml(serverErr.message || '서버 연결을 확인해주세요.'));
+          return { bubbles: [], failed: true };
         }
       }
 
@@ -3847,7 +3868,8 @@
 
       if (!skipPush) {
         const msgObj = {
-          id: 'm_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+          id: options.id || 'm_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+          createdAt: options.createdAt || Date.now(),
           sender,
           text,
           time: timeStr,
@@ -4697,7 +4719,14 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
         return;
       }
 
-      if (!state.isVipUnlimited) {
+      let giftMessageId;
+      if (ApiClient.isHosted()) {
+        try {
+          await ApiClient.flushState();
+          const result = await ApiClient.sendGift(char.id, gift.key);
+          state.hearts = result.heartsRemaining; state.credits = state.hearts; giftMessageId = result.giftMessageId;
+        } catch (error) { showToast(escapeHtml(error.message)); return; }
+      } else if (!state.isVipUnlimited) {
         state.hearts = Math.max(0, state.hearts - gift.cost);
         state.credits = state.hearts;
       }
@@ -4708,6 +4737,7 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
       state.turnCount += 1;
 
       appendMessage('user', `${gift.emoji} ${gift.brand} ${gift.name} 선물을 보냈습니다.`, {
+        id: giftMessageId,
         mediaType: 'gift',
         giftEmoji: gift.emoji,
         giftName: gift.name,
@@ -4803,6 +4833,7 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
     // 9. SENDING USER MESSAGES (WITH CREDIT CHECK & AUTO-SAVE)
     // =========================================================================
     function sendUserMessage(rawText) {
+      if (window.ApiClient?.isHosted() && (!serverStateReady || !ApiClient.isConnected())) { showToast('서버에 연결 중입니다. 잠시 후 다시 시도해주세요.'); return; }
       const text = (rawText || '').trim();
       if (!text) return;
       if (state.roomLeft) {
@@ -4816,7 +4847,7 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
         return;
       }
 
-      if (!state.isVipUnlimited) {
+      if (!window.ApiClient?.isHosted() && !state.isVipUnlimited) {
         state.hearts = Math.max(0, Math.round((state.hearts - MSG_HEART_COST) * 10) / 10);
         state.credits = state.hearts;
         updateAccountAndCreditUI();
@@ -4886,7 +4917,7 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
           }
         } catch (fetchErr) {
           console.warn('Reply plan fetch error, falling back locally:', fetchErr);
-          replyPlan = buildLocalPersonaResponse(finalBatch || currentBatch);
+          replyPlan = ApiClient.isHosted() ? { bubbles: [], failed: true } : buildLocalPersonaResponse(finalBatch || currentBatch);
         }
 
         if (!state.currentChar || state.currentChar.id !== roomIdAtSend || state.roomLeft || turnId !== state.messageTurnId) {
@@ -4979,10 +5010,13 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
       document.getElementById('matchFilterModal').classList.add('hidden');
     });
 
-    document.getElementById('btnRecallPrevPartner').addEventListener('click', () => {
+    document.getElementById('btnRecallPrevPartner').addEventListener('click', async () => {
       const prevChar = state.prevCharId ? CHARACTERS.find(c => c.id === state.prevCharId) : null;
       if (!prevChar) return;
-      if (!state.isVipUnlimited) {
+      if (ApiClient.isHosted()) {
+        try { await ApiClient.flushState(); const result = await ApiClient.recall(prevChar.id); state.hearts = result.heartsRemaining; state.credits = state.hearts; }
+        catch (error) { showToast(escapeHtml(error.message)); return; }
+      } else if (!state.isVipUnlimited) {
         if (state.hearts < 20 || state.credits < 20) {
           document.getElementById('matchFilterModal').classList.add('hidden');
           openPaymentModal(`방금 스쳐간 '${prevChar.name}'님을 다시 불러오려면 20 하트가 필요합니다.`);
@@ -5141,11 +5175,11 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
       const authBox = document.getElementById('listAuthNoticeBox');
       const authBtnText = document.getElementById('listAuthBtnText');
       if (state.verifiedPhone) {
-        if (authBox) authBox.classList.add('hidden');
-        if (authBtnText) authBtnText.textContent = '인증됨 ✓';
+        if (authBox) authBox.classList.remove('hidden');
+        if (authBtnText) authBtnText.textContent = `${state.verifiedPhone.replace(/(\d{3})-?(\d{2,4})-?(\d{4})/, '$1-****-$3')} · 계정 관리`;
       } else {
         if (authBox) authBox.classList.remove('hidden');
-        if (authBtnText) authBtnText.textContent = '인증';
+        if (authBtnText) authBtnText.textContent = '휴대폰 번호로 로그인 · 대화 보관';
       }
     }
 
@@ -5249,6 +5283,7 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
         card.querySelector('[data-role="delete"]').addEventListener('click', (e) => {
           e.stopPropagation();
           if (!confirm(`'${char.name}'님과의 대화방을 나가시겠습니까? 대화 기록이 삭제됩니다.`)) return;
+          if (ApiClient.isHosted() && serverStateReady) ApiClient.removeRoom(char.id).catch(() => showToast('대화방 삭제를 완료하지 못했습니다. 다시 시도해주세요.'));
           delete state.savedRooms[char.id];
           if (isCurrent) {
             state.currentChar = null;
@@ -5292,6 +5327,7 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
       if (state.verifiedPhone) {
         inputPhone.value = state.verifiedPhone;
       }
+      document.getElementById('btnLogoutAccount').classList.toggle('hidden', !state.verifiedPhone);
       document.getElementById('phoneAuthModal').classList.remove('hidden');
     }
 
@@ -5574,54 +5610,70 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
       });
     }
 
+    let smsChallengeId = '';
+    let smsChallengePhone = '';
+    let smsResendAt = 0;
+    let smsCountdown;
+    const authStatus = (text) => { document.getElementById('phoneAuthStatus').textContent = text; };
     const btnSendSmsCode = document.getElementById('btnSendSmsCode');
-    if (btnSendSmsCode) {
-      btnSendSmsCode.addEventListener('click', () => {
-        const phone = (document.getElementById('inputPhoneNumber')?.value || '').trim();
-        if (phone.replace(/[^0-9]/g, '').length < 10) {
-          document.getElementById('inputPhoneNumber')?.focus();
-          return;
-        }
-        document.getElementById('smsCodeStepBox')?.classList.remove('hidden');
-        const codeInput = document.getElementById('inputSmsCode');
-        if (codeInput) codeInput.value = '123456';
-      });
-    }
-
     const btnConfirmPhoneAuth = document.getElementById('btnConfirmPhoneAuth');
-    if (btnConfirmPhoneAuth) {
-      btnConfirmPhoneAuth.addEventListener('click', () => {
-        const rawPhone = (document.getElementById('inputPhoneNumber')?.value || '').trim();
-        const formattedPhone = formatPhoneInput(rawPhone || '010-1234-5678');
-
-        const existingRaw = localStorage.getItem(getStorageKeyForAccount(formattedPhone));
-        if (existingRaw) {
-          try {
-            const existingData = JSON.parse(existingRaw);
-            state.savedRooms = { ...(existingData.savedRooms || {}), ...state.savedRooms };
-            if (Array.isArray(existingData.metCharIds)) {
-              state.metCharIds = Array.from(new Set([...existingData.metCharIds, ...state.metCharIds]));
-            }
-            const exHearts = typeof existingData.hearts === 'number' ? existingData.hearts : (existingData.credits || 0);
-            state.hearts = Math.max(state.hearts, exHearts);
-            state.credits = state.hearts;
-            state.isVipUnlimited = Boolean(state.isVipUnlimited || existingData.isVipUnlimited);
-            state.phoneBonusClaimed = Boolean(existingData.phoneBonusClaimed);
-          } catch (e) {}
-        }
-
-        if (!state.phoneBonusClaimed) {
-          state.hearts += 100;
-          state.credits = state.hearts;
-          state.phoneBonusClaimed = true;
-          showToast('📱 휴대폰 인증 완료! <strong>+100 하트</strong>가 적립되었습니다.');
-        }
-
-        state.verifiedPhone = formattedPhone;
+    btnSendSmsCode.addEventListener('click', async () => {
+      if (!ApiClient.isConnected() || !serverStateReady) { authStatus('서버에 연결되지 않았습니다. 새로고침 후 다시 시도해주세요.'); return; }
+      const phone = inputPhoneNumber.value.replace(/[^0-9]/g, '');
+      if (!/^010\d{8}$/.test(phone)) { authStatus('010으로 시작하는 번호 11자리를 입력해주세요.'); inputPhoneNumber.focus(); return; }
+      btnSendSmsCode.disabled = true;
+      authStatus('인증번호를 보내고 있습니다.');
+      try {
+        const data = await ApiClient.sendOtp(phone);
+        smsChallengeId = data.challengeId;
+        smsChallengePhone = phone;
+        smsResendAt = Date.now() + data.retryAfter * 1000;
+        document.getElementById('smsCodeStepBox').classList.remove('hidden');
+        document.getElementById('inputSmsCode').value = '';
+        document.getElementById('inputSmsCode').focus();
+        authStatus(data.message);
+        clearInterval(smsCountdown);
+        const tick = () => {
+          const remaining = Math.max(0, Math.ceil((smsResendAt - Date.now()) / 1000));
+          btnSendSmsCode.textContent = remaining ? `${remaining}초 후 재발송` : '인증번호 다시 받기';
+          btnSendSmsCode.disabled = remaining > 0;
+          if (!remaining) clearInterval(smsCountdown);
+        };
+        tick(); smsCountdown = setInterval(tick, 1000);
+      } catch (error) { authStatus(error.message); btnSendSmsCode.disabled = false; }
+    });
+    btnConfirmPhoneAuth.addEventListener('click', async () => {
+      const phone = inputPhoneNumber.value.replace(/[^0-9]/g, '');
+      const code = document.getElementById('inputSmsCode').value.trim();
+      if (!smsChallengeId || smsChallengePhone !== phone || !/^\d{6}$/.test(code)) { authStatus('먼저 인증번호를 받은 뒤 6자리를 입력해주세요.'); return; }
+      btnConfirmPhoneAuth.disabled = true;
+      authStatus('인증하고 저장된 계정을 불러오는 중입니다.');
+      try {
+        clearAllTimers();
         saveAccountState();
-        document.getElementById('phoneAuthModal')?.classList.add('hidden');
-      });
-    }
+        await ApiClient.flushState();
+        ApiClient.pauseSync();
+        const result = await ApiClient.verifyOtp(phone, code, smsChallengeId);
+        const account = await ApiClient.loadState();
+        applyServerAccount(account);
+        ApiClient.resumeSync();
+        renderAccountHome();
+        smsChallengeId = ''; smsChallengePhone = '';
+        document.getElementById('phoneAuthModal').classList.add('hidden');
+        authStatus('');
+        showToast(result.bonusAwarded ? '휴대폰 인증 완료! 100 하트를 지급하고 대화를 보관했습니다.' : '로그인했습니다. 저장된 하트와 대화를 불러왔습니다.');
+      } catch (error) { ApiClient.resumeSync(); authStatus(error.message); }
+      finally { btnConfirmPhoneAuth.disabled = false; }
+    });
+    document.getElementById('btnLogoutAccount').addEventListener('click', async () => {
+      try {
+        clearAllTimers();
+        saveAccountState();
+        await ApiClient.logout();
+        for (const key of ['seollem_guest_account','seollem_active_phone']) localStorage.removeItem(key);
+        location.reload();
+      } catch (error) { authStatus(error.message); }
+    });
 
     // Payment Modal Events
     const btnOpenPaymentFooter = document.getElementById('btnOpenPaymentFooter');
@@ -5671,6 +5723,7 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
     });
 
     document.getElementById('btnExecutePayment').addEventListener('click', () => {
+      if (window.ApiClient?.isHosted()) { showToast('결제 서비스는 준비 중입니다. 결제나 하트 적립은 발생하지 않습니다.'); return; }
       const pkg = PACKAGES[state.selectedPkg] || PACKAGES.popular;
       const btn = document.getElementById('btnExecutePayment');
       const origText = btn.textContent;
@@ -5690,6 +5743,7 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
     });
 
     function toggleVipMode() {
+      if (window.ApiClient?.isHosted()) return;
       state.isVipUnlimited = !state.isVipUnlimited;
       if (!state.isVipUnlimited && (!state.hearts || state.hearts <= 0)) {
         state.hearts = 50;
@@ -5706,6 +5760,7 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
     }
 
     function resetAllAccountData() {
+      if (window.ApiClient?.isHosted()) { showToast('계정의 잔액과 대화는 서버에 보관됩니다. 다른 번호를 사용하려면 로그아웃해주세요.'); return; }
       if (!confirm('정말로 모든 대화 기록과 계정 데이터를 초기화하시겠습니까?\n(일반 하트 50개의 기본 상태로 깨끗하게 리셋됩니다)')) return;
       try {
         localStorage.removeItem('seollem_guest_account');
@@ -5747,6 +5802,7 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
     }
 
     function updateApiTestBadge() {
+      if (ApiClient.isHosted()) { const button = document.getElementById('btnOpenAiPolicyInfo'); if (button) button.textContent = '설정 · 계정'; return; }
       const badge = document.getElementById('apiTestStatusBadge');
       const footerBtn = document.getElementById('btnOpenAiPolicyInfo');
       if (state.apiKey && state.apiKey.trim()) {
@@ -5868,7 +5924,8 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
       clearAllTimers();
       clearIdleFollowUpTimer();
 
-      delete state.savedRooms[char.id];
+      if (ApiClient.isHosted() && serverStateReady) ApiClient.removeRoom(char.id).catch(() => showToast('대화방 삭제를 완료하지 못했습니다. 다시 시도해주세요.'));
+          delete state.savedRooms[char.id];
       state.currentChar = null;
       state.roomLeft = true;
       saveAccountState();
@@ -6085,15 +6142,50 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
       setInterval(updateTimer, 1000);
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
-      if (window.ApiClient && typeof ApiClient.checkBackendHealth === 'function') {
-        ApiClient.checkBackendHealth().then(connected => {
-          if (connected) {
-            console.log('✅ [OCI 백엔드 연동 성공] 서버 보안 모드로 동작합니다.');
+    function applyServerAccount(data) {
+      clearAllTimers();
+      state.currentChar = null;
+      state.messages = [];
+      state.savedRooms = data.savedRooms || {};
+      state.metCharIds = data.metCharIds || [];
+      state.matchFilter = data.matchFilter || { ages: [], traits: [], regions: [] };
+      state.unlockedMedia = data.unlockedMedia || {};
+      state.prevCharId = data.prevCharId || null;
+      state.hearts = data.user.hearts;
+      state.credits = data.user.hearts;
+      state.isVipUnlimited = Boolean(data.user.isVipUnlimited);
+      state.verifiedPhone = data.user.phone ? formatPhoneInput(data.user.phone) : '';
+      state.phoneBonusClaimed = Boolean(data.user.phoneBonusClaimed);
+      serverStateReady = true;
+      updateAccountAndCreditUI();
+    }
+    function renderAccountHome() {
+      if (Object.keys(state.savedRooms).length > 0) showView('chatList');
+      else { startChatWithCharacter(pickRandomCharacter(false), false); showView('chatRoom'); }
+    }
+    let lastSyncWarning = 0;
+    window.addEventListener('seollem-sync-error', () => {
+      if (Date.now() - lastSyncWarning > 10000) { showToast('대화 저장 연결을 확인해주세요. 페이지를 닫기 전에 다시 시도해주세요.'); lastSyncWarning = Date.now(); }
+    });
+    window.addEventListener('online', () => { ApiClient.flushState().catch(() => {}); });
+    window.addEventListener('DOMContentLoaded', async () => {
+      if (ApiClient.isHosted()) {
+        for (const id of ['btnFooterSwitchVip','btnListSwitchVip','btnModalToggleVip']) document.getElementById(id)?.remove();
+        for (const id of ['settingsAiConfig','settingsDevControls']) document.getElementById(id)?.classList.add('hidden');
+        const connected = await ApiClient.checkBackendHealth();
+        if (!connected) { showToast('서버에 연결할 수 없습니다. 새로고침 후 다시 시도해주세요.'); setChatInputEnabled(false); return; }
+        try {
+          const account = await ApiClient.loadState();
+          // Preserve pre-deployment guest conversations, never client balances or fake phone claims.
+          if (!account.user.phone && Object.keys(account.savedRooms || {}).length === 0) {
+            try {
+              const legacy = JSON.parse(localStorage.getItem('seollem_guest_account') || '{}');
+              if (legacy.savedRooms) { ApiClient.saveState(legacy); await ApiClient.flushState(); }
+            } catch {}
           }
-        });
-      }
-      loadAccountState();
+          applyServerAccount(await ApiClient.loadState());
+        } catch { showToast('계정을 불러오지 못했습니다. 새로고침 후 다시 시도해주세요.'); setChatInputEnabled(false); return; }
+      } else loadAccountState();
       updateApiTestBadge();
       triggerSavedRoomsTimeGreetings();
       updateAccountAndCreditUI();
@@ -6102,15 +6194,7 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
       initUrgencyTimer();
       updateMatchCooldownUI();
       setInterval(updateMatchCooldownUI, 1000);
-
-      const savedRoomsKeys = Object.keys(state.savedRooms || {});
-      if (savedRoomsKeys.length > 0) {
-        showView('chatList');
-      } else {
-        const initialChar = pickRandomCharacter(false);
-        startChatWithCharacter(initialChar, false);
-        showView('chatRoom');
-      }
+      renderAccountHome();
     });
   </script>
 </body>

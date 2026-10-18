@@ -1,0 +1,8 @@
+[Unit]
+Description=Renew AzitChat HTTPS certificate only
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/certbot renew --cert-name azitchat.com --quiet

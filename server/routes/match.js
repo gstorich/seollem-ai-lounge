@@ -37,11 +37,12 @@ router.post('/request', requireAuth, (req, res) => {
 // POST /api/match/recall-previous
 router.post('/recall-previous', requireAuth, (req, res) => {
   const user = req.user;
-  if (!user.prevCharId) {
+  const requestedId = typeof req.body.characterId === 'string' ? req.body.characterId : user.prevCharId;
+  if (!requestedId || !(user.metCharIds || []).includes(requestedId)) {
     return res.status(400).json({ success: false, error: '이전에 만난 인연 정보가 없습니다.' });
   }
 
-  const prevChar = characterService.getCharacterById(user.prevCharId);
+  const prevChar = characterService.getCharacterById(requestedId);
   if (!prevChar) {
     return res.status(404).json({ success: false, error: '상대방 정보를 찾을 수 없습니다.' });
   }
@@ -56,11 +57,9 @@ router.post('/recall-previous', requireAuth, (req, res) => {
     });
   }
 
-  let nextHearts = user.hearts;
-  if (!user.isVipUnlimited) {
-    nextHearts = Math.max(0, user.hearts - cost);
-    dbService.updateUser(user.id, { hearts: nextHearts });
-  }
+  const debited = dbService.transaction(() => dbService.debit(user.id, cost, 'recall'));
+  if (!debited) return res.status(402).json({ success: false, error: '하트가 부족합니다.' });
+  const nextHearts = debited.hearts;
 
   return res.json({
     success: true,
