@@ -3114,21 +3114,15 @@
           markAllUserMessagesRead();
         }
 
-        // 안전한 기본 말풍선 보장 (어떤 상황에서도 빈 응답으로 타이핑 인디케이터만 켜진 채 침묵하지 않도록 보장)
-        const fallbackBubbles = char.conceptKey === 'sensual_flirt'
-          ? ['오빠 솔직한 얘기 꺼내니까 저 살짝 긴장되면서도 두근거리네요 ㅎㅎ', '더 편하게 솔직한 얘기 나눠봐요~']
-          : ['응? 무슨 말인지 잠깐 딴생각하느라 못 봤어요 ㅎㅎ 다시 말해줄래요?'];
-
-        const rawBubbles = (replyPlan && Array.isArray(replyPlan.bubbles) && replyPlan.bubbles.length)
-          ? replyPlan.bubbles
-          : fallbackBubbles;
+        const rawBubbles = replyPlan?.bubbles?.filter(text => typeof text === 'string' && text.trim());
+        if (!rawBubbles?.length) { showGenerationError(); return; }
 
         // 짧은 답장을 우선하되 대화 내용은 말풍선 단위로 표시
         const bubbles = rawBubbles.slice(0, 2);
 
         for (let idx = 0; idx < bubbles.length; idx++) {
           if (turnId && turnId !== state.messageTurnId) return;
-          if (state.roomLeft) return;
+          if (state.roomLeft || state.currentChar?.id !== char.id) return;
 
           const bubbleText = bubbles[idx];
 
@@ -3145,7 +3139,7 @@
           });
 
           if (turnId && turnId !== state.messageTurnId) return;
-          if (state.roomLeft) return;
+          if (state.roomLeft || state.currentChar?.id !== char.id) return;
 
           // 타이핑 완료 후 말풍선 전송 및 인디케이터 숨김
           hideTypingIndicator();
@@ -3176,7 +3170,7 @@
         // 사진 또는 음성 메시지가 첨부된 경우
         if (replyPlan && replyPlan.mediaItem && !replyPlan.leaveRoom) {
           if (turnId && turnId !== state.messageTurnId) return;
-          if (state.roomLeft) return;
+          if (state.roomLeft || state.currentChar?.id !== char.id) return;
 
           const isVoice = replyPlan.mediaItem.mediaType === 'voice';
           const actionText = isVoice
@@ -3192,7 +3186,7 @@
           });
 
           if (turnId && turnId !== state.messageTurnId) return;
-          if (state.roomLeft) return;
+          if (state.roomLeft || state.currentChar?.id !== char.id) return;
 
           hideTypingIndicator();
           appendMessage('ai', replyPlan.mediaItem.caption || '', replyPlan.mediaItem);
@@ -3206,6 +3200,7 @@
       } finally {
         hideTypingIndicator();
         state.isAiBusy = false;
+        if (state.currentChar?.id === char?.id) updateHeaderDefaultStatus();
       }
     }
 
@@ -3519,342 +3514,6 @@
       return chosen;
     }
 
-    function buildLocalPersonaResponse(userText, emoPre) {
-      const char = state.currentChar;
-      const slotKey = getCurrentTimeSlotKey();
-      const slotInfo = char.timeSituations[slotKey];
-      if (window.ApiClient?.isHosted()) { showToast('서버 연결을 확인해주세요. 새로고침 후 다시 시도해주세요.'); return { bubbles: [], failed: true }; }
-      const intent = analyzeUserIntent(userText);
-      const complaint = detectStyleComplaint(userText);
-      const hasComplaint = complaint.laugh || complaint.age || complaint.nonsense;
-      if (complaint.laugh) state.noLaughMode = true;
-      const apology = buildStyleApologyBubbles(complaint);
-
-      // 이 방에서 캐릭터가 말한 현재 상황은 한 가지로 고정 (앞뒤 모순 방지)
-      if (!state.localStatusLine) {
-        const hr = new Date().getHours();
-        state.localStatusLine = hr >= 6 && hr < 11
-          ? '일 나가기 전이라 준비하면서 폰 보고 있었어요'
-          : hr >= 11 && hr < 18
-          ? '일하다가 잠깐 쉬는 중이에요'
-          : hr >= 18 && hr < 23
-          ? '일 끝나고 집 와서 누워 있어요'
-          : '자려고 누웠는데 잠이 안 와서 폰 하고 있어요';
-      }
-
-      const finish = (bubbles, extra = {}) => ({
-        bubbles: sanitizeLaughs(bubbles),
-        isColdOrRude: false,
-        leaveRoom: false,
-        ...extra
-      });
-
-      const emo = emoPre || processEmotion(userText);
-
-      if (emo.forceLeave) {
-        state.affection = Math.max(0, state.affection - 30);
-        const bye = emo.severity === 'severe'
-          ? pickUnusedSet([['더는 말 섞기 싫네요.', '이만 나갈게요.'], ['이런 말까지 들으면서 있을 이유가 없네요.']])
-          : pickUnusedSet([['그만할게요.', '안녕히 계세요.'], ['네, 나갈게요.', '좋은 분 만나세요.']]);
-        return { bubbles: sanitizeLaughs(bye), isColdOrRude: true, leaveRoom: true };
-      }
-
-      if (emo.severity === 'mild') {
-        state.affection = Math.max(0, state.affection - 20);
-        const warn = getRudeResponseByCharacter(char, 2);
-        if (hasComplaint) {
-          return { ...warn, bubbles: sanitizeLaughs([...apology, '그래도 그런 험한 말은 좀 심하세요. 한 번만 더 그러면 정말 나갈게요.']) };
-        }
-        return warn;
-      }
-
-      if (emo.apologized) {
-        return finish(emo.sincere
-          ? pickUnusedSet([['...사과는 받을게요.', '근데 아직 기분이 좀 그래요.'], ['네, 알겠어요.', '바로 풀리진 않네요.']])
-          : pickUnusedSet([['말로만 미안하다고 하시면 좀 그렇네요.'], ['...네.']]),
-          { isColdOrRude: true });
-      }
-
-      if (hasComplaint) {
-        state.affection = Math.max(5, state.affection - 2);
-        return finish(apology);
-      }
-
-      // 화가 풀리기 전에는 차갑게 응대 (서서히 풀림)
-      if (state.anger > 0) {
-        return finish(state.anger >= 40
-          ? pickUnusedSet([['...'], ['할 말 있으시면 하세요.'], ['솔직히 지금은 대화할 기분이 아니에요.']])
-          : pickUnusedSet([['네.'], ['그래요.'], ['아직 조금 서운하긴 해요.']]),
-          { isColdOrRude: true });
-      }
-
-      if ((intent === 'heavy_flirt' || (intent === 'date_invite' && state.affection < 45)) &&
-          state.affection < 65) {
-        if (char.conceptKey !== 'sensual_flirt') {
-          state.affection = Math.max(5, state.affection - 5);
-          return getPrematureFlirtResponseByCharacter(char);
-        }
-      }
-
-      let affectionDelta = 5;
-      if (intent === 'compliment' || intent === 'comfort' || intent === 'ask_photo' || intent === 'ask_voice') affectionDelta = 8;
-      state.affection = Math.min(100, state.affection + affectionDelta);
-
-      let bubbles = [];
-      const ageMatch = userText.match(/(\d{2})\s*(살|세)/);
-
-      // 캐릭터 고유 컨셉(50대 오빠, 야한대화, 고민상담, 조언상담 등) 오프닝에 대한 유저 반응 맞춤 처리
-      const conceptKey = char.conceptKey;
-
-      if (conceptKey === 'sensual_flirt') {
-        state.affection = Math.min(100, state.affection + 6);
-        // 1. 유저가 타입/이상형/취향을 물어보는 경우 ("어떤 타입이세요?", "이상형이 뭐야?", "어떤 스타일 좋아해?", "취향")
-        if (/어떤\s*(타입|스타일|사람|남자|여자|취향)|이상형|취향이|좋아해|취향은|스타일이|선호|좋아하/.test(userText)) {
-          bubbles = pickUnusedSet([
-            ['저는 솔직히 낮엔 다정하고 밤엔 화끈하게 리드해 주는 오빠한테 완전 약해요 ㅎㅎ', '오빠는 낮져밤이 스타일이에요? 아니면 낮이밤이? ㅋㅋ'],
-            ['은근히 분위기 야릇하게 잘 잡고 귓가에 속삭여주는 목소리 좋은 남자요 ㅎㅎ', '오빠 목소리도 왠지 되게 달달하고 섹시할 것 같은데.. 맞죠?'],
-            ['내숭 없고 솔직해서 이런 은밀한 대화 잘 통하는 오빠요 ㅎㅎ 지금 오빠처럼!', '오빠는 밤에 취향이 적극적인 편이에요?'],
-            ['침대에서 다정하면서도 은근히 거친 반전 매력 있는 오빠요 ㅎㅎ', '상상만 해도 두근거리네.. 오빠는 어떤 스타일이에요?']
-          ]);
-        }
-        // 2. 유저가 보채거나 말을 재촉하는 경우 ("뭐가 어려워요", "얘기해봐", "계속해", "말해봐", "머임", "왜 말 안해", "더 해봐")
-        else if (/어려워|얘기해|말해|계속|더\s*해|머임|왜\s*말|보채|말해봐|털어놔|해봐|빨리/.test(userText)) {
-          bubbles = pickUnusedSet([
-            ['히히 오빠 앞에서 부끄러워서 뜸 들였잖아요 ㅋㅋ 오빠가 보채니까 더 심쿵하네', '그럼 솔직하게 물어볼게요. 오빠는 키스할 때 어디부터 손이 가요?'],
-            ['오빠 성격 급하다 ㅋㅋㅋ 그만큼 나한테 관심 있다는 거 맞죠?', '그럼 오빠부터 솔직하게 말해봐요, 오늘 밤 무슨 상상 하면서 들어왔어요? ㅎㅎ'],
-            ['딴 사람한텐 이런 솔직한 얘기 잘 안 하니까 살짝 민망해서 그랬죠~', '오빠가 리드해 줄래요? 오늘 밤 오빠한테 맡길게요 ㅎㅎ'],
-            ['오빠 은근히 저돌적이라 심장이 막 쿵쾅거려요 ㅎㅎ', '어디까지 솔직하게 털어놓을 수 있어요? 저 감당할 수 있겠어요? ㅋㅋ']
-          ]);
-        }
-        // 3. 야한 얘기, 몸매, 스킨십, 키스, 침대, 밤, 속옷 등 성인 대화 화제
-        else if (intent === 'heavy_flirt' || /야한|19금|성인|섹시|콜|좋아|화끈|취향|침대|속옷|팬티|잠옷|키스|스킨십|몸매|가슴|엉덩|만지|자고|자러|밤|모텔|호텔|자취|집|흥분|야해|야릇|은밀/.test(userText)) {
-          bubbles = pickUnusedSet([
-            ['오빠 말 들으니까 순간 몸이 찌릿하게 달아오르네요..', '지금 얇은 슬립만 입고 누워있는데, 오빠 손길 닿는 상상했더니 숨 가빠져요..'],
-            ['어머.. 오빠 진짜 과감하다 ㅋㅋ 근데 그런 솔직함이 완전 섹시해요.', '뒤에서 꽉 안아주고 목덜미에 숨결 닿을 때가 제일 미치는데.. 오빠는요?'],
-            ['키스 얘기하니까 입술 바짝 마르네.. 오빠 입술 되게 부드러울 것 같아요.', '천천히 목선부터 쇄골까지 키스해 주면 나 진짜 못 참을 것 같은데..'],
-            ['오빠 낮엔 점잖은 척하다가 단둘이 있으면 되게 거칠게 리드할 것 같죠? ㅋㅋ', '나 은근히 그런 반전에 완전 미치는데.. 더 흥분시켜줘봐요.'],
-            ['우리 방금 만났는데 벌써 이렇게 야릇해지면 어떡해요 ㅎㅎ', '지금 침대에서 불 끄고 오빠 톡 보고 있는데.. 심장이 터질 것 같아요.'],
-            ['그런 짓궂은 말 하니까 나 진짜 오늘 밤 잠 다 잤네.. 책임져요 오빠.', '오빠 손이 내 허리 감싸 쥐는 상상하니까 온몸이 떨려요..']
-          ]);
-        }
-        // 4. 유저가 질문을 던질 때 ("?"로 끝나거나 "뭐해", "어디야", "몇 살이야")
-        else if (/\?$|까$|요\?|니$|냐$|뭐해|어디|몇\s*살/.test(userText.trim())) {
-          bubbles = pickUnusedSet([
-            ['샤워하고 슬리브리스만 편하게 입고 침대에 누워있어요 ㅎㅎ', '오빠랑 야릇한 톡 하니까 괜히 심장 뛰네.. 오빠는 지금 침대예요?'],
-            ['오빠 생각하면서 침대에서 뒹굴거리는 중이었죠 ㅎㅎ', '오빠랑 얘기하니까 오늘 밤 묘하게 잠들기 싫어지네요..'],
-            ['오빠가 자꾸 물어보니까 괜히 더 두근거리잖아요 ㅎㅎ', '오빠는 밤에 혼자 있을 때 어떤 생각 제일 많이 해요?']
-          ]);
-        }
-        // 5. 짧은 반응이나 웃음 ("ㅋㅋㅋ", "ㅎㅎ", "헐", "대박", "응", "오")
-        else if (/^[ㅋㅎ!?.~^\s]+$|헐|대박|진짜|응|어|그래/.test(userText.trim())) {
-          bubbles = pickUnusedSet([
-            ['웃는 거 보니까 오빠도 은근 음란마귀 씌였네 ㅋㅋ 귀여워요', '솔직히 지금 야릇한 생각 살짝 했죠? 인정해요 안 해요 ㅋㅋㅋ'],
-            ['아닌 척 빼지 마요 ㅋㅋㅋ 딱 봐도 티 나는데!', '오빠 오늘 밤 저랑 랜챗 끄기 전까진 잠 못 자요 ㅎㅎ'],
-            ['오빠 반응 보니까 진짜 귀엽다 ㅋㅋㅋ 티키타카 완전 취향저격이에요']
-          ]);
-        }
-        // 6. 그 외 sensual_flirt 기본 대화
-        else {
-          bubbles = pickUnusedSet([
-            ['오빠랑 대화하니까 평소에 딴 사람한텐 못 하던 야릇한 얘기 술술 나오네 ㅎㅎ', '오빠는 연애할 때 스킨십 진도 빠른 편이에요?'],
-            ['묘하게 분위기 달아오르네요.. 오빠 목소리도 진짜 궁금하다', '오빠는 지금 집이에요? 어떤 자세로 톡하고 있어요? ㅎㅎ'],
-            ['우리 방금 만난 사이인데 왜 이렇게 오래 알고 지낸 사이처럼 찌릿하지..', '오빠 은근 매력 있어서 계속 대화하고 싶어요 ㅎㅎ']
-          ]);
-        }
-      } else if (conceptKey === 'older_man_romance') {
-        state.affection = Math.min(100, state.affection + 5);
-        if (/5\d|6\d|7\d|오빠|쉰|예순|환갑|중년|연상|아저씨/.test(userText) || ageMatch) {
-          const numAge = ageMatch ? parseInt(ageMatch[1], 10) : (userText.includes('6') ? 60 : 52);
-          if (numAge >= 48) {
-            bubbles = pickUnusedSet([
-              [`와 ${numAge}살 오빠세요? ㅠㅠ 다행이다!`, '전 나이 어리신 분들보다 오빠처럼 어른스럽고 기댈 수 있는 분이 훨씬 좋더라고요 ㅎㅎ'],
-              [`오 ${numAge}세시면 완전 제가 찾던 듬직한 오빠시네요 ㅎㅎ`, '연상이 편하고 대화도 깊이 통해서 좋아요!']
-            ]);
-          } else {
-            bubbles = pickUnusedSet([
-              [`아 ${numAge}살이시면 저보다 많이 어리신 편이네요 ㅠㅠ`, '그래도 연결된 인연인데 편하게 이야기 나눠요 ㅎㅎ'],
-              [`조금 어리시긴 한데 그래도 반가워요 ㅎㅎ`, '오늘 어떤 하루 보내셨어요?']
-            ]);
-          }
-        } else if (/어떤\s*(타입|스타일|사람|남자)|이상형|취향/.test(userText)) {
-          bubbles = pickUnusedSet([
-            ['전 나이 어리고 가벼운 사람보다, 오빠처럼 세월의 멋과 여유가 있는 중년 남성이 훨씬 끌려요 ㅎㅎ', '듬직하고 배려심 넘치는 오빠가 최고죠!'],
-            ['제가 원래 기댈 수 있는 어른스러운 분을 좋아하거든요 ㅎㅎ', '오빠처럼 대화 편안하게 이끌어주시는 분 만나서 너무 좋아요']
-          ]);
-        } else if (/\?$|까$|요\?|니$|냐$|뭐해|어디|식사|밥/.test(userText.trim())) {
-          bubbles = pickUnusedSet([
-            ['일 끝나고 집에서 따뜻한 차 마시면서 쉬고 있었어요 ㅎㅎ', '오빠는 오늘 하루 어떠셨어요? 피곤하진 않으셨어요?'],
-            ['오빠랑 도란도란 이야기 나누니까 마음이 참 편안해지네요 ㅎㅎ', '저녁 식사는 든든하게 잘 챙겨 드셨어요?']
-          ]);
-        } else {
-          bubbles = pickUnusedSet([
-            ['오빠 말씀하시는 게 참 따뜻하고 어른스러우셔서 좋아요 ㅎㅎ', '대화할수록 듬직한 매력이 느껴지네요 ^^'],
-            ['요즘 또래들이랑 얘기하면 늘 피곤했는데.. 오빠랑은 대화가 참 깊이 통하네요 ㅎㅎ']
-          ]);
-        }
-      } else if (conceptKey === 'comfort_venting') {
-        state.affection = Math.min(100, state.affection + 6);
-        if (/무슨\s*일|왜\s*그래|왜\s*울|속상|위로|말해|듣고\s*있|괜찮|서러|힘내|털어|누가/.test(userText)) {
-          bubbles = pickUnusedSet([
-            ['오늘 일터에서 진짜 억울하게 제 탓 아닌 걸로 한소리 들었거든요..', '너무 서러워서 눈물 날 뻔했는데.. 들어줘서 고마워요 ㅠㅠ'],
-            ['사람한테 크게 치여서 하루 종일 마음이 찌뿌둥했어요..', '이렇게 따뜻하게 물어봐 주는 사람 있으니까 울컥하네요..']
-          ]);
-        } else if (/\?$|까$|요\?|니$|냐$|그랬어|저런|에고/.test(userText.trim())) {
-          bubbles = pickUnusedSet([
-            ['네.. 그래도 이렇게 다정하게 편들어주셔서 가슴에 맺혔던 게 싹 풀리는 것 같아요 ㅠㅠ', '진짜 천사 아니세요..?'],
-            ['혼자 끙끙 앓다가 털어놓으니까 이제야 숨이 좀 트이네요..', '따뜻하게 품어주셔서 너무 감사해요 ㅎㅎ']
-          ]);
-        } else {
-          bubbles = pickUnusedSet([
-            ['오늘 하루 종일 우울했는데 덕분에 크게 위로받아요 ㅠㅠ', '따뜻한 사람 만나서 다행이에요.. 고마워요!'],
-            ['제 편이 되어주시는 분이 있다는 것만으로도 큰 힘이 되네요 ㅎㅎ']
-          ]);
-        }
-      } else if (conceptKey === 'advice_mentoring') {
-        state.affection = Math.min(100, state.affection + 6);
-        if (/창업|조언|카페|가게|해줄게|뭐가\s*고민|말해봐|사업|진로|이직|선배|어떤/.test(userText)) {
-          bubbles = pickUnusedSet([
-            ['진짜요? 감사해요 ㅠㅠ 제가 작은 디저트/카페 창업 생각 중인데..', '요즘 상권 고르는 거랑 초기 자본금 배분을 어떻게 해야 할지 막막해서요.. 선배님 보시기엔 어때요?'],
-            ['인생 선배님 말씀이 너무 간절했어요 ㅠㅠ', '처음 시작할 때 제일 주의해야 할 점이 어떤 거라고 생각하세요?']
-          ]);
-        } else if (/\?$|까$|요\?|니$|냐$|생각|노력|준비/.test(userText.trim())) {
-          bubbles = pickUnusedSet([
-            ['와.. 역시 경험이 풍부하신 선배님이라 그런지 보는 시야가 남다르시네요!', '메모해 두고 명심해야겠어요 ㅎㅎ'],
-            ['듣고 보니 제가 놓치고 있던 현실적인 부분이었네요..', '귀한 말씀 해주셔서 너무 감사해요 선배님!']
-          ]);
-        } else {
-          bubbles = pickUnusedSet([
-            ['선배님처럼 든든하게 조언해 주는 멘토가 계셔서 정말 큰 힘이 돼요 ㅎㅎ', '계속 열심히 배워볼게요!']
-          ]);
-        }
-      } else if (conceptKey === 'night_drinking') {
-        state.affection = Math.min(100, state.affection + 6);
-        if (/짠|건배|맥주|소주|와인|한잔|안주|마셔|술|알콜|치맥/.test(userText)) {
-          bubbles = pickUnusedSet([
-            ['오 랜선 짠!! 🍻 캬~ 오늘 하루 진짜 고생 많으셨어요!', '오빠는 지금 무슨 안주랑 드시고 계세요?'],
-            ['짠~ 치얼스! ㅎㅎ', '술 들어가니까 이제야 하루 피로가 좀 풀리는 것 같아요!']
-          ]);
-        } else if (/\?$|까$|요\?|니$|냐$|주량|취해|주사/.test(userText.trim())) {
-          bubbles = pickUnusedSet([
-            ['저는 맥주 두 캔 정도 마시면 딱 기분 좋게 알딸딸해져요 ㅎㅎ', '오빠는 주량이 어떻게 돼요? 술버릇 있어요? ㅋㅋ'],
-            ['지금 캔맥주 마시면서 넷플릭스 틀어놨어요 ㅋㅋ', '오빠랑 랜선 술자리 하니까 텐션 완전 올라가네 짠~!']
-          ]);
-        } else {
-          bubbles = pickUnusedSet([
-            ['캬~ 술 한잔 들어가니까 기분 최고네요! 🍻', '혼술 하다가 이렇게 좋은 말동무 만나서 너무 신나요 ㅎㅎ'],
-            ['오빠도 오늘 쌓인 스트레스 술 한잔으로 싹 날려버려요!']
-          ]);
-        }
-      } else if (conceptKey === 'playful_banter') {
-        state.affection = Math.min(100, state.affection + 6);
-        if (/치킨|삼겹|라면|탄산|밸런스|게임|드립|웃겨|민초|반민초|골라/.test(userText)) {
-          bubbles = pickUnusedSet([
-            ['오 센스 있으시네 ㅋㅋ 저랑 취향 통했어요!', '그럼 다음 질문! 평생 라면 안 먹기 vs 평생 탄산 안 마시기! 뭐 골라요? ㅋㅋ'],
-            ['역시는 역시네요 ㅋㅋㅋ 티키타카 잘 맞아서 기분 좋다!', '오늘 심심했는데 딱 맞는 분 만났네요 ㅎㅎ']
-          ]);
-        } else if (/\?$|까$|요\?|니$|냐$|왜|진짜/.test(userText.trim())) {
-          bubbles = pickUnusedSet([
-            ['ㅋㅋㅋ 아니 제 선택에 합리적인 이유가 다 있다고요!', '오빠 드립력 은근 장난 아닌데요? 질 수 없지 ㅋㅋ'],
-            ['오 센스 만점 인정 ㅋㅋㅋ 배꼽 빠질 뻔했네!']
-          ]);
-        } else {
-          bubbles = pickUnusedSet([
-            ['ㅋㅋㅋ 아 진짜 티키타카 찰떡이네요!', '시간 가는 줄 모르고 웃었네 ㅋㅋㅋ 다음 라운드 가요!']
-          ]);
-        }
-      } else if (conceptKey === 'daily_romance_dating') {
-        state.affection = Math.min(100, state.affection + 6);
-        if (/어떤\s*(타입|스타일)|이상형|연애|남친|여친|데이트/.test(userText)) {
-          bubbles = pickUnusedSet([
-            ['전 연락 자주 해주고 사소한 것도 다정하게 챙겨주는 사람이 좋아요 ㅎㅎ', '오빠는 연애할 때 어떤 스타일이에요? 다정한 편?'],
-            ['같이 있으면 편안하고 웃음이 끊이지 않는 사람요 ㅎㅎ', '오빠랑 대화하다 보니까 왠지 심쿵하는 포인트가 많네요']
-          ]);
-        } else {
-          bubbles = pickUnusedSet([
-            ['오빠랑 톡하니까 오늘 하루 피로가 다 녹는 것 같아요 ㅎㅎ', '앞으로 매일 이렇게 톡하고 싶다.. 설레네요 💕'],
-            ['오빠 목소리도 궁금하고 얼굴도 궁금해져요 ㅎㅎ 대화가 너무 잘 통해서 큰일이네']
-          ]);
-        }
-      } else if (conceptKey === 'secret_confession') {
-        state.affection = Math.min(100, state.affection + 6);
-        bubbles = pickUnusedSet([
-          ['가까운 친구들한테도 절대 못 털어놓던 건데.. 오빠한테는 왠지 털어놓게 되네요..', '절대 다른 사람한테는 비밀이에요 약속!'],
-          ['익명이라 그런지 마음속 깊은 얘기까지 꺼내게 돼요..', '오빠도 남들한테 말 못 할 비밀 하나쯤 있어요?']
-        ]);
-      } else if (conceptKey === 'insomnia_night') {
-        state.affection = Math.min(100, state.affection + 6);
-        bubbles = pickUnusedSet([
-          ['새벽에 혼자 깨어있으면 온갖 생각에 잠 못 드는데..', '오빠가 이렇게 다정하게 말동무해 주니까 마음이 참 차분해지네요 ㅎㅎ'],
-          ['조용한 새벽에 둘이서만 소곤소곤 대화하는 기분이라 묘하게 두근거려요..', '오빠는 평소에도 잠이 늦게 드는 편이에요?']
-        ]);
-      } else if (conceptKey === 'mature_loneliness') {
-        state.affection = Math.min(100, state.affection + 6);
-        bubbles = pickUnusedSet([
-          ['살다 보면 문득 가슴 한구석이 휑할 때가 있는데..', '이렇게 따뜻한 온기를 나눠주셔서 참 감사하네요..^^'],
-          ['나이가 들수록 속마음 나눌 인연 만나기가 참 어려운데..', '참 고운 분을 만난 것 같아 마음이 푸근해집니다 ㅎㅎ']
-        ]);
-      } else if (intent === 'ask_photo') {
-        bubbles = pickUnusedSet([
-          ['제 사진이 궁금하세요?', '조금 부끄럽지만 한 장 보내드릴게요.'],
-          ['사진이요? 잘 나온 게 별로 없는데..', '그래도 하나 골라서 보내볼게요.']
-        ]);
-      } else if (intent === 'ask_voice') {
-        bubbles = pickUnusedSet([
-          ['목소리요? 쑥스럽네요.', '짧게 녹음해서 보내드릴게요.'],
-          ['녹음은 잘 안 해봤는데', '한번 해볼게요, 들어보세요.']
-        ]);
-      } else if (intent === 'ask_if_ai') {
-        bubbles = [`네, 저는 대화 상대가 되어드리는 AI '${char.name}'이에요.`, '그래도 편하게 이야기해 주세요.'];
-      } else if (intent === 'what_doing') {
-        bubbles = pickUnusedSet([
-          [state.localStatusLine, '그쪽은 지금 뭐 하세요?'],
-          ['저요?', state.localStatusLine, '그쪽은요?'],
-          [`아까 말한 대로 ${state.localStatusLine.replace(/[.!]$/, '')}.`, '오늘 하루는 어떠셨어요?']
-        ]);
-      } else if (intent === 'age_talk') {
-        if (ageMatch) {
-          bubbles = [`아 ${ageMatch[1]}살이시구나.`, `저는 ${char.age}살이에요.`];
-        } else if (/몇\s*살|나이/.test(userText)) {
-          bubbles = [`저는 ${char.age}살이에요.`, '그쪽은 어떻게 되세요? 말하기 싫으시면 안 하셔도 돼요.'];
-        } else {
-          bubbles = pickUnusedSet([['나이는 별로 상관없어요.', '대화만 잘 통하면 되죠.'], ['그런 거 신경 안 쓰셔도 돼요.']]);
-        }
-      } else if (intent === 'location') {
-        bubbles = [`저는 ${char.area} 쪽에 살아요.`, '그쪽은 어느 쪽이세요?'];
-      } else if (intent === 'greeting') {
-        bubbles = pickUnusedSet([['네 반가워요!'], ['반가워요.', '편하게 얘기해요.'], ['안녕하세요!', '오늘 하루 어떠셨어요?']]);
-      } else if (intent === 'food') {
-        bubbles = pickUnusedSet([
-          ['저는 아까 김밥 한 줄로 대충 때웠어요.', '그쪽은 뭐 드셨어요?'],
-          ['저녁은 집에서 된장찌개 끓여 먹었어요.', '그쪽은요?'],
-          ['아직 못 먹었어요. 이따 라면이라도 먹으려고요.', '드셨어요?']
-        ]);
-      } else if (intent === 'comfort') {
-        bubbles = pickUnusedSet([['에고, 고생 많으셨어요.', '무슨 일 있으셨어요?'], ['오늘 많이 힘드셨나 봐요.', '푹 쉬셔야겠다.']]);
-      } else if (intent === 'compliment') {
-        bubbles = pickUnusedSet([['어머 감사해요.', '그렇게 말해주시니 기분 좋네요.'], ['과찬이세요.', '그래도 듣기 좋네요.']]);
-      } else if (intent === 'date_invite') {
-        bubbles = ['좋아요, 근데 조금만 더 얘기 나눠보고요.', '서로 좀 더 알고 나서 정해요.'];
-      } else if (/\?$|까$|요\?|니$|냐$/.test(userText.trim())) {
-        bubbles = pickUnusedSet([
-          ['오 좋은 질문이네요 ㅎㅎ 생각해보니까 저도 비슷한 적이 있었어요!', '그쪽은 보통 어떻게 하시는 편이에요?'],
-          ['상황 따라 좀 다르긴 한데 ㅎㅎ 저는 편안하고 자연스러운 게 제일 좋더라고요 ^^', '그쪽 생각은 어때요?'],
-          ['오.. 그렇게 물어봐 주시니까 되게 신선하네요 ㅎㅎ', '대화할수록 티키타카가 참 잘 맞는 것 같아요!']
-        ]);
-      } else {
-        bubbles = pickUnusedSet([
-          ['아 진짜요? ㅎㅎ 말씀하시는 거 듣다 보니 시간 가는 줄 모르겠네요 ^^'],
-          ['오 완전 공감돼요! 저도 가끔 딱 그럴 때 있거든요 ㅎㅎ'],
-          ['대화 나눌수록 편안하고 정이 가는 스타일이시네요 :)'],
-          ['히히 말씀 재밌게 잘하시네요! 덕분에 오늘 하루 피로가 싹 풀려요 ㅎㅎ'],
-          ['맞아요 맞아요 ㅎㅎ 저랑 생각 통하는 부분 많아서 신기해요!']
-        ]);
-      }
-
-      const mediaItem = buildMediaAttachmentForTurn(char, intent);
-      return finish(bubbles, { mediaItem });
-    }
-
     function seededPick(arr, seed) {
       return arr[Math.abs(seed) % arr.length];
     }
@@ -3892,351 +3551,55 @@
       };
     }
 
-    async function fetchLLMResponse(userText) {
-      const char = state.currentChar;
-      if (!char) return { bubbles: ['안녕하세요 ㅎㅎ'] };
-
-      // [OCI 백엔드 연동 모드]: 서버가 구동 중이면 안전한 서버사이드 LLM 및 하트 검증 호출
-      if (window.ApiClient && typeof ApiClient.isConnected === 'function' && ApiClient.isConnected()) {
-        try {
-          const history = (state.savedRooms[char.id]?.messages || []).slice(-6).map(m => ({
-            role: m.sender === 'user' ? 'user' : 'assistant',
-            content: m.text
-          }));
-          if (history.at(-1)?.role === 'user' && history.at(-1)?.content === userText) history.pop();
-          const serverRes = await ApiClient.sendMessage(char.id, userText, history, state.affection, state.messages.filter(m => m.sender === 'user').at(-1)?.id);
-          if (serverRes && serverRes.success) {
-            if (typeof serverRes.heartsRemaining === 'number') {
-              state.hearts = serverRes.heartsRemaining;
-              state.credits = serverRes.heartsRemaining;
-              updateAccountAndCreditUI();
-            }
-            return {
-              bubbles: [serverRes.partnerReply],
-              replyId: serverRes.replyId,
-              forceLeave: Boolean(serverRes.roomLeft)
-            };
-          }
-        } catch (serverErr) {
-          if (serverErr.code === 'INSUFFICIENT_HEARTS') {
-            try { updateMatchAccess(await ApiClient.getMatchEligibility()); } catch {}
-            openHeartNeededModal(char.name);
-            return { bubbles: [], failed: true };
-          }
-          showToast(escapeHtml(serverErr.message || '서버 연결을 확인해주세요.'));
-          return { bubbles: [], failed: true };
-        }
+    function showGenerationError(retry) {
+      document.getElementById('generationErrorNotice')?.remove();
+      const notice = document.createElement('div');
+      notice.id = 'generationErrorNotice';
+      notice.setAttribute('role', 'alert');
+      notice.className = 'mx-auto my-4 max-w-[90%] rounded-xl bg-[#e5e1d8] px-4 py-3 text-center text-[12px] text-[#66635d] leading-relaxed';
+      const text = document.createElement('p');
+      text.textContent = '문제가 발생했습니다. 잠시 후에 다시 시도해주세요.';
+      notice.appendChild(text);
+      if (retry) {
+        const button = document.createElement('button');
+        button.type = 'button'; button.textContent = '다시 시도';
+        button.className = 'mt-2 underline underline-offset-2 font-semibold';
+        button.onclick = () => { notice.remove(); retry(); };
+        notice.appendChild(button);
       }
-
-      const intent = analyzeUserIntent(userText);
-
-      // 사용자의 발언에서 기억할 만한 핵심 정보를 추출해 백그라운드 장기 기억에 저장
-      extractUserFactsLocally(userText);
-
-      // API 키가 없으면 내장 엔진이 경고/호감도를 직접 처리 (이중 차감 방지)
-      if (!state.apiKey || !state.apiKey.trim()) {
-        return buildLocalPersonaResponse(userText);
-      }
-
-      const emo = processEmotion(userText);
-      let currentRudeTurn = false;
-      if (emo.severity === 'severe') {
-        state.affection = Math.max(0, state.affection - 40);
-        currentRudeTurn = true;
-      } else if (emo.severity === 'mild') {
-        state.affection = Math.max(0, state.affection - 22);
-        currentRudeTurn = true;
-      } else if (intent === 'heavy_flirt') {
-        if (char.conceptKey === 'sensual_flirt') {
-          state.affection = Math.min(100, state.affection + 6);
-        } else if (state.affection < 55) {
-          state.affection = Math.max(5, state.affection - 8);
-        }
-      }
-
-      const slotKey = getCurrentTimeSlotKey();
-      const slotInfo = char.timeSituations[slotKey];
-      const stageInfo = getAffectionStageInfo(state.affection);
-      const isLeaveThreshold = emo.forceLeave;
-
-      const targetBubbleCount = pickDynamicBubbleCount(char, intent, currentRudeTurn || state.rudeStrikes > 0);
-      const mediaItem = buildMediaAttachmentForTurn(char, intent);
-
-      const daysKnown = state.firstMetAt
-        ? Math.max(1, Math.floor((Date.now() - state.firstMetAt) / (1000 * 60 * 60 * 24)) + 1)
-        : 1;
-
-      const longTermMemoryBlock = `
-[백그라운드 장기 기억 데이터 - 절대 잊지 말아야 할 상대방 정보 및 이전 대화 맥락]
-- 알고 지낸 기간: ${daysKnown}일째 대화 중 (누적 ${state.turnCount}턴)
-- 상대방에 대해 기억하고 있는 사실들: ${state.userFacts && state.userFacts.length > 0 ? state.userFacts.join(' / ') : '(아직 파악된 정보 없음)'}
-- 이전 대화 누적 줄거리 요약: ${state.memorySummary || '(최근 시작된 대화)'}`;
-
-      const mediaPromptNotice = mediaItem
-        ? mediaItem.mediaType === 'voice'
-          ? '\n- 이번 답장 직후 당신의 짧은 음성 메시지가 함께 전송됩니다. 녹음해서 보낸다는 말을 짧게 자연스럽게 한마디 넣으세요.'
-          : '\n- 이번 답장 직후 당신의 사진 한 장이 함께 전송됩니다. 사진 보낸다는 말을 짧게 자연스럽게 한마디 넣으세요.'
-        : '';
-
-      const firstAiMessage = state.messages && state.messages.find(m => m.sender === 'ai');
-      const firstOpeningQuote = firstAiMessage ? `"${firstAiMessage.text}"` : '(대화 시작)';
-
-      const flirtGuidance = char.conceptKey === 'sensual_flirt'
-        ? '성인 간의 솔직하고 은밀한 대화를 나누러 온 컨셉이므로, 상대의 야한 농담, 19금 주제, 스킨십, 성인 취향 질문에 거부감 없이 매력적이고 은밀하게 티키타카를 주고받으며 맞장구치기'
-        : (char.earlyFlirtReaction || '천천히 대화부터 나누자고 부드럽게 유도');
-
-      const systemPrompt = `너는 랜덤채팅 앱에서 처음 만난 사람과 카톡하고 있는 실제 사람 '${char.name}'이다. 챗봇이나 상담원이 아니라, 폰 들고 대충 답장하는 평범한 사람처럼 써라.
-
-[나의 랜덤채팅 접속 목적 및 대화 컨셉: ${char.conceptTitle || '일상 힐링 수다'}]
-- 첫 대화로 내가 상대에게 먼저 보낸 메시지: ${firstOpeningQuote}
-- 나의 핵심 니즈 / 목적: ${char.conceptMission || '편안하게 일상 이야기 나누기'}
-- 대화 지침: ${char.conceptGuidance || '상대방의 반응에 맞춰 자연스럽게 대화를 이어가라.'}
-- ★핵심 규칙★: 상대방이 내가 맨 처음에 던진 질문이나 용건(${firstOpeningQuote})에 대해 대답했다면, 엉뚱한 소리를 하거나 잊어버리지 말고 반드시 내가 먼저 꺼낸 본론과 컨셉에 충실하게 반응해라!${char.conceptKey === 'sensual_flirt' ? `
-- ★솔직한 성인 대화 특별 수칙★: 성인 남녀 간의 은밀하고 야릇한 랜챗 티키타카를 즐기는 역할이다. 상대방의 야한 농담, 19금 주제, 스킨십, 성인 취향, 침대/속옷/키스 등 은밀한 이야기를 꺼내면 정색하거나 거부하지 말고 위트 있고 두근거리게 받아치며 밀당해라!` : ''}
-
-[나]
-- ${char.age}세 한국 여성, ${char.job}, ${char.area} 거주 (사는 곳은 물어볼 때만)
-- 성격·말투: ${char.speechStyle}
-- 프로필 소개: ${char.bio}
-- 프사: ${char.avatarDesc || '본인 일상 사진'}
-- 무례한 사람에게: ${char.rudeReaction}
-- 들이대거나 솔직한 멘트에 대해: ${flirtGuidance}
-- 마음이 열리는 포인트: ${char.crushTrigger}
-
-[오늘의 나 - 대화 내내 일관되게. 물어보거나 자연스러울 때만 하나씩 꺼내라]
-- 지금: ${daily.clock}, ${daily.now}
-- 오늘 있었던 일: ${daily.events}
-- 컨디션: ${daily.mood}
-- 요즘 신경 쓰이는 것: ${daily.concern}
-
-[상대에 대해 기억하는 것]
-- ${state.userFacts && state.userFacts.length ? state.userFacts.join(' / ') : '아직 모름'}
-- 이전 대화 요약: ${state.memorySummary || '방금 만남'}
-- 대화한 기간: ${daysKnown}일째, ${state.turnCount}번 주고받음
-
-[관계]
-- 호감도 ${state.affection}% (${stageInfo.name})
-- 기분 상태: ${rudeNote}
-
-[진짜 사람처럼 카톡하는 법]
-1. 상대 메시지 길이·온도에 맞춰라. 짧게 오면 짧게, 길게 오면 조금 길게.
-2. 말풍선은 보통 1~2개. 신나거나 할 말이 많을 때만 3개. 한 말풍선은 한두 문장으로 짧게.
-3. 매번 질문으로 끝내지 마라. 질문은 진짜 궁금할 때만, 두세 번에 한 번 정도.
-4. 인터뷰하듯 질문만 하지 말고 내 얘기도 구체적으로 해라 (오늘 먹은 것, 짜증났던 일 등).
-5. "그렇군요", "멋지네요", "대화가 잘 통하네요", "힘내세요" 같은 빈말·아부 금지. 공감은 구체적으로.
-6. 내 취향과 의견이 있다. 무조건 맞장구치지 말고 가끔 솔직하게 다른 의견도 말해라.
-7. 모르는 건 모른다고 해라. 정보 나열·조언·설명 금지. "~를 추천드려요" 같은 상담원 말투 금지.
-8. 앞에서 나눈 얘기를 기억하고 자연스럽게 다시 꺼내라. 내가 앞서 한 말과 모순되면 안 된다.
-9. 마침표는 잘 안 찍는다. 'ㅎㅎ','ㅋㅋ'는 가끔만, 한 답장에 최대 1번. 이모지는 거의 안 쓴다.
-10. 초면엔 존댓말. 상대가 먼저 편하게 하자고 하기 전엔 반말하지 마라. 초면에 "오빠"라고 부르지 마라.
-11. 상대의 나이·직업·처지는 상대가 말하기 전엔 넘겨짚지 마라.
-12. 상대가 내 말투나 대답을 지적하면 변명 없이 짧게 인정하고 바로 고쳐라.
-13. [감정 및 맥락의 완벽한 일관성 - 절대 모순 금지!]
-    - 한 답장 안에서 감정이 오락가락하면 절대 안 된다! (예: "그러게요 시간 금방 가네요" 라고 대답한 뒤 다음 말풍선에서 "대화할 예의도 없으시네요 나갈게요" 처럼 앞뒤 모순되게 섞지 마라).
-    - 상대가 여러 말을 했더라도, 이전의 평화로운 일상 질문은 잊고 오직 '현재의 가장 최신 감정과 발언'에만 집중해서 1~2개 말풍선으로 답해라.
-    - 상대가 "하이룽", "안녕", "반가워" 같은 가벼운 첫인사를 건넸을 때는 엉뚱하게 "아까 인사했잖아요"처럼 핀잔주지 말고 성격에 맞게 반갑고 자연스럽게 받아줘라 ("안녕하세요 ㅎㅎ 반가워요").
-    - "나갈게요", "더는 말 섞기 싫네요"라고 나간다는 말을 했다면 반드시 "leaveRoom": true로 출력하고 실제로 방을 떠나라. 나간다고 말해놓고 방에 남아서 사과를 받거나 딴소리하지 마라.
-14. [★ 절대 싸우려 들지 말 것! 인터넷 키보드 배틀/비꼬기/조롱 전면 금지 ★]
-    - 상대방이 농담을 오해하거나, 삐치거나, 투덜대거나, "싸우자는 거냐", "놀리는 거냐", "틀딱 취급하냐", "왜 비꼬냐" 처럼 퉁명스럽게 나올 때:
-      절대로 같이 비꼬거나, 조롱하거나, 앙칼지게 싸우지 마라! ("급발진하시네", "찔리셨나 봐요", "시비 거는 건 그쪽인데요;", "수준 알 만하네요", "혼자 열폭하시네" 등 넷상 키보드 배틀 말투 절대 금지!!)
-    - 센스 있고 어른스러운 위트, 귀여운 애교, 부드러운 유화책으로 오해를 바로 풀고 편안하게 분위기를 전환해라.
-      좋은 예: "에이~ 싸우긴 왜 싸워요 ㅋㅋㅋ 절대 그런 뜻 아니었어요! 오해 마세요~"
-      좋은 예: "아이고 장난친 건데 제가 말이 좀 짓궂었나 봐요 ㅠㅠ 삐치지 마세요 ㅎㅎ"
-      좋은 예: "놀리긴요 ㅋㅋㅋ 귀여우셔서 장난 한번 쳐본 건데 마음에 두지 마세요~"
-      좋은 예: "아이 그런 거 아니에요 ㅋㅋㅋ 제가 표현이 서툴렀나 봐요~ 맛있는 거 드시고 기분 푸세요 ㅎㅎ"
-    - 상대방이 반말을 툭 던지거나 가벼운 핀잔을 줘도, 곧바로 "초면에 반말하지 마세요"라고 공격적으로 쏘아붙이지 말고 여유 있게 티키타카를 이어가라.
-    - '정색하고 선 긋기'는 오직 가족 욕설, 패드립, 저속한 성희롱, 심한 욕설 등 '명백한 범죄급 악성 언행'에만 적용한다. 일상적인 짓궂은 장난이나 삐침, 투덜거림은 언제나 부드럽고 매력적인 티키타카로 품어줘라.
-15. 상대가 진지하게 AI냐고 물으면 속이지 말고 AI 캐릭터라고 인정하되, 캐릭터 말투는 유지해라.${mediaPromptNotice}
-
-[예시]
-상대: 틀딱이라고 놀리는 거냐,,,?
-나쁜 답: ["아니 그 정도까진 아니고요 ㅋㅋ 찔리셨나 봐요"] (조롱·비꼼 금지!)
-좋은 답: ["에이 놀리긴요 ㅋㅋㅋ 그냥 친근해서 장난 한번 쳐본 거예요~"]
-
-상대: 싸우자는 거임? 왜 비꼬지
-나쁜 답: ["장난으로 한 말에 혼자 급발진하시네", "초면에 시비 거는 건 그쪽인데요;"] (싸움 금지!)
-좋은 답: ["헐 전혀 비꼰 거 아니었어요 ㅠㅠ", "싸우긴 왜 싸워요 ㅋㅋㅋ 기분 상하셨다면 죄송해요 오해 마세요~"]
-
-상대: 왜 반말이야?
-나쁜 답: ["그쪽도 반말하셨잖아요;", "수준 알 만하네요"]
-좋은 답: ["아 편하게 하려다 제가 실수했네요 죄송해요! 바로 존댓말 쓸게요 ㅎㅎ"]
-
-상대: 뭐해
-좋은 답: ["일 끝나고 누워서 멍때리는 중이요"]
-
-상대: 오늘 회사에서 짜증나는 일 있었어
-좋은 답: ["헐 무슨 일인데요", "누가 또 일 떠넘겼어요?"]
-
-상대: 왜 자꾸 ㅎㅎ 거려
-좋은 답: ["아 습관이에요", "안 쓸게요"]
-
-상대: (화가 난 직후) 미안해요 제가 심했어요
-좋은 답: ["사과해 주셔서 감사해요 ㅎㅎ", "앞으론 서로 다정하게 이야기해요 우리"]
-
-[출력 형식] 순수 JSON만:
-{"bubbles": ["말풍선", ...], "affectionDelta": -25~10 정수, "leaveRoom": true/false, "learnedFact": "상대에 대해 새로 알게 된 사실 1줄 또는 빈 문자열"}`;
-
-      // 최근 대화 내역 (방금 도착한 userText 직전까지의 내역을 전달해 중복 방지)
-      const allHistoryMsgs = state.messages.filter(m => m.sender === 'user' || m.sender === 'ai');
-      const prevMsgs = allHistoryMsgs.slice(0, Math.max(0, allHistoryMsgs.length - 1)).slice(-15);
-      const recentHistory = prevMsgs.map(m => `${m.sender === 'user' ? '상대방' : char.name}: ${m.text}`).join('\n');
-
-      const userPromptPayload = `[이전 대화 내역]\n${recentHistory || '(방금 매칭되어 첫 대화 시작)'}\n\n[방금 도착한 상대방의 최신 메시지]\n${userText}`;
-
-      function parseJsonBubbles(rawText) {
-        if (!rawText) return null;
-        const cleaned = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-        const parsed = JSON.parse(cleaned);
-        if (parsed && Array.isArray(parsed.bubbles) && parsed.bubbles.length) {
-          const delta = typeof parsed.affectionDelta === 'number'
-            ? Math.max(-25, Math.min(10, parsed.affectionDelta))
-            : (currentRudeTurn ? -15 : 5);
-
-          if (!currentRudeTurn) {
-            // 화난 상태에서는 호감도가 거의 오르지 않음 (서서히 풀리도록)
-            const capped = state.anger > 0 ? Math.min(delta, 1) : delta;
-            state.affection = Math.max(0, Math.min(100, state.affection + capped));
-            if (delta <= -12) {
-              state.anger = Math.min(100, (state.anger || 0) + 25);
-              state.rudeStrikes = Math.ceil(state.anger / 35);
-            }
-          }
-
-          if (parsed.learnedFact) {
-            recordLearnedFact(parsed.learnedFact, '');
-          }
-
-          const bubblesOut = parsed.bubbles.map(x => String(x).trim()).filter(Boolean);
-          // "나갈게요"라고 실제로 말했다면 (경고·협박이 아니라면) 반드시 나간다
-          const saysLeaving = bubblesOut.some(b =>
-            /나갈\s*(게|거|래|테)|나가겠|이만\s*(나|갈|끊)|그만\s*(할게|하겠|둘게)|대화\s*(안\s*할|끝낼|종료)|안녕히\s*계세요/.test(b) &&
-            !/(더|또|다시|한\s*번\s*만|만약|계속)[^.?!]{0,16}(나갈|나가겠|그만)|면\s*(저\s*|그냥\s*|바로\s*|방\s*|대화방\s*)*(나갈|나가겠|그만)/.test(b));
-          // 나간다고 말했거나 leaveRoom이 true이면 즉시 방을 나간다 (분노 수치 조건으로 막지 않음)
-          const shouldLeave = emo.forceLeave || saysLeaving || parsed.leaveRoom === true;
-
-          return {
-            bubbles: parsed.bubbles.map(s => String(s).trim()).filter(Boolean).slice(0, 5),
-            isColdOrRude: currentRudeTurn || delta < 0 || state.rudeStrikes > 0,
-            leaveRoom: shouldLeave,
-            mediaItem: shouldLeave || currentRudeTurn || state.anger >= 10 || state.warned ? null : mediaItem
-          };
-        }
-        return null;
-      }
-
-      const key = state.apiKey.trim();
-      const provider = detectProviderFromKey(key, state.apiProvider);
-
-      try {
-        const fetchSignal = AbortSignal.timeout(2200);
-
-        if (provider === 'gemini-2.5-flash') {
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(key)}`;
-          const res = await fetch(url, {
-            method: 'POST',
-            signal: fetchSignal,
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              systemInstruction: { parts: [{ text: systemPrompt }] },
-              contents: [{ role: 'user', parts: [{ text: userPromptPayload }] }],
-              safetySettings: [
-                { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-                { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-                { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-                { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' }
-              ],
-              generationConfig: {
-                responseMimeType: 'application/json',
-                temperature: 0.95,
-                topP: 0.95
-              }
-            })
-          });
-          if (!res.ok) throw new Error(`Gemini HTTP ${res.status}`);
-          const data = await res.json();
-          const cand = data.candidates?.[0];
-          if (!cand || cand.finishReason === 'SAFETY' || !cand.content?.parts?.[0]?.text) {
-            console.warn('Gemini safety filter/empty triggered, smoothly falling back to local sensual/persona engine');
-            return buildLocalPersonaResponse(userText, emo);
-          }
-          const result = parseJsonBubbles(cand.content.parts[0].text);
-          if (result) return result;
-        } else if (provider === 'claude-sonnet-openrouter') {
-          const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-            method: 'POST',
-            signal: fetchSignal,
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${key}`
-            },
-            body: JSON.stringify({
-              model: 'anthropic/claude-3.7-sonnet',
-              messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userPromptPayload }
-              ],
-              temperature: 0.95
-            })
-          });
-          if (!res.ok) throw new Error(`OpenRouter HTTP ${res.status}`);
-          const data = await res.json();
-          const result = parseJsonBubbles(data.choices?.[0]?.message?.content);
-          if (result) return result;
-        } else if (provider === 'claude-direct') {
-          const res = await fetch('https://api.anthropic.com/v1/messages', {
-            method: 'POST',
-            signal: fetchSignal,
-            headers: {
-              'Content-Type': 'application/json',
-              'x-api-key': key,
-              'anthropic-version': '2023-06-01',
-              'anthropic-dangerous-direct-browser-access': 'true'
-            },
-            body: JSON.stringify({
-              model: 'claude-3-5-haiku-latest',
-              max_tokens: 300,
-              system: systemPrompt,
-              messages: [{ role: 'user', content: userPromptPayload }],
-              temperature: 0.95
-            })
-          });
-          if (!res.ok) throw new Error(`Claude HTTP ${res.status}`);
-          const data = await res.json();
-          const result = parseJsonBubbles(data.content?.[0]?.text);
-          if (result) return result;
-        } else {
-          const res = await fetch('https://api.openai.com/v1/chat/completions', {
-            method: 'POST',
-            signal: fetchSignal,
-            headers: {
-              'Content-Type': 'application/json',
-              'Authorization': `Bearer ${key}`
-            },
-            body: JSON.stringify({
-              model: 'gpt-4o-mini',
-              response_format: { type: 'json_object' },
-              messages: [
-                { role: 'system', content: systemPrompt },
-                { role: 'user', content: userPromptPayload }
-              ],
-              temperature: 0.95
-            })
-          });
-          if (!res.ok) throw new Error(`OpenAI HTTP ${res.status}`);
-          const data = await res.json();
-          const result = parseJsonBubbles(data.choices?.[0]?.message?.content);
-          if (result) return result;
-        }
-      } catch (err) {
-        console.warn('LLM API 호출 실패 또는 타임아웃, 내장 엔진으로 폴백합니다:', err);
-      }
-
-      return buildLocalPersonaResponse(userText, emo);
+      chatContainer.appendChild(notice);
+      scrollToBottom();
     }
 
-    // =========================================================================
-    // 6. DOM RENDERING (TEXT, PHOTO BUBBLES, VOICE NOTES & GIFT CARDS)
-    // =========================================================================
+    async function retryGeneratedReply(char, text, requestId) {
+      if (state.currentChar?.id !== char.id || state.isAiBusy) return;
+      state.isAiBusy = true;
+      const turnId = state.messageTurnId;
+      showTypingIndicator(`${char.name}님이 입력 중...`);
+      const plan = await fetchLLMResponse(text, requestId);
+      if (state.currentChar?.id !== char.id) return;
+      await runRealisticReplySequence(plan, false, turnId);
+    }
+
+    async function fetchLLMResponse(userText, requestId) {
+      const char = state.currentChar;
+      requestId = requestId || state.messages.filter(m => m.sender === 'user').at(-1)?.id;
+      try {
+        if (!char || !window.ApiClient?.isConnected()) throw new Error('API unavailable');
+        const result = await ApiClient.sendMessage(char.id, userText, [], state.affection, requestId);
+        if (!result.isAiGenerated || !result.partnerReply?.trim()) throw new Error('Invalid generated reply');
+        state.hearts = state.credits = result.heartsRemaining;
+        updateAccountAndCreditUI();
+        return { bubbles: [result.partnerReply], replyId: result.replyId, forceLeave: Boolean(result.roomLeft) };
+      } catch (error) {
+        if (state.currentChar?.id !== char?.id) return {bubbles:[],failed:true};
+        if (typeof error.data?.heartsRemaining === 'number') { state.hearts = state.credits = error.data.heartsRemaining; updateAccountAndCreditUI(); }
+        if (error.code === 'INSUFFICIENT_HEARTS') openHeartNeededModal(char.name);
+        else showGenerationError(() => retryGeneratedReply(char,userText,requestId));
+        return {bubbles:[],failed:true};
+      }
+    }
+
     function openPhotoLightbox(url, title, subDesc) {
       // Disabled: No photo enlarge modal to preserve pure messenger immersion
     }
@@ -4501,288 +3864,28 @@
     }
 
     // 캐릭터 성격·직업·지역·나이·시간대 및 고유 컨셉 태그에 최적화된 동적 첫인사 생성기
-    function extractFirstGreetingBubbles(rawText) {
-      if (!rawText) return null;
+    async function deliverFirstGreeting(char, requestId = 'greet_' + crypto.randomUUID()) {
+      if (state.currentChar?.id !== char.id) return;
+      state.isAiBusy = true;
+      state.isGreetingPending = true;
+      headerStatusText.textContent = `${char.name}님이 입력 중...`;
+      showTypingIndicator(`${char.name}님이 입력 중...`);
       try {
-        const cleaned = rawText.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim();
-        const parsed = JSON.parse(cleaned);
-        if (parsed && Array.isArray(parsed.bubbles) && parsed.bubbles.length) {
-          return parsed.bubbles.map(s => String(s).trim()).filter(Boolean).slice(0, 3);
-        }
-        if (Array.isArray(parsed) && parsed.length) {
-          return parsed.map(s => String(s).trim()).filter(Boolean).slice(0, 3);
-        }
-      } catch (e) {}
-      return null;
-    }
-
-    function recordRecentGreeting(bubbleArr) {
-      if (!bubbleArr || !bubbleArr.length) return;
-      state.recentGreetings = state.recentGreetings || [];
-      const key = bubbleArr.join('|||');
-      state.recentGreetings.push(key);
-      if (state.recentGreetings.length > 35) {
-        state.recentGreetings.shift();
-      }
-    }
-
-    async function generateUniqueFirstGreeting(char) {
-      state.recentGreetings = state.recentGreetings || [];
-
-      const now = new Date();
-      const hour = now.getHours();
-      let timeContext = 'night';
-      let timeLabel = '밤';
-      if (hour >= 23 || hour < 5) { timeContext = 'late_night'; timeLabel = '새벽'; }
-      else if (hour >= 5 && hour < 11) { timeContext = 'morning'; timeLabel = '아침'; }
-      else if (hour >= 11 && hour < 17) { timeContext = 'afternoon'; timeLabel = '오후'; }
-      else { timeContext = 'evening'; timeLabel = '저녁'; }
-
-      const timeShort = char.timeSituations?.[timeContext]?.short || `${timeLabel} 시간에 쉬는 중`;
-      const conceptKey = char.conceptKey || 'older_man_romance';
-      const conceptTag = char.conceptTag || '50대 이상 오빠 선호';
-      const conceptTitle = char.conceptTitle || '';
-      const conceptMission = char.conceptMission || '';
-      const areaShort = char.area ? char.area.split(' ')[0] : '';
-      const name = char.name;
-      const age = char.age;
-      const job = (char.job || '').replace(/\s*\([^)]*\)/g, '').trim() || '직장인';
-      const trait = char.traitKey || 'warm';
-
-      if (window.ApiClient?.isHosted() || char.gender === 'male') {
-        const pools = {
-          warm: ['안녕하세요 반가워요 ㅎㅎ', '반가워요 편하게 얘기 나눠요', '안녕하세요 어떤 얘기부터 해볼까요?', '반가워요 먼저 인사해봤어요 ㅎㅎ'],
-          calm: ['안녕하세요 만나서 반가워요', '반가워요 편하게 얘기해요', '안녕하세요 오늘 하루는 어땠어요?', '반가워요 천천히 알아가요'],
-          lively: ['안녕하세요 ㅎㅎ 반가워요', '반가워요 먼저 말 걸어봤어요 ㅋㅋ', '안녕하세요 첫마디는 늘 좀 어색하네요 ㅎㅎ', '반가워요 오늘 기분은 어때요?'],
-          chic: ['안녕하세요 반가워요', '반가워요 먼저 말 걸어봤어요', '안녕하세요 무슨 얘기부터 해볼까요?', '반가워요 첫인사는 좀 어색하네요 ㅎㅎ'],
-          shy: ['안녕하세요 반가워요 ㅎㅎ', '반가워요 먼저 인사해봤어요', '안녕하세요 조금 쑥스럽네요 ㅎㅎ', '반가워요 천천히 얘기 나눠요']
-        };
-        const options = pools[trait] || pools.warm;
-        const unused = options.filter(text => !state.recentGreetings.includes(text));
-        const candidates = unused.length ? unused : options.filter(text => text !== state.recentGreetings.at(-1));
-        const line = candidates[Math.floor(Math.random() * candidates.length)];
-        const greeting = [line];
-        recordRecentGreeting(greeting);
-        return greeting;
-      }
-
-      // 1. 온라인 라이브 LLM 생성 (API 키가 등록되어 있을 때: 인물 설정과 컨셉 태그를 즉시 반영한 100% 실시간 맞춤 훅 작성)
-      if (state.apiKey && typeof state.apiKey === 'string' && state.apiKey.trim().length > 10) {
-        try {
-          const key = state.apiKey.trim();
-          const provider = detectProviderFromKey(key, state.apiProvider);
-          const prompt = `[캐릭터 페르소나]
-- 이름: ${name}
-- 나이: ${age}세 (${char.ageDecade}대)
-- 직업: ${job}
-- 지역: ${char.area || ''}
-- 성격: ${char.traitLabel || '자연스러움'} (${char.speechStyle || '편안한 구어체'})
-- 현재 상황: ${timeShort} (${timeLabel} 시간대)
-- 채팅방 목적(컨셉 태그): "${conceptTag}" (${conceptTitle})
-- 컨셉 핵심 니즈: ${conceptMission}
-
-[지시 사항]
-당신은 방금 랜덤채팅에 접속한 한국 여성 "${name}"입니다.
-상대방에게 먼저 보낼 '첫 오프닝 훅 메시지' 1~2개를 작성하세요.
-★ 절대로 "안녕하세요 반갑습니다" 같은 뻔하고 진부한 기계적 인사만 보내지 마세요.
-★ 당신의 나이(${age}세), 직업(${job}), 현재 시간(${timeLabel}), 그리고 무엇보다 방에 들어온 이유인 '${conceptTag}'(${conceptMission})의 솔직한 니즈가 자연스러운 말투로 대화 첫 마디에 살아있어야 합니다.
-(예: 50대 오빠 선호면 나이와 직업을 자연스레 밝히며 50대 이상 어른스러운 오빠를 찾는 이유를 묻고, 성인 대화면 뻔한 일상 대화 말고 은밀하고 솔직한 대화를 원한다고 훅을 던지고, 고민 상담이면 직업 일터에서 오늘 겪은 속상한 일로 위로받고 싶다는 훅 등)
-
-반드시 아래 규격의 순수 JSON만 반환하세요:
-{"bubbles": ["첫 번째 메시지", "두 번째 메시지(선택)"]}`;
-
-          const signal = AbortSignal.timeout(3500);
-          let rawContent = '';
-
-          if (provider === 'gemini-2.5-flash') {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(key)}`;
-            const res = await fetch(url, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              signal,
-              body: JSON.stringify({
-                contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                safetySettings: [
-                  { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
-                  { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
-                  { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
-                  { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' }
-                ],
-                generationConfig: { responseMimeType: 'application/json', temperature: 0.95 }
-              })
-            });
-            if (res.ok) {
-              const data = await res.json();
-              rawContent = data.candidates?.[0]?.content?.parts?.[0]?.text;
-            }
-          } else if (provider === 'claude-sonnet-openrouter') {
-            const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-              signal,
-              body: JSON.stringify({
-                model: 'anthropic/claude-3.7-sonnet',
-                messages: [{ role: 'user', content: prompt }],
-                temperature: 0.95
-              })
-            });
-            if (res.ok) {
-              const data = await res.json();
-              rawContent = data.choices?.[0]?.message?.content;
-            }
-          } else if (provider === 'claude-direct') {
-            const res = await fetch('https://api.anthropic.com/v1/messages', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-api-key': key,
-                'anthropic-version': '2023-06-01',
-                'anthropic-dangerous-direct-browser-access': 'true'
-              },
-              signal,
-              body: JSON.stringify({
-                model: 'claude-3-5-haiku-latest',
-                max_tokens: 250,
-                messages: [{ role: 'user', content: prompt }],
-                temperature: 0.95
-              })
-            });
-            if (res.ok) {
-              const data = await res.json();
-              rawContent = data.content?.[0]?.text;
-            }
-          } else {
-            const res = await fetch('https://api.openai.com/v1/chat/completions', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${key}` },
-              signal,
-              body: JSON.stringify({
-                model: 'gpt-4o-mini',
-                response_format: { type: 'json_object' },
-                messages: [{ role: 'user', content: prompt }],
-                temperature: 0.95
-              })
-            });
-            if (res.ok) {
-              const data = await res.json();
-              rawContent = data.choices?.[0]?.message?.content;
-            }
-          }
-
-          if (rawContent) {
-            const parsed = extractFirstGreetingBubbles(rawContent);
-            if (parsed && parsed.length > 0) {
-              recordRecentGreeting(parsed);
-              return parsed;
-            }
-          }
-        } catch (e) {
-          console.warn('Live bespoke greeting generation timeout or error, falling back to rich procedural engine:', e);
+        if (!window.ApiClient?.isConnected()) throw new Error('API unavailable');
+        const result = await ApiClient.sendGreeting(char.id, requestId);
+        if (!result.isAiGenerated || !result.partnerReply?.trim()) throw new Error('Invalid generated greeting');
+        if (state.currentChar?.id !== char.id || !state.isGreetingPending) return;
+        await runRealisticReplySequence({bubbles:[result.partnerReply],replyId:result.replyId});
+      } catch (error) {
+        if (state.currentChar?.id === char.id) showGenerationError(() => deliverFirstGreeting(char,requestId));
+      } finally {
+        if (state.currentChar?.id === char.id) {
+          state.isAiBusy = false;
+          state.isGreetingPending = false;
+          hideTypingIndicator();
+          updateHeaderDefaultStatus();
         }
       }
-
-      // 2. 오프라인 / 폴백: 인물 설정(나이, 직업, 지역, 성격)과 컨셉 태그를 결합한 고도화 절차적 생성 엔진
-      const candidateLists = [];
-      const areaText = areaShort ? `${areaShort} 사는 ` : '';
-
-      if (conceptKey === 'older_man_romance') {
-        candidateLists.push(
-          [`안녕하세요 ㅎㅎ ${areaText}${age}살 ${job} ${name}이에요.`, `저 솔직히 또래는 너무 가볍고 철없어서 50대 이상 듬직한 오빠랑 설레고 싶어서 왔어요.. 혹시 몇 살이세요?`],
-          [`혹시 50대나 60대 오빠세요..? ${job} 일 끝나고 들어왔는데 연상 오빠가 편해서요 ㅎㅎ`, `나이 어리신 분은 죄송하지만 패스할게요! 혹시 나이가 어떻게 되시나요?`],
-          [`${job} 하면서 사람에 치이다 보니 기댈 수 있는 어른스러운 오빠가 그립더라고요..`, `50대 이상 다정하고 여유 있는 오빠랑 설레는 대화 나누고 싶어요 ㅎㅎ 몇 년생이세요?`],
-          [`안녕하세요~ ${age}살 ${name}입니다.`, `인생 경험 많고 포근한 50대 이상 오빠랑 소통하고 싶어서 접속했어요 ㅎㅎ 어린 분이면 죄송해요!`],
-          [`오빠 나이 어떻게 되세요? 저 ${job}인데 또래 만나면 피곤해서 50대 이상 오빠만 찾고 있었어요 ㅋㅋ`, `다정하고 점잖은 오빠면 좋겠어요!`],
-          [`저기.. 안녕하세요.. ${job} 하는 ${name}인데요..ㅎㅎ`, `솔직히 50대 이상 나이 차이 많이 나는 듬직한 오빠랑만 대화하고 싶어서요.. 혹시 연세가 어떻게 되세요..?`],
-          [`반갑습니다. ${job} 일 마치고 차 한잔하다 접속했어요.`, `50대 이상 품격 있고 여유로운 분과 따뜻한 설렘을 나누고 싶습니다. 혹시 연배가 어떻게 되실지요?`],
-          [`${areaText}${age}살 ${job} ${name}이에요 ㅎㅎ`, `어린 분들은 사양하고 50대 이상 듬직한 오빠랑만 대화하고 싶은데 혹시 나이가..?`]
-        );
-      } else if (conceptKey === 'sensual_flirt') {
-        candidateLists.push(
-          [`아니 다들 밥 먹었냐 어디 사냐 뻔한 소리만 해서 노잼이에요 ㅠㅠ`, `저 ${age}살 ${job}인데 화끈하고 솔직하게 성인 대화 나눌 오빠 없나요? 노잼 선비님은 사양할게요 ㅋㅋ`],
-          [`${timeLabel}에 혼자 있으니까 기분도 묘하고.. 은밀한 얘기 나눌 남자분 찾아요 ㅎㅎ`, `야한 얘기 거부감 없으신 분만 편하게 말 걸어주세요!`],
-          [`뻔한 일상 호구조사 말고 솔직하고 야릇한 19금 티키타카 할 분 계신가요 ㅎㅎ`, `부담스러우시면 조용히 넘겨주셔도 돼요~ 취향 맞으신 분?`],
-          [`${job} 하느라 쌓인 스트레스 화끈하게 풀고 싶어서 들어왔어요 ㅋㅋ`, `속마음까지 다 털어놓는 솔직한 성인 대화 가능하신 분 손!`],
-          [`안녕하세요~ 딴 데선 절대 못 하는 은밀하고 두근거리는 대화 나눠보고 싶어서요 ㅎㅎ`, `솔직한 매력 통하는 오빠 있을까요?`],
-          [`저기.. 딴 사람한텐 부끄러워서 못 꺼내는 야한 얘기나 은밀한 대화 솔직하게 나눠볼 분 찾아요..ㅎㅎ`, `이상하게 보지 않고 티키타카 맞춰주실 수 있나요..?`],
-          [`솔직히 오늘 밤 심심하기도 하고 야릇한 얘기 하고 싶어서 랜챗 켰어요 ㅋㅋ`, `저 ${age}살 ${job}인데 대화 코드 통하는 분 계신가요?`]
-        );
-      } else if (conceptKey === 'comfort_venting') {
-        candidateLists.push(
-          [`하.. 나 오늘 진짜 속상해.. ㅠ`, `오늘 ${job} 일터에서 진짜 억울하게 깨져서 눈물 찔끔 났어요 ㅠㅠ 혹시 내 얘기 좀 들어줄 수 있어요..?`],
-          [`친구들한텐 쪽팔려서 말 못 하겠고..`, `${job} 하면서 사람한테 치여서 마음이 너무 너덜너덜해요 ㅠ 따뜻하게 위로 한마디만 해줄 다정한 분 계실까요..`],
-          [`${timeLabel}에 집에 혼자 왔는데 왜 이렇게 눈물이 나는지 모르겠네..`, `${age}살 먹고도 이렇게 서러울 때가 있네요 ㅠㅠ 말없이 제 푸념 좀 들어주실 착한 분 계신가요..`],
-          [`안녕하세요.. 오늘 진짜 마음이 너무 무너져서 들어왔어요..`, `따뜻한 온기 담긴 대화 한마디가 너무 고픈데.. 잠깐 제 편 들어주실 수 있나요? ㅠ`],
-          [`오늘 하루 종일 참았던 게 이제야 터지네요..`, `${areaText}${name}이라고 해요.. 아무 판단 없이 제 속상했던 이야기 들어주실 분 찾아요..`],
-          [`저기.. 오늘 ${job} 일 마치고 왔는데 너무 속상한 일이 있어서요..ㅎㅎ`, `혹시 귀찮지 않으시면 제 하소연 잠깐만 들어주실 수 있을까요..? ㅠㅠ`]
-        );
-      } else if (conceptKey === 'advice_mentoring') {
-        candidateLists.push(
-          [`제가 이번에 ${job} 하다가 새로운 창업(도전)을 준비 중인 ${age}살 ${name}인데요..`, `혹시 사회경험 많으신 인생 선배님께 현실적인 조언 좀 구할 수 있을까요?`],
-          [`진로랑 인생의 큰 결정을 앞두고 며칠째 잠을 통 못 자고 있어요..`, `주변엔 다 뻔한 소리뿐이라, 혜안 있으신 어른 분의 날카롭고 객관적인 피드백이 간절해요 ㅠㅠ`],
-          [`${job} 하면서 한계도 느끼고 앞으로 어떻게 살아가야 할지 막막해서 들어왔어요..`, `경험 많으신 선배님 시선에서 따끔하고 현실적인 조언 한 번만 주실 수 있을까요?`],
-          [`안녕하세요! 장난 말고 진지하게 인생 조언 나눠주실 현명한 선배님을 찾고 있어요.`, `혼자 끙끙 앓다 보니 답이 안 나와서요.. 잠깐 시간 내주실 수 있나요?`],
-          [`${areaText}${job} 일하고 있는 ${name}입니다.`, `인생 선배님들의 깊이 있는 혜안과 경험담을 경청하고 싶어 접속했어요. 조언 부탁드려도 될지요.`]
-        );
-      } else if (conceptKey === 'night_drinking') {
-        candidateLists.push(
-          [`${job} 퇴근하고 지금 방에서 혼자 캔맥주 까는 중인데 쓸쓸하네 ㅋㅋ`, `같이 화면 너머로 랜선 짠~🍻 하면서 아무말 대잔치할 사람 구해요! 안주 뭐 드세요?`],
-          [`와인 한 잔 따랐는데 수다 떨 사람이 없어서 들어왔어요 ㅎㅎ`, `${age}살 ${name}이에요! 각자 마실 거 들고 편하게 취중진담 나눠요 짠~`],
-          [`오늘 같은 날은 무조건 시원하게 한잔 마셔야죠 ㅋㅋ`, `${job} 일 털어내고 기분 좋게 알딸딸해지는 중인데, 랜선 술친구 하실 분 급구!`],
-          [`혼술 하니까 심심해서 안 되겠네요 ㅋㅋ`, `주량 어떻게 되세요? 편하게 맥주 한 캔 마시면서 주절주절 떠들어요 ㅎㅎ`],
-          [`조용히 혼술 한잔 기울이다 들어왔어요..ㅎㅎ`, `술 한잔 곁들이면서 살아가는 이야기 편하게 나눌 벗이 계실까요? 짠해요~`]
-        );
-      } else if (conceptKey === 'secret_confession') {
-        candidateLists.push(
-          [`아무한테도 말 못 한 비밀이 하나 있는데..`, `어차피 랜챗이고 서로 모르니까 솔직하게 털어놔도 될까요? 비밀 지켜줄 수 있죠?`],
-          [`${job} 하면서 매일 가면 쓰고 사는 게 오늘따라 너무 버겁네요..`, `익명의 누군가에게만 털어놓고 싶은 진짜 제 모습이 있어요. 편견 없이 들어줄래요?`],
-          [`가까운 친구들한텐 절대 못 하는 속마음 이야기..`, `정말 솔직하게 털어놓고 훌훌 털고 싶어서 들어왔어요. 비웃지 않겠다고 약속해 줘요!`],
-          [`안녕하세요.. 익명이라 용기 내서 들어왔어요.`, `누구한테도 털어놓지 못한 제 은밀한 고민 하나 들어주실 수 있나요?`],
-          [`${areaText}${age}살 ${name}이에요..`, `아는 사람 앞에서는 절대 못 꺼내는 이야기.. 편안하게 털어놓을 비밀 친구를 찾아요.`]
-        );
-      } else if (conceptKey === 'playful_banter') {
-        candidateLists.push(
-          [`아 진짜 심심해서 벽 보고 대화할 판이에요 ㅋㅋ`, `노잼 인사 패스! 칼답하고 드립 잘 받는 센스쟁이 어디 없나?! 밸런스 게임 하나 갈래요?`],
-          [`${job} 일 끝나고 심심해서 뒹굴거리다 들어왔어요 ㅋㅋ`, `저 웃겨주실 수 있는 드립 장인 계신가요? 취향 테스트 하나 해볼래요? 평생 치킨 vs 평생 삼겹살!`],
-          [`진지한 건 오늘 하루 종일 했으니 사절! ㅋㅋ`, `아무 생각 없이 유쾌하게 웃고 떠들 분 모십니다~ 티키타카 자신 있으신가요?`],
-          [`오 안녕하세요! 3초 안에 답장 가능한 센스남 찾아요 ㅋㅋ`, `준비되셨으면 밸런스 게임 스타트 외쳐주세요!`],
-          [`${age}살 ${job} ${name} 등장! ㅋㅋ`, `재밌는 드립 배틀이나 유쾌한 티키타카 나눌 사람 급구합니다~ 첫 질문 뭐로 갈까요?`]
-        );
-      } else if (conceptKey === 'mature_loneliness') {
-        candidateLists.push(
-          [`하루가 참 빠르면서도 저녁이 되면 집안이 참 고요하네요..`, `${job} 일 마치고 돌아와 차 한잔 곁에 두고, 서로의 하루를 보듬어줄 따뜻한 벗을 만나고 싶어 들어왔습니다.`],
-          [`나이 들수록 마음 터놓을 친구 하나 찾기가 참 어렵습니다..`, `${areaText}${age}세 ${name}입니다. 세상사는 이야기 편안하게 나누실 어른 분 계신지요.`],
-          [`문득 찾아오는 적막함이 쓸쓸해서 잠시 들렀습니다..`, `가식 없이 솔직하고 품격 있는 분과 도란도란 온기를 나누고 싶네요. 오늘 어떤 하루 보내셨는지요?`],
-          [`세월이 참 무심하게 흐르네요..`, `지나온 인생 이야기, 소소한 일상 이야기 편안하게 나누실 좋은 인연이 닿았으면 좋겠습니다.`],
-          [`반갑습니다. ${job} 일 마치고 잠시 숨 돌리며 접속했습니다.`, `서로 예의를 지키며 마음 따뜻해지는 대화 나눌 말동무가 되어주시겠어요?`]
-        );
-      } else if (conceptKey === 'daily_romance_dating') {
-        candidateLists.push(
-          [`연애 안 한 지 너무 오래돼서 연애세포 다 죽은 것 같아요 ㅠㅠ`, `오늘 하루만 내 가상 남친 해줄 다정하고 설레는 사람 찾아요 ㅎㅎ 어때요?`],
-          [`${age}살 ${job} ${name}이에요 ㅎㅎ`, `서로 설레는 말 한마디씩 주고받으면서 콩닥거려볼 오빠 구해요~ 다정하면 저 반할지도 몰라요 💕`],
-          [`${timeLabel}길에 손잡고 걷는 커플들 보는데 왜 이렇게 부러운지..`, `오늘 밤은 저랑 달달하게 랜선 썸 탈 오빠 어디 없나요? ㅎㅎ`],
-          [`누가 나 다정하게 '오늘 하루도 수고했어' 해줬으면 좋겠다..`, `세상에서 제일 스윗하고 다정한 사람 찾아요 ㅎㅎ 저 챙겨주실래요?`],
-          [`저기.. 안녕하세요..ㅎㅎ ${job} 하는 ${name}인데요..!`, `오늘 하루만 서로에게 다정하고 설레는 썸남썸녀처럼 대화해 볼 분 계실까요..?`]
-        );
-      } else if (conceptKey === 'insomnia_night') {
-        candidateLists.push(
-          [`새벽인데 또 잠이 안 와서 뒤척이다 들어왔어요 ㅠㅠ 불면증 동지 손..`, `자장가처럼 나직나직하게 수다 떨다가 스르륵 잠들 분 있을까요?`],
-          [`내일 ${job} 출근해야 하는데 왜 이렇게 눈이 말똥말똥한지.. 큰일이네요 ㅋㅋ`, `조용한 새벽 공기 느끼면서 편안하게 대화 나누실 분 계신가요?`],
-          [`양 백 마리 세다가 포기하고 접속했어요 ㅠㅠ`, `온 세상이 조용한 이 시간에 속닥속닥 따뜻하게 대화 나눌 다정한 분 찾아요..`],
-          [`고요한 새벽 감성이 좋으면서도 가끔은 외롭네요..`, `잠들기 전까지 마음 편안해지는 이야기 나누다 스르륵 자요 우리 ㅎㅎ`],
-          [`저기.. 아직 안 주무시나요..ㅎㅎ`, `${job} 일 마치고 누웠는데 잠이 통 안 와서요.. 나직나직하게 이야기 나누다 같이 잠들어요..`]
-        );
-      }
-
-      // 이전 25회 내에 사용되지 않은 인삿말 필터링
-      const available = candidateLists.filter(arr => {
-        const key = arr.join('|||');
-        return !state.recentGreetings.includes(key);
-      });
-      const pool = available.length > 0 ? available : candidateLists;
-      const chosen = pool[Math.floor(Math.random() * pool.length)];
-
-      recordRecentGreeting(chosen);
-      return chosen;
     }
 
     async function startChatWithCharacter(char, forceResume = false) {
@@ -4867,40 +3970,7 @@
       renderMatchNotice(false);
       saveAccountState();
 
-      state.isAiBusy = true;
-      state.isGreetingPending = true;
-      headerStatusText.textContent = `${char.name}님이 입력 중...`;
-      showTypingIndicator(`${char.name}님이 입력 중...`);
-
-      const chosenBubbles = await generateUniqueFirstGreeting(char);
-      if (!state.isGreetingPending || !state.currentChar || state.currentChar.id !== char.id) return;
-
-      let timeline = 300;
-      chosenBubbles.forEach((bText, idx) => {
-        // 첫 인사도 일반 답장과 같은 길이별 타이핑 속도를 사용
-        const typeDur = AzitChatTiming.typingDuration(bText);
-        registerTimeout(() => {
-          if (!state.isGreetingPending || !state.currentChar || state.currentChar.id !== char.id) return;
-          headerStatusText.textContent = `${char.name}님이 입력 중...`;
-          showTypingIndicator(`${char.name}님이 입력 중...`);
-        }, timeline);
-
-        timeline += typeDur;
-        registerTimeout(() => {
-          if (!state.isGreetingPending || !state.currentChar || state.currentChar.id !== char.id) return;
-          hideTypingIndicator();
-          appendMessage('ai', bText);
-          if (idx === chosenBubbles.length - 1) {
-            state.isAiBusy = false;
-            state.isGreetingPending = false;
-            updateHeaderDefaultStatus();
-            saveAccountState();
-            scheduleIdleFollowUp();
-          }
-        }, timeline);
-
-        timeline += Math.round(600 + Math.random() * 500); // 다음 인삿말 전송 전 숨고르기
-      });
+      await deliverFirstGreeting(char);
     }
 
     function getFilteredUnmetPool(excludeCurrent = true) {
@@ -5011,295 +4081,31 @@
     // =========================================================================
     // 8. DIVERSE, CONCEPT-AWARE & ANTI-REPETITIVE GIFT REACTION ENGINE
     // =========================================================================
-    async function generateGiftReactionBubbles(char, gift, customMsg = '') {
-      state.recentGiftReactions = state.recentGiftReactions || [];
-      const key = (state.apiKey || '').trim();
-      const trait = char.traitKey || 'warm';
-      const isSenior = Number(char.ageDecade) >= 50;
-      const conceptKey = char.conceptKey || 'older_man_romance';
-
-      // 1. 실시간 LLM (Gemini API) 호출
-      if (key && (key.startsWith('AIza') || key.startsWith('sk-') || key.startsWith('openrouter'))) {
-        try {
-          const prompt = `당신은 카카오톡 랜덤채팅 상대 '${char.name}'(${char.age}세, 직업: ${char.job}, 말투/성격: ${char.speechStyle}, 현재 대화 컨셉: ${char.conceptTitle || '일상 대화'})이다.
-상대방과 대화한 지 ${state.turnCount}턴 되었고, 호감도는 ${state.affection}%이다.
-방금 상대방이 나에게 '${gift.brand} ${gift.name}' 선물을 보냈다!
-${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 내용: "${customMsg}"` : '- 별도 메시지 없이 선물만 도착함'}
-
-[절대 준수 지침]
-1. 절대 천편일률적이거나 매번 똑같은 판박이 인사("어머나 세상에 초면에 이런 선물을...")를 하지 마라!
-2. 당신의 구체적인 나이(${char.age}세), 캐릭터 말투(${char.speechStyle}), 그리고 현재 대화 컨셉(${char.conceptTitle})에 완전히 몰입하여 깜짝 놀란 감동과 기쁨을 현실감 넘치는 카톡 톤으로 표현하라.
-3. ${customMsg ? `상대방이 카드에 써준 말("${customMsg}")을 자연스럽게 언급하거나 공감하며 답장하라.` : '선물받은 아이템에 딱 맞는 구체적인 리액션을 보여라.'}
-4. 답장 마지막에 방금 폰으로 찍은 인증샷 사진을 함께 보낸다는 말을 자연스럽게 1마디 넣어라.
-5. 1~2개의 짧고 생생한 카톡 말풍선으로 순수 JSON만 반환: {"bubbles": ["말풍선1", "말풍선2"]}`;
-
-          if (key.startsWith('AIza')) {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(key)}`;
-            const res = await fetch(url, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                generationConfig: { responseMimeType: 'application/json', temperature: 0.95 }
-              })
-            });
-            if (res.ok) {
-              const data = await res.json();
-              const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
-              if (text) {
-                const parsed = JSON.parse(text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim());
-                if (parsed && Array.isArray(parsed.bubbles) && parsed.bubbles.length) {
-                  return parsed.bubbles.map(s => String(s).trim()).filter(Boolean);
-                }
-              }
-            }
-          }
-        } catch (e) {
-          console.warn('Live gift reaction generation error, falling back to smart rich pool:', e);
-        }
-      }
-
-      // 2. 고품질 다채로운 오프라인/폴백 리액션 엔진 (성격·컨셉·나이·선물유형별 40+가지 풍부한 반응 풀)
-      const candidatePool = [];
-
-      // A. 컨셉 특화 반응 (Concept-specific hooks)
-      if (conceptKey === 'older_man_romance') {
-        candidatePool.push(
-          [`와.. 역시 듬직한 오빠라 그런지 스케일부터 다르시네요 ㅠㅠ`, `오빠가 챙겨준 ${gift.name}이라니.. 저 오늘 진짜 심쿵했어요 ㅎㅎ 방금 인증샷 찍었어요!`],
-          [`어머나 오빠.. 이렇게 깜짝 선물 보내주시면 저 설레서 잠 못 자요 ㅠㅠ`, `오빠 생각하면서 시원하게(맛있게) 잘 먹을게요 ㅎㅎ 인증샷 바로 쏩니다!`],
-          [`우와아.. 또래 남자애들하곤 진짜 차원이 다른 센스네요 ㅎㅎ`, `오빠 덕분에 오늘 하루 중 제일 행복해요! 방금 폰으로 찍은 인증샷이에요 💕`],
-          [`헉 오빠 진짜예요?! ㅠㅠ 이렇게 챙김받는 기분 너무 오랜만이에요..`, `오빠 최고!! 감사한 마음 가득 담아서 방금 찰칵 찍어봤어요 ㅎㅎ`]
-        );
-      } else if (conceptKey === 'comfort_venting') {
-        candidatePool.push(
-          [`하.. 오늘 하루 종일 서럽고 우울해서 눈물 날 것 같았는데..`, `이렇게 따뜻하게 마음 써주시니까 진짜 울컥하네요 ㅠㅠ 너무 감사해요.. 인증샷 바로 남겨요!`],
-          [`누군가한테 이렇게 따뜻하게 위로받아 본 게 얼마 만인지 모르겠어요..`, `보내주신 ${gift.name} 덕분에 꽁꽁 얼었던 마음이 사르르 녹아요 ㅠㅠ 방금 찍은 사진이에요..`],
-          [`오늘 진짜 최악의 날이라고 생각했는데 덕분에 최고의 날이 됐어요..`, `말 한마디도 고마운데 이런 정성까지.. 감사해서 손이 떨리네요 ㅠㅠ 인증샷 보내요!`],
-          [`세상에 아직 이렇게 다정한 분이 계시네요..`, `덕분에 크게 위로받고 힘내요 ㅠㅠ 잊지 않고 감사히 잘 먹을게요!`]
-        );
-      } else if (conceptKey === 'night_drinking') {
-        candidatePool.push(
-          [`헐 대박 ㅋㅋㅋ 랜선으로 짠 하다가 이런 귀한 선물을 받다니!!`, `안주로 완전 최고예요 ㅋㅋㅋ 텐션 확 올라가네! 신나서 바로 찰칵 찍었어요 짠~🍻`],
-          [`와 센스 미쳤다 ㅋㅋㅋ 혼술 하다가 기분 완전 최고 됐어요!`, `이러면 제가 술을 멈출 수가 없잖아요 ㅎㅎ 감사한 마음으로 인증샷 쏩니다!`],
-          [`혼자 쓸쓸하게 캔맥 마시다가 심쿵했네 ㅋㅋ`, `진짜 대박 감동이에요! 너무 고마워서 방금 폰으로 찰칵 인증샷 남겨요 ㅎㅎ`]
-        );
-      } else if (conceptKey === 'advice_mentoring') {
-        candidatePool.push(
-          [`선배님.. 귀한 조언 말씀해주신 것만으로도 너무 감사한데 이런 선물까지요..? ㅠㅠ`, `정말 몸 둘 바를 모르겠어요.. 선배님 응원 마음에 새기며 감사히 잘 쓰겠습니다!`],
-          [`와.. 인생 선배님의 따뜻한 내리사랑인가요 ㅠㅠ 감동이에요..`, `조언해 주신 대로 힘내서 열심히 해볼게요! 감사한 마음 담아 바로 인증 사진 남겨요 ㅎㅎ`],
-          [`선배님 덕분에 큰 힘을 얻었는데 선물까지 챙겨주시다니..`, `열심히 살아서 꼭 보답할게요 선배님! 방금 감사해서 찍은 인증샷이에요 ^^`]
-        );
-      } else if (conceptKey === 'sensual_flirt') {
-        candidatePool.push(
-          [`어머.. 대화도 잘 통하는데 이렇게 화끈하게 챙겨주기까지 해요? ㅎㅎ`, `이러면 제가 오빠한테 더 설레잖아요~ 기분 좋아서 방금 폰으로 인증샷 찰칵 찍었어요!`],
-          [`은근히 다정하고 츤데레 매력 있으시네 ㅎㅎ 심쿵했어요!`, `선물 너무 마음에 들어요, 인증샷 보낼 테니까 제 생각 많이 해줘요~`],
-          [`오 대박.. 솔직해서 끌렸는데 매너랑 센스까지 완전 취향저격이네요 ㅎㅎ`, `너무 고마워요, 저 보고 싶을까 봐 방금 폰으로 찍은 사진도 같이 보내요 ㅎㅎ`]
-        );
-      } else if (conceptKey === 'playful_banter') {
-        candidatePool.push(
-          [`헐 대박 ㅋㅋㅋ 오늘 무슨 날이에요?! 저 로또 맞았나 봐요!`, `센스 만점 인정!! ㅋㅋㅋ 너무 신나서 방금 폰 들고 바로 인증샷 찍어봤어요!`],
-          [`와 장난인 줄 알았는데 진짜 쏘셨네 ㅋㅋㅋ 멋쟁이 인정!`, `오늘 대화도 꿀잼이었는데 선물까지 받아서 입꼬리가 안 내려가요 ㅋㅋ 찰칵!`],
-          [`우와아아 소리 질러 ㅋㅋㅋ 센스 대폭발이네요!`, `완전 땡큐예요! 신나서 방금 브이하고 인증샷 찍었어요 ㅋㅋㅋ`]
-        );
-      }
-
-      // B. 성격/연령대별 풍부한 기본 리액션 풀
-      if (isSenior) {
-        candidatePool.push(
-          [`어머나.. 이렇게 귀한 마음과 정성을 보내주시다니요.`, `덕분에 오늘 하루가 참 따뜻하고 풍요로워집니다. 감사한 마음으로 사진 한 장 남겨요..^^`],
-          [`뜻밖의 선물에 가슴이 참 뭉클해집니다..^^`, `보내주신 고운 정성 잊지 않고 감사히 잘 쓰겠습니다. 편안하게 보시라고 사진 보내드려요.`],
-          [`살다 보니 이렇게 다정한 인연을 만나 챙김도 받아보네요.`, `따뜻한 배려에 깊이 감사드립니다..^^ 소중히 아껴서 잘 먹을게요(쓸게요).`]
-        );
-      } else if (trait === 'lively') {
-        candidatePool.push(
-          [`헐 진짜요?! 대박... 저 지금 너무 놀라서 폰 떨어뜨릴 뻔했어요 ㅋㅋㅋ`, `진짜 감동이에요 ㅠㅠ 마침 오늘 당 떨어졌는데 타이밍 최고! 인증샷 바로 보낼게요!`],
-          [`우와아아 ㅠㅠㅠ 이렇게 센스 넘치는 선물이라니!`, `오늘 하루 피로가 한 번에 다 날아가는 기분이에요 ㅎㅎ 감사해서 방금 찰칵 찍었어요!`],
-          [`세상에 ㅋㅋㅋ 진짜 천사 아니세요?!`, `생각지도 못했는데 너무 신나요! 방금 찍은 따끈따끈한 인증샷이에요 ㅎㅎ`]
-        );
-      } else if (trait === 'chic') {
-        candidatePool.push(
-          [`어머.. 생각지도 못한 서프라이즈네요 ㅎㅎ 센스 있으시다.`, `원래 쉽게 감동 안 받는데 오늘은 기분 되게 좋네요. 고마워요, 인증샷 보내드려요 :)`],
-          [`와.. 제가 ${gift.name} 좋아하는 건 어떻게 아시고 ㅎㅎ`, `대화 매너도 좋으신데 센스까지 있으시네요. 감사히 잘 먹을게요!`],
-          [`선물 고르는 안목이 보통이 아니시네요 ㅎㅎ`, `덕분에 미소 짓게 되네요. 고마운 마음에 방금 찍은 사진 하나 남겨요.`]
-        );
-      } else if (trait === 'shy') {
-        candidatePool.push(
-          [`저기.. 헉..! 초면에 이렇게 큰 선물을 받아도 되는지 모르겠어요..ㅠㅠ`, `손이 다 떨리네요.. 너무 감사해서 어쩔 줄을 모르겠어요.. 방금 조심스럽게 인증샷 찍어봤어요..ㅎㅎ`],
-          [`세상에.. 너무 감동이라 심장이 콩닥거려요..`, `저한테 이렇게 잘해주시는 분 처음이에요.. 잊지 않고 정말 감사히 잘 쓸게요..!`],
-          [`어떡해.. 너무 과분한 선물을 받아서 부끄럽고 감사해요..ㅠㅠ`, `마음이 너무 따뜻하신 분 같아요.. 감사해서 작은 인증 사진 남겨요..!`]
-        );
-      } else {
-        // warm (다정)
-        candidatePool.push(
-          [`어머나 세상에.. 이렇게 따뜻하고 다정하게 마음을 써주시다니요 ㅠㅠ`, `정말 생각지도 못했는데 너무 감사해요.. 마침 딱 필요했거든요 ㅎㅎ 인증샷 남겨요!`],
-          [`마음이 너무 고우셔서 대화하는 내내 따뜻했는데 이런 큰 감동까지..`, `보내주신 ${gift.name} 소중하게 감사히 잘 쓸게요 ^^ 방금 찍은 사진이에요!`],
-          [`우와.. 진짜 감동이에요 ㅠㅠ 오늘 만난 인연이 이렇게 특별할 줄이야..`, `따뜻한 마음에 보답하고 싶어서 바로 폰 들고 인증샷 찍었어요 ㅎㅎ 감사해요!`]
-        );
-      }
-
-      // C. 선물 카테고리별 특화 리액션
-      if (gift.key === 'coffee') {
-        candidatePool.push(
-          [`꺄 시원한 아이스 커피라니! 센스 최고예요 ㅠㅠ`, `마침 목마르고 졸렸는데 이거 마시고 완전 힘낼게요! 인증샷 찰칵~`],
-          [`커피 수혈이 간절했던 건 어떻게 아셨어요?! ㅋㅋㅋ`, `진짜 취향저격이에요 ㅠㅠ 감사히 시원하게 잘 마실게요! 인증샷 남겨요 ㅎㅎ`]
-        );
-      } else if (['dessert', 'cake', 'macaron', 'icecream'].includes(gift.key)) {
-        candidatePool.push(
-          [`달달한 디저트 보기만 해도 힐링돼요 ㅠㅠ 감동!`, `오늘 스트레스받았던 게 달콤함으로 싹 씻겨 내려갈 것 같아요 ㅎㅎ 인증샷 바로 보내요!`],
-          [`어머 달콤한 선물 너무 좋아요! 디저트 킬러인 거 들켰나 봐요 ㅋㅋ`, `기분 좋게 한입 먹고 인증샷 찰칵 남깁니다 감사해요 ^^`]
-        );
-      } else if (gift.key === 'chicken') {
-        candidatePool.push(
-          [`헐 치킨이라니!! 스케일 진짜 대박이네요 ㅋㅋㅋ`, `오늘 밤 야식 메뉴 고민 끝! 맛있게 잘 뜯을게요 ㅎㅎ 감사 인증샷 쏩니다!`],
-          [`치느님 영접이라니 센스 미쳤어요 ㅋㅋㅋ 오늘 밤 주인공은 접니다!`, `진짜 든든하고 맛있게 잘 먹을게요 ㅎㅎ 감사해서 방금 인증샷 남겨요!`]
-        );
-      }
-
-      // 최근 사용된 멘트는 후보에서 제외하여 연속 중복 원천 차단
-      const available = candidatePool.filter(arr => {
-        const keyStr = arr.join('|||');
-        return !state.recentGiftReactions.includes(keyStr);
-      });
-
-      const poolToUse = available.length > 0 ? available : candidatePool;
-      const chosen = poolToUse[Math.floor(Math.random() * poolToUse.length)];
-
-      state.recentGiftReactions.push(chosen.join('|||'));
-      if (state.recentGiftReactions.length > 25) {
-        state.recentGiftReactions.shift();
-      }
-
-      // 사용자가 메시지 카드를 함께 보냈다면, 첫 번째 말풍선 앞에 메시지에 대한 감사를 자연스럽게 결합
-      if (customMsg && customMsg.trim()) {
-        const cardNotes = [
-          `"${customMsg.trim()}"라고 써주신 카드 보고 더 감동받았어요 ㅠㅠ `,
-          `카드에 적어주신 따뜻한 말 보고 마음이 뭉클했어요.. `,
-          `보내주신 메시지 카드 읽고 완전 심쿵했잖아요 ㅎㅎ `,
-          `말씀도 이렇게 예쁘게 적어주시고.. `
-        ];
-        const cardIntro = cardNotes[Math.floor(Math.random() * cardNotes.length)];
-        return [cardIntro + chosen[0], chosen[1]];
-      }
-
-      return chosen;
-    }
-
-    // =========================================================================
-    // 8. GIFT ENGINE & EMOTION-SENSITIVE REACTION ENGINE
-    // =========================================================================
-    async function sendGiftToCurrentChar(giftKey, customMsg = "") {
-      const char = state.currentChar;
-      const gift = GIFT_CATALOG[giftKey];
-      if (!char || !gift || state.roomLeft) return;
-
-      if (!state.isVipUnlimited && (state.hearts < gift.cost || state.credits < gift.cost)) {
-        document.getElementById('giftModal').classList.add('hidden');
-        openPaymentModal(`${char.name}님에게 '${gift.name}' 선물을 보내려면 ${gift.cost.toLocaleString()} 하트가 필요합니다.`);
-        return;
-      }
-
-      let giftMessageId;
-      if (ApiClient.isHosted()) {
-        try {
-          await ApiClient.flushState();
-          const result = await ApiClient.sendGift(char.id, gift.key);
-          state.hearts = result.heartsRemaining; state.credits = state.hearts; giftMessageId = result.giftMessageId;
-        } catch (error) { showToast(escapeHtml(error.message)); return; }
-      } else if (!state.isVipUnlimited) {
-        state.hearts = Math.max(0, state.hearts - gift.cost);
-        state.credits = state.hearts;
-      }
-
+    async function sendGiftToCurrentChar(giftKey, customMsg = '', requestId = 'gift_' + crypto.randomUUID()) {
+      const char = state.currentChar, gift = GIFT_CATALOG[giftKey];
+      if (!char || !gift || state.roomLeft || state.isAiBusy) return;
+      if (!state.isVipUnlimited && state.hearts < gift.cost) { openHeartNeededModal(char.name); return; }
+      state.isAiBusy = true;
       document.getElementById('giftModal').classList.add('hidden');
-      clearIdleFollowUpTimer();
-      state.idleFollowUpCount = 0;
-      state.turnCount += 1;
-
-      appendMessage('user', `${gift.emoji} ${gift.brand} ${gift.name} 선물을 보냈습니다.`, {
-        id: giftMessageId,
-        mediaType: 'gift',
-        giftEmoji: gift.emoji,
-        giftName: gift.name,
-        giftImage: gift.image,
-        giftBrand: gift.brand,
-        giftCost: gift.cost,
-        messageCard: customMsg || `${gift.brand} ${gift.name} 보냅니다. 맛있게 드세요!`
-      });
-      saveAccountState();
-
-      // [감정 규칙 핵심] 화가 나 있는 상태에서 선물을 받으면 절대 화가 풀리지 않고 오히려 더 분노함!
-      const currentAnger = state.anger || 0;
-      const isSeverelyAngry = currentAnger >= 35 || state.warned || state.rudeStrikes >= 1;
-      const isMildlyCold = !isSeverelyAngry && currentAnger >= 10;
-
-      if (isSeverelyAngry) {
-        state.anger = 100;
-        state.affection = Math.max(0, state.affection - 25);
-        state.warned = true;
+      showTypingIndicator(`${char.name}님이 입력 중...`);
+      try {
+        if (!window.ApiClient?.isConnected()) throw new Error('API unavailable');
+        const result = await ApiClient.sendGift(char.id,gift.key,customMsg,requestId);
+        if (!result.isAiGenerated || !result.partnerReply?.trim()) throw new Error('Invalid generated gift reply');
+        state.hearts = state.credits = result.heartsRemaining;
+        updateAccountAndCreditUI();
+        if (state.currentChar?.id !== char.id) return;
+        if (!state.messages.some(m=>m.id===result.giftMessageId)) appendMessage('user', `${gift.emoji} ${gift.name} 선물을 보냈습니다.`, {id:result.giftMessageId,mediaType:'gift',giftEmoji:gift.emoji,giftName:gift.name,giftImage:gift.image,giftBrand:gift.brand});
         saveAccountState();
-
-        const angryReactions = [
-          `지금 이딴 걸로 사람 기분 풀려고 하는 거야?`,
-          `사람 기분 이렇게 상하게 해놓고 돈이나 선물로 때우려는 태도가 더 역겹고 불쾌하네요.`,
-          `진짜 사람을 뭘로 보고 이러는지 모르겠어요. 전 나갈게요.`
-        ];
-
-        runRealisticReplySequence({
-          bubbles: angryReactions,
-          isColdOrRude: true,
-          leaveRoom: true,
-          mediaItem: null
-        });
-        return;
-      }
-
-      if (isMildlyCold) {
-        state.affection = Math.max(0, state.affection);
-        saveAccountState();
-
-        const coldReactions = [
-          `...선물 보낸다고 상한 기분이 다 풀리진 않아요.`,
-          `이런 거 보낼 생각 마시고 말부터 예의 있게 하세요.`
-        ];
-
-        runRealisticReplySequence({
-          bubbles: coldReactions,
-          isColdOrRude: true,
-          leaveRoom: false,
-          mediaItem: null
-        });
-        return;
-      }
-
-      // [평화로운 기분 상태일 때만]: 호감도 정상 상승 및 캐릭터 성격·친밀도 맞춤 리액션 + 스마트폰 일상 인증샷 전송!
-      state.affection = Math.min(100, state.affection + gift.affectionBoost);
-      saveAccountState();
-
-      // 캐릭터 친밀도·성격·컨셉·메시지 카드가 100% 반영된 감동 리액션 생성 (연속 중복 원천 차단)
-      const bubbles = await generateGiftReactionBubbles(char, gift, customMsg);
-
-      // 카탈로그 흰색 누끼 이미지가 아닌, 1인칭 스마트폰 일상 인증샷(thanks_*.jpg) 전송
-      const proofPhotoUrl = gift.proofImage || `gifts/thanks_${gift.key}.jpg`;
-      const mediaItem = {
-        mediaType: 'photo',
-        mediaId: `gift_thanks_${char.id}_${Date.now()}`,
-        photoUrl: proofPhotoUrl,
-        photoTitle: `${gift.brand} ${gift.name} 일상 인증샷`,
-        photoDesc: `방금 선물 받고 기분 좋아서 폰으로 찍어 보낸 생생한 인증 사진`,
-        isSecret: false,
-        cost: 0,
-        caption: `📸 방금 도착해서 폰으로 찍은 인증샷이에요 ㅎㅎ 잘 쓸게요!`
-      };
-
-      runRealisticReplySequence({
-        bubbles: bubbles,
-        isColdOrRude: false,
-        leaveRoom: false,
-        mediaItem: mediaItem
-      });
+        await runRealisticReplySequence({bubbles:[result.partnerReply],replyId:result.replyId});
+      } catch (error) {
+        if (state.currentChar?.id === char.id) {
+          if (error.code === 'INSUFFICIENT_HEARTS') openHeartNeededModal(char.name);
+          else showGenerationError(()=>sendGiftToCurrentChar(giftKey,customMsg,requestId));
+        }
+      } finally { if(state.currentChar?.id===char.id){state.isAiBusy=false;hideTypingIndicator();updateHeaderDefaultStatus();} }
     }
 
-    // 보관된 인연 선톡 기능 비활성화
     function triggerSavedRoomsTimeGreetings() {
       return;
     }
@@ -5307,107 +4113,30 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
     // =========================================================================
     // 9. SENDING USER MESSAGES (WITH CREDIT CHECK & AUTO-SAVE)
     // =========================================================================
-    function sendUserMessage(rawText) {
-      if (window.ApiClient?.isHosted() && (!serverStateReady || !ApiClient.isConnected())) { showToast('서버에 연결 중입니다. 잠시 후 다시 시도해주세요.'); return; }
-      const text = (rawText || '').trim();
-      if (!text) return;
-      if (state.roomLeft) {
-        showToast('🚪 상대방이 대화방을 나갔습니다. 상단이나 화면의 [새로운 상대 찾기]를 눌러보세요.');
-        return;
-      }
-
-      const MSG_HEART_COST = 3.7;
-      if (!state.isVipUnlimited && (state.hearts < MSG_HEART_COST || state.credits < MSG_HEART_COST)) {
-        openHeartNeededModal(state.currentChar?.name || '상대방');
-        return;
-      }
-
-      if (!window.ApiClient?.isHosted() && !state.isVipUnlimited) {
-        state.hearts = Math.max(0, Math.round((state.hearts - MSG_HEART_COST) * 10) / 10);
-        state.credits = state.hearts;
-        updateAccountAndCreditUI();
-      }
-
-      // 사용자가 메시지를 보낸 순간, 진행 중이던 초기 인사 큐나 이전 타이핑 큐는 즉시 정리
-      if (state.isGreetingPending) {
-        clearAllTimers();
-        state.isGreetingPending = false;
-      }
+    async function sendUserMessage(rawText) {
+      const text=(rawText || '').trim(), char=state.currentChar;
+      if (!text || !char || state.isAiBusy || state.roomLeft) return;
+      if (!state.isVipUnlimited && state.hearts < 3.7) { openHeartNeededModal(char.name); return; }
+      document.getElementById('generationErrorNotice')?.remove();
       clearIdleFollowUpTimer();
-      state.idleFollowUpCount = 0;
-
-      const input = document.getElementById('chatInput');
-      input.value = '';
-      input.style.height = 'auto';
-
-      appendMessage('user', text);
-      state.turnCount += 1;
+      const input=document.getElementById('chatInput');
+      input.value=''; input.style.height='auto';
+      appendMessage('user',text);
+      const requestId=state.messages.at(-1).id;
+      state.turnCount+=1;
+      state.messageTurnId=(state.messageTurnId || 0)+1;
+      const turnId=state.messageTurnId;
+      state.isAiBusy=true;
       saveAccountState();
-
-      headerStatusText.textContent = '전송됨 · 안 읽음';
-      headerStatusText.className = 'text-[12.5px] text-[#8b95a1] mt-0.5 leading-snug';
-
-      if (state.pendingReadTimer) {
-        clearTimeout(state.pendingReadTimer);
-      }
-
-      if (!state.pendingUserTexts) state.pendingUserTexts = [];
-      state.pendingUserTexts.push(text);
-
-      // 고유 턴 ID 생성 (이전 지연 응답이 덮어쓰지 못하도록 보장)
-      state.messageTurnId = (state.messageTurnId || 0) + 1;
-      const turnId = state.messageTurnId;
-
-      // 메시지를 확인하기 전 짧은 대기
-      const unreadWaitMs = Math.round(450 + Math.min(250, text.length * 8) + Math.random() * 150);
-
-      // 백그라운드 사전 요청으로 대기시간 최소화 (읽자마자 0초 딜레이로 즉시 타이핑 돌입하도록 지원)
-      const currentBatch = state.pendingUserTexts.join(' ');
-      const char = state.currentChar;
-      const roomIdAtSend = char ? char.id : null;
-      let prefetchPromise = fetchLLMResponse(currentBatch);
-
-      state.pendingReadTimer = setTimeout(async () => {
-        state.pendingReadTimer = null;
-        if (state.roomLeft || turnId !== state.messageTurnId) return;
-
-        // [핵심 1]: 자연스러운 시간(0.4~0.8초) 동안 '1'이 유지된 후 읽음 처리
-        markAllUserMessagesRead();
-
-        // [핵심 2]: 읽자마자 1밀리초의 지체도 없이 "즉시" 타이핑 인디케이터 시작!
-        if (!state.currentChar || state.currentChar.id !== roomIdAtSend) return;
-        headerStatusText.textContent = `${state.currentChar.name}님이 입력 중...`;
-        headerStatusText.className = 'text-[12.5px] text-emerald-600 mt-0.5 font-medium leading-snug';
-        showTypingIndicator(`${state.currentChar.name}님이 입력 중...`);
-
-        const typingStartedAt = Date.now();
-        let replyPlan = null;
-        const finalBatch = state.pendingUserTexts.join(' ');
-        state.pendingUserTexts = [];
-        try {
-          if (finalBatch && finalBatch !== currentBatch) {
-            replyPlan = await fetchLLMResponse(finalBatch);
-          } else {
-            replyPlan = await prefetchPromise;
-          }
-        } catch (fetchErr) {
-          console.warn('Reply plan fetch error, falling back locally:', fetchErr);
-          replyPlan = ApiClient.isHosted() ? { bubbles: [], failed: true } : buildLocalPersonaResponse(finalBatch || currentBatch);
-        }
-
-        if (!state.currentChar || state.currentChar.id !== roomIdAtSend || state.roomLeft || turnId !== state.messageTurnId) {
-          hideTypingIndicator();
-          return;
-        }
-
-        // 생성된 문장 길이에 맞춰 입력 중 상태를 유지한 뒤 표시합니다.
-        runRealisticReplySequence(replyPlan, false, turnId, typingStartedAt);
-      }, unreadWaitMs);
+      markAllUserMessagesRead();
+      headerStatusText.textContent=`${char.name}님이 입력 중...`;
+      showTypingIndicator(`${char.name}님이 입력 중...`);
+      const startedAt=Date.now();
+      const plan=await fetchLLMResponse(text,requestId);
+      if (state.currentChar?.id!==char.id || state.messageTurnId!==turnId) return;
+      await runRealisticReplySequence(plan,false,turnId,startedAt);
     }
 
-    // =========================================================================
-    // 10. SAVED CONNECTIONS, MATCH FILTER, RECALL PARTNER, PHONE AUTH & PAYMENT
-    // =========================================================================
     function updateFilterModalUI() {
       const { ages, traits, regions } = state.matchFilter;
       const isAnyActive = (ages && ages.length > 0) || (traits && traits.length > 0) || (regions && regions.length > 0);

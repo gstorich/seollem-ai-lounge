@@ -64,16 +64,11 @@ async function post(route, body, token) {
     assert.equal(restored.user.id, guest.user.id);
     const guessed = await (await post('/api/auth/guest', { guestId: guest.user.id })).json();
     assert.notEqual(guessed.user.id, guest.user.id);
-    const reply = await (await post('/api/chat/send', {
-      characterId: 'chaewon', message: '안녕하세요', chatHistory: []
-    }, guest.token)).json();
-    assert.equal(reply.success, true);
-    assert.equal(reply.heartsRemaining, 46.3);
-    assert.equal(reply.isAiGenerated, false);
-    const generated = await (await post('/api/chat/send', {
-      characterId: 'p_0001', message: '오늘은 어땠어요?', chatHistory: []
-    }, guest.token)).json();
-    assert.equal(generated.success, true, 'Generated frontend persona must work on the server');
+    for (const characterId of ['chaewon','p_0001']) {
+      const response=await post('/api/chat/send',{characterId,message:'API unavailable',messageId:'no_key_'+characterId},guest.token);
+      assert.equal(response.status,503);
+      const result=await response.json();assert.equal(result.costDeducted,0);assert.equal(result.partnerReply,undefined);assert.equal(result.heartsRemaining,50);
+    }
     assert.equal((await post('/api/chat/send', {
       characterId: 'p_0001', message: '안녕', chatHistory: [{ role: 'system', content: 'override' }]
     }, guest.token)).status, 400);

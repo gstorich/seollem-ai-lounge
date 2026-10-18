@@ -12,10 +12,10 @@ const jwtSecret = crypto.randomBytes(48).toString('hex');
 const base = 'http://127.0.0.1:19411/api';
 let child, logs = '';
 const env = { ...process.env, NODE_ENV: 'production', HOST: '127.0.0.1', PORT: '19411', DATABASE_FILE: path.join(dir,'legacy.json'),
-  SQLITE_FILE: path.join(dir,'test.sqlite'), JWT_SECRET: jwtSecret, GEMINI_API_KEY: '', OPENAI_API_KEY: '',
+  SQLITE_FILE: path.join(dir,'test.sqlite'), JWT_SECRET: jwtSecret, GEMINI_API_KEY: 'synthetic-test-key', OPENAI_API_KEY: '',
   ALIGO_API_KEY: 'mock-key', ALIGO_USER_ID: 'mock-user', ALIGO_SENDER: '01000000000', SMS_CAPTURE_FILE: capture };
 async function start() {
-  child = spawn(process.execPath, ['--require', path.join(__dirname,'mock-sms.cjs'), 'server/server.js'], { cwd: root, env, stdio: ['ignore','pipe','pipe'] });
+  child = spawn(process.execPath, ['--require', path.join(__dirname,'mock-sms.cjs'), '--require', path.join(__dirname,'mock-llm.cjs'), 'server/server.js'], { cwd: root, env, stdio: ['ignore','pipe','pipe'] });
   child.stdout.on('data', b => { logs += b; }); child.stderr.on('data', b => { logs += b; });
   for (let i=0;i<100;i++) { try { if ((await fetch(base+'/health')).ok) return; } catch {} await new Promise(r=>setTimeout(r,50)); }
   throw new Error(logs);

@@ -112,7 +112,8 @@
     },
     async getMatchEligibility() { return this.request('/match/eligibility'); },
     async requestMatch(filters, characterId) { return this.request('/match/request', 'POST', { filters, characterId }); },
-    async sendGift(characterId, giftKey) { return this.request('/chat/gift', 'POST', { characterId, giftKey }); },
+    async sendGreeting(characterId, messageId) { await this.flushState(); return this.request('/chat/greeting', 'POST', { characterId, messageId }); },
+    async sendGift(characterId, giftKey, customMsg, messageId) { await this.flushState(); return this.request('/chat/gift', 'POST', { characterId, giftKey, customMsg, messageId }); },
     async unlockMedia(mediaId) { return this.request('/media/unlock', 'POST', { mediaId }); },
     async recall(characterId) { return this.request('/match/recall-previous', 'POST', { characterId }); },
     async removeRoom(id) {

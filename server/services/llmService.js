@@ -79,47 +79,25 @@ async function callOpenAI(messages, systemInstruction, apiKey, signal = AbortSig
   });
 
   if (!res.ok) {
-    const errText = await res.text();
-    throw new Error(`OpenAI API Error (${res.status}): ${errText}`);
+    throw new Error(`OpenAI API Error (${res.status})`);
   }
 
   const data = await res.json();
-  return (data.choices && data.choices[0] && data.choices[0].message) ? data.choices[0].message.content.trim() : '';
-}
-
-function getFallbackReply(character, lastUserText = '') {
-  const fallbacks = [
-    '아 그랬어요? 조금 더 얘기해줘요',
-    '오늘은 좀 어떠셨어요?',
-    '천천히 얘기해요. 듣고 있어요'
-  ];
-  return fallbacks[Math.floor(Math.random() * fallbacks.length)];
+  const choice = data.choices?.[0];
+  if (choice?.finish_reason !== 'stop') throw new Error('OpenAI response incomplete');
+  return choice.message?.content?.trim() || '';
 }
 
 module.exports = {
   async generateReply(character, chatHistory, userContext = {}) {
     const relationship = userContext.relationship || require('./relationshipContext').buildRelationshipContext(character,chatHistory);
     const systemPrompt = characterService.buildSystemPrompt(character, {...userContext,relationship});
-    let reply = '';
-    let isAiGenerated = false;
+    let reply;
     const signal = AbortSignal.timeout(45000);
-
-    try {
-      if (config.geminiApiKey) {
-        reply = await callGemini(chatHistory, systemPrompt, config.geminiApiKey, signal);
-        isAiGenerated = Boolean(reply);
-      } else if (config.openaiApiKey) {
-        reply = await callOpenAI(chatHistory, systemPrompt, config.openaiApiKey, signal);
-        isAiGenerated = true;
-      }
-    } catch (err) {
-      console.warn('[LLM] API call failed, falling back to local persona engine:', err.message);
-    }
-
-    if (!reply) {
-      const lastUserMsg = chatHistory[chatHistory.length - 1]?.content || '';
-      reply = getFallbackReply(character, lastUserMsg);
-    }
+    if (config.geminiApiKey) reply = await callGemini(chatHistory, systemPrompt, config.geminiApiKey, signal);
+    else if (config.openaiApiKey) reply = await callOpenAI(chatHistory, systemPrompt, config.openaiApiKey, signal);
+    else throw new Error('LLM_NOT_CONFIGURED');
+    if (!reply?.trim()) throw new Error('LLM_EMPTY_RESPONSE');
 
     // Check for room left exit tag
     const roomLeft = reply.includes('[대화종료]');
@@ -130,10 +108,12 @@ module.exports = {
       .replace(/\s*\([a-zA-Z가-힣0-9\s]{2,15}\)/g, '') // 일반적인 괄호 설명 제거
       .trim();
 
+    const text = chatPunctuation(cleanedText);
+    if (!text.trim()) throw new Error('LLM_EMPTY_RESPONSE');
     return {
-      text: chatPunctuation(cleanedText),
+      text,
       roomLeft,
-      isAiGenerated
+      isAiGenerated: true
     };
   }
 };

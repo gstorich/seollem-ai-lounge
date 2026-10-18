@@ -44,7 +44,7 @@ const requestLimit = (limit) => rateLimit({
   message: { success: false, error: '요청이 많습니다. 잠시 후 다시 시도해주세요.' }
 });
 app.use('/api/auth/guest', requestLimit(10));
-app.use('/api/chat/send', requestLimit(12));
+app.use(['/api/chat/send','/api/chat/greeting','/api/chat/gift'], requestLimit(12));
 
 // Static Assets (Avatars, Gifts) from project root
 app.use('/avatars', express.static(path.join(__dirname, '..', 'avatars')));
