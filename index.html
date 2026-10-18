@@ -81,9 +81,9 @@
         <!-- Friendly Hero Start Card (SimSimi / GagaLive style) -->
         <div class="p-5 rounded-2xl bg-white border border-[#e8e4d8] shadow-[0_2px_8px_rgba(0,0,0,0.04)] space-y-3.5">
           <div>
-            <span class="text-[12px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-md">1:1 편안한 말동무</span>
-            <h2 class="text-[18px] font-black text-[#111111] mt-1.5 leading-snug">오늘 하루, 따뜻한 대화 나눠보세요</h2>
-            <p class="text-[13px] text-[#666666] mt-1">외롭거나 심심할 때, 언제든 다정하게 이야기를 들어드립니다.</p>
+            <span class="inline-flex items-center gap-1.5 text-[12px] font-bold text-rose-700 bg-rose-50 border border-rose-200 px-2.5 py-0.5 rounded-full"><span class="w-2 h-2 rounded-full bg-rose-500 animate-pulse"></span>1:1 실시간 매칭</span>
+            <h2 class="text-[19px] font-black text-[#111111] mt-2 leading-snug">지금 <span id="waitingCountText" class="text-rose-600 font-black tracking-tight">1,240명</span>의 대화 상대가 기다리고 있어요</h2>
+            <p class="text-[13.5px] text-[#666666] mt-1 leading-relaxed">외롭거나 심심할 때, 언제든 다정하게 이야기를 들어드립니다.</p>
           </div>
 
           <!-- Active Filter Tag Bar (if conditions are active) -->
@@ -4988,11 +4988,22 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
       }
     }
 
+    function updateWaitingCount() {
+      const el = document.getElementById('waitingCountText');
+      if (!el) return;
+      const unmet = typeof getFilteredUnmetPool === 'function' ? getFilteredUnmetPool(false).length : 1240;
+      const minute = new Date().getMinutes();
+      const wave = ((minute * 11 + 17) % 31) - 15;
+      const count = Math.max(80, (unmet > 0 ? unmet : 1240) + wave);
+      el.textContent = `${count.toLocaleString()}명`;
+    }
+
     function renderChatRoomsList() {
       const container = document.getElementById('chatRoomsListContainer');
       if (!container) return;
       container.innerHTML = '';
 
+      updateWaitingCount();
       const entries = Object.values(state.savedRooms || {}).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
       updateChatListBadges();
 
@@ -5990,6 +6001,7 @@ ${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 �
       triggerSavedRoomsTimeGreetings();
       updateAccountAndCreditUI();
       updateFilterModalUI();
+      updateWaitingCount();
       initUrgencyTimer();
       updateMatchCooldownUI();
       setInterval(updateMatchCooldownUI, 1000);
