@@ -54,143 +54,235 @@
   <!-- Main Mobile Container -->
   <div id="appShell" class="relative w-full max-w-[460px] h-full sm:h-[94dvh] sm:max-h-[900px] sm:rounded-[28px] sm:shadow-[0_20px_60px_rgba(0,0,0,0.85)] sm:border sm:border-white/10 flex flex-col overflow-hidden bg-[#0e1017]">
 
-    <!-- 1. Real Mobile Messenger Header (KakaoTalk / Tinder Chat Style) -->
-    <header class="shrink-0 bg-[#141720] border-b border-white/[0.08] px-3.5 py-2.5 z-30 relative">
-      <div class="flex items-center justify-between gap-2">
-        <!-- Left: Back to Chat List (내 인연 목록) -->
-        <button id="btnOpenSavedRooms" type="button" class="relative flex items-center gap-1.5 px-2.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] active:scale-95 text-zinc-200 hover:text-white transition shrink-0 border border-white/10" title="내 인연 대화목록">
-          <svg class="w-4 h-4 text-zinc-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
-          <span class="text-[13px] font-bold">인연</span>
-          <span id="savedCountBadge" class="px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 text-[11px] font-bold">0</span>
-          <span id="savedUnreadBadge" class="hidden absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center shadow-md ring-2 ring-[#141720]">1</span>
-        </button>
-
-        <!-- Center: Avatar + Name & Info (Clickable for Profile) -->
-        <div class="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer px-1 py-1 rounded-xl hover:bg-white/[0.04] transition" id="headerInfoArea" title="프로필 및 일상 사진첩 보기">
-          <div class="relative shrink-0">
-            <img id="headerAvatar" src="avatars/avatar_05_yoon_jieun.jpg" alt="프로필" class="w-10 h-10 rounded-2xl object-cover border border-amber-400/50 shadow-sm" />
-            <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-[#141720]"></span>
-          </div>
-
-          <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-1.5">
-              <h1 id="headerName" class="text-[15.5px] font-bold text-white truncate leading-tight">윤지은</h1>
-              <span id="headerAgeJob" class="text-[12px] text-amber-300 font-medium truncate">28세 · 강사</span>
-            </div>
-            <p id="headerStatusText" class="text-[11.5px] text-zinc-400 truncate mt-0.5 leading-snug">
-              접속 중 · 대화 가능
-            </p>
-          </div>
+    <!-- VIEW 1: 대화방 목록 화면 (Messenger Chat List / Lounge) -->
+    <section id="viewChatList" class="flex flex-col h-full w-full">
+      <!-- 1. Chat List Header -->
+      <header class="shrink-0 bg-[#141720] border-b border-white/[0.08] px-4 py-3 z-30 flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <h1 class="text-[17px] font-bold text-white flex items-center gap-2">
+            <span>💬 설렘 대화방</span>
+          </h1>
+          <span id="listTotalRoomsBadge" class="px-2 py-0.5 rounded-full bg-amber-500/20 text-amber-300 text-[11px] font-bold">0</span>
         </div>
-
-        <!-- Right: Pinned Bookmark Star + Filter + Dropdown Menu -->
-        <div class="flex items-center gap-1.5 shrink-0">
-          <!-- Always-Visible Bookmark Button -->
-          <button id="btnHeaderBookmark" type="button" class="px-2.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-zinc-300 hover:text-amber-300 transition active:scale-95 flex items-center gap-1 text-[12.5px] font-semibold" title="이 인연 보관하기">
-            <span id="headerBookmarkIcon" class="text-[15px]">☆</span>
-            <span id="headerBookmarkText" class="hidden xs:inline">보관</span>
-          </button>
-
-          <!-- Filter Button (Conditions) -->
-          <button id="btnOpenMatchFilter" type="button" class="relative p-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-zinc-300 hover:text-white transition active:scale-95 flex items-center justify-center text-[15px] w-9 h-9" title="매칭 조건 설정">
+        <div class="flex items-center gap-1.5">
+          <button id="btnListOpenFilter" type="button" class="relative p-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-zinc-300 hover:text-white transition active:scale-95 text-[15px] w-9 h-9 flex items-center justify-center" title="매칭 조건 설정">
             <span>⚙️</span>
-            <span id="filterActiveDot" class="hidden absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-[#141720]"></span>
+            <span id="listFilterActiveDot" class="hidden absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-[#141720]"></span>
           </button>
-
-          <!-- Rematch / More Actions Dropdown Toggle -->
-          <button id="btnHeaderMenuToggle" type="button" class="p-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-zinc-300 hover:text-white transition active:scale-95 flex items-center justify-center text-[16px] font-bold w-9 h-9" title="더보기 메뉴">
-            <span>⋮</span>
+          <button id="btnListOpenAiPolicy" type="button" class="p-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-amber-300 hover:text-amber-200 transition active:scale-95 text-[14px] w-9 h-9 flex items-center justify-center font-bold" title="API 키 설정">
+            <span>🔑</span>
+          </button>
+          <button id="btnListOpenPhoneAuth" type="button" class="p-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-zinc-300 hover:text-white transition active:scale-95 h-9 px-2.5 flex items-center gap-1 font-semibold text-[11.5px]" title="휴대폰 인증">
+            <span>📱</span>
+            <span id="listAuthBtnText">인증</span>
           </button>
         </div>
-      </div>
+      </header>
 
-      <!-- Header Dropdown Menu (New Match, Leave Room, Profile, etc.) -->
-      <div id="headerDropdownMenu" class="hidden absolute right-3 top-[54px] z-50 w-56 bg-[#161a27] border border-white/15 rounded-2xl shadow-2xl p-1.5 text-zinc-200 backdrop-blur-xl">
-        <button id="menuItemRematch" type="button" class="w-full px-3 py-2.5 rounded-xl hover:bg-white/[0.08] flex items-center gap-2.5 text-left text-[13px] font-medium text-white transition active:scale-98">
-          <span class="text-amber-300 text-base">↻</span>
-          <div class="flex-1">
-            <div class="font-bold text-amber-200">새로운 인연 매칭</div>
-            <div class="text-[11px] text-zinc-400">다른 상대와 새로 대화 시작</div>
-          </div>
-        </button>
-        <button id="menuItemFilter" type="button" class="w-full px-3 py-2.5 rounded-xl hover:bg-white/[0.08] flex items-center gap-2.5 text-left text-[13px] font-medium text-white transition active:scale-98">
-          <span class="text-base">⚙️</span>
-          <div class="flex-1">
-            <div class="flex items-center gap-1.5">
-              <span class="font-bold">매칭 조건/필터</span>
-              <span id="menuFilterActiveBadge" class="hidden px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold">적용중</span>
+      <!-- 2. Chat List Scrollable Body -->
+      <div class="flex-1 overflow-y-auto chat-scroll p-4 space-y-4">
+        <!-- Hero Match Card -->
+        <div class="p-4 rounded-3xl bg-gradient-to-br from-[#1b1f2e] via-[#161925] to-[#11131c] border border-amber-400/25 shadow-xl space-y-3">
+          <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <div class="w-10 h-10 rounded-2xl bg-gradient-to-tr from-amber-500/20 to-rose-500/20 border border-amber-400/30 flex items-center justify-center text-lg shadow-inner">
+                ✨
+              </div>
+              <div>
+                <h2 class="text-[15.5px] font-bold text-white leading-tight">새로운 랜덤 인연</h2>
+                <p class="text-[11.5px] text-zinc-400 mt-0.5">취향에 맞는 새 상대와 설레는 대화</p>
+              </div>
             </div>
-            <div class="text-[11px] text-zinc-400">연령·성격·지역 조건 변경</div>
+            <button id="btnListFilterBadge" type="button" class="flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-[11.5px] text-amber-300 font-semibold active:scale-95 transition">
+              <span>⚙️</span>
+              <span id="listFilterSummaryText">전체 조건</span>
+            </button>
           </div>
-        </button>
-        <button id="menuItemProfile" type="button" class="w-full px-3 py-2.5 rounded-xl hover:bg-white/[0.08] flex items-center gap-2.5 text-left text-[13px] font-medium text-white transition active:scale-98">
-          <span class="text-base">👤</span>
-          <div class="flex-1">
-            <div class="font-bold">상대 프로필 & 사진첩</div>
-            <div class="text-[11px] text-zinc-400">일상 사진 및 상세 정보 확인</div>
-          </div>
-        </button>
-        <div class="my-1 border-t border-white/10"></div>
-        <button id="menuItemLeaveRoom" type="button" class="w-full px-3 py-2.5 rounded-xl hover:bg-rose-500/15 flex items-center gap-2.5 text-left text-[13px] font-medium text-rose-300 transition active:scale-98">
-          <span class="text-rose-400 text-base">🚪</span>
-          <div class="flex-1">
-            <div class="font-bold text-rose-300">대화방 나가기</div>
-            <div class="text-[11px] text-rose-200/70">현재 대화를 종료하고 방을 나감</div>
-          </div>
-        </button>
-      </div>
-    </header>
 
-    <!-- 2. Spacious Chat Message Stream -->
-    <main id="chatContainer" class="flex-1 overflow-y-auto chat-scroll px-4 py-4 space-y-4">
-      <!-- Match Card & Messages injected via JS -->
-    </main>
-
-    <!-- 3. Simple Typing Indicator (No truncated ghost text) -->
-    <div id="liveActionRow" class="hidden px-4 pb-2 shrink-0">
-      <div class="inline-flex items-center gap-2.5 bg-[#181c27] rounded-2xl rounded-tl-sm px-4 py-2.5 border border-white/10">
-        <div class="flex items-center gap-1">
-          <span class="w-1.5 h-1.5 rounded-full bg-amber-400 typing-dot-1"></span>
-          <span class="w-1.5 h-1.5 rounded-full bg-amber-400 typing-dot-2"></span>
-          <span class="w-1.5 h-1.5 rounded-full bg-amber-400 typing-dot-3"></span>
-        </div>
-        <span id="typingStateBadge" class="text-[13px] font-medium text-zinc-300">답장 입력 중...</span>
-      </div>
-    </div>
-
-    <!-- 4. Clean Bottom Input Bar + Subtle Account/Credit Status Bar -->
-    <footer class="shrink-0 bg-[#0b0d13] px-4 pt-2.5 pb-3 border-t border-white/10 z-20">
-      <form id="chatForm" class="flex items-end gap-2">
-        <button id="btnOpenGiftModal" type="button" title="마음 전하기 (선물)" class="shrink-0 w-11 h-11 rounded-2xl bg-[#181b24] hover:bg-[#222736] active:scale-95 border border-amber-400/30 text-[19px] flex items-center justify-center transition shadow">
-          🎁
-        </button>
-
-        <div class="flex-1 bg-[#181b24] rounded-2xl px-4 py-2.5 flex items-center border border-white/10 focus-within:border-amber-400/70 transition">
-          <textarea id="chatInput" rows="1" placeholder="메시지를 입력하세요..." class="w-full bg-transparent text-[15.5px] text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none max-h-24 leading-relaxed"></textarea>
-        </div>
-
-        <button id="btnSend" type="submit" class="shrink-0 h-11 px-5 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 active:scale-95 text-zinc-950 font-bold text-[15px] shadow-md transition flex items-center justify-center">
-          전송
-        </button>
-      </form>
-      <div class="flex items-center justify-between mt-2 text-[11.5px] text-zinc-400 px-0.5">
-        <div class="flex items-center gap-2">
-          <button id="btnOpenPaymentFooter" type="button" class="hover:text-amber-300 transition flex items-center gap-1 font-medium">
-            <span id="footerCreditText" class="text-amber-300 font-semibold">☕ 무료 대화 5회 남음</span>
-            <span class="underline underline-offset-2 text-zinc-400">충전</span>
-          </button>
-          <span class="text-zinc-600">·</span>
-          <button id="btnOpenPhoneAuthFooter" type="button" class="hover:text-zinc-200 transition underline underline-offset-2">
-            📱 번호인증(기록보관)
+          <button id="btnListNewMatch" type="button" class="w-full py-3.5 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 active:scale-98 text-zinc-950 font-extrabold text-[15px] shadow-lg shadow-amber-500/15 flex items-center justify-center gap-2 transition">
+            <span>✨ 새로운 랜덤 상대 매칭하기</span>
+            <span class="text-base font-bold">↻</span>
           </button>
         </div>
-        <div class="flex items-center gap-1.5 text-[11.5px] text-zinc-400">
-          <button id="btnOpenAiPolicyInfo" type="button" class="px-2 py-0.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-amber-300 font-semibold transition">
-            🔑 API 키 설정
+
+        <!-- Phone Verification Banner (if unverified) -->
+        <div id="listAuthNoticeBox" class="p-3.5 rounded-2xl bg-[#151926] border border-amber-400/30 flex items-center justify-between gap-3">
+          <div class="text-[12.5px] leading-snug">
+            <div class="font-bold text-amber-300 flex items-center gap-1">
+              <span>📱</span>
+              <span>휴대폰 번호 미연동 (임시 보관)</span>
+            </div>
+            <div class="text-zinc-400 mt-0.5 text-[11.5px]">인증 시 대화 기록 영구 보관 + 무료 5회 지급!</div>
+          </div>
+          <button id="btnListAuthCta" type="button" class="shrink-0 px-3 py-1.5 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-[11.5px] transition active:scale-95">
+            3초 인증
           </button>
         </div>
+
+        <!-- Section Title -->
+        <div class="flex items-center justify-between px-1 pt-1">
+          <div class="text-[13px] font-bold text-zinc-300 flex items-center gap-1.5">
+            <span>진행 중인 대화</span>
+            <span id="listSectionCount" class="text-amber-300">0</span>
+          </div>
+          <span class="text-[11px] text-zinc-500">언제든 원하는 상대와 대화 이어가기</span>
+        </div>
+
+        <!-- Chat Rooms List Container -->
+        <div id="chatRoomsListContainer" class="space-y-2.5">
+          <!-- Populated dynamically by renderChatRoomsList() -->
+        </div>
       </div>
-    </footer>
+
+      <!-- 3. List View Bottom Credit Bar -->
+      <footer class="shrink-0 bg-[#0b0d13] px-4 py-2.5 border-t border-white/10 z-20 flex items-center justify-between text-[12px] text-zinc-400">
+        <button id="btnOpenPaymentListFooter" type="button" class="hover:text-amber-300 transition flex items-center gap-1 font-medium">
+          <span id="listFooterCreditText" class="text-amber-300 font-semibold">☕ 무료 대화 5회 남음</span>
+          <span class="underline underline-offset-2 text-zinc-400">충전</span>
+        </button>
+        <span class="text-[11px] text-zinc-500">설렘 AI 라운지</span>
+      </footer>
+    </section>
+
+    <!-- VIEW 2: 대화방 화면 (Active Chat Room Screen) -->
+    <section id="viewChatRoom" class="hidden flex flex-col h-full w-full">
+      <!-- 1. Real Mobile Messenger Header (KakaoTalk / Tinder Chat Style) -->
+      <header class="shrink-0 bg-[#141720] border-b border-white/[0.08] px-3.5 py-2.5 z-30 relative">
+        <div class="flex items-center justify-between gap-2">
+          <!-- Left: Back to Chat List (대화방 목록으로) -->
+          <button id="btnBackToChatList" type="button" class="relative flex items-center gap-1.5 px-3 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] active:scale-95 text-zinc-200 hover:text-white transition shrink-0 border border-white/10" title="대화방 목록으로">
+            <svg class="w-4 h-4 text-zinc-300" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M15 19l-7-7 7-7"/></svg>
+            <span class="text-[13px] font-bold">목록</span>
+            <span id="chatListUnreadBadge" class="hidden absolute -top-1.5 -right-1.5 min-w-[18px] h-[18px] px-1 rounded-full bg-rose-500 text-white text-[10px] font-black flex items-center justify-center shadow-md ring-2 ring-[#141720]"></span>
+          </button>
+
+          <!-- Center: Avatar + Name & Info (Clickable for Profile) -->
+          <div class="flex items-center gap-2.5 flex-1 min-w-0 cursor-pointer px-1 py-1 rounded-xl hover:bg-white/[0.04] transition" id="headerInfoArea" title="프로필 및 일상 사진첩 보기">
+            <div class="relative shrink-0">
+              <img id="headerAvatar" src="avatars/avatar_05_yoon_jieun.jpg" alt="프로필" class="w-10 h-10 rounded-2xl object-cover border border-amber-400/50 shadow-sm" />
+              <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-400 ring-2 ring-[#141720]"></span>
+            </div>
+
+            <div class="min-w-0 flex-1">
+              <div class="flex items-center gap-1.5">
+                <h1 id="headerName" class="text-[15.5px] font-bold text-white truncate leading-tight">윤지은</h1>
+                <span id="headerAgeJob" class="text-[12px] text-amber-300 font-medium truncate">28세 · 강사</span>
+              </div>
+              <p id="headerStatusText" class="text-[11.5px] text-zinc-400 truncate mt-0.5 leading-snug">
+                접속 중 · 대화 가능
+              </p>
+            </div>
+          </div>
+
+          <!-- Right: Pinned Bookmark Star + Filter + Dropdown Menu -->
+          <div class="flex items-center gap-1.5 shrink-0">
+            <!-- Always-Visible Bookmark Button -->
+            <button id="btnHeaderBookmark" type="button" class="px-2.5 py-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-zinc-300 hover:text-amber-300 transition active:scale-95 flex items-center gap-1 text-[12.5px] font-semibold" title="이 인연 보관하기">
+              <span id="headerBookmarkIcon" class="text-[15px]">☆</span>
+              <span id="headerBookmarkText" class="hidden xs:inline">보관</span>
+            </button>
+
+            <!-- Filter Button (Conditions) -->
+            <button id="btnOpenMatchFilter" type="button" class="relative p-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-zinc-300 hover:text-white transition active:scale-95 flex items-center justify-center text-[15px] w-9 h-9" title="매칭 조건 설정">
+              <span>⚙️</span>
+              <span id="filterActiveDot" class="hidden absolute top-1 right-1 w-2 h-2 rounded-full bg-amber-400 ring-2 ring-[#141720]"></span>
+            </button>
+
+            <!-- Rematch / More Actions Dropdown Toggle -->
+            <button id="btnHeaderMenuToggle" type="button" class="p-2 rounded-xl bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-zinc-300 hover:text-white transition active:scale-95 flex items-center justify-center text-[16px] font-bold w-9 h-9" title="더보기 메뉴">
+              <span>⋮</span>
+            </button>
+          </div>
+        </div>
+
+        <!-- Header Dropdown Menu (New Match, Leave Room, Profile, etc.) -->
+        <div id="headerDropdownMenu" class="hidden absolute right-3 top-[54px] z-50 w-56 bg-[#161a27] border border-white/15 rounded-2xl shadow-2xl p-1.5 text-zinc-200 backdrop-blur-xl">
+          <button id="menuItemRematch" type="button" class="w-full px-3 py-2.5 rounded-xl hover:bg-white/[0.08] flex items-center gap-2.5 text-left text-[13px] font-medium text-white transition active:scale-98">
+            <span class="text-amber-300 text-base">↻</span>
+            <div class="flex-1">
+              <div class="font-bold text-amber-200">새로운 인연 매칭</div>
+              <div class="text-[11px] text-zinc-400">다른 상대와 새로 대화 시작</div>
+            </div>
+          </button>
+          <button id="menuItemFilter" type="button" class="w-full px-3 py-2.5 rounded-xl hover:bg-white/[0.08] flex items-center gap-2.5 text-left text-[13px] font-medium text-white transition active:scale-98">
+            <span class="text-base">⚙️</span>
+            <div class="flex-1">
+              <div class="flex items-center gap-1.5">
+                <span class="font-bold">매칭 조건/필터</span>
+                <span id="menuFilterActiveBadge" class="hidden px-1.5 py-0.2 rounded-full bg-amber-500/20 text-amber-300 text-[10px] font-bold">적용중</span>
+              </div>
+              <div class="text-[11px] text-zinc-400">연령·성격·지역 조건 변경</div>
+            </div>
+          </button>
+          <button id="menuItemProfile" type="button" class="w-full px-3 py-2.5 rounded-xl hover:bg-white/[0.08] flex items-center gap-2.5 text-left text-[13px] font-medium text-white transition active:scale-98">
+            <span class="text-base">👤</span>
+            <div class="flex-1">
+              <div class="font-bold">상대 프로필 & 사진첩</div>
+              <div class="text-[11px] text-zinc-400">일상 사진 및 상세 정보 확인</div>
+            </div>
+          </button>
+          <div class="my-1 border-t border-white/10"></div>
+          <button id="menuItemLeaveRoom" type="button" class="w-full px-3 py-2.5 rounded-xl hover:bg-rose-500/15 flex items-center gap-2.5 text-left text-[13px] font-medium text-rose-300 transition active:scale-98">
+            <span class="text-rose-400 text-base">🚪</span>
+            <div class="flex-1">
+              <div class="font-bold text-rose-300">대화방 나가기</div>
+              <div class="text-[11px] text-rose-200/70">현재 대화를 종료하고 방을 나감</div>
+            </div>
+          </button>
+        </div>
+      </header>
+
+      <!-- 2. Spacious Chat Message Stream -->
+      <main id="chatContainer" class="flex-1 overflow-y-auto chat-scroll px-4 py-4 space-y-4">
+        <!-- Match Card & Messages injected via JS -->
+      </main>
+
+      <!-- 3. Simple Typing Indicator (No truncated ghost text) -->
+      <div id="liveActionRow" class="hidden px-4 pb-2 shrink-0">
+        <div class="inline-flex items-center gap-2.5 bg-[#181c27] rounded-2xl rounded-tl-sm px-4 py-2.5 border border-white/10">
+          <div class="flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 typing-dot-1"></span>
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 typing-dot-2"></span>
+            <span class="w-1.5 h-1.5 rounded-full bg-amber-400 typing-dot-3"></span>
+          </div>
+          <span id="typingStateBadge" class="text-[13px] font-medium text-zinc-300">답장 입력 중...</span>
+        </div>
+      </div>
+
+      <!-- 4. Clean Bottom Input Bar + Subtle Account/Credit Status Bar -->
+      <footer class="shrink-0 bg-[#0b0d13] px-4 pt-2.5 pb-3 border-t border-white/10 z-20">
+        <form id="chatForm" class="flex items-end gap-2">
+          <button id="btnOpenGiftModal" type="button" title="마음 전하기 (선물)" class="shrink-0 w-11 h-11 rounded-2xl bg-[#181b24] hover:bg-[#222736] active:scale-95 border border-amber-400/30 text-[19px] flex items-center justify-center transition shadow">
+            🎁
+          </button>
+
+          <div class="flex-1 bg-[#181b24] rounded-2xl px-4 py-2.5 flex items-center border border-white/10 focus-within:border-amber-400/70 transition">
+            <textarea id="chatInput" rows="1" placeholder="메시지를 입력하세요..." class="w-full bg-transparent text-[15.5px] text-zinc-100 placeholder-zinc-500 focus:outline-none resize-none max-h-24 leading-relaxed"></textarea>
+          </div>
+
+          <button id="btnSend" type="submit" class="shrink-0 h-11 px-5 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 active:scale-95 text-zinc-950 font-bold text-[15px] shadow-md transition flex items-center justify-center">
+            전송
+          </button>
+        </form>
+        <div class="flex items-center justify-between mt-2 text-[11.5px] text-zinc-400 px-0.5">
+          <div class="flex items-center gap-2">
+            <button id="btnOpenPaymentFooter" type="button" class="hover:text-amber-300 transition flex items-center gap-1 font-medium">
+              <span id="footerCreditText" class="text-amber-300 font-semibold">☕ 무료 대화 5회 남음</span>
+              <span class="underline underline-offset-2 text-zinc-400">충전</span>
+            </button>
+            <span class="text-zinc-600">·</span>
+            <button id="btnOpenPhoneAuthFooter" type="button" class="hover:text-zinc-200 transition underline underline-offset-2">
+              📱 번호인증(기록보관)
+            </button>
+          </div>
+          <div class="flex items-center gap-1.5 text-[11.5px] text-zinc-400">
+            <button id="btnOpenAiPolicyInfo" type="button" class="px-2 py-0.5 rounded-lg bg-white/[0.06] hover:bg-white/[0.12] border border-white/10 text-amber-300 font-semibold transition">
+              🔑 API 키 설정
+            </button>
+          </div>
+        </div>
+      </footer>
+    </section>
 
     <!-- Modal 1: Character Profile Viewer (Full text + Secret Daily Photo Album) -->
     <div id="profileModal" class="hidden absolute inset-0 z-50 bg-[#0b0d13]/95 backdrop-blur-xl flex flex-col justify-between p-5 text-zinc-100 overflow-y-auto">
@@ -250,45 +342,7 @@
       </div>
     </div>
 
-    <!-- Modal 2: Saved Connections Drawer ("내 인연 대화목록" - Messenger Chat List) -->
-    <div id="savedRoomsModal" class="hidden absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col justify-end">
-      <div class="bg-[#12151f] border-t border-white/15 rounded-t-3xl max-h-[88%] flex flex-col overflow-hidden shadow-2xl text-zinc-100">
-        <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between shrink-0">
-          <div>
-            <h3 class="text-[17px] font-bold text-white flex items-center gap-2">
-              <span>💬 내 인연 대화목록</span>
-            </h3>
-            <p class="text-[12px] text-zinc-400 mt-0.5">보관된 인연들과 언제든 대화를 이어갈 수 있습니다</p>
-          </div>
-          <button id="btnCloseSavedRooms" type="button" class="w-8 h-8 rounded-full bg-white/10 hover:bg-white/20 text-zinc-200 flex items-center justify-center font-bold transition">✕</button>
-        </div>
 
-        <!-- Phone Verification Banner inside Saved Rooms -->
-        <div class="px-4 pt-3 shrink-0">
-          <div id="savedDrawerAuthBox" class="p-3.5 rounded-2xl bg-[#191d2b] border border-amber-400/30 flex items-center justify-between gap-3">
-            <div class="text-[12.5px] leading-snug">
-              <div id="savedDrawerAuthTitle" class="font-bold text-amber-300">📱 휴대폰 번호 미연동 (임시 보관 중)</div>
-              <div id="savedDrawerAuthSub" class="text-zinc-400 mt-0.5">번호를 인증하면 대화 기록 영구 보관 + 무료 대화 5회 지급!</div>
-            </div>
-            <button id="btnOpenPhoneAuthFromDrawer" type="button" class="shrink-0 px-3 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-zinc-950 font-bold text-[12px] transition active:scale-95">
-              3초 번호인증
-            </button>
-          </div>
-        </div>
-
-        <div id="savedRoomsListContainer" class="flex-1 overflow-y-auto p-4 space-y-2.5 chat-scroll">
-          <!-- Populated dynamically with saved/chatted characters only -->
-        </div>
-
-        <!-- Bottom Action inside Saved Rooms Drawer -->
-        <div class="p-3.5 border-t border-white/10 bg-[#0c0e15] shrink-0">
-          <button id="btnDrawerNewMatch" type="button" class="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-zinc-950 font-bold text-[14.5px] shadow-lg transition active:scale-95 flex items-center justify-center gap-2">
-            <span>✨ 새로운 인연 랜덤 매칭하기</span>
-            <span class="text-base">↻</span>
-          </button>
-        </div>
-      </div>
-    </div>
 
     <!-- Modal 2-1: Leave Room / Rematch Confirmation Dialog -->
     <div id="leaveConfirmModal" class="hidden absolute inset-0 z-50 bg-black/85 backdrop-blur-sm flex items-center justify-center p-5">
@@ -1756,29 +1810,25 @@
     function saveAccountState() {
       try {
         compressOldMessagesIntoMemory();
-        if (state.currentChar && !state.roomLeft) {
-          if (state.bookmarked) {
-            const prevSaved = state.savedRooms[state.currentChar.id] || {};
-            state.savedRooms[state.currentChar.id] = {
-              charId: state.currentChar.id,
-              messages: state.messages.slice(-45),
-              userFacts: (state.userFacts || []).slice(-25),
-              memorySummary: state.memorySummary || '',
-              firstMetAt: state.firstMetAt || prevSaved.firstMetAt || Date.now(),
-              photosSentCount: state.photosSentCount || 0,
-              unreadCount: 0,
-              lastGreetingSlot: prevSaved.lastGreetingSlot || '',
-              affection: state.affection,
-              turnCount: state.turnCount,
-              rudeStrikes: state.rudeStrikes || 0,
-              anger: state.anger || 0,
-              warned: Boolean(state.warned),
-              bookmarked: true,
-              updatedAt: Date.now()
-            };
-          } else if (state.savedRooms[state.currentChar.id]) {
-            delete state.savedRooms[state.currentChar.id];
-          }
+        if (state.currentChar && !state.roomLeft && state.messages.length > 0) {
+          const prevSaved = state.savedRooms[state.currentChar.id] || {};
+          state.savedRooms[state.currentChar.id] = {
+            charId: state.currentChar.id,
+            messages: state.messages.slice(-45),
+            userFacts: (state.userFacts || []).slice(-25),
+            memorySummary: state.memorySummary || '',
+            firstMetAt: state.firstMetAt || prevSaved.firstMetAt || Date.now(),
+            photosSentCount: state.photosSentCount || 0,
+            unreadCount: 0,
+            lastGreetingSlot: prevSaved.lastGreetingSlot || '',
+            affection: state.affection,
+            turnCount: state.turnCount,
+            rudeStrikes: state.rudeStrikes || 0,
+            anger: state.anger || 0,
+            warned: Boolean(state.warned),
+            bookmarked: Boolean(state.bookmarked),
+            updatedAt: Date.now()
+          };
         }
 
         const payload = {
@@ -3985,24 +4035,116 @@
       updateFilterModalUI();
       document.getElementById('matchFilterModal').classList.add('hidden');
       startChatWithCharacter(pickRandomCharacter(true), false);
+      showView('chatRoom');
     });
 
-    function renderSavedRoomsList() {
-      const container = document.getElementById('savedRoomsListContainer');
+    function showView(viewName) {
+      const viewChatList = document.getElementById('viewChatList');
+      const viewChatRoom = document.getElementById('viewChatRoom');
+      if (!viewChatList || !viewChatRoom) return;
+
+      if (viewName === 'chatList') {
+        saveAccountState();
+        renderChatRoomsList();
+        updateAccountAndCreditUI();
+        viewChatRoom.classList.add('hidden');
+        viewChatList.classList.remove('hidden');
+        state.currentView = 'chatList';
+      } else {
+        viewChatList.classList.add('hidden');
+        viewChatRoom.classList.remove('hidden');
+        state.currentView = 'chatRoom';
+        updateChatListBadges();
+        updateAccountAndCreditUI();
+        scrollChatToBottom();
+      }
+    }
+
+    function updateChatListBadges() {
+      const rooms = Object.values(state.savedRooms || {});
+      const totalCount = rooms.length;
+      const unreadTotal = rooms.reduce((sum, r) => sum + (Number(r.unreadCount) || 0), 0);
+
+      const totalBadge = document.getElementById('listTotalRoomsBadge');
+      if (totalBadge) totalBadge.textContent = totalCount;
+
+      const sectionCount = document.getElementById('listSectionCount');
+      if (sectionCount) sectionCount.textContent = totalCount;
+
+      const unreadBadge = document.getElementById('chatListUnreadBadge');
+      if (unreadBadge) {
+        if (unreadTotal > 0) {
+          unreadBadge.textContent = unreadTotal;
+          unreadBadge.classList.remove('hidden');
+        } else {
+          unreadBadge.classList.add('hidden');
+        }
+      }
+
+      // Filter summary on list view
+      const filterSummary = document.getElementById('listFilterSummaryText');
+      if (filterSummary) {
+        const { ages, traits, regions } = state.matchFilter || {};
+        const parts = [];
+        if (ages && ages.length > 0) parts.push(ages.map(a => a + '대').join(','));
+        if (traits && traits.length > 0) parts.push(traits.slice(0, 1).join(','));
+        if (regions && regions.length > 0) parts.push(regions.slice(0, 1).join(','));
+        filterSummary.textContent = parts.length > 0 ? parts.join(' · ') : '전체 조건';
+      }
+
+      // Filter active dot on list view
+      const filterDot = document.getElementById('listFilterActiveDot');
+      if (filterDot) {
+        const { ages, traits, regions } = state.matchFilter || {};
+        const isAnyActive = (ages && ages.length > 0) || (traits && traits.length > 0) || (regions && regions.length > 0);
+        if (isAnyActive) filterDot.classList.remove('hidden');
+        else filterDot.classList.add('hidden');
+      }
+
+      // Phone auth banner and button text on list view
+      const authBox = document.getElementById('listAuthNoticeBox');
+      const authBtnText = document.getElementById('listAuthBtnText');
+      if (state.verifiedPhone) {
+        if (authBox) authBox.classList.add('hidden');
+        if (authBtnText) authBtnText.textContent = '인증됨 ✓';
+      } else {
+        if (authBox) authBox.classList.remove('hidden');
+        if (authBtnText) authBtnText.textContent = '인증';
+      }
+    }
+
+    function renderChatRoomsList() {
+      const container = document.getElementById('chatRoomsListContainer');
+      if (!container) return;
       container.innerHTML = '';
 
-      const entries = Object.values(state.savedRooms).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+      const entries = Object.values(state.savedRooms || {}).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+      updateChatListBadges();
 
       if (entries.length === 0) {
         container.innerHTML = `
-          <div class="py-10 px-4 text-center space-y-2">
-            <div class="text-2xl">💫</div>
-            <p class="text-[14.5px] font-bold text-zinc-200">아직 보관된 인연이 없습니다</p>
-            <p class="text-[12.5px] text-zinc-400 leading-relaxed">
-              랜덤 매칭된 상대방과 대화를 나누거나<br/>[⭐ 인연 보관하기]를 누르면 이곳에 대화 기록이 저장되어<br/>언제든 원하는 상대와 대화를 이어갈 수 있습니다.
-            </p>
+          <div class="py-12 px-4 text-center space-y-3 bg-[#131622] rounded-3xl border border-white/10 shadow-lg">
+            <div class="w-14 h-14 mx-auto rounded-3xl bg-amber-500/10 border border-amber-400/20 flex items-center justify-center text-2xl shadow-inner">
+              💌
+            </div>
+            <div class="space-y-1">
+              <p class="text-[15px] font-bold text-white">아직 진행 중인 대화가 없습니다</p>
+              <p class="text-[12.5px] text-zinc-400 leading-relaxed">
+                위의 [새로운 랜덤 상대 매칭하기]를 눌러<br/>설레는 첫 인연을 만나보세요!
+              </p>
+            </div>
+            <button id="btnEmptyStateNewMatch" type="button" class="mt-2 px-6 py-2.5 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 text-zinc-950 font-bold text-[13.5px] shadow-md transition active:scale-95">
+              ✨ 첫 인연 매칭하기
+            </button>
           </div>
         `;
+        const btnEmpty = document.getElementById('btnEmptyStateNewMatch');
+        if (btnEmpty) {
+          btnEmpty.addEventListener('click', () => {
+            startChatWithCharacter(pickRandomCharacter(true), false);
+            showView('chatRoom');
+          });
+        }
         return;
       }
 
@@ -4015,53 +4157,77 @@
           : { text: char.bio, time: '' };
         const unreadCnt = isCurrent ? 0 : (Number(room.unreadCount) || 0);
 
+        let timeDisplay = lastMsg.time || '';
+        if (!timeDisplay && room.updatedAt) {
+          const d = new Date(room.updatedAt);
+          const hours = d.getHours();
+          const mins = String(d.getMinutes()).padStart(2, '0');
+          timeDisplay = `${hours < 12 ? '오전' : '오후'} ${hours % 12 || 12}:${mins}`;
+        }
+
         const card = document.createElement('div');
-        card.className = `p-3.5 rounded-2xl border transition flex items-center gap-3.5 cursor-pointer ${
+        card.className = `p-3.5 rounded-2xl border transition flex items-center gap-3.5 cursor-pointer select-none active:scale-[0.99] ${
           isCurrent
-            ? 'bg-amber-500/15 border-amber-400/60 shadow-md'
+            ? 'bg-[#1b2030] hover:bg-[#22283c] border-amber-400/50 shadow-md ring-1 ring-amber-400/20'
             : unreadCnt > 0
-            ? 'bg-[#1f2436] hover:bg-[#262c42] border-rose-500/40 shadow'
-            : 'bg-[#191d2b] hover:bg-[#222738] border-white/10'
+            ? 'bg-[#1e2335] hover:bg-[#252b41] border-rose-500/40 shadow'
+            : 'bg-[#161a27] hover:bg-[#1d2233] border-white/10'
         }`;
+
         card.innerHTML = `
           <div class="relative shrink-0">
-            <img src="${char.avatar}" alt="${char.name}" class="w-12 h-12 rounded-2xl object-cover border border-white/15" />
-            ${unreadCnt > 0 ? `<span class="absolute -top-1.5 -right-1.5 min-w-[19px] h-[19px] px-1 rounded-full bg-rose-500 text-white text-[10.5px] font-extrabold flex items-center justify-center shadow ring-2 ring-[#12151f]">${unreadCnt}</span>` : ''}
+            <img src="${char.avatar}" alt="${char.name}" class="rounded-2xl object-cover border border-white/15 shadow-sm" style="width: 50px; height: 50px;" />
+            <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-400 ring-2 ring-[#161a27]"></span>
+            ${unreadCnt > 0 ? `<span class="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 rounded-full bg-rose-500 text-white text-[10.5px] font-black flex items-center justify-center shadow-lg ring-2 ring-[#161a27]">${unreadCnt}</span>` : ''}
           </div>
+
           <div class="flex-1 min-w-0">
-            <div class="flex items-center justify-between gap-2">
-              <div class="flex items-center gap-1.5 flex-wrap">
-                <span class="font-bold text-white text-[15px]">${char.name} (${char.age}세)</span>
-                <span class="text-[11.5px] text-amber-300 font-medium">${char.job}</span>
+            <div class="flex items-center justify-between gap-1.5 mb-0.5">
+              <div class="flex items-center gap-1.5 min-w-0">
+                <span class="font-bold text-white text-[15px] truncate">${char.name}</span>
+                <span class="text-[12px] text-zinc-400 truncate">${char.age}세 · ${char.job}</span>
+                ${room.bookmarked ? `<span class="text-[11px] text-amber-400" title="보관됨">⭐</span>` : ''}
               </div>
-              <span class="text-[11px] text-zinc-400 shrink-0">${lastMsg.time || ''}</span>
+              <span class="text-[11px] text-zinc-400 shrink-0 whitespace-nowrap">${timeDisplay}</span>
             </div>
-            <p class="text-[13px] ${unreadCnt > 0 ? 'text-white font-semibold' : 'text-zinc-300'} mt-1 leading-snug break-words">${escapeHtml(lastMsg.text)}</p>
+
+            <div class="flex items-center justify-between gap-2">
+              <p class="text-[13px] ${unreadCnt > 0 ? 'text-white font-semibold' : 'text-zinc-300'} truncate leading-snug">${escapeHtml(lastMsg.text || '대화가 시작되었습니다.')}</p>
+              <span class="shrink-0 px-2 py-0.5 rounded-full bg-rose-500/15 border border-rose-400/30 text-rose-300 text-[10.5px] font-bold">💕 ${room.affection || 20}%</span>
+            </div>
           </div>
-          <div class="shrink-0 flex flex-col gap-1.5">
-            <button type="button" class="px-3 py-2 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-400/40 text-amber-300 font-bold text-[12px]">
-              ${isCurrent ? '대화 중' : '이어하기'}
-            </button>
-            <button type="button" data-role="delete" class="px-3 py-1 rounded-xl bg-white/[0.04] hover:bg-rose-500/20 border border-white/10 text-zinc-400 hover:text-rose-300 text-[11px]">
-              삭제
+
+          <div class="shrink-0 pl-1 flex items-center">
+            <button type="button" data-role="delete" class="p-2 rounded-xl bg-white/[0.04] hover:bg-rose-500/20 hover:text-rose-300 text-zinc-400 text-[12px] transition" title="대화방 나가기">
+              ✕
             </button>
           </div>
         `;
+
         card.querySelector('[data-role="delete"]').addEventListener('click', (e) => {
           e.stopPropagation();
-          if (!confirm(`'${char.name}'님을 내 인연에서 삭제할까요?`)) return;
+          if (!confirm(`'${char.name}'님과의 대화방을 나가시겠습니까? 대화 기록이 삭제됩니다.`)) return;
           delete state.savedRooms[char.id];
-          if (isCurrent) state.bookmarked = false;
+          if (isCurrent) {
+            state.currentChar = null;
+            state.roomLeft = true;
+          }
           saveAccountState();
-          renderSavedRoomsList();
+          renderChatRoomsList();
+          showToast(`'${char.name}'님과의 대화방을 나갔습니다.`);
         });
+
         card.addEventListener('click', () => {
-          document.getElementById('savedRoomsModal').classList.add('hidden');
           startChatWithCharacter(char, true);
+          showView('chatRoom');
         });
+
         container.appendChild(card);
       });
     }
+
+    // Alias for backward compatibility
+    const renderSavedRoomsList = renderChatRoomsList;
 
     function openPaymentModal(customSubtitle) {
       const sub = document.getElementById('paymentModalSubtitle');
@@ -4073,7 +4239,6 @@
     }
 
     function openPhoneAuthModal() {
-      document.getElementById('savedRoomsModal').classList.add('hidden');
       document.getElementById('paymentModal').classList.add('hidden');
       const inputPhone = document.getElementById('inputPhoneNumber');
       if (state.verifiedPhone) {
@@ -4321,16 +4486,59 @@
       document.getElementById('giftModal').classList.add('hidden');
     });
 
-    // Saved Rooms Modal Events
-    document.getElementById('btnOpenSavedRooms').addEventListener('click', () => {
-      saveAccountState();
-      renderSavedRoomsList();
-      document.getElementById('savedRoomsModal').classList.remove('hidden');
-    });
-    document.getElementById('btnCloseSavedRooms').addEventListener('click', () => {
-      document.getElementById('savedRoomsModal').classList.add('hidden');
-    });
-    document.getElementById('btnOpenPhoneAuthFromDrawer').addEventListener('click', openPhoneAuthModal);
+    // Chat List View & Header Back Navigation Events
+    const btnBackToChatList = document.getElementById('btnBackToChatList');
+    if (btnBackToChatList) {
+      btnBackToChatList.addEventListener('click', () => {
+        showView('chatList');
+      });
+    }
+
+    const btnListNewMatch = document.getElementById('btnListNewMatch');
+    if (btnListNewMatch) {
+      btnListNewMatch.addEventListener('click', () => {
+        startChatWithCharacter(pickRandomCharacter(true), false);
+        showView('chatRoom');
+      });
+    }
+
+    const btnListFilterBadge = document.getElementById('btnListFilterBadge');
+    if (btnListFilterBadge) {
+      btnListFilterBadge.addEventListener('click', () => {
+        updateFilterModalUI();
+        document.getElementById('matchFilterModal').classList.remove('hidden');
+      });
+    }
+
+    const btnListOpenFilter = document.getElementById('btnListOpenFilter');
+    if (btnListOpenFilter) {
+      btnListOpenFilter.addEventListener('click', () => {
+        updateFilterModalUI();
+        document.getElementById('matchFilterModal').classList.remove('hidden');
+      });
+    }
+
+    const btnListOpenAiPolicy = document.getElementById('btnListOpenAiPolicy');
+    if (btnListOpenAiPolicy) {
+      btnListOpenAiPolicy.addEventListener('click', () => {
+        document.getElementById('aiPolicyModal').classList.remove('hidden');
+      });
+    }
+
+    const btnListOpenPhoneAuth = document.getElementById('btnListOpenPhoneAuth');
+    if (btnListOpenPhoneAuth) {
+      btnListOpenPhoneAuth.addEventListener('click', openPhoneAuthModal);
+    }
+
+    const btnListAuthCta = document.getElementById('btnListAuthCta');
+    if (btnListAuthCta) {
+      btnListAuthCta.addEventListener('click', openPhoneAuthModal);
+    }
+
+    const btnOpenPaymentListFooter = document.getElementById('btnOpenPaymentListFooter');
+    if (btnOpenPaymentListFooter) {
+      btnOpenPaymentListFooter.addEventListener('click', () => openPaymentModal());
+    }
 
     // Phone Auth Modal Events
     document.getElementById('btnOpenPhoneAuthFooter').addEventListener('click', openPhoneAuthModal);
@@ -4501,53 +4709,23 @@
     function openLeaveRoomModal() {
       if (!state.currentChar) return;
       const char = state.currentChar;
-      const isBookmarked = state.bookmarked || Boolean(state.savedRooms[char.id]);
       const titleEl = document.getElementById('leaveConfirmTitle');
       const descEl = document.getElementById('leaveConfirmDesc');
       const actionsEl = document.getElementById('leaveConfirmActions');
       if (titleEl) titleEl.textContent = '대화방을 나가시겠습니까?';
-
-      if (isBookmarked) {
-        if (descEl) descEl.innerHTML = `'<strong>${char.name}</strong>'님은 <span class="text-amber-300 font-bold">내 인연에 보관</span>되어 있습니다.<br/>언제든 <strong>내 인연 대화목록</strong>에서 다시 대화할 수 있습니다.`;
-        if (actionsEl) {
-          actionsEl.innerHTML = `
-            <button id="btnConfirmLeaveNow" type="button" class="w-full py-3 rounded-2xl bg-rose-500 hover:bg-rose-400 text-white font-bold text-[14px] shadow transition active:scale-95">
-              🚪 대화방 나가기
-            </button>
-            <button id="btnCancelLeaveRoom" type="button" class="w-full py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 text-zinc-300 font-medium text-[13px] transition active:scale-95">
-              계속 대화하기
-            </button>
-          `;
-        }
-      } else {
-        if (descEl) descEl.innerHTML = `⚠️ 아직 '<strong>${char.name}</strong>'님을 <span class="text-amber-300 font-bold">내 인연에 보관하지 않았습니다</span>.<br/>지금 나가시면 주고받은 대화 내용이 사라집니다.`;
-        if (actionsEl) {
-          actionsEl.innerHTML = `
-            <button id="btnLeaveWithBookmark" type="button" class="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-zinc-950 font-bold text-[14px] shadow-lg transition active:scale-95 flex items-center justify-center gap-1.5">
-              <span>⭐ 내 인연에 보관하고 나가기</span>
-            </button>
-            <button id="btnConfirmLeaveNow" type="button" class="w-full py-2.5 rounded-2xl bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 font-semibold text-[13px] transition active:scale-95">
-              보관하지 않고 그냥 나가기
-            </button>
-            <button id="btnCancelLeaveRoom" type="button" class="w-full py-2 rounded-2xl text-zinc-400 hover:text-zinc-200 text-[12.5px] transition">
-              취소 (계속 대화하기)
-            </button>
-          `;
-        }
+      if (descEl) descEl.innerHTML = `'<strong>${char.name}</strong>'님과의 대화방을 나갈까요?<br/><span class="text-zinc-400 text-[12px]">대화방 목록에서 삭제됩니다.</span>`;
+      if (actionsEl) {
+        actionsEl.innerHTML = `
+          <button id="btnConfirmLeaveNow" type="button" class="w-full py-3 rounded-2xl bg-rose-500 hover:bg-rose-400 text-white font-bold text-[14px] shadow transition active:scale-95">
+            🚪 대화방 나가기
+          </button>
+          <button id="btnCancelLeaveRoom" type="button" class="w-full py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 text-zinc-300 font-medium text-[13px] transition active:scale-95">
+            취소 (계속 대화하기)
+          </button>
+        `;
       }
 
       document.getElementById('leaveConfirmModal').classList.remove('hidden');
-
-      const btnBookmarkLeave = document.getElementById('btnLeaveWithBookmark');
-      if (btnBookmarkLeave) {
-        btnBookmarkLeave.addEventListener('click', () => {
-          state.bookmarked = true;
-          saveAccountState();
-          document.getElementById('leaveConfirmModal').classList.add('hidden');
-          showToast(`⭐ <strong>${char.name}</strong>님이 보관되었습니다.`);
-          executeUserLeaveRoom();
-        });
-      }
 
       const btnLeaveNow = document.getElementById('btnConfirmLeaveNow');
       if (btnLeaveNow) {
@@ -4571,77 +4749,20 @@
       clearAllTimers();
       clearIdleFollowUpTimer();
 
-      if (!state.bookmarked && state.savedRooms[char.id]) {
-        delete state.savedRooms[char.id];
-      }
+      delete state.savedRooms[char.id];
+      state.currentChar = null;
+      state.roomLeft = true;
       saveAccountState();
 
-      // Open Saved Rooms Drawer (Chat List) so user is back at inbox
-      renderSavedRoomsList();
-      document.getElementById('savedRoomsModal').classList.remove('hidden');
+      // Switch to Chat List Screen
+      showView('chatList');
       showToast(`'${char.name}'님과의 대화방을 나갔습니다.`);
     }
 
     function handleRematchRequest() {
-      if (!state.currentChar) {
-        startChatWithCharacter(pickRandomCharacter(true), false);
-        return;
-      }
-      const char = state.currentChar;
-      const isBookmarked = state.bookmarked || Boolean(state.savedRooms[char.id]);
-
-      // If already bookmarked or hasn't chatted yet, match immediately
-      if (isBookmarked || (state.turnCount || 0) === 0) {
-        startChatWithCharacter(pickRandomCharacter(true), false);
-        return;
-      }
-
-      // If not bookmarked and has chatted, prompt user with options
-      const titleEl = document.getElementById('leaveConfirmTitle');
-      const descEl = document.getElementById('leaveConfirmDesc');
-      const actionsEl = document.getElementById('leaveConfirmActions');
-      if (titleEl) titleEl.textContent = '새로운 인연 매칭';
-      if (descEl) descEl.innerHTML = `현재 상대('<strong>${char.name}</strong>'님)와의 대화를<br/><span class="text-amber-300 font-bold">내 인연에 보관</span>하고 새 상대를 찾을까요?`;
-      if (actionsEl) {
-        actionsEl.innerHTML = `
-          <button id="btnRematchWithSave" type="button" class="w-full py-3 rounded-2xl bg-gradient-to-r from-amber-500 to-rose-500 hover:from-amber-400 hover:to-rose-400 text-zinc-950 font-bold text-[14px] shadow-lg transition active:scale-95">
-            ⭐ 보관 후 새 상대 매칭하기
-          </button>
-          <button id="btnRematchWithoutSave" type="button" class="w-full py-2.5 rounded-2xl bg-white/10 hover:bg-white/15 text-zinc-200 font-semibold text-[13px] transition active:scale-95">
-            보관 없이 바로 새 상대 매칭
-          </button>
-          <button id="btnCancelRematch" type="button" class="w-full py-2 rounded-2xl text-zinc-400 hover:text-zinc-200 text-[12.5px] transition">
-            취소
-          </button>
-        `;
-      }
-      document.getElementById('leaveConfirmModal').classList.remove('hidden');
-
-      const btnWithSave = document.getElementById('btnRematchWithSave');
-      if (btnWithSave) {
-        btnWithSave.addEventListener('click', () => {
-          state.bookmarked = true;
-          saveAccountState();
-          document.getElementById('leaveConfirmModal').classList.add('hidden');
-          showToast(`⭐ <strong>${char.name}</strong>님이 내 인연에 보관되었습니다.`);
-          startChatWithCharacter(pickRandomCharacter(true), false);
-        });
-      }
-
-      const btnWithoutSave = document.getElementById('btnRematchWithoutSave');
-      if (btnWithoutSave) {
-        btnWithoutSave.addEventListener('click', () => {
-          document.getElementById('leaveConfirmModal').classList.add('hidden');
-          startChatWithCharacter(pickRandomCharacter(true), false);
-        });
-      }
-
-      const btnCancel = document.getElementById('btnCancelRematch');
-      if (btnCancel) {
-        btnCancel.addEventListener('click', () => {
-          document.getElementById('leaveConfirmModal').classList.add('hidden');
-        });
-      }
+      saveAccountState();
+      startChatWithCharacter(pickRandomCharacter(true), false);
+      showView('chatRoom');
     }
 
     // Pinned Header Bookmark Button Event
@@ -4701,13 +4822,7 @@
       });
     }
 
-    const btnDrawerNewMatch = document.getElementById('btnDrawerNewMatch');
-    if (btnDrawerNewMatch) {
-      btnDrawerNewMatch.addEventListener('click', () => {
-        document.getElementById('savedRoomsModal').classList.add('hidden');
-        handleRematchRequest();
-      });
-    }
+
 
     const legacyRandomMatch = document.getElementById('btnRandomMatch');
     if (legacyRandomMatch) {
@@ -4744,8 +4859,15 @@
       triggerSavedRoomsTimeGreetings();
       updateAccountAndCreditUI();
       updateFilterModalUI();
-      const initialChar = pickRandomCharacter(false);
-      startChatWithCharacter(initialChar, false);
+
+      const savedRoomsKeys = Object.keys(state.savedRooms || {});
+      if (savedRoomsKeys.length > 0) {
+        showView('chatList');
+      } else {
+        const initialChar = pickRandomCharacter(false);
+        startChatWithCharacter(initialChar, false);
+        showView('chatRoom');
+      }
     });
   </script>
 </body>
