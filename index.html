@@ -2365,97 +2365,106 @@
       clearIdleFollowUpTimer();
     }
 
-        function runRealisticReplySequence(replyPlan, isProactiveFollowUp = false, turnId = null) {
+    async function runRealisticReplySequence(replyPlan, isProactiveFollowUp = false, turnId = null, typingStartedAt = null) {
       if (!replyPlan || state.roomLeft) return;
       if (turnId && turnId !== state.messageTurnId) return;
 
       state.isAiBusy = true;
       clearIdleFollowUpTimer();
 
+      const char = state.currentChar;
+      if (!char) return;
+
       if (!isProactiveFollowUp) {
         markAllUserMessagesRead();
-        headerStatusText.textContent = '방금 읽음';
-        headerStatusText.className = 'text-[12.5px] text-amber-300 mt-0.5 font-medium leading-snug';
       }
 
-      // 읽은 후 실제 사람이 답장을 고민하는 시간 (약 0.9초~1.6초)
-      const thinkAfterReadMs = isProactiveFollowUp ? 350 : Math.round(900 + Math.random() * 700);
+      const bubbles = (replyPlan.bubbles && replyPlan.bubbles.length ? replyPlan.bubbles : ['네?']).slice(0, 4);
 
-      registerTimeout(() => {
+      for (let idx = 0; idx < bubbles.length; idx++) {
         if (turnId && turnId !== state.messageTurnId) return;
         if (state.roomLeft) return;
 
-        const bubbles = (replyPlan.bubbles && replyPlan.bubbles.length ? replyPlan.bubbles : ['네?']).slice(0, 4);
-        let cursorMs = 0;
+        const bubbleText = bubbles[idx];
 
-        bubbles.forEach((bubbleText, idx) => {
-          const startTypeMs = cursorMs;
-          // 실제 스마트폰 모바일 타자 속도 (글자당 110~150ms + 준비시간 550ms)
-          const perCharMs = 110 + Math.random() * 40;
-          const typeDurationMs = Math.round(550 + Math.max(300, bubbleText.length * perCharMs));
+        // 문장 길이에 비례한 실제 스마트폰 타자 속도 (한국어 음절당 약 115~140ms + 최소 보장 650ms)
+        const perCharMs = 115 + Math.random() * 25;
+        const targetTypeDurationMs = Math.round(550 + Math.max(650, bubbleText.length * perCharMs));
 
-          // 각 말풍선 타이핑 시작 시 "OOO님이 입력 중..." 노출
-          registerTimeout(() => {
-            if (turnId && turnId !== state.messageTurnId) return;
-            if (state.roomLeft) return;
-            headerStatusText.textContent = `${state.currentChar.name}님이 입력 중...`;
-            showTypingIndicator(`${state.currentChar.name}님이 입력 중...`);
-          }, startTypeMs);
+        // 첫 번째 말풍선: 읽자마자 타이핑이 이미 시작된 시점부터 계산하여 남은 시간만큼만 더 타이핑
+        let remainingTypeMs = targetTypeDurationMs;
+        if (idx === 0 && typingStartedAt) {
+          const elapsed = Date.now() - typingStartedAt;
+          remainingTypeMs = Math.max(350, targetTypeDurationMs - elapsed);
+        }
 
-          // 타이핑 완료 시점에 말풍선 전송 및 인디케이터 숨김
-          registerTimeout(() => {
-            if (turnId && turnId !== state.messageTurnId) return;
-            if (state.roomLeft) return;
+        // 각 말풍선 타이핑 시작
+        headerStatusText.textContent = `${char.name}님이 입력 중...`;
+        headerStatusText.className = 'text-[12.5px] text-emerald-600 mt-0.5 font-medium leading-snug';
+        showTypingIndicator(`${char.name}님이 입력 중...`);
 
-            hideTypingIndicator();
-            appendMessage('ai', bubbleText);
-            saveAccountState();
-
-            if (idx === bubbles.length - 1 && !replyPlan.mediaItem) {
-              state.isAiBusy = false;
-              if (replyPlan.leaveRoom) {
-                state.roomLeft = true;
-                registerTimeout(() => {
-                  handlePartnerLeftRoom();
-                }, 400);
-              } else {
-                updateHeaderDefaultStatus();
-                scheduleIdleFollowUp();
-              }
-            }
-          }, startTypeMs + typeDurationMs);
-
-          // 다음 말풍선 전송 전 현실적인 숨고르기 (0.6초~1.1초)
-          cursorMs = startTypeMs + typeDurationMs + Math.round(650 + Math.random() * 450);
+        await new Promise(resolve => {
+          registerTimeout(resolve, remainingTypeMs);
         });
 
-        // 사진 또는 음성 메시지가 첨부된 경우 마지막 말풍선 직후 현실적인 준비 시간 후 전송
-        if (replyPlan.mediaItem && !replyPlan.leaveRoom) {
-          const mediaStartMs = cursorMs;
-          const mediaWaitMs = replyPlan.mediaItem.mediaType === 'voice' ? 2200 : 1800;
-          const actionText = replyPlan.mediaItem.mediaType === 'voice'
-            ? `${state.currentChar.name}님이 음성 메시지를 녹음 중...`
-            : `${state.currentChar.name}님이 사진을 선택하여 전송 중...`;
+        if (turnId && turnId !== state.messageTurnId) return;
+        if (state.roomLeft) return;
 
-          registerTimeout(() => {
-            if (turnId && turnId !== state.messageTurnId) return;
-            if (state.roomLeft) return;
-            headerStatusText.textContent = actionText;
-            showTypingIndicator(actionText);
-          }, mediaStartMs);
+        // 타이핑 완료 후 말풍선 전송 및 인디케이터 숨김
+        hideTypingIndicator();
+        appendMessage('ai', bubbleText);
+        saveAccountState();
 
-          registerTimeout(() => {
-            if (turnId && turnId !== state.messageTurnId) return;
-            if (state.roomLeft) return;
-            hideTypingIndicator();
-            appendMessage('ai', replyPlan.mediaItem.caption || '', replyPlan.mediaItem);
-            state.isAiBusy = false;
+        if (idx === bubbles.length - 1 && !replyPlan.mediaItem) {
+          state.isAiBusy = false;
+          if (replyPlan.leaveRoom) {
+            state.roomLeft = true;
+            registerTimeout(() => {
+              handlePartnerLeftRoom();
+            }, 400);
+          } else {
             updateHeaderDefaultStatus();
-            saveAccountState();
             scheduleIdleFollowUp();
-          }, mediaStartMs + mediaWaitMs);
+          }
+          return;
         }
-      }, thinkAfterReadMs);
+
+        // 다음 말풍선 전송 전 현실적인 숨고르기 (200~350ms)
+        if (idx < bubbles.length - 1) {
+          await new Promise(resolve => {
+            registerTimeout(resolve, Math.round(200 + Math.random() * 150));
+          });
+        }
+      }
+
+      // 사진 또는 음성 메시지가 첨부된 경우
+      if (replyPlan.mediaItem && !replyPlan.leaveRoom) {
+        if (turnId && turnId !== state.messageTurnId) return;
+        if (state.roomLeft) return;
+
+        const isVoice = replyPlan.mediaItem.mediaType === 'voice';
+        const actionText = isVoice
+          ? `${char.name}님이 음성 메시지를 녹음 중...`
+          : `${char.name}님이 사진을 선택하여 전송 중...`;
+        const mediaWaitMs = isVoice ? 2000 : 1600;
+
+        headerStatusText.textContent = actionText;
+        showTypingIndicator(actionText);
+
+        await new Promise(resolve => {
+          registerTimeout(resolve, mediaWaitMs);
+        });
+
+        if (turnId && turnId !== state.messageTurnId) return;
+        if (state.roomLeft) return;
+
+        hideTypingIndicator();
+        appendMessage('ai', replyPlan.mediaItem.caption || '', replyPlan.mediaItem);
+        state.isAiBusy = false;
+        updateHeaderDefaultStatus();
+        saveAccountState();
+        scheduleIdleFollowUp();
+      }
     }
 
     // 매 턴마다 기계적인 2줄 패턴을 깨고 1개~5개 말풍선 수를 유동적으로 결정
@@ -3755,7 +3764,7 @@
           }
         }, timeline);
 
-        timeline += 650; // 다음 인삿말 전송 전 숨고르기
+        timeline += 300; // 다음 인삿말 전송 전 숨고르기
       });
     }
 
@@ -4113,26 +4122,37 @@
       state.messageTurnId = (state.messageTurnId || 0) + 1;
       const turnId = state.messageTurnId;
 
-      // 실제 사람이 메시지를 확인(읽음 처리)하는 시간 (글자 길이에 따른 읽기 시간 반영: 약 0.8초~2.0초)
-      const unreadWaitMs = Math.round(750 + Math.min(1500, text.length * 35) + Math.random() * 450);
+      // 실제 사람이 메시지를 확인(읽음 처리)하는 시간 (글자 길이에 따른 가벼운 확인 시간: 0.35초~0.75초)
+      const unreadWaitMs = Math.round(350 + Math.min(400, text.length * 15) + Math.random() * 200);
 
       state.pendingReadTimer = setTimeout(async () => {
         state.pendingReadTimer = null;
         if (state.roomLeft || turnId !== state.messageTurnId) return;
 
-        // 즉시 읽음 표시
+        // [핵심 1]: 읽자마자 즉시 '1' 제거 및 읽음 처리
         markAllUserMessagesRead();
-        headerStatusText.textContent = '방금 읽음';
-        headerStatusText.className = 'text-[12.5px] text-amber-300 mt-0.5 font-medium leading-snug';
 
+        // [핵심 2]: 읽자마자 1밀리초의 지체도 없이 "즉시" 타이핑 인디케이터 시작!
+        const char = state.currentChar;
+        if (!char) return;
+        headerStatusText.textContent = `${char.name}님이 입력 중...`;
+        headerStatusText.className = 'text-[12.5px] text-emerald-600 mt-0.5 font-medium leading-snug';
+        showTypingIndicator(`${char.name}님이 입력 중...`);
+
+        const typingStartedAt = Date.now();
         const batch = state.pendingUserTexts.join(' ');
         state.pendingUserTexts = [];
 
-        const roomIdAtSend = state.currentChar ? state.currentChar.id : null;
+        const roomIdAtSend = char.id;
         const replyPlan = await fetchLLMResponse(batch);
 
-        if (!state.currentChar || state.currentChar.id !== roomIdAtSend || state.roomLeft || turnId !== state.messageTurnId) return;
-        runRealisticReplySequence(replyPlan, false, turnId);
+        if (!state.currentChar || state.currentChar.id !== roomIdAtSend || state.roomLeft || turnId !== state.messageTurnId) {
+          hideTypingIndicator();
+          return;
+        }
+
+        // [핵심 3]: 생성된 문장의 길이에 따라 정확한 타이핑 시간 유지 후 전송
+        runRealisticReplySequence(replyPlan, false, turnId, typingStartedAt);
       }, unreadWaitMs);
     }
 
