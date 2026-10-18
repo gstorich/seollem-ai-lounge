@@ -7,8 +7,11 @@ const { eligibility } = require('../services/matchAccess');
 
 // GET /api/match/characters
 router.get('/characters', (req, res) => {
+  res.set('Cache-Control','no-store');
+  const version=characterService.catalogVersion();
+  if(req.query.version===version)return res.json({success:true,version,unchanged:true});
   const characters = characterService.getAllCharacters();
-  return res.json({ success: true, characters });
+  return res.json({ success: true, version, characters });
 });
 
 router.get('/eligibility', requireAuth, (req, res) => {
@@ -27,11 +30,12 @@ router.post('/request', requireAuth, (req, res) => {
       : '휴대폰 번호를 연동하면 첫 인증 시 100하트를 받을 수 있습니다. 번호 연동 전에는 결제할 수 없습니다.'
   });
   const { filters, characterId } = req.body;
-  if (characterId !== undefined && (typeof characterId !== 'string' || !characterService.getCharacterById(characterId))) {
+  if (characterId !== undefined && (typeof characterId !== 'string' || !characterService.isPublished(characterId))) {
     return res.status(400).json({ success: false, error: '대화 상대를 찾을 수 없습니다.' });
   }
   const matchedChar = characterId ? characterService.getCharacterById(characterId)
     : characterService.findMatch(filters || user.matchFilter, user.metCharIds || []);
+  if(!matchedChar)return res.status(404).json({success:false,error:'조건에 맞는 공개 캐릭터가 없습니다.'});
 
   // Update met character history
   const metIds = Array.isArray(user.metCharIds) ? [...user.metCharIds] : [];
@@ -46,7 +50,7 @@ router.post('/request', requireAuth, (req, res) => {
 
   return res.json({
     success: true,
-    character: matchedChar,
+    character: characterService.publicProfile(matchedChar),
     ...access
   });
 });
@@ -60,7 +64,7 @@ router.post('/recall-previous', requireAuth, (req, res) => {
   }
 
   const prevChar = characterService.getCharacterById(requestedId);
-  if (!prevChar) {
+  if (!prevChar||!characterService.isPublished(requestedId)&&!user.savedRooms?.[requestedId]) {
     return res.status(404).json({ success: false, error: '상대방 정보를 찾을 수 없습니다.' });
   }
 
@@ -80,7 +84,7 @@ router.post('/recall-previous', requireAuth, (req, res) => {
 
   return res.json({
     success: true,
-    character: prevChar,
+    character: characterService.publicProfile(prevChar),
     heartsRemaining: nextHearts
   });
 });

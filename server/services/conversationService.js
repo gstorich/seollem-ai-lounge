@@ -2,7 +2,7 @@ const {DatabaseSync}=require('node:sqlite');
 const config=require('../config');
 const characters=require('./characterService');
 const sql=new DatabaseSync(config.sqliteFile);sql.exec('PRAGMA busy_timeout=5000');
-const catalog=new Map(characters.getAllCharacters().map(c=>[c.id,{...c,...characters.getCharacterById(c.id)}]));
+const catalog={get:id=>characters.getCharacterById(id),values:()=>require('./characterRegistry').catalog().all.values()};
 const topics=[
  ['일상·안부',/오늘|하루|주말|아침|저녁|퇴근|출근|일상|안녕/],
  ['위로·고민',/힘들|힘든|고민|외로|외롭|위로|우울|스트레스|지쳤|속상|피곤/],

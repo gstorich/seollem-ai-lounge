@@ -1,0 +1,52 @@
+const assert=require('node:assert/strict'),{spawn}=require('node:child_process'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),crypto=require('node:crypto'),{DatabaseSync}=require('node:sqlite');
+const root=path.resolve(__dirname,'../..'),dir=fs.mkdtempSync(path.join(os.tmpdir(),'azit-studio-')),base='http://127.0.0.1:19419',secret=crypto.randomBytes(48).toString('hex'),password='studio-test-only',salt=crypto.randomBytes(16).toString('hex'),hash=salt+':'+crypto.scryptSync(password,salt,64).toString('hex');
+const env={...process.env,NODE_ENV:'production',HOST:'127.0.0.1',PORT:'19419',DATABASE_FILE:path.join(dir,'old.json'),SQLITE_FILE:path.join(dir,'test.sqlite'),JWT_SECRET:secret,ADMIN_PASSWORD_HASH:hash,ALLOWED_ORIGINS:base,GEMINI_API_KEY:'synthetic-test-key',OPENAI_API_KEY:''};
+const definition={name:'스튜디오검증인물',age:29,gender:'female',traitKey:'chic',job:'레코드 가게 운영',area:'서울',regionGroup:'서울',avatar:'avatars/avatar_05_yoon_jieun.jpg',bio:'오래된 음악을 좋아해요',personality:'음반 취향에 고집이 세다 PRIVATE_CANON_STUDIO',backstory:'작은 레코드 가게를 이어받았다',motivation:'가게를 오래 지키고 싶다',flaws:'고집을 쉽게 꺾지 않는다',likes:'비 오는 날 LP',dislikes:'유행을 무작정 따르는 것',speechStyle:'짧은 반말, 웃음이나 이모지는 쓰지 않는다',interactionRules:'취향이 다르면 짧게 반박한다',firstMessageDirection:'환영 인사 대신 음악 취향을 툭 던진다',defaultRegister:'casual',replyLength:'short',dialogueExamples:[{user:'유행하는 거 다 좋아해',reply:'난 오래 들어도 안 질리는 게 좋아'}]};
+let child,logs='',sql;
+async function start(){child=spawn(process.execPath,['--require',path.join(__dirname,'mock-llm.cjs'),'server/server.js'],{cwd:root,env,stdio:['ignore','pipe','pipe']});child.stdout.on('data',b=>logs+=b);child.stderr.on('data',b=>logs+=b);for(let i=0;i<100;i++){try{if((await fetch(base+'/api/health')).ok)return;}catch{}await new Promise(r=>setTimeout(r,50));}throw Error(logs);}
+async function stop(){if(child&&child.exitCode===null){const done=new Promise(r=>child.once('exit',r));child.kill();await done;}}
+async function req(route,{method='GET',cookie,token,body,origin=base}={}){const r=await fetch(base+'/api'+route,{method,headers:{'Content-Type':'application/json',Origin:origin,'X-Azit-Admin':'1',...(cookie?{Cookie:cookie}:{}),...(token?{Authorization:'Bearer '+token}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});const raw=await r.text();return {status:r.status,data:raw?JSON.parse(raw):null,cookie:r.headers.get('set-cookie')?.split(';')[0]};}
+(async()=>{try{
+ await start();sql=new DatabaseSync(env.SQLITE_FILE);
+ const guest=(await req('/auth/guest',{method:'POST',body:{}})).data,token=guest.token;
+ assert.equal((await req('/admin/characters')).status,401);assert.equal((await req('/admin/characters',{token})).status,401);
+ const cookie=(await req('/admin/session',{method:'POST',body:{password}})).cookie;
+ assert.equal((await req('/admin/characters',{method:'POST',cookie,body:{definition},origin:'https://evil.test'})).status,403);
+ for(const bad of [{...definition,age:18},{...definition,name:'<script>alert(1)</script>'},{...definition,avatar:'avatars/../../.env'},{...definition,dialogueExamples:[{user:'x',reply:''}]}])assert.equal((await req('/admin/characters',{method:'POST',cookie,body:{definition:bad}})).status,400);
+ const created=await req('/admin/characters',{method:'POST',cookie,body:{definition}});assert.equal(created.status,201);const id=created.data.character.id;
+ assert.equal(created.data.character.hasPublished,false);assert.equal(created.data.character.revision,1);
+ assert.equal((await req('/admin/characters?kind=custom',{cookie})).data.total,1);
+ const catalog=async()=> (await req('/match/characters')).data;
+ const first=await catalog();assert(!first.characters.some(c=>c.id===id));assert.equal((await req('/match/characters?version='+first.version)).data.unchanged,true);
+ assert.equal((await req('/chat/greeting',{method:'POST',token,body:{characterId:id,messageId:'draft-access'}})).status,404);
+ assert.equal((await req('/admin/characters/'+id+'/preview',{method:'POST',body:{}})).status,401);
+ const counts=()=>({users:sql.prepare('SELECT count(*) n FROM users').get().n,messages:sql.prepare('SELECT count(*) n FROM conversation_messages').get().n,ledger:sql.prepare('SELECT count(*) n FROM ledger').get().n});
+ const before=counts(),wallet=sql.prepare('SELECT data FROM users WHERE id=?').get(guest.user.id).data;
+ const preview=await req('/admin/characters/'+id+'/preview',{method:'POST',cookie,body:{}});assert.equal(preview.status,200,JSON.stringify(preview));assert(preview.data.isAiGenerated);assert.equal(preview.data.costDeducted,0);const sessionId=preview.data.sessionId;
+ const ongoing=await req('/admin/characters/'+id+'/preview',{method:'POST',cookie,body:{sessionId,message:'creator-specific-test 너 취향은 뭐야?'}});assert.equal(ongoing.status,200,JSON.stringify(ongoing));
+ assert.deepEqual(counts(),before,'Preview must not create customer accounts/messages or ledger entries');assert.equal(sql.prepare('SELECT data FROM users WHERE id=?').get(guest.user.id).data,wallet);
+ assert.equal((await req('/admin/characters/'+id+'/publish',{method:'POST',cookie,body:{revision:0}})).status,409);
+ assert.equal((await req('/admin/characters/'+id+'/publish',{method:'POST',cookie,body:{revision:1}})).status,200);
+ const published=await catalog();assert(published.characters.some(c=>c.id===id));assert.notEqual(published.version,first.version);assert(!JSON.stringify(published).includes('PRIVATE_CANON_STUDIO'));assert(!JSON.stringify(published).includes('dialogueExamples'));
+ const match=await req('/match/request',{method:'POST',token,body:{characterId:id}});assert.equal(match.status,200);assert.equal(match.data.character.name,definition.name);assert(!JSON.stringify(match).includes('PRIVATE_CANON_STUDIO'));
+ assert.equal((await req('/chat/greeting',{method:'POST',token,body:{characterId:id,messageId:'creator-greet'}})).status,200);
+ assert.equal((await req('/chat/send',{method:'POST',token,body:{characterId:id,message:'creator-specific-test 실제 설정 반영',messageId:'creator-send'}})).status,200);
+ const updated={...definition,name:'수정된 공개 대기 인물'};
+ assert.equal((await req('/admin/characters/'+id,{method:'PUT',cookie,body:{definition:updated,revision:1}})).status,200);
+ assert.equal((await catalog()).characters.find(c=>c.id===id).name,definition.name,'Saving draft cannot change live profile');
+ assert.equal((await req('/admin/characters/'+id,{method:'PUT',cookie,body:{definition:updated,revision:1}})).status,409);
+ assert.equal((await req('/admin/characters/'+id+'/preview',{method:'POST',cookie,body:{sessionId,message:'이전 설정'}})).status,409);
+ assert.equal((await req('/admin/characters/'+id+'/publish',{method:'POST',cookie,body:{revision:2}})).status,200);assert.equal((await catalog()).characters.find(c=>c.id===id).name,updated.name);
+ assert.equal((await req('/admin/characters/'+id+'/pause',{method:'POST',cookie,body:{}})).status,200);assert(!(await catalog()).characters.some(c=>c.id===id));
+ assert.equal((await req('/match/request',{method:'POST',token,body:{characterId:id}})).status,400);
+ const newcomer=(await req('/auth/guest',{method:'POST',body:{}})).data;assert.equal((await req('/account/state',{method:'PUT',token:newcomer.token,body:{savedRooms:{[id]:{messages:[]}}}})).status,400,'Paused rooms cannot be forged to bypass new-chat restrictions');
+ const account=(await req('/account/state',{token})).data;assert(account.savedRooms[id]);assert(account.roomCharacters.some(c=>c.id===id));assert(!JSON.stringify(account).includes('PRIVATE_CANON_STUDIO'));
+ assert.equal((await req('/chat/send',{method:'POST',token,body:{characterId:id,message:'기존 대화 이어가기',messageId:'existing-after-pause'}})).status,200);
+ const builtin=(await catalog()).characters[0];const detail=(await req('/admin/characters/'+builtin.id,{cookie})).data.character;
+ assert.equal((await req('/admin/characters/'+builtin.id,{method:'PUT',cookie,body:{definition:{...detail.definition,personality:'기존 캐릭터 초안'},revision:0}})).status,200);
+ assert.equal((await catalog()).characters.find(c=>c.id===builtin.id).name,builtin.name);
+ await stop();await start();assert.equal((await req('/admin/characters/'+id,{cookie})).data.character.definition.name,updated.name);assert(!(await catalog()).characters.some(c=>c.id===id));
+ const audit=(await req('/admin/audit',{cookie})).data.items;assert(audit.some(a=>a.action==='character_publish'));assert(!JSON.stringify(audit).includes('PRIVATE_CANON_STUDIO'));
+ assert((await fetch(base+'/adminCharacters.js')).headers.get('content-type').includes('javascript'));
+ console.log('PASS: admin/CSRF isolation, draft/save/publish/pause/revision/restart, private canonical settings, live catalog and public-only matching, real generation prompt integration, independent free preview sessions and existing-room continuity');
+ }finally{await stop();sql?.close();fs.rmSync(dir,{recursive:true,force:true});}})().catch(e=>{console.error(e);process.exitCode=1;});

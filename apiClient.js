@@ -9,6 +9,7 @@
   let saving = Promise.resolve();
   let paused = false;
   let roomFingerprints = new Map();
+  let catalogVersion='';
   const ApiClient = {
     user: null,
     isHosted: () => hosted,
@@ -55,6 +56,11 @@
       try{return await guestInit;}finally{guestInit=null;}
     },
     async getHeartWallet() { return this.request('/account/hearts'); },
+    async loadCharacters(){
+      const data=await this.request('/match/characters'+(catalogVersion?'?version='+encodeURIComponent(catalogVersion):''));
+      if(!data.unchanged){catalogVersion=data.version||'';window.dispatchEvent(new CustomEvent('azit-character-catalog',{detail:data.characters}));}
+      return data;
+    },
     async loadState() {
       const data = await this.request('/account/state');
       this.user = data.user;

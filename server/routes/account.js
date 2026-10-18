@@ -7,7 +7,7 @@ router.use(requireAuth);
 function snapshot(user) {
   return { success: true, user: { id: user.id, phone: user.phone, hearts: user.hearts,
     isVipUnlimited: user.isVipUnlimited, phoneBonusClaimed: user.phoneBonusClaimed, heartExpiry: db.getHeartSummary(user.id) },
-    savedRooms: user.savedRooms || {}, metCharIds: user.metCharIds || [], matchFilter: user.matchFilter,
+    savedRooms: user.savedRooms || {}, roomCharacters:Object.keys(user.savedRooms||{}).map(id=>characters.publicProfile(characters.getCharacterById(id))).filter(Boolean), metCharIds: user.metCharIds || [], matchFilter: user.matchFilter,
     unlockedMedia: user.unlockedMedia || {}, prevCharId: user.prevCharId || null };
 }
 router.get('/hearts', (req,res) => {
@@ -18,11 +18,11 @@ router.get('/state', (req, res) => res.json(snapshot(db.getUser(req.user.id))));
 const roomStrings = ['memorySummary', 'lastGreetingSlot'];
 const roomNumbers = ['firstMetAt', 'photosSentCount', 'unreadCount', 'affection', 'turnCount', 'rudeStrikes', 'anger', 'updatedAt'];
 const msgStrings = ['id', 'sender', 'text', 'time', 'mediaType', 'mediaId', 'photoUrl', 'photoTitle', 'photoDesc', 'voiceText', 'durationText', 'giftEmoji', 'giftName', 'giftImage', 'giftBrand'];
-function sanitizeRooms(rooms) {
+function sanitizeRooms(rooms, existingRooms = {}) {
   if (!rooms || typeof rooms !== 'object' || Array.isArray(rooms) || Object.keys(rooms).length > 1250) throw new Error('Invalid rooms');
   const out = {};
   for (const [id, room] of Object.entries(rooms)) {
-    if (!characters.getCharacterById(id) || !room || !Array.isArray(room.messages) || room.messages.length > 500) throw new Error('Invalid room');
+    if (!characters.getCharacterById(id) || (!characters.isPublished(id) && !existingRooms[id]) || !room || !Array.isArray(room.messages) || room.messages.length > 500) throw new Error('Invalid room');
     const clean = { charId: id, messages: [], userFacts: Array.isArray(room.userFacts) ? room.userFacts.filter(f => typeof f === 'string').slice(-25).map(f => f.slice(0,500)) : [] };
     for (const key of roomStrings) if (typeof room[key] === 'string') clean[key] = room[key].slice(0,2000);
     for (const key of roomNumbers) if (Number.isFinite(room[key])) clean[key] = Math.max(0,room[key]);
@@ -44,7 +44,7 @@ function sanitizeRooms(rooms) {
 }
 router.put('/state', (req, res) => {
   let rooms;
-  try { rooms = sanitizeRooms(req.body.savedRooms || {}); }
+  try { rooms = sanitizeRooms(req.body.savedRooms || {}, db.getUser(req.user.id).savedRooms || {}); }
   catch { return res.status(400).json({ success: false, error: '대화 저장 형식이 올바르지 않습니다.' }); }
   const user = db.transaction(() => {
     const user = db.getUser(req.user.id);

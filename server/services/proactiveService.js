@@ -9,7 +9,7 @@ const backlog=db.sql.prepare(`SELECT user_id,character_id FROM conversation_stat
 function schedule(id,characterId,now=Date.now()){
  id=db.resolveUserId(id);
  const user=db.getUser(id),room=user?.savedRooms?.[characterId];
- if(!room||!selected(characterId)||!store.preferences(id).enabled)return false;
+ if(!room||!characters.isPublished(characterId)||!selected(characterId)||!store.preferences(id).enabled)return false;
  // Only genuine completed conversations can lead to a follow-up.
  const messages=room.messages||[],last=messages.at(-1);
  if(messages.filter(m=>m.sender==='user'&&!m.giftName).length<4||last?.sender!=='ai')return false;
@@ -22,7 +22,7 @@ function schedule(id,characterId,now=Date.now()){
 function eligible(job,now){
  const user=db.getUser(job.user_id),room=user?.savedRooms?.[job.character_id],prefs=store.preferences(job.user_id);
  const messages=room?.messages||[],last=messages.at(-1),lastUser=messages.findLast(m=>m.sender==='user');
- return Boolean(selected(job.character_id)&&prefs.enabled&&room&&!room.roomLeft&&last?.id===job.source_id&&last.sender==='ai'&&!last.proactive&&lastUser&&now-(lastUser.createdAt||now)>=6*HOUR&&now-(lastUser.createdAt||0)<=7*DAY&&now-prefs.last_seen>=10*60000&&now-prefs.last_sent>=3*DAY&&messages.filter(m=>m.sender==='user').length>=4);
+ return Boolean(characters.isPublished(job.character_id)&&selected(job.character_id)&&prefs.enabled&&room&&!room.roomLeft&&last?.id===job.source_id&&last.sender==='ai'&&!last.proactive&&lastUser&&now-(lastUser.createdAt||now)>=6*HOUR&&now-(lastUser.createdAt||0)<=7*DAY&&now-prefs.last_seen>=10*60000&&now-prefs.last_sent>=3*DAY&&messages.filter(m=>m.sender==='user').length>=4);
 }
 async function processJob(job,now=Date.now()){
  if(quiet(now)||active.has(job.user_id))return false;

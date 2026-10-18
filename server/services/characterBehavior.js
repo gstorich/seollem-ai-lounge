@@ -47,6 +47,10 @@ function number(id,axis){return createHash('sha256').update(VERSION+':'+id+':'+a
 function isRomantic(character){return /19금|은밀|시크릿|관능|썸|연애|직진/.test(character.conceptTitle||'');}
 function getProfile(character){
  if(!character?.id)throw Error('Character ID required');
+ if(character.creatorDefinition){
+   const d=character.creatorDefinition;
+   return {version:'authored-v1',key:'authored',label:'관리자가 작성한 고유 인물',defaultRegister:d.defaultRegister||'polite',want:d.motivation||'작성한 성격에 맞게 자기 생각을 주고받음',flaw:d.flaws||'억지로 새로운 결점을 만들지 않음',reaction:d.personality,length:d.replyLength==='short'?'한두 마디의 짧은 채팅':d.replyLength==='long'?'관심 있는 주제에서는 여러 마디로 충분히 표현':'흐름에 맞게 짧은 반응과 두세 마디를 섞음',like:d.likes||'',dislike:d.dislikes||'',friction:d.interactionRules||'',opinions:{}};
+ }
  const options=WEIGHTS[character.traitKey]||WEIGHTS.warm;
  let roll=number(character.id,'type')%100,key=options.at(-1)[0];for(const [value,weight]of options){if(roll<weight){key=value;break;}roll-=weight;}
  if(isRomantic(character)&&number(character.id,'romance')%100<60)key='bold';
@@ -54,6 +58,7 @@ function getProfile(character){
  return {version:VERSION,key,label:type.label,defaultRegister:type.register,want:type.want,flaw:type.flaw,reaction:type.reaction,length:type.length,like:likes[0],dislike:likes[1],friction:FRICTIONS[number(character.id,'friction')%FRICTIONS.length],rhythm:RHYTHMS[number(character.id,'rhythm')%RHYTHMS.length],opinions:Object.fromEntries(Object.entries(OPINIONS).map(([axis,values])=>[axis,values[number(character.id,axis)%values.length]]))};
 }
 function buildPrompt(character,{greeting=false,seed=''}={}){
+ if(character.creatorDefinition)return buildDialogueCard(character,{greeting,seed});
  const p=getProfile(character),type=TYPES[p.key],open=OPENINGS[p.key]||type.open,opening=open[number(character.id,'opening:'+seed)%open.length];
  return `[이 캐릭터의 구체적인 반응 성향: 공통 친절함보다 우선]
 ${JSON.stringify(p)}
@@ -74,6 +79,15 @@ ${greeting?`[이 방의 첫마디 연출]
 - 실제로 하지 않은 이전 만남·외모 관찰·연애 관계·사진 확인을 전제하지 않습니다. 자기 쪽의 작은 취향·관심은 꺼낼 수 있으나 뜬금없는 상태 보고나 소설 지문으로 채우지 않습니다.`:''}`;
 }
 function buildDialogueCard(character,{greeting=false,seed=''}={}){
+ if(character.creatorDefinition){
+   const d=character.creatorDefinition;
+   return `[크리에이터가 직접 작성한 캐릭터 설정: 자동 성향·공통 예시보다 우선]\n${JSON.stringify({personality:d.personality,backstory:d.backstory,motivation:d.motivation,flaws:d.flaws,likes:d.likes,dislikes:d.dislikes,interactionRules:d.interactionRules})}
+- 위 인물의 목표·신념·결점·취향으로 매번 실제 반응을 고릅니다. 성격을 자기소개로 나열하지 않고, 말끝만 흉내 내지도 않습니다. 이 설정에 없는 무작위 기본 성향이나 취향을 덮어씌우지 않습니다. 실제 대화에서 겪은 일·확인된 사용자 요청은 함께 유지합니다.
+[작성자가 준 대화 예시: 실제 사용자 발화나 확정 사건이 아님]
+${(d.dialogueExamples||[]).map(e=>`가상 상대: ${e.user}\n${character.name}: ${e.reply}`).join('\n')||'예시 없음. 성격과 말투 지침으로 새로 작성합니다.'}
+- 예시는 말투·판단·거리감을 보여주는 참고입니다. 예시를 고정 답변처럼 복사하거나 상대 신상으로 기록하지 않습니다.
+${greeting?'[이 인물의 첫 대화 방식]\n'+(d.firstMessageDirection||'작성된 성격과 동기가 드러나는 짧은 첫마디를 보냅니다.')+'\n매번 API로 새 문장을 생성합니다. 상대는 아직 말하지 않았으며 나이·성별·외모·실제 이전 관계를 지어내지 않습니다.':''}`;
+ }
  const p=getProfile(character),type=TYPES[p.key],open=OPENINGS[p.key]||type.open;
  return `[인물의 반응 성향]\n${JSON.stringify(p)}
 [말투 예시: 가상 예시이며 사건·취향·사용자 사실로 기억하지 않음]

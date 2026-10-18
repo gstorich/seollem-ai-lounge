@@ -4,6 +4,7 @@ const helmet = require('helmet');
 const path = require('path');
 const { rateLimit } = require('express-rate-limit');
 const config = require('./config');
+require('./services/characterService').initializeRegistry();
 
 const authRoutes = require('./routes/auth');
 const matchRoutes = require('./routes/match');
@@ -93,7 +94,7 @@ for (const [route,file] of [['/admin','admin.html'],['/support','support.html'],
   app.get([route,route+'.html'],(req,res)=>{res.set('Cache-Control','no-store');res.set('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");res.sendFile(path.join(__dirname,'..',file));});
 }
 // Serve frontend SPA from root
-for (const file of ['index.html', 'apiClient.js', 'chatTiming.js', 'analytics.js', 'notifications.js', 'notification-worker.js', 'manifest.webmanifest', 'admin.js', 'support.js', 'operations.css', 'policy.css', 'custom_avatars_manifest.json']) {
+for (const file of ['index.html', 'apiClient.js', 'chatTiming.js', 'analytics.js', 'notifications.js', 'notification-worker.js', 'manifest.webmanifest', 'admin.js', 'adminCharacters.js', 'support.js', 'operations.css', 'policy.css', 'custom_avatars_manifest.json']) {
   app.get(`/${file}`, (req, res) => res.sendFile(path.join(__dirname, '..', file)));
 }
 

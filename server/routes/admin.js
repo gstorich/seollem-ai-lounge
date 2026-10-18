@@ -14,6 +14,7 @@ router.post('/session',rateLimit({windowMs:15*60000,limit:5,skipSuccessfulReques
  ops.audit('operator','admin_login','session');res.json({success:true});
 });
 router.use(requireAdmin);
+router.use('/characters',require('./adminCharacters'));
 router.get('/session',(req,res)=>res.json({success:true,operator:'관리자'}));
 router.delete('/session',(req,res)=>{res.clearCookie(cookieName,{httpOnly:true,secure:config.nodeEnv==='production',sameSite:'strict',path:'/'});res.json({success:true});});
 const page=req=>Math.max(0,Math.min(10000,parseInt(req.query.page)||0));

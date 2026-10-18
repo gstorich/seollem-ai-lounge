@@ -80,6 +80,7 @@ ${habits}
 }
 
 function buildCompactPrompt(character){
+  if(character.creatorDefinition)return '[작성자가 정한 말투: 자동 타이핑 조합보다 우선]\n'+character.speechStyle+'\n사용자가 요청한 말높임·호칭·웃음·이모지 제한은 우선합니다. 설정에 없는 무작위 말버릇을 추가하지 않습니다.';
   const profile=getProfile(character);
   return '[개인 타이핑 습관]\n'+Object.entries(AXES).map(([axis,options])=>options.find(option=>option[0]===profile[axis])[2]).join('\n')+'\n습관은 매번 과시하지 않고, 사용자가 빼달라고 한 웃음·이모지·호칭은 뺍니다. 다른 사람의 말투를 복제하지 않습니다.';
 }

@@ -6,10 +6,13 @@
 const CHARACTERS = require('./frontendCharacters.json');
 const chatVoiceProfiles = require('./chatVoiceProfiles');
 const behavior = require('./characterBehavior');
+let registry=null;
+function publicProfile(c){return c?Object.fromEntries(['id','name','age','ageDecade','gender','traitKey','regionGroup','job','avatar','area','bio'].map(k=>[k,c[k]])):null;}
 
 module.exports = {
+  initializeRegistry(){registry=require('./characterRegistry');},
   getAllCharacters() {
-    return CHARACTERS.map(c => ({
+    return (registry?[...registry.catalog().all.values()].filter(c=>registry.catalog().enabled.has(c.id)):CHARACTERS).map(c => ({
       id: c.id,
       name: c.name,
       age: c.age,
@@ -25,12 +28,15 @@ module.exports = {
   },
 
   getCharacterById(id) {
-    return CHARACTERS.find(c => c.id === id) || null;
+    return registry?registry.catalog().all.get(id)||null:CHARACTERS.find(c=>c.id===id)||null;
   },
+  publicProfile,
+  catalogVersion(){return registry?registry.catalog().version:'builtin';},
+  isPublished(id){return registry?registry.catalog().enabled.has(id):CHARACTERS.some(c=>c.id===id);},
 
   findMatch(filters = {}, metIds = []) {
     const targetGender = filters.gender === 'male' ? 'male' : 'female';
-    const eligible = CHARACTERS.filter(c => (c.gender || 'female') === targetGender);
+    const eligible = (registry?[...registry.catalog().all.values()].filter(c=>registry.catalog().enabled.has(c.id)):CHARACTERS).filter(c=>(c.gender||'female')===targetGender);
     let pool = eligible.filter(c => !metIds.includes(c.id));
     if (pool.length === 0) pool = eligible;
 
@@ -48,7 +54,7 @@ module.exports = {
     }
 
     const randomIndex = Math.floor(Math.random() * pool.length);
-    return pool[randomIndex] || CHARACTERS[0];
+    return pool[randomIndex] || null;
   },
 
   buildSystemPrompt(character, userContext = {}) {

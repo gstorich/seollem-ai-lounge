@@ -12,6 +12,7 @@ function characterAndId(req,res) {
   if(typeof characterId!=='string'||typeof requestId!=='string'||!/^[a-zA-Z0-9_-]{1,100}$/.test(requestId)) {res.status(400).json({success:false,error:'요청 형식이 올바르지 않습니다.'});return null;}
   const character=characters.getCharacterById(characterId);
   if(!character){res.status(404).json({success:false,error:'대화 상대를 찾을 수 없습니다.'});return null;}
+  if(!characters.isPublished(characterId)&&!req.user.savedRooms?.[characterId]){res.status(404).json({success:false,error:'현재 공개되지 않은 캐릭터입니다.'});return null;}
   return {character,requestId};
 }
 router.post('/send',async(req,res)=>{

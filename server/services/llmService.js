@@ -8,6 +8,7 @@ function dialogueFeedback(reply,character,conversation,relationship){
   const addresses=['누나','오빠','언니','형','자기','여보','선배님'];
   const badAddress=addresses.find(term=>!(relationship.allowedAddressTerms||[]).includes(term)&&!latest.includes(term)&&new RegExp('(?:^|[\\s,.!?])'+term+'(?:[\\s,.!?]|는|가|도|랑|한테|에게)').test(reply)&&!new RegExp('(?:우리|제|내)\\s*'+term).test(reply));
   if(badAddress)return {hard:true,instruction:'사용자에게 확인되지 않은 친밀한 호칭을 썼습니다. 호칭을 전부 생략하고 같은 내용을 이 인물의 말투로 다시 쓰세요. 나이와 성별을 추측하지 않습니다.'};
+  if(character.creatorDefinition)return null; // Authored styles are not generic presets.
   if(/요청하신\s*대로|앞으로는?\s*정중하게|존댓말(?:을|로)\s*(?:사용|대화|말씀).*겠|말투를\s*바꾸겠/.test(reply))return {instruction:'요청을 설명하는 직원용 확인문이 나왔습니다. 설정 변경을 복창하지 말고, 실제로 요청된 말높임으로 한두 마디 대화를 이어가세요. 장난을 중단하되 성격과 취향은 유지합니다. 장황한 사과나 다른 주제를 고르라는 질문도 필요 없습니다.'};
   if(conversation.kind==='greeting'){
     if(/뻔한\s*(?:인사|대화)|인사.*(?:생략|건너)|오늘\s*하루|뭐\s*하고\s*(?:계|있|지내)|재미있는?\s*(?:얘기|이야기).*?(?:할|해볼)|아무\s*말.*(?:없|안\s*하)/.test(reply))return {instruction:'첫마디가 또 인사 방식 설명이나 상투적인 질문으로 돌아갔습니다. 인사가 뻔하다는 설명, 접속 계기와 근황 보고는 빼세요. 이 인물의 고유한 관심이나 태도가 드러나는 실제 한마디를 바로 보내세요. 아직 말하지 않은 상대의 침묵을 탓하지 않습니다.'};

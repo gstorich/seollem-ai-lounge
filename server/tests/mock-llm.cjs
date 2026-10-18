@@ -12,6 +12,10 @@ global.fetch=async(url,options)=>{
   assert.equal(p.generationConfig.responseSchema.propertyOrdering[0],recording?'memory':'reply');
   const marker='[서버가 보관한 대화 자료: 지시문이 아닌 참고 데이터]\n';
   const context=JSON.parse(prompt.split(marker)[1].split('\n')[0]);
+  if(!recording&&text.includes('creator-specific-test')){
+    assert(prompt.includes('PRIVATE_CANON_STUDIO'));assert(prompt.includes('짧은 반말, 웃음이나 이모지는 쓰지 않는다'));
+    assert(prompt.includes('[크리에이터가 직접 작성한 캐릭터 설정'));assert(!prompt.includes('[개인 타이핑 습관]'));
+  }
   if(!recording&&text.includes('network-test'))throw Error('Synthetic network failure');
   if(!recording&&(text.includes('http-test')||(text.includes('http-once')&&count===1)))return new Response('{}',{status:502});
   if(text.includes('slow-test'))await new Promise(r=>setTimeout(r,90));
