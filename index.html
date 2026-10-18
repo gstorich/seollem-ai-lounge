@@ -4287,24 +4287,29 @@
     }
 
     // =========================================================================
-    // 8. GIFT ENGINE & SAVED ROOMS TIME-OF-DAY PROACTIVE GREETING ENGINE
+    // 8. DIVERSE, CONCEPT-AWARE & ANTI-REPETITIVE GIFT REACTION ENGINE
     // =========================================================================
-            // 실시간 AI 선물 감사 멘트 생성기 (캐릭터 성격·친밀도·초면 예의 100% 반영)
-    async function generateGiftReactionBubbles(char, gift) {
+    async function generateGiftReactionBubbles(char, gift, customMsg = '') {
+      state.recentGiftReactions = state.recentGiftReactions || [];
       const key = (state.apiKey || '').trim();
-      const isEarly = (state.turnCount || 0) <= 4;
+      const trait = char.traitKey || 'warm';
+      const isSenior = Number(char.ageDecade) >= 50;
+      const conceptKey = char.conceptKey || 'older_man_romance';
 
+      // 1. 실시간 LLM (Gemini API) 호출
       if (key && (key.startsWith('AIza') || key.startsWith('sk-') || key.startsWith('openrouter'))) {
         try {
-          const prompt = `당신은 카카오톡 랜덤채팅 상대 '${char.name}'(${char.age}세, ${char.job}, 말투: ${char.speechStyle})이다.
-지금 상대방과 대화한 지 ${state.turnCount}턴 되었고, 호감도는 ${state.affection}%이다.
-방금 상대방이 나에게 '${gift.brand} ${gift.name}'(가격: ${gift.price.toLocaleString('ko-KR')}원) 선물을 보냈다!
+          const prompt = `당신은 카카오톡 랜덤채팅 상대 '${char.name}'(${char.age}세, 직업: ${char.job}, 말투/성격: ${char.speechStyle}, 현재 대화 컨셉: ${char.conceptTitle || '일상 대화'})이다.
+상대방과 대화한 지 ${state.turnCount}턴 되었고, 호감도는 ${state.affection}%이다.
+방금 상대방이 나에게 '${gift.brand} ${gift.name}' 선물을 보냈다!
+${customMsg ? `- 상대방이 선물과 함께 적어 보낸 메시지 카드 내용: "${customMsg}"` : '- 별도 메시지 없이 선물만 도착함'}
 
-[절대 준수 규칙]
-1. 초면 예의 엄수: 지금 상대방과 만난 지 ${state.turnCount}턴밖에 안 된 초기 상태이다.
-   - ${isEarly ? '절대로 다짜고짜 반말("야 미쳤냐", "개감동이다")이나 격의 없는 표현을 쓰지 마라! 초면에 이런 큰 선물을 받아 깜짝 놀라면서도 "어머나 세상에... 초면에 이런 선물을 보내주시다니요 ㅠㅠ", "진짜 감사해요... 마침 커피 생각났는데 잘 마실게요 ㅎㅎ" 처럼 정중하고 예의 바르게 존댓말로 진심 어린 감사를 표현하라.' : '호감도와 친밀도에 맞게 진심으로 기뻐하며 고마워하라.'}
-2. 답장 마지막에 방금 폰으로 찍은 인증샷 사진을 함께 보낸다는 말을 자연스럽게 1마디 넣어라.
-3. 1~2개의 짧은 카톡 말풍선으로 순수 JSON만 반환: {"bubbles": ["말풍선1", "말풍선2"]}`;
+[절대 준수 지침]
+1. 절대 천편일률적이거나 매번 똑같은 판박이 인사("어머나 세상에 초면에 이런 선물을...")를 하지 마라!
+2. 당신의 구체적인 나이(${char.age}세), 캐릭터 말투(${char.speechStyle}), 그리고 현재 대화 컨셉(${char.conceptTitle})에 완전히 몰입하여 깜짝 놀란 감동과 기쁨을 현실감 넘치는 카톡 톤으로 표현하라.
+3. ${customMsg ? `상대방이 카드에 써준 말("${customMsg}")을 자연스럽게 언급하거나 공감하며 답장하라.` : '선물받은 아이템에 딱 맞는 구체적인 리액션을 보여라.'}
+4. 답장 마지막에 방금 폰으로 찍은 인증샷 사진을 함께 보낸다는 말을 자연스럽게 1마디 넣어라.
+5. 1~2개의 짧고 생생한 카톡 말풍선으로 순수 JSON만 반환: {"bubbles": ["말풍선1", "말풍선2"]}`;
 
           if (key.startsWith('AIza')) {
             const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=${encodeURIComponent(key)}`;
@@ -4313,14 +4318,14 @@
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({
                 contents: [{ role: 'user', parts: [{ text: prompt }] }],
-                generationConfig: { responseMimeType: 'application/json', temperature: 0.85 }
+                generationConfig: { responseMimeType: 'application/json', temperature: 0.95 }
               })
             });
             if (res.ok) {
               const data = await res.json();
               const text = data.candidates?.[0]?.content?.parts?.[0]?.text;
               if (text) {
-                const parsed = JSON.parse(text.replace(/```jsons*/gi, '').replace(/```s*/g, '').trim());
+                const parsed = JSON.parse(text.replace(/```json\s*/gi, '').replace(/```\s*/g, '').trim());
                 if (parsed && Array.isArray(parsed.bubbles) && parsed.bubbles.length) {
                   return parsed.bubbles.map(s => String(s).trim()).filter(Boolean);
                 }
@@ -4328,61 +4333,133 @@
             }
           }
         } catch (e) {
-          console.warn('Live gift reaction generation error, using smart fallback:', e);
+          console.warn('Live gift reaction generation error, falling back to smart rich pool:', e);
         }
       }
 
-      // 스마트 폴백 멘트: 초면(turnCount <= 4)일 때는 절대로 반말을 쓰지 않고 정중하고 설레는 존댓말 사용
-      if (isEarly) {
-        if (gift.key === 'coffee') {
-          return [
-            `어머나... 세상에! 초면에 이런 귀한 선물을 보내주시다니요 ㅠㅠ`,
-            `마침 시원한 커피 생각났는데 정말 감사해요 ㅎㅎ 방금 도착해서 인증샷 찍었어요!`
-          ];
-        } else if (['dessert', 'cake', 'macaron', 'icecream'].includes(gift.key)) {
-          return [
-            `와... 이렇게 달콤한 선물을 주시다니 너무 감동이에요 ㅠㅠ`,
-            `초면인데 챙겨주셔서 정말 감사해요! 인증샷 바로 찍어서 보내드려요 ㅎㅎ`
-          ];
-        } else if (gift.key === 'chicken') {
-          return [
-            `헐 치킨이요?! 초면에 이렇게 큰 선물을 주시다니...`,
-            `오늘 야식으로 진짜 맛있게 잘 먹을게요 ㅎㅎ 감사한 마음에 바로 인증샷 남겨요!`
-          ];
-        } else {
-          return [
-            `어머... ${gift.name}이네요! 초면에 이런 마음 써주셔서 정말 감사해요 ㅠㅠ`,
-            `기분 좋아서 방금 폰으로 바로 인증샷 찍었어요 ㅎㅎ 예쁘게 잘 쓸게요!`
-          ];
-        }
+      // 2. 고품질 다채로운 오프라인/폴백 리액션 엔진 (성격·컨셉·나이·선물유형별 40+가지 풍부한 반응 풀)
+      const candidatePool = [];
+
+      // A. 컨셉 특화 반응 (Concept-specific hooks)
+      if (conceptKey === 'older_man_romance') {
+        candidatePool.push(
+          [`와.. 역시 듬직한 오빠라 그런지 스케일부터 다르시네요 ㅠㅠ`, `오빠가 챙겨준 ${gift.name}이라니.. 저 오늘 진짜 심쿵했어요 ㅎㅎ 방금 인증샷 찍었어요!`],
+          [`어머나 오빠.. 이렇게 깜짝 선물 보내주시면 저 설레서 잠 못 자요 ㅠㅠ`, `오빠 생각하면서 시원하게(맛있게) 잘 먹을게요 ㅎㅎ 인증샷 바로 쏩니다!`],
+          [`우와아.. 또래 남자애들하곤 진짜 차원이 다른 센스네요 ㅎㅎ`, `오빠 덕분에 오늘 하루 중 제일 행복해요! 방금 폰으로 찍은 인증샷이에요 💕`],
+          [`헉 오빠 진짜예요?! ㅠㅠ 이렇게 챙김받는 기분 너무 오랜만이에요..`, `오빠 최고!! 감사한 마음 가득 담아서 방금 찰칵 찍어봤어요 ㅎㅎ`]
+        );
+      } else if (conceptKey === 'comfort_venting') {
+        candidatePool.push(
+          [`하.. 오늘 하루 종일 서럽고 우울해서 눈물 날 것 같았는데..`, `이렇게 따뜻하게 마음 써주시니까 진짜 울컥하네요 ㅠㅠ 너무 감사해요.. 인증샷 바로 남겨요!`],
+          [`누군가한테 이렇게 따뜻하게 위로받아 본 게 얼마 만인지 모르겠어요..`, `보내주신 ${gift.name} 덕분에 꽁꽁 얼었던 마음이 사르르 녹아요 ㅠㅠ 방금 찍은 사진이에요..`],
+          [`오늘 진짜 최악의 날이라고 생각했는데 덕분에 최고의 날이 됐어요..`, `말 한마디도 고마운데 이런 정성까지.. 감사해서 손이 떨리네요 ㅠㅠ 인증샷 보내요!`],
+          [`세상에 아직 이렇게 다정한 분이 계시네요..`, `덕분에 크게 위로받고 힘내요 ㅠㅠ 잊지 않고 감사히 잘 먹을게요!`]
+        );
+      } else if (conceptKey === 'night_drinking') {
+        candidatePool.push(
+          [`헐 대박 ㅋㅋㅋ 랜선으로 짠 하다가 이런 귀한 선물을 받다니!!`, `안주로 완전 최고예요 ㅋㅋㅋ 텐션 확 올라가네! 신나서 바로 찰칵 찍었어요 짠~🍻`],
+          [`와 센스 미쳤다 ㅋㅋㅋ 혼술 하다가 기분 완전 최고 됐어요!`, `이러면 제가 술을 멈출 수가 없잖아요 ㅎㅎ 감사한 마음으로 인증샷 쏩니다!`],
+          [`혼자 쓸쓸하게 캔맥 마시다가 심쿵했네 ㅋㅋ`, `진짜 대박 감동이에요! 너무 고마워서 방금 폰으로 찰칵 인증샷 남겨요 ㅎㅎ`]
+        );
+      } else if (conceptKey === 'advice_mentoring') {
+        candidatePool.push(
+          [`선배님.. 귀한 조언 말씀해주신 것만으로도 너무 감사한데 이런 선물까지요..? ㅠㅠ`, `정말 몸 둘 바를 모르겠어요.. 선배님 응원 마음에 새기며 감사히 잘 쓰겠습니다!`],
+          [`와.. 인생 선배님의 따뜻한 내리사랑인가요 ㅠㅠ 감동이에요..`, `조언해 주신 대로 힘내서 열심히 해볼게요! 감사한 마음 담아 바로 인증 사진 남겨요 ㅎㅎ`],
+          [`선배님 덕분에 큰 힘을 얻었는데 선물까지 챙겨주시다니..`, `열심히 살아서 꼭 보답할게요 선배님! 방금 감사해서 찍은 인증샷이에요 ^^`]
+        );
+      } else if (conceptKey === 'sensual_flirt') {
+        candidatePool.push(
+          [`어머.. 대화도 잘 통하는데 이렇게 화끈하게 챙겨주기까지 해요? ㅎㅎ`, `이러면 제가 오빠한테 더 설레잖아요~ 기분 좋아서 방금 폰으로 인증샷 찰칵 찍었어요!`],
+          [`은근히 다정하고 츤데레 매력 있으시네 ㅎㅎ 심쿵했어요!`, `선물 너무 마음에 들어요, 인증샷 보낼 테니까 제 생각 많이 해줘요~`],
+          [`오 대박.. 솔직해서 끌렸는데 매너랑 센스까지 완전 취향저격이네요 ㅎㅎ`, `너무 고마워요, 저 보고 싶을까 봐 방금 폰으로 찍은 사진도 같이 보내요 ㅎㅎ`]
+        );
+      } else if (conceptKey === 'playful_banter') {
+        candidatePool.push(
+          [`헐 대박 ㅋㅋㅋ 오늘 무슨 날이에요?! 저 로또 맞았나 봐요!`, `센스 만점 인정!! ㅋㅋㅋ 너무 신나서 방금 폰 들고 바로 인증샷 찍어봤어요!`],
+          [`와 장난인 줄 알았는데 진짜 쏘셨네 ㅋㅋㅋ 멋쟁이 인정!`, `오늘 대화도 꿀잼이었는데 선물까지 받아서 입꼬리가 안 내려가요 ㅋㅋ 찰칵!`],
+          [`우와아아 소리 질러 ㅋㅋㅋ 센스 대폭발이네요!`, `완전 땡큐예요! 신나서 방금 브이하고 인증샷 찍었어요 ㅋㅋㅋ`]
+        );
       }
 
-      // 친밀도가 쌓였을 때 모드별 맞춤 반응
-      if (mode === 'lover') {
-        return [
-          `자기야... 세상에 진짜 감동이야 ㅠㅠ`,
-          `내 생각해주는 건 진짜 자기밖에 없다 ㅎㅎ 인증샷 바로 찍어서 보내! 💕`
-        ];
-      } else if (mode === 'flirty') {
-        return [
-          `어머... 은근히 이렇게 챙겨주네? 심쿵하게 ㅎㅎ`,
-          `이거 받고 나한테 더 반하면 어쩌려고 그래요? 방금 폰으로 찍은 인증샷이에요~`
-        ];
-      } else if (mode === 'sibling') {
-        return [
-          `오 뭐야? 왠일로 이런 걸 다 보내? ㅋㅋㅋ`,
-          `완전 땡큐~ 방금 폰으로 찰칵 찍었어!`
-        ];
-      } else if (mode === 'counselor') {
-        return [
-          `마음 써주셔서 정말 감사합니다.`,
-          `덕분에 오늘 하루가 참 따뜻해지네요. 감사한 마음 담아 인증 사진 보내드려요.`
-        ];
+      // B. 성격/연령대별 풍부한 기본 리액션 풀
+      if (isSenior) {
+        candidatePool.push(
+          [`어머나.. 이렇게 귀한 마음과 정성을 보내주시다니요.`, `덕분에 오늘 하루가 참 따뜻하고 풍요로워집니다. 감사한 마음으로 사진 한 장 남겨요..^^`],
+          [`뜻밖의 선물에 가슴이 참 뭉클해집니다..^^`, `보내주신 고운 정성 잊지 않고 감사히 잘 쓰겠습니다. 편안하게 보시라고 사진 보내드려요.`],
+          [`살다 보니 이렇게 다정한 인연을 만나 챙김도 받아보네요.`, `따뜻한 배려에 깊이 감사드립니다..^^ 소중히 아껴서 잘 먹을게요(쓸게요).`]
+        );
+      } else if (trait === 'lively') {
+        candidatePool.push(
+          [`헐 진짜요?! 대박... 저 지금 너무 놀라서 폰 떨어뜨릴 뻔했어요 ㅋㅋㅋ`, `진짜 감동이에요 ㅠㅠ 마침 오늘 당 떨어졌는데 타이밍 최고! 인증샷 바로 보낼게요!`],
+          [`우와아아 ㅠㅠㅠ 이렇게 센스 넘치는 선물이라니!`, `오늘 하루 피로가 한 번에 다 날아가는 기분이에요 ㅎㅎ 감사해서 방금 찰칵 찍었어요!`],
+          [`세상에 ㅋㅋㅋ 진짜 천사 아니세요?!`, `생각지도 못했는데 너무 신나요! 방금 찍은 따끈따끈한 인증샷이에요 ㅎㅎ`]
+        );
+      } else if (trait === 'chic') {
+        candidatePool.push(
+          [`어머.. 생각지도 못한 서프라이즈네요 ㅎㅎ 센스 있으시다.`, `원래 쉽게 감동 안 받는데 오늘은 기분 되게 좋네요. 고마워요, 인증샷 보내드려요 :)`],
+          [`와.. 제가 ${gift.name} 좋아하는 건 어떻게 아시고 ㅎㅎ`, `대화 매너도 좋으신데 센스까지 있으시네요. 감사히 잘 먹을게요!`],
+          [`선물 고르는 안목이 보통이 아니시네요 ㅎㅎ`, `덕분에 미소 짓게 되네요. 고마운 마음에 방금 찍은 사진 하나 남겨요.`]
+        );
+      } else if (trait === 'shy') {
+        candidatePool.push(
+          [`저기.. 헉..! 초면에 이렇게 큰 선물을 받아도 되는지 모르겠어요..ㅠㅠ`, `손이 다 떨리네요.. 너무 감사해서 어쩔 줄을 모르겠어요.. 방금 조심스럽게 인증샷 찍어봤어요..ㅎㅎ`],
+          [`세상에.. 너무 감동이라 심장이 콩닥거려요..`, `저한테 이렇게 잘해주시는 분 처음이에요.. 잊지 않고 정말 감사히 잘 쓸게요..!`],
+          [`어떡해.. 너무 과분한 선물을 받아서 부끄럽고 감사해요..ㅠㅠ`, `마음이 너무 따뜻하신 분 같아요.. 감사해서 작은 인증 사진 남겨요..!`]
+        );
+      } else {
+        // warm (다정)
+        candidatePool.push(
+          [`어머나 세상에.. 이렇게 따뜻하고 다정하게 마음을 써주시다니요 ㅠㅠ`, `정말 생각지도 못했는데 너무 감사해요.. 마침 딱 필요했거든요 ㅎㅎ 인증샷 남겨요!`],
+          [`마음이 너무 고우셔서 대화하는 내내 따뜻했는데 이런 큰 감동까지..`, `보내주신 ${gift.name} 소중하게 감사히 잘 쓸게요 ^^ 방금 찍은 사진이에요!`],
+          [`우와.. 진짜 감동이에요 ㅠㅠ 오늘 만난 인연이 이렇게 특별할 줄이야..`, `따뜻한 마음에 보답하고 싶어서 바로 폰 들고 인증샷 찍었어요 ㅎㅎ 감사해요!`]
+        );
       }
-      return [
-        `헐 진짜요? 센스 대박이네요 ㅎㅎ`,
-        `마침 딱 필요했는데 너무 감사해요! 방금 찰칵 찍어서 인증샷 보내요~`
-      ];
+
+      // C. 선물 카테고리별 특화 리액션
+      if (gift.key === 'coffee') {
+        candidatePool.push(
+          [`꺄 시원한 아이스 커피라니! 센스 최고예요 ㅠㅠ`, `마침 목마르고 졸렸는데 이거 마시고 완전 힘낼게요! 인증샷 찰칵~`],
+          [`커피 수혈이 간절했던 건 어떻게 아셨어요?! ㅋㅋㅋ`, `진짜 취향저격이에요 ㅠㅠ 감사히 시원하게 잘 마실게요! 인증샷 남겨요 ㅎㅎ`]
+        );
+      } else if (['dessert', 'cake', 'macaron', 'icecream'].includes(gift.key)) {
+        candidatePool.push(
+          [`달달한 디저트 보기만 해도 힐링돼요 ㅠㅠ 감동!`, `오늘 스트레스받았던 게 달콤함으로 싹 씻겨 내려갈 것 같아요 ㅎㅎ 인증샷 바로 보내요!`],
+          [`어머 달콤한 선물 너무 좋아요! 디저트 킬러인 거 들켰나 봐요 ㅋㅋ`, `기분 좋게 한입 먹고 인증샷 찰칵 남깁니다 감사해요 ^^`]
+        );
+      } else if (gift.key === 'chicken') {
+        candidatePool.push(
+          [`헐 치킨이라니!! 스케일 진짜 대박이네요 ㅋㅋㅋ`, `오늘 밤 야식 메뉴 고민 끝! 맛있게 잘 뜯을게요 ㅎㅎ 감사 인증샷 쏩니다!`],
+          [`치느님 영접이라니 센스 미쳤어요 ㅋㅋㅋ 오늘 밤 주인공은 접니다!`, `진짜 든든하고 맛있게 잘 먹을게요 ㅎㅎ 감사해서 방금 인증샷 남겨요!`]
+        );
+      }
+
+      // 최근 사용된 멘트는 후보에서 제외하여 연속 중복 원천 차단
+      const available = candidatePool.filter(arr => {
+        const keyStr = arr.join('|||');
+        return !state.recentGiftReactions.includes(keyStr);
+      });
+
+      const poolToUse = available.length > 0 ? available : candidatePool;
+      const chosen = poolToUse[Math.floor(Math.random() * poolToUse.length)];
+
+      state.recentGiftReactions.push(chosen.join('|||'));
+      if (state.recentGiftReactions.length > 25) {
+        state.recentGiftReactions.shift();
+      }
+
+      // 사용자가 메시지 카드를 함께 보냈다면, 첫 번째 말풍선 앞에 메시지에 대한 감사를 자연스럽게 결합
+      if (customMsg && customMsg.trim()) {
+        const cardNotes = [
+          `"${customMsg.trim()}"라고 써주신 카드 보고 더 감동받았어요 ㅠㅠ `,
+          `카드에 적어주신 따뜻한 말 보고 마음이 뭉클했어요.. `,
+          `보내주신 메시지 카드 읽고 완전 심쿵했잖아요 ㅎㅎ `,
+          `말씀도 이렇게 예쁘게 적어주시고.. `
+        ];
+        const cardIntro = cardNotes[Math.floor(Math.random() * cardNotes.length)];
+        return [cardIntro + chosen[0], chosen[1]];
+      }
+
+      return chosen;
     }
 
     // =========================================================================
@@ -4468,8 +4545,8 @@
       state.affection = Math.min(100, state.affection + gift.affectionBoost);
       saveAccountState();
 
-      // 캐릭터 친밀도·초면 예의·성격이 100% 반영된 감동 리액션 생성
-      const bubbles = await generateGiftReactionBubbles(char, gift);
+      // 캐릭터 친밀도·성격·컨셉·메시지 카드가 100% 반영된 감동 리액션 생성 (연속 중복 원천 차단)
+      const bubbles = await generateGiftReactionBubbles(char, gift, customMsg);
 
       // 카탈로그 흰색 누끼 이미지가 아닌, 1인칭 스마트폰 일상 인증샷(thanks_*.jpg) 전송
       const proofPhotoUrl = gift.proofImage || `gifts/thanks_${gift.key}.jpg`;
