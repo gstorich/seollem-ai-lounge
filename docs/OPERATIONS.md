@@ -115,3 +115,7 @@ Validation: compared old/new prompts with the production Gemini model using synt
 ### Messenger punctuation (2026-10-18)
 
 Normal character replies now omit sentence-final full stops, including older/calm personas. Examples use the same style. Questions and occasional expressive punctuation remain natural; the model is told not to replace every period with laughs, commas or ellipses. Decimal numbers, URLs and meaningful quoted punctuation are preserved. A generation instruction is paired with a targeted formatter for sentence-final periods following Korean text. It protects URLs, email addresses and quoted/code spans, and leaves decimals and ellipses intact. Synthetic model review showed that calm personas sometimes retained full stops despite the prompt, so formatting is applied before the reply is saved and replayed. No stored historical or customer messages are rewritten. Completion integration checks verify persisted/replayed text and a single heart charge; punctuation fixtures cover protected notation.
+
+### First greeting alignment (2026-10-18)
+
+Hosted first greetings use a separate local pool, not the server LLM reply prompt. Replaced status-report greetings (including “안녕하세요. 잠깐 쉬는 중이에요”), sentence-final periods and awkward repeated ellipses across all five traits with simple introductions. Choose a random unused greeting first and avoid immediate repeats when the pool is exhausted. No unsolicited work/rest state, age/gender-based address, new LLM call or heart charge is added. Existing conversations are unaffected.

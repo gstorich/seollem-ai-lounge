@@ -4551,14 +4551,16 @@
 
       if (window.ApiClient?.isHosted() || char.gender === 'male') {
         const pools = {
-          warm: ['반가워요 ㅎㅎ 오늘 좀 어떠셨어요?', '안녕하세요 :) 잠깐 얘기 나눌까요?'],
-          calm: ['안녕하세요. 오늘 하루 어떠셨어요?', '반갑네요. 지금 쉬고 계세요?'],
-          lively: ['안녕하세요 ㅎㅎ 뭐 하고 계세요?', '반가워요! 오늘은 좀 여유 있으세요?'],
-          chic: ['안녕하세요. 잠깐 쉬는 중이에요', '반가워요. 오늘 어땠어요?'],
-          shy: ['안녕하세요.. 반가워요 ㅎㅎ', '반가워요. 편하게 얘기해요']
+          warm: ['안녕하세요 반가워요 ㅎㅎ', '반가워요 편하게 얘기 나눠요', '안녕하세요 어떤 얘기부터 해볼까요?', '반가워요 먼저 인사해봤어요 ㅎㅎ'],
+          calm: ['안녕하세요 만나서 반가워요', '반가워요 편하게 얘기해요', '안녕하세요 오늘 하루는 어땠어요?', '반가워요 천천히 알아가요'],
+          lively: ['안녕하세요 ㅎㅎ 반가워요', '반가워요 먼저 말 걸어봤어요 ㅋㅋ', '안녕하세요 첫마디는 늘 좀 어색하네요 ㅎㅎ', '반가워요 오늘 기분은 어때요?'],
+          chic: ['안녕하세요 반가워요', '반가워요 먼저 말 걸어봤어요', '안녕하세요 무슨 얘기부터 해볼까요?', '반가워요 첫인사는 좀 어색하네요 ㅎㅎ'],
+          shy: ['안녕하세요 반가워요 ㅎㅎ', '반가워요 먼저 인사해봤어요', '안녕하세요 조금 쑥스럽네요 ㅎㅎ', '반가워요 천천히 얘기 나눠요']
         };
         const options = pools[trait] || pools.warm;
-        const line = options.find(text => !state.recentGreetings.includes(text)) || options[Math.floor(Math.random()*options.length)];
+        const unused = options.filter(text => !state.recentGreetings.includes(text));
+        const candidates = unused.length ? unused : options.filter(text => text !== state.recentGreetings.at(-1));
+        const line = candidates[Math.floor(Math.random() * candidates.length)];
         const greeting = [line];
         recordRecentGreeting(greeting);
         return greeting;
