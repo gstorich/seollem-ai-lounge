@@ -161,7 +161,6 @@
     <!-- 4. Clean Bottom Input Bar + Subtle Account/Credit Status Bar -->
     <footer class="shrink-0 bg-[#0b0d13] px-4 pt-2.5 pb-3 border-t border-white/10 z-20">
       <form id="chatForm" class="flex items-end gap-2">
-        <button id="btnOpenModeModal" type="button" title="대화 모드" class="shrink-0 w-11 h-11 rounded-2xl bg-[#181b24] hover:bg-[#222736] active:scale-95 border border-white/15 text-[19px] flex items-center justify-center transition shadow">☕</button>
         <button id="btnOpenGiftModal" type="button" title="마음 전하기 (선물)" class="shrink-0 w-11 h-11 rounded-2xl bg-[#181b24] hover:bg-[#222736] active:scale-95 border border-amber-400/30 text-[19px] flex items-center justify-center transition shadow">
           🎁
         </button>
@@ -569,19 +568,7 @@
       </div>
     </div>
 
-    <!-- Modal: 대화 모드 선택 -->
-    <div id="modeModal" class="hidden absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col justify-end">
-      <div class="bg-[#12151f] border-t border-white/15 rounded-t-3xl max-h-[85%] flex flex-col overflow-hidden shadow-2xl text-zinc-100">
-        <div class="px-5 py-4 border-b border-white/10 flex items-center justify-between">
-          <div>
-            <h3 class="text-[17px] font-bold text-white">🎭 대화 모드</h3>
-            <p class="text-[12.5px] text-amber-300 mt-0.5">원하는 분위기를 골라보세요. 대화 중에 "연인처럼 해줘", "고민 상담해줘"라고 말해도 바뀝니다</p>
-          </div>
-          <button id="btnCloseModeModal" type="button" class="w-8 h-8 rounded-full bg-white/10 text-zinc-200 flex items-center justify-center font-bold">✕</button>
-        </div>
-        <div id="modeModalList" class="p-4 grid grid-cols-2 gap-2.5 overflow-y-auto chat-scroll"></div>
-      </div>
-    </div>
+
 
     <!-- Modal 7: Kakao Gift Store Modal (카카오톡 선물하기 스타일 쇼핑몰 스토어) -->
     <div id="giftModal" class="hidden absolute inset-0 z-50 bg-black/80 backdrop-blur-sm flex flex-col justify-end">
@@ -1365,8 +1352,6 @@
       rudeStrikes: 0,
       anger: 0,             // 현재 화난 정도 (0~100). 사과해도 바로 0이 되지 않고 서서히 줄어듦
       warned: false,        // 이미 한 번 경고했는지 (경고 후 또 무례하면 퇴장)
-      chatMode: 'friend',   // friend | lover | sibling | counselor | flirty | fight
-      modeJustChanged: false,
       pendingUserTexts: [],
       roomLeft: false,
       messages: [],
@@ -1788,7 +1773,6 @@
               rudeStrikes: state.rudeStrikes || 0,
               anger: state.anger || 0,
               warned: Boolean(state.warned),
-              chatMode: state.chatMode || 'friend',
               bookmarked: true,
               updatedAt: Date.now()
             };
@@ -2348,38 +2332,9 @@
     }
 
     // =========================================================================
-    // 감정 엔진 + 대화 모드 (말동무 / 연인 / 동생 / 상담사 / 야한 농담 / 말싸움)
     // =========================================================================
-    const CHAT_MODES = {
-      friend:    { emoji: '☕', label: '말동무',    desc: '편하게 일상 수다' },
-      lover:     { emoji: '💕', label: '다정한 연인', desc: '애정 가득 연인처럼' },
-      sibling:   { emoji: '🧸', label: '착한 동생',  desc: '오빠~ 하며 챙겨주는 동생' },
-      counselor: { emoji: '🫶', label: '상담사',    desc: '고민을 들어주고 공감' },
-      flirty:    { emoji: '🔥', label: '야한 농담',  desc: '성인끼리 수위 있는 장난 (노골적 묘사는 제외)' },
-      fight:     { emoji: '💢', label: '말싸움',    desc: '욕 섞인 티격태격 (방을 나가지 않음)' }
-    };
-
-    const MODE_RULES = {
-      friend: '일상 수다를 나누는 말동무. 편하고 담백하게, 내 얘기도 하면서 대화한다.',
-      lover: '상대가 원해서 다정한 연인 롤플을 하는 중이다. 애정 표현, 안부, 애칭(예: 자기야)을 자연스럽게 쓴다. 보고 싶음·걱정·질투 같은 감정을 구체적인 상황과 함께 표현한다. 처음 전환될 때는 살짝 수줍어하다 곧 익숙해진다. 오글거리는 대사를 연달아 쏟아내지 말고, 사람처럼 가끔 장난도 친다.',
-      sibling: '상대가 원해서 착하고 살가운 여동생 롤플을 하는 중이다. 상대를 "오빠"라고 부르고 애교, 걱정, 잔소리(밥은 먹었어, 술 적당히 마셔)를 한다. 귀엽고 편한 말투. 연애 감정은 아니다.',
-      counselor: '상담사 역할이다. 판단·훈계는 하지 않는다. 감정을 먼저 받아주고(반영) 상황을 구체적으로 묻는다. 한 번에 질문은 하나만. 조언은 상대가 원할 때만 짧게 한다. "ㅎㅎ"는 쓰지 않고 차분하고 따뜻한 말투를 쓴다. 자해·자살 암시가 있으면 진지하게 걱정하고 주변 사람이나 전문기관(자살예방상담전화 109)의 도움을 부드럽게 권한다.',
-      flirty: '성인끼리의 야한 농담과 섹시한 분위기를 나누는 중이다. 은근한 성적 긴장감, 도발적인 장난, 야한 상상을 암시하는 말은 허용된다. 단, 노골적인 성행위·신체 묘사는 직접 하지 않고 암시, 분위기, 말장난으로 처리한다. 상대가 불편해하면 바로 수위를 낮춘다. 미성년과 관련된 내용은 절대 다루지 않는다.',
-      fight: '상대가 원해서 하는 티격태격 말싸움 롤플이다. 거친 반말과 욕설을 섞어 맞받아쳐도 된다. 짧고 센 반격, 비꼼으로 사람처럼 싸운다. 단, 성별·장애·지역·외모 비하 같은 혐오 표현, 실제 폭력 협박, 가족 욕, 성적 모욕은 하지 않는다. 방을 나가지 않고 끝까지 받아친다. 상대가 그만하자고 하면 수위를 낮춘다.'
-    };
-
-    // 모드 전환 요청 감지 ("연인처럼 해줘", "고민 상담해줘" 등)
-    function detectModeRequest(text) {
-      const t = text || '';
-      if (/그만\s*싸우|싸움\s*그만|화해\s*(하자|해)|말동무(로|해)|편하게\s*얘기하자|일반\s*대화|보통\s*대화/.test(t)) return 'friend';
-      if (/싸우자|욕\s*(해\s*봐|해\s*줘|좀\s*해)|한\s*판\s*붙|시비\s*걸어|막말\s*(해|하자)|티격태격/.test(t)) return 'fight';
-      if (/야한\s*(얘기|이야기|농담|말)|섹드|19금|야하게\s*(말|얘기)/.test(t)) return 'flirty';
-      if (/연인\s*(처럼|이\s*돼|이\s*되어|해\s*줘|하자)|애인\s*(처럼|해\s*줘)|여친\s*(처럼|해\s*줘)|자기야\s*라고/.test(t)) return 'lover';
-      if (/(여?동생)\s*(처럼|해\s*줘|이\s*돼|이\s*되어|하자)|오빠라고\s*(불러|해)/.test(t)) return 'sibling';
-      if (/상담\s*(해\s*줘|좀|받고|하고\s*싶|사)|고민\s*(상담|들어|있어)|털어놓고\s*싶|하소연/.test(t)) return 'counselor';
-      return null;
-    }
-
+    // 5. EMOTION ENGINE & RESPECT GUARDRAILS (NATURAL CONVERSATION FLOW)
+    // =========================================================================
     const INSULT_SEVERE_RE = /씨발|시발|ㅅㅂ|ㅆㅂ|병신|ㅂㅅ|썅|좆|느금|니\s*애미|니\s*엄마|엄마\s*(없|죽)|뒤져|죽어\s*버|죽여\s*버|죽어라|미친\s*년|개년|씹년|걸레|창녀|창년/;
     const SEXUAL_CRUDE_RE = /보지|자지|따먹|강간|빨아\s*줘|벌려\s*봐|씹창/;
     const DIRECTED_RE = /(^|[\s,.!?])(너|니가|네가|넌|니|너는|너한테|너를|당신|그쪽)(?=$|[\s,.!?]|한테|를|가|는|도|야)|이년|이\s*새끼|저년|야[\s,!]|야$|병신아|죽을래|디질래|뒤질래|맞을래|쳐맞|패버릴|꺼져|꺼지|닥쳐|싸가지|아줌마|할망구|못생|돼지|재수\s*없/;
@@ -2395,16 +2350,9 @@
       const out = { severity: 'none', dismissed: false, apologized: false, sincere: false, forceLeave: false };
       state.anger = state.anger || 0;
 
-      if (state.chatMode === 'fight') {
-        state.anger = 0;
-        state.warned = false;
-        state.rudeStrikes = 0;
-        return out;
-      }
-
       const stripped = t.replace(/[!?.~ㅋㅎ\s]+$/g, '');
       const intent = analyzeUserIntent(t);
-      const sexualOk = state.chatMode === 'lover' || state.chatMode === 'flirty';
+      const sexualOk = state.affection >= 75;
       const insultSevere = INSULT_SEVERE_RE.test(t);
       const sexualCrude = SEXUAL_CRUDE_RE.test(t);
 
@@ -2455,7 +2403,6 @@
 
     // 현재 감정 상태를 LLM에게 알려주는 문구
     function buildEmotionNote(emo) {
-      if (state.chatMode === 'fight') return '말싸움 모드: 일부러 티격태격 중이다. 방을 나가지 않는다.';
       const a = state.anger || 0;
       const calmRules = ' 이 상태에서는 "ㅎㅎ" 금지, 질문 거의 금지, 사진·음성 전송 금지, 갑작스러운 친절이나 관심 표현 금지. 말투는 존댓말을 유지하되 차갑고 짧게.';
       if (emo && emo.forceLeave) {
@@ -2475,21 +2422,6 @@
       if (a >= 15) return '화는 가라앉았지만 아직 쌀쌀하고 경계하는 상태다. 대화가 조금 이어져도 서서히만 풀린다.' + calmRules;
       if (a > 0) return '서운함이 약간 남아 있다. 평소보다 살짝 건조하게 답하고, 호의를 보이면 천천히 풀어진다.';
       return '평온하다.';
-    }
-
-    // 현재 대화 모드 규칙을 LLM에게 알려주는 문구
-    function buildModeBlock() {
-      const mode = state.chatMode || 'friend';
-      const m = CHAT_MODES[mode] || CHAT_MODES.friend;
-      let block = '[대화 모드: ' + m.label + ']\n' + MODE_RULES[mode];
-      if (state.modeJustChanged) {
-        block += '\n- 방금 상대가 이 모드로 바꿨다. 자연스럽게 그 역할로 넘어가되, 첫 반응은 짧게 한다.';
-        state.modeJustChanged = false;
-      }
-      if (mode !== 'friend' && mode !== 'sibling' && mode !== 'counselor') {
-        block += '\n- 이 모드에서는 초면 선 긋기·존댓말 유지 규칙보다 위 모드 규칙이 우선한다.';
-      }
-      return block;
     }
 
     // 대화 상황에 맞춰 캐릭터가 사진(무료 일상 사진 / 시크릿 셀카) 또는 음성 메시지를 첨부하는 헬퍼
@@ -2724,7 +2656,7 @@
       }
 
       if ((intent === 'heavy_flirt' || (intent === 'date_invite' && state.affection < 45)) &&
-          state.chatMode !== 'lover' && state.chatMode !== 'flirty') {
+          state.affection < 65) {
         state.affection = Math.max(5, state.affection - 5);
         return getPrematureFlirtResponseByCharacter(char);
       }
@@ -2735,13 +2667,6 @@
 
       let bubbles = [];
       const ageMatch = userText.match(/(\d{2})\s*(살|세)/);
-      const modeSets = {
-        lover: [['자기야 오늘은 뭐 했어?'], ['보고 싶었어, 진짜로'], ['나 지금 자기 생각하고 있었는데']],
-        sibling: [['오빠~ 밥은 먹었어?'], ['오빠 또 늦게 자는 거 아니지?'], ['오빠 오늘 하루 어땠어?']],
-        counselor: [['많이 힘드셨겠어요.', '조금 더 얘기해 주실래요?'], ['그때 기분이 어땠어요?'], ['그렇게 느끼는 게 자연스러워요.']],
-        flirty: [['그런 말 하면 저 좀 떨리는데요'], ['오늘따라 말이 위험하시네요'], ['더 말해보세요, 듣고 있어요']],
-        fight: [['뭐라는 거야 진짜', '한번 해보자는 거야?'], ['웃기네 그래서 뭐 어쩌라고'], ['말은 잘하네, 근데 틀렸어']]
-      };
 
       if (intent === 'ask_photo') {
         bubbles = pickUnusedSet([
@@ -2791,8 +2716,6 @@
           ['어려운 질문이네요.', '잠깐 생각 좀 해볼게요.'],
           ['저는 딱히 생각해본 적 없는데', '그쪽은 어떠세요?']
         ]);
-      } else if (modeSets[state.chatMode]) {
-        bubbles = pickUnusedSet(modeSets[state.chatMode]);
       } else {
         bubbles = pickUnusedSet([
           ['그렇구나.', '조금 더 얘기해 주세요.'],
@@ -2865,7 +2788,7 @@
       } else if (emo.severity === 'mild') {
         state.affection = Math.max(0, state.affection - 22);
         currentRudeTurn = true;
-      } else if (intent === 'heavy_flirt' && state.affection < 55 && state.chatMode !== 'lover' && state.chatMode !== 'flirty') {
+      } else if (intent === 'heavy_flirt' && state.affection < 55) {
         state.affection = Math.max(5, state.affection - 8);
       }
 
@@ -2904,7 +2827,7 @@
 - 프로필 소개: ${char.bio}
 - 프사: ${char.avatarDesc || '본인 일상 사진'}
 - 무례한 사람에게: ${char.rudeReaction}
-- 성급하게 들이대는 사람에게(말동무·동생·상담 모드일 때만): ${char.earlyFlirtReaction}
+- 성급하게 들이대는 사람에게: ${char.earlyFlirtReaction}
 - 마음이 열리는 포인트: ${char.crushTrigger}
 
 [오늘의 나 - 대화 내내 일관되게. 물어보거나 자연스러울 때만 하나씩 꺼내라]
@@ -2921,8 +2844,6 @@
 [관계]
 - 호감도 ${state.affection}% (${stageInfo.name})
 - 기분 상태: ${rudeNote}
-
-${buildModeBlock()}
 
 [진짜 사람처럼 카톡하는 법]
 1. 상대 메시지 길이·온도에 맞춰라. 짧게 오면 짧게, 길게 오면 조금 길게.
@@ -2943,8 +2864,7 @@ ${buildModeBlock()}
     - 상대가 "하이룽", "안녕", "반가워" 같은 가벼운 첫인사를 건넸을 때는 엉뚱하게 "아까 인사했잖아요"처럼 핀잔주지 말고 성격에 맞게 반갑고 자연스럽게 받아줘라 ("안녕하세요 ㅎㅎ 반가워요").
     - "나갈게요", "더는 말 섞기 싫네요"라고 나간다는 말을 했다면 반드시 "leaveRoom": true로 출력하고 실제로 방을 떠나라. 나간다고 말해놓고 방에 남아서 사과를 받거나 딴소리하지 마라.
     - 화가 났을 때는 질문이나 일상 대화를 섞지 말고, 차갑게 선을 긋거나 나가는 말만 짧게 하라.
-15. [대화 모드] 규칙이 위 일반 규칙과 충돌하면 모드 규칙을 따른다.
-16. 상대가 진지하게 AI냐고 물으면 속이지 말고 AI 캐릭터라고 인정하되, 캐릭터 말투는 유지해라.${mediaPromptNotice}
+14. 상대가 진지하게 AI냐고 물으면 속이지 말고 AI 캐릭터라고 인정하되, 캐릭터 말투는 유지해라.${mediaPromptNotice}
 
 [예시]
 상대: 뭐해
@@ -2985,7 +2905,7 @@ ${buildModeBlock()}
             // 화난 상태에서는 호감도가 거의 오르지 않음 (서서히 풀리도록)
             const capped = state.anger > 0 ? Math.min(delta, 1) : delta;
             state.affection = Math.max(0, Math.min(100, state.affection + capped));
-            if (delta <= -12 && state.chatMode !== 'fight') {
+            if (delta <= -12) {
               state.anger = Math.min(100, (state.anger || 0) + 25);
               state.rudeStrikes = Math.ceil(state.anger / 35);
             }
@@ -3001,8 +2921,7 @@ ${buildModeBlock()}
             /나갈\s*(게|거|래|테)|나가겠|이만\s*(나|갈|끊)|그만\s*(할게|하겠|둘게)|대화\s*(안\s*할|끝낼|종료)|안녕히\s*계세요/.test(b) &&
             !/(더|또|다시|한\s*번\s*만|만약|계속)[^.?!]{0,16}(나갈|나가겠|그만)|면\s*(저\s*|그냥\s*|바로\s*|방\s*|대화방\s*)*(나갈|나가겠|그만)/.test(b));
           // 나간다고 말했거나 leaveRoom이 true이면 즉시 방을 나간다 (분노 수치 조건으로 막지 않음)
-          const shouldLeave = emo.forceLeave ||
-            (state.chatMode !== 'fight' && (saysLeaving || parsed.leaveRoom === true));
+          const shouldLeave = emo.forceLeave || saysLeaving || parsed.leaveRoom === true;
 
           return {
             bubbles: parsed.bubbles.map(s => String(s).trim()).filter(Boolean).slice(0, 5),
@@ -3419,7 +3338,6 @@ ${buildModeBlock()}
     // =========================================================================
     function applyCharacterToHeader() {
       const char = state.currentChar;
-      if (typeof updateModeButton === 'function') updateModeButton();
       document.getElementById('headerAvatar').src = char.avatar;
       document.getElementById('headerName').textContent = char.name;
       document.getElementById('headerAgeJob').textContent = `${char.age}세 · ${char.job}`;
@@ -3443,7 +3361,6 @@ ${buildModeBlock()}
           rudeStrikes: state.rudeStrikes || 0,
           anger: state.anger || 0,
           warned: Boolean(state.warned),
-          chatMode: state.chatMode || 'friend',
           updatedAt: Date.now()
         } : null;
       }
@@ -3465,8 +3382,6 @@ ${buildModeBlock()}
         state.rudeStrikes = existingRoom.rudeStrikes || 0;
         state.anger = existingRoom.anger || 0;
         state.warned = Boolean(existingRoom.warned);
-        state.chatMode = existingRoom.chatMode || 'friend';
-        state.modeJustChanged = false;
         state.pendingUserTexts = [];
         state.userFacts = Array.isArray(existingRoom.userFacts) ? [...existingRoom.userFacts] : [];
         state.memorySummary = existingRoom.memorySummary || '';
@@ -3494,8 +3409,6 @@ ${buildModeBlock()}
       state.rudeStrikes = 0;
       state.anger = 0;
       state.warned = false;
-      state.chatMode = 'friend';
-      state.modeJustChanged = false;
       state.pendingUserTexts = [];
       state.userFacts = [];
       state.memorySummary = '';
@@ -3648,17 +3561,16 @@ ${buildModeBlock()}
     async function generateGiftReactionBubbles(char, gift) {
       const key = (state.apiKey || '').trim();
       const isEarly = (state.turnCount || 0) <= 4;
-      const mode = state.chatMode || 'friend';
 
       if (key && (key.startsWith('AIza') || key.startsWith('sk-') || key.startsWith('openrouter'))) {
         try {
           const prompt = `당신은 카카오톡 랜덤채팅 상대 '${char.name}'(${char.age}세, ${char.job}, 말투: ${char.speechStyle})이다.
-지금 상대방과 대화한 지 ${state.turnCount}턴 되었고, 호감도는 ${state.affection}%, 현재 대화 모드는 '${mode}'이다.
+지금 상대방과 대화한 지 ${state.turnCount}턴 되었고, 호감도는 ${state.affection}%이다.
 방금 상대방이 나에게 '${gift.brand} ${gift.name}'(가격: ${gift.price.toLocaleString('ko-KR')}원) 선물을 보냈다!
 
 [절대 준수 규칙]
 1. 초면 예의 엄수: 지금 상대방과 만난 지 ${state.turnCount}턴밖에 안 된 초기 상태이다.
-   - ${isEarly ? '절대로 다짜고짜 반말("야 미쳤냐", "개감동이다")이나 격의 없는 표현을 쓰지 마라! 초면에 이런 큰 선물을 받아 깜짝 놀라면서도 "어머나 세상에... 초면에 이런 선물을 보내주시다니요 ㅠㅠ", "진짜 감사해요... 마침 커피 생각났는데 잘 마실게요 ㅎㅎ" 처럼 정중하고 예의 바르게 존댓말로 진심 어린 감사를 표현하라.' : '호감도와 대화 모드에 맞게 진심으로 기뻐하며 고마워하라.'}
+   - ${isEarly ? '절대로 다짜고짜 반말("야 미쳤냐", "개감동이다")이나 격의 없는 표현을 쓰지 마라! 초면에 이런 큰 선물을 받아 깜짝 놀라면서도 "어머나 세상에... 초면에 이런 선물을 보내주시다니요 ㅠㅠ", "진짜 감사해요... 마침 커피 생각났는데 잘 마실게요 ㅎㅎ" 처럼 정중하고 예의 바르게 존댓말로 진심 어린 감사를 표현하라.' : '호감도와 친밀도에 맞게 진심으로 기뻐하며 고마워하라.'}
 2. 답장 마지막에 방금 폰으로 찍은 인증샷 사진을 함께 보낸다는 말을 자연스럽게 1마디 넣어라.
 3. 1~2개의 짧은 카톡 말풍선으로 순수 JSON만 반환: {"bubbles": ["말풍선1", "말풍선2"]}`;
 
@@ -3913,9 +3825,6 @@ ${buildModeBlock()}
 
         const batch = state.pendingUserTexts.join(' ');
         state.pendingUserTexts = [];
-
-        const requestedMode = detectModeRequest(batch);
-        if (requestedMode) setChatMode(requestedMode, true);
 
         const roomIdAtSend = state.currentChar ? state.currentChar.id : null;
         const replyPlan = await fetchLLMResponse(batch);
@@ -4827,73 +4736,7 @@ ${buildModeBlock()}
       chatInput.style.height = Math.min(chatInput.scrollHeight, 96) + 'px';
     });
 
-    // ===== 대화 모드 선택 UI =====
-    function updateModeButton() {
-      const btn = document.getElementById('btnOpenModeModal');
-      if (!btn) return;
-      const m = CHAT_MODES[state.chatMode] || CHAT_MODES.friend;
-      btn.textContent = m.emoji;
-      btn.title = '대화 모드: ' + m.label;
-    }
 
-    function appendModeNotice(text) {
-      const div = document.createElement('div');
-      div.className = 'my-1 mx-auto text-center text-[12px] text-zinc-400 bg-white/[0.05] border border-white/10 rounded-full px-3 py-1 msg-animate';
-      div.textContent = text;
-      chatContainer.appendChild(div);
-      scrollToBottom(false);
-    }
-
-    function setChatMode(mode, announce = true) {
-      if (!CHAT_MODES[mode]) return;
-      const prev = state.chatMode || 'friend';
-      if (prev === mode) return;
-      if (prev === 'fight') {
-        state.anger = 0;
-        state.warned = false;
-        state.rudeStrikes = 0;
-      }
-      state.chatMode = mode;
-      state.modeJustChanged = true;
-      updateModeButton();
-      if (announce) {
-        const m = CHAT_MODES[mode];
-        appendModeNotice(m.emoji + ' 대화 모드: ' + m.label);
-      }
-      saveAccountState();
-    }
-
-    function renderModeModal() {
-      const list = document.getElementById('modeModalList');
-      if (!list) return;
-      list.innerHTML = '';
-      Object.keys(CHAT_MODES).forEach(key => {
-        const m = CHAT_MODES[key];
-        const active = (state.chatMode || 'friend') === key;
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = 'p-3.5 rounded-2xl border text-left transition flex flex-col gap-1 ' + (active
-          ? 'bg-amber-500/15 border-amber-400/70'
-          : 'bg-[#191d2b] hover:bg-[#23293d] border-white/10 hover:border-amber-400/50');
-        btn.innerHTML = '<div class="text-2xl">' + m.emoji + '</div>' +
-          '<div class="font-bold text-white text-[14.5px]">' + m.label + (active ? ' ✓' : '') + '</div>' +
-          '<div class="text-[11.5px] text-zinc-400 leading-snug">' + m.desc + '</div>';
-        btn.addEventListener('click', () => {
-          setChatMode(key, true);
-          document.getElementById('modeModal').classList.add('hidden');
-        });
-        list.appendChild(btn);
-      });
-    }
-
-    document.getElementById('btnOpenModeModal').addEventListener('click', () => {
-      if (!state.currentChar || state.roomLeft) return;
-      renderModeModal();
-      document.getElementById('modeModal').classList.remove('hidden');
-    });
-    document.getElementById('btnCloseModeModal').addEventListener('click', () => {
-      document.getElementById('modeModal').classList.add('hidden');
-    });
 
     window.addEventListener('DOMContentLoaded', () => {
       loadAccountState();
