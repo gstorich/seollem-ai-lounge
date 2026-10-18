@@ -16,9 +16,9 @@ module.exports = {
   defaultLlmProvider: process.env.DEFAULT_LLM_PROVIDER || 'gemini',
 
   // Economy rules
-  heartsPerMessage: parseInt(process.env.HEARTS_PER_MESSAGE, 10) || 10,
-  defaultGuestHearts: parseInt(process.env.DEFAULT_GUEST_HEARTS, 10) || 50,
-  phoneAuthBonusHearts: parseInt(process.env.PHONE_AUTH_BONUS_HEARTS, 10) || 100,
+  heartsPerMessage: parseFloat(process.env.HEARTS_PER_MESSAGE) || 3.7,
+  defaultGuestHearts: parseFloat(process.env.DEFAULT_GUEST_HEARTS) || 50,
+  phoneAuthBonusHearts: parseFloat(process.env.PHONE_AUTH_BONUS_HEARTS) || 100,
 
   // Database
   databaseFile: path.resolve(__dirname, '..', process.env.DATABASE_FILE || './data/seollem.json')

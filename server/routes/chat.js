@@ -35,7 +35,7 @@ router.post('/send', requireAuth, async (req, res) => {
   // Deduct heart
   let nextHearts = user.hearts;
   if (!user.isVipUnlimited) {
-    nextHearts = Math.max(0, user.hearts - cost);
+    nextHearts = Math.max(0, Math.round((user.hearts - cost) * 10) / 10);
     dbService.updateUser(user.id, { hearts: nextHearts });
   }
 
