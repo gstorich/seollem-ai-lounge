@@ -1,5 +1,6 @@
 const config = require('../config');
 const characterService = require('./characterService');
+const chatPunctuation = require('./chatPunctuation');
 
 async function callGemini(messages, systemInstruction, apiKey, signal = AbortSignal.timeout(45000)) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.geminiModel)}:generateContent`;
@@ -130,7 +131,7 @@ module.exports = {
       .trim();
 
     return {
-      text: cleanedText,
+      text: chatPunctuation(cleanedText),
       roomLeft,
       isAiGenerated
     };

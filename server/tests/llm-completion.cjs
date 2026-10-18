@@ -1,4 +1,10 @@
 const assert = require('node:assert/strict');
+const punctuation = require('../services/chatPunctuation');
+assert.equal(punctuation('좋아요. 오늘도 재밌었어요.'),'좋아요 오늘도 재밌었어요');
+assert.equal(punctuation('진짜요? ㅋㅋ.\n저도요!'),'진짜요? ㅋㅋ\n저도요!');
+assert.equal(punctuation('3.7하트, 버전 1.5, example.com, https://예시.한국/a. 를 봐요.'),'3.7하트, 버전 1.5, example.com, https://예시.한국/a. 를 봐요');
+assert.equal(punctuation('“좋아요.”라고 했어요. "잠깐요." 저도요...'),'“좋아요.”라고 했어요 "잠깐요." 저도요...');
+assert.equal(punctuation("'네.'라는 말, `안녕.`과 「맞아요.」는 인용이에요."),"'네.'라는 말, `안녕.`과 「맞아요.」는 인용이에요");
 if (process.env.LLM_COMPLETION_MOCK === '1') {
   const realFetch = global.fetch;
   let calls = 0;
@@ -54,7 +60,7 @@ if (process.env.LLM_COMPLETION_MOCK === '1') {
     const characterId = require('../services/characterService').getAllCharacters()[0].id;
     const body = { characterId, message: '오늘 하루 어땠어요?', messageId: 'completion_retry' };
     const reply = await request('/chat/send', guest.token, body);
-    assert.equal(reply.partnerReply, '오늘 이야기 즐거웠어요. 다음에도 편하게 이야기해요.');
+    assert.equal(reply.partnerReply, '오늘 이야기 즐거웠어요 다음에도 편하게 이야기해요');
     assert.equal(reply.heartsRemaining, 46.3);
     const replay = await request('/chat/send', guest.token, body);
     assert.equal(replay.partnerReply, reply.partnerReply);
@@ -67,7 +73,7 @@ if (process.env.LLM_COMPLETION_MOCK === '1') {
     }
     assert.equal((logs.match(/Gemini result:/g) || []).length, 5, 'blocked response must not be retried');
     const concise=await request('/chat/send',guest.token,{characterId,message:'verbose-test 퇴근했어요',messageId:'concise'});
-    assert.equal(concise.partnerReply,'늦게 끝났네요. 밥은 먹었어요?');
+    assert.equal(concise.partnerReply,'늦게 끝났네요 밥은 먹었어요?');
     assert.equal(concise.heartsRemaining,35.2,'Shortening must not charge another turn');
     assert.equal((logs.match(/Gemini result:/g)||[]).length,6,'Brief reply must come from a single generation');
     const detailed=await request('/chat/send',guest.token,{characterId,message:'verbose-test 자세하게 설명해주세요',messageId:'detailed'});
