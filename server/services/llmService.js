@@ -15,10 +15,16 @@ async function callGemini(messages, systemInstruction, apiKey) {
       parts: [{ text: systemInstruction }]
     },
     generationConfig: {
-      temperature: 0.85,
-      maxOutputTokens: 120,
+      temperature: 0.9,
+      maxOutputTokens: 140,
       thinkingConfig: { thinkingLevel: 'LOW' }
-    }
+    },
+    safetySettings: [
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' }
+    ]
   };
 
   const res = await fetch(url, {
