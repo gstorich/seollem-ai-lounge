@@ -6,6 +6,10 @@ assert.equal(build(male,[user('우리 이제 말 편하게 해도 돼 근데 누
 assert.equal(build(male,[user('말 놓자'),user('존댓말로 해주세요')]).speechRegister,'polite');
 assert.equal(build(male,[user('말 놓자'),user('고마워요 선물 보냈어요')]).speechRegister,'casual');
 assert.equal(build(male,[user('반말 하지 마세요')]).speechRegister,'polite');
+assert.equal(build(male,[user('존댓말로 말해주세요')]).speechRegister,'polite');
+assert.equal(build(male,[user('존댓말로 부탁드려요')]).speechRegister,'polite');
+assert.equal(build(male,[user('반말 그만')]).speechRegister,'polite');
+assert.equal(build(male,[user('반말로 말해줘')]).speechRegister,'casual');
 assert.equal(build(male,[user('만약 우리 말 놓자고 하면?')]).speechRegister,null);
 assert.deepEqual(build(male,[ai('누나 오늘 어땠어요?'),user('안녕하세요')]).allowedAddressTerms,[]);
 assert.equal(build(male,[user('우리 누나는 45살이에요')]).age,null);

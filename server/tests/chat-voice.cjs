@@ -28,7 +28,7 @@ const service = require('../services/characterService');
 for (const gender of ['male', 'female']) {
   const character = characters.find(c => c.gender === gender);
   const prompt = service.buildSystemPrompt(character);
-  assert(prompt.includes(voices.buildPrompt(character)), 'All real generation paths share the selected typing profile');
+  assert(prompt.includes(voices.buildCompactPrompt(character)), 'All real generation paths share the selected typing profile');
   const publicProfile = service.getAllCharacters().find(c => c.id === character.id);
   assert(!Object.hasOwn(publicProfile, 'typingProfile'), 'Internal voice instructions are not added to the public catalog');
 }

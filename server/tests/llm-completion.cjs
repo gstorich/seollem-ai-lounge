@@ -18,7 +18,7 @@ async function req(route,token,body,method=body===undefined?'GET':'POST'){const 
  assert.equal(first.data.heartsRemaining,balance);assert.equal(chargeCount(),1);
  const replay=await send('completion-retry','first');assert.equal(replay.data.replyId,first.data.replyId);assert.equal(chargeCount(),1);
  assert.equal((await send('different input','first')).status,409);
- for(const text of ['limit-test','blocked-test','empty-test','http-test','network-test','malformed-json-test','invalid-memory-test','wrong-role-test']){
+ for(const text of ['limit-test','blocked-test','empty-test','http-test','network-test','malformed-json-test','invalid-memory-test','wrong-role-test','memory-phase-fail']){
   const memoryBefore=sql.prepare('SELECT * FROM conversation_state WHERE user_id=?').all(id);
   const grants=sql.prepare('SELECT remaining_units,expires_at FROM heart_grants WHERE user_id=? ORDER BY id').all(id);
   const failed=await send(text,text);assert.equal(failed.status,503,text);assert.equal(failed.data.partnerReply,undefined);assert.equal(failed.data.costDeducted,0);assert.equal((await state()).user.hearts,balance);
@@ -62,7 +62,10 @@ async function req(route,token,body,method=body===undefined?'GET':'POST'){const 
  assert.equal(db.getConversationState(id,characterId).memory,null);
  sql.exec('DROP TRIGGER reject_memory');assert.equal((await send('memory storage rollback','memory-storage')).status,200);
  const funded=(await state()).user.hearts;
- const giftFail=await req('/chat/gift',token,{characterId,giftKey:'coffee',customMsg:'http-test',messageId:'giftfailure'});assert.equal(giftFail.status,503);assert.equal((await state()).user.hearts,funded);
+ const guarded=await send('forbidden-address-test','guarded');assert.equal(guarded.status,200);assert(!guarded.data.partnerReply.includes('누나'));
+ const afterGuard=(await state()).user.hearts;
+ assert.equal((await send('persistent forbidden-address-test','guarded-persistent')).status,503);assert.equal((await state()).user.hearts,afterGuard,'Persistent unsupported address fails without a charge');
+ const giftFail=await req('/chat/gift',token,{characterId,giftKey:'coffee',customMsg:'http-test',messageId:'giftfailure'});assert.equal(giftFail.status,503);assert.equal((await state()).user.hearts,afterGuard);
  const gift=await req('/chat/gift',token,{characterId,giftKey:'coffee',customMsg:'고마워요',messageId:'gift'});assert.equal(gift.status,200);assert.equal(gift.data.isAiGenerated,true);assert.equal(gift.data.costDeducted,300);assert.equal((await req('/chat/gift',token,{characterId,giftKey:'coffee',customMsg:'고마워요',messageId:'gift'})).data.heartsRemaining,gift.data.heartsRemaining);
  await stop();env.GEMINI_API_KEY='';await start();
  const before=(await state()).user.hearts;

@@ -22,7 +22,7 @@ router.post('/send',async(req,res)=>{
 });
 router.post('/greeting',async(req,res)=>{
   const value=characterAndId(req,res);if(!value)return;
-  return generatedTurn(req,res,{...value,message:'새 대화가 연결되었습니다. 상대는 아직 아무 말도 하지 않았습니다. 처음 말을 거는 자연스러운 짧은 인사 한 번을 보내세요. 혼잣말로 근황을 보고하거나 상대의 나이·성별·현재 상태를 추측하지 마세요.',kind:'greeting',cost:0});
+  return generatedTurn(req,res,{...value,message:'새 대화가 연결되었습니다. 상대는 아직 아무 말도 하지 않은 낯선 사람입니다. 이 캐릭터의 고유 성향과 첫마디 연출에 따라 지금 보내고 싶은 짧은 첫 메시지를 쓰세요. 정중한 인사부터 할 필요는 없습니다. 사용자 신상·외모·이전 관계를 지어내지 마세요.',kind:'greeting',cost:0});
 });
 router.post('/gift',async(req,res)=>{
   const value=characterAndId(req,res);if(!value)return;

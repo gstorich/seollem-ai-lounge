@@ -16,8 +16,8 @@ function buildRelationshipContext(character,messages=[]){
   }
   // Quoted or hypothetical statements are not confirmed biography.
   if(/["“”'‘’]|가정|만약|이라면|이면|라면/.test(text))continue;
-  if(/반말(?:은|로|을)?\s*(?:하지\s*마|쓰지\s*마|말아)|말\s*놓지\s*마|존댓말(?:로|을)?\s*(?:해줘|해주세요|해요|하세요|써줘|써주세요|써요|부탁)/.test(text))speechRegister='polite';
-  else if(/말(?:을)?\s*(?:편하게|편히)\s*(?:하자|해도\s*(?:돼|괜찮아)|해줘)(?:요)?(?=$|[\s.!?])|말\s*(?:놓자|놔도\s*돼|놓아도\s*돼)(?:요)?(?=$|[\s.!?])|반말(?:로)?\s*(?:해도\s*돼|하자|해줘)(?:요)?(?=$|[\s.!?])/.test(text))speechRegister='casual';
+  if(/반말(?:은|로|을)?\s*(?:하지\s*마|쓰지\s*마|말아|그만)|말\s*놓지\s*마|존댓말(?:로|을)?\s*(?:말(?:해줘|해주세요|해요|해)|해줘|해주세요|해요|하세요|써줘|써주세요|써요|부탁)/.test(text))speechRegister='polite';
+  else if(/말(?:을)?\s*(?:편하게|편히)\s*(?:하자|해도\s*(?:돼|괜찮아)|해줘)(?:요)?(?=$|[\s.!?])|말\s*(?:놓자|놔도\s*돼|놓아도\s*돼)(?:요)?(?=$|[\s.!?])|반말(?:로)?\s*(?:말)?(?:해도\s*돼|하자|해줘)(?:요)?(?=$|[\s.!?])|편하게\s*말해(?:줘|도\s*돼)(?:요)?(?=$|[\s.!?])/.test(text))speechRegister='casual';
   const ageMatch=text.match(/(?:^|\s)(?:저는|전|나는|난|제\s*나이는|내\s*나이는)\s*(\d{2})\s*(?:살|세)(?!\s*(?:아니|은\s*아니|이\s*아니))/);
   const bareAge=text.match(/^(\d{2})\s*(?:살|세)(?:이에요|이야|입니다|예요|에요|요|이구|이고|여자|남자|여성|남성|[.!\s]|$)/);
   const value=Number(ageMatch?.[1]||bareAge?.[1]);if(value>=18&&value<=99)age=value;
