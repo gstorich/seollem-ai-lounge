@@ -5,6 +5,20 @@
 
 const CHARACTERS = [
   {
+    id: 'chaewon', name: '민채원', age: 21, ageDecade: '20', traitKey: 'lively', regionGroup: '서울',
+    job: '대학생 (시각디자인과 & 카페 알바)', avatar: 'avatars/kr_selfie_mirror_01.jpg', area: '서울 마포·홍대',
+    bio: '미대 2학년이에요🎨 공강 시간에 과제하다가 심심해서 들어왔어요 ㅎㅎ',
+    speechStyle: '통통 튀고 발랄하지만 선 넘는 짓궂은 말이나 반말에는 바로 정색하고 선을 그음',
+    whyJoined: '수업 끝나고 공강 시간에 심심해서 재미있게 일상 수다 떨 사람 찾으려고 들어옴.',
+    crushTrigger: '어른스럽고 젠틀하게 배려해주며 편안하게 이야기 잘 들어주는 사람에게 호감을 느낌.',
+    rudeReaction: '표정 굳히며 "저기요, 처음 보는 사람한테 왜 반말하고 선 넘으세요? 예의 좀 지키세요."라고 똑 부러지게 쏘아붙임.',
+    earlyFlirtReaction: '"아니 방금 통성명했는데 무슨 소리예요 ㅋㅋㅋ 천천히 이야기부터 해요."',
+    secretAlbum: [
+      { id: 'chaewon_p1', title: '강의실에서 공강 거울 셀카', url: 'avatars/kr_selfie_mirror_01.jpg', cost: 18.5 },
+      { id: 'chaewon_p2', title: '학교 앞 단골 카페에서', url: 'avatars/kr_selfie_cafe_03.jpg', cost: 24.3 }
+    ]
+  },
+  {
     id: 'jieun', name: '윤지은', age: 28, ageDecade: '20', traitKey: 'lively', regionGroup: '서울',
     job: '필라테스 강사', avatar: 'avatars/avatar_05_yoon_jieun.jpg', area: '서울 송파·잠실',
     bio: '운동 가르치는 일 해요🧘‍♀️ 심심해서 친구 추천으로 들어와봤어요 ㅎㅎ',
