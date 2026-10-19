@@ -3060,6 +3060,7 @@
       apiProvider: DEFAULT_MODEL,
       apiKey: DEFAULT_API_KEY,
       isAiBusy: false,
+      pendingUserMessages: [],
       pendingReadTimer: null,
       idleFollowUpTimer: null,
       idleFollowUpCount: 0,
@@ -5334,7 +5335,7 @@
     // =========================================================================
     async function sendUserMessage(rawText) {
       const text=(rawText || '').trim(), char=state.currentChar;
-      if (!text || !char || state.isAiBusy || state.roomLeft) return;
+      if (!text || !char || state.roomLeft) return;
       if (!state.isVipUnlimited && state.hearts < 3.7) { openHeartNeededModal(char.name); return; }
       if (state.adultGatedTurn && state.adultGatedTurn.charId === char.id) {
         const failedId = state.adultGatedTurn.requestId;
@@ -5352,16 +5353,30 @@
       appendMessage('user',text);
       const requestId=state.messages.at(-1).id;
       state.turnCount+=1;
+      saveAccountState();
+      markAllUserMessagesRead();
+
+      // [핵심]: 상대가 타이핑 중이거나 응답 생성 중(isAiBusy)일 때 사용자가 끼어들어 여러 개를 보낸 경우
+      // 화면에는 내 말풍선이 즉시 연속으로 쌓이고, 대기 큐에 등록하여 상대방이 전부 읽고 답장하도록 함!
+      if (state.isAiBusy) {
+        state.pendingUserMessages = state.pendingUserMessages || [];
+        state.pendingUserMessages.push({ text, requestId, charId: char.id });
+        return;
+      }
+
+      await executeUserMessageTurn(text, requestId, char);
+    }
+
+    async function executeUserMessageTurn(text, requestId, char) {
       state.messageTurnId=(state.messageTurnId || 0)+1;
       const turnId=state.messageTurnId;
       state.isAiBusy=true;
-      saveAccountState();
-      markAllUserMessagesRead();
       headerStatusText.textContent=`${char.name}님이 입력 중...`;
       showTypingIndicator(`${char.name}님이 입력 중...`);
       const startedAt=Date.now();
       const plan=await fetchLLMResponse(text,requestId);
       if (!plan || plan.failed) {
+        state.isAiBusy=false;
         if (state.currentChar?.id === char.id) showGenerationError();
         return;
       }
@@ -5371,6 +5386,38 @@
 
       // 사용자가 방에 있든 뒤로가기를 눌러 목록에 있든, 예정된 현실적 타이핑 시간 후에 안전하게 배송 및 알림
       await runRealisticReplySequence(plan, false, turnId, startedAt);
+
+      // 이번 턴의 응답 전송이 완료된 후, 사용자가 타이핑 중 끼어들어 보낸 대기 메시지들이 쌓여있다면 연속해서 전부 읽고 답장!
+      await checkAndProcessPendingUserMessages(char);
+    }
+
+    async function checkAndProcessPendingUserMessages(char) {
+      if (!state.pendingUserMessages || state.pendingUserMessages.length === 0) {
+        state.isAiBusy = false;
+        return;
+      }
+      if (state.currentChar?.id !== char?.id || state.roomLeft) {
+        state.pendingUserMessages = [];
+        state.isAiBusy = false;
+        return;
+      }
+
+      const pending = state.pendingUserMessages.filter(p => p.charId === char.id);
+      state.pendingUserMessages = state.pendingUserMessages.filter(p => p.charId !== char.id);
+      if (pending.length === 0) {
+        state.isAiBusy = false;
+        return;
+      }
+
+      // 사용자가 연달아 보낸 여러 개의 메시지 내용을 종합하여 상대방이 전부 읽고 답장하도록 구성
+      const combinedText = pending.map(p => p.text).join('\n');
+      const latestRequestId = pending.at(-1).requestId;
+
+      // 상대방이 내가 연달아 보낸 메시지들을 읽고 반응하는 약간의 자연스러운 인간적 반응 지연(250~450ms)
+      await new Promise(r => registerTimeout(r, Math.round(250 + Math.random() * 200)));
+      if (state.currentChar?.id !== char?.id || state.roomLeft) return;
+
+      await executeUserMessageTurn(combinedText, latestRequestId, char);
     }
 
     function updateFilterModalUI() {
