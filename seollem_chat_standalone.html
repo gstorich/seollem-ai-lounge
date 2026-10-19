@@ -356,6 +356,49 @@
       background-color: #4a3f35 !important;
     }
 
+    /* Primary Action Buttons (Warm Lounge Brass/Amber Gold - 쨍한 노란색 전면 제거) */
+    #btnListNewMatch,
+    #btnSend,
+    #btnHeaderNextMatch,
+    #btnApplyFilterAndMatch,
+    #btnConfirmAiPolicy,
+    #btnConfirmPhoneAuth,
+    #btnExecutePayment,
+    #btnGoToCharge,
+    #btnSwitchPhoneAccount,
+    #btnConfirmSendGift,
+    #btnLeaveBannerRematch,
+    #btnEmptyStateNewMatch,
+    #btnAuthFromPayment,
+    .btn-open-gift-order {
+      background: linear-gradient(135deg, #d8962d 0%, #b87b22 100%) !important;
+      border: 1px solid #e5a93c !important;
+      color: #1a1309 !important;
+      font-weight: 900 !important;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.25) !important;
+    }
+    #btnListNewMatch:hover,
+    #btnSend:hover,
+    #btnHeaderNextMatch:hover,
+    #btnApplyFilterAndMatch:hover,
+    #btnConfirmAiPolicy:hover,
+    #btnConfirmPhoneAuth:hover,
+    #btnExecutePayment:hover,
+    #btnGoToCharge:hover,
+    #btnSwitchPhoneAccount:hover,
+    #btnConfirmSendGift:hover,
+    #btnLeaveBannerRematch:hover,
+    #btnEmptyStateNewMatch:hover,
+    #btnAuthFromPayment:hover,
+    .btn-open-gift-order:hover {
+      background: linear-gradient(135deg, #e5a337 0%, #c48726 100%) !important;
+      border-color: #f0be64 !important;
+      color: #150f06 !important;
+    }
+    #btnSend #sendHeartCost {
+      color: #3b2a10 !important;
+    }
+
     /* Modal Accent Action Buttons */
     #btnConfirmPhoneAuth,
     #btnExecutePayment,
@@ -559,7 +602,7 @@
           </div>
 
           <!-- Big, Senior-Friendly Yellow Start Button -->
-          <button id="btnListNewMatch" type="button" class="w-full py-4 rounded-xl bg-[#fee500] hover:bg-[#ebd300] active:scale-[0.99] text-[#111111] font-black text-[17px] shadow-sm flex items-center justify-center gap-2 transition">
+          <button id="btnListNewMatch" type="button" class="w-full py-4 rounded-xl bg-[#c48726] hover:bg-[#d8962d] active:scale-[0.99] text-[#1a140b] font-black text-[17px] shadow-sm border border-[#e5a93c]/50 flex items-center justify-center gap-2 transition">
             <svg class="w-5 h-5 text-[#111111]" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg>
             <span>새로운 상대와 대화 시작</span>
           </button>
@@ -667,7 +710,7 @@
           <!-- Right: Clear Next Partner Button -->
           <div class="flex items-center gap-1.5 shrink-0">
             <!-- Next Partner Button -->
-            <button id="btnHeaderNextMatch" type="button" class="px-3 py-2 rounded-xl bg-[#fee500] hover:bg-[#ebd300] border border-[#e6ce00] text-[#111111] transition active:scale-95 flex items-center gap-1 text-[13px] font-black shadow-xs whitespace-nowrap" title="다른 인연과 새로 대화하기">
+            <button id="btnHeaderNextMatch" type="button" class="px-3 py-2 rounded-xl bg-[#c48726] hover:bg-[#d8962d] border border-[#e5a93c]/50 text-[#1a140b] transition active:scale-95 flex items-center gap-1 text-[13px] font-black shadow-xs whitespace-nowrap" title="다른 인연과 새로 대화하기">
               <span>🔀</span>
               <span>다른 사람</span>
             </button>
@@ -717,7 +760,7 @@
             <textarea id="chatInput" rows="1" placeholder="따뜻한 이야기를 건네보세요..." class="w-full bg-transparent text-[16.5px] text-[#111111] placeholder-[#888888] focus:outline-none resize-none max-h-24 leading-relaxed font-medium"></textarea>
           </div>
 
-          <button id="btnSend" type="submit" aria-label="전송" aria-describedby="sendHeartCost" class="shrink-0 h-12 px-5 min-w-[70px] rounded-xl bg-[#fee500] hover:bg-[#ebd300] active:scale-95 text-[#111111] font-black text-[16px] shadow-xs transition flex flex-col items-center justify-center gap-0.5">
+          <button id="btnSend" type="submit" aria-label="전송" aria-describedby="sendHeartCost" class="shrink-0 h-12 px-5 min-w-[70px] rounded-xl bg-[#c48726] hover:bg-[#d8962d] active:scale-95 text-[#1a140b] font-black text-[16px] shadow-xs border border-[#e5a93c]/50 transition flex flex-col items-center justify-center gap-0.5">
             <span>전송</span>
             <span id="sendHeartCost" class="text-[9px] leading-none font-normal text-[#75672e] whitespace-nowrap">♥ -3.7</span>
           </button>
@@ -758,10 +801,10 @@
 
     <!-- Modal 2-1: Leave Room / Rematch Confirmation Dialog -->
     <div id="leaveConfirmModal" class="hidden absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-5">
-      <div class="bg-white border border-[#e2e5e9] rounded-3xl max-w-sm w-full p-5 text-[#191f28] shadow-2xl space-y-4">
+      <div class="bg-[#2b2520] border border-[#483d32] rounded-3xl max-w-sm w-full p-5 text-[#fbf7f2] shadow-2xl space-y-4">
         <div class="text-center space-y-1.5 pt-1">
           <div class="text-3xl">🚪</div>
-          <h3 id="leaveConfirmTitle" class="text-[17px] font-bold text-[#191f28]">대화방을 나가시겠습니까?</h3>
+          <h3 id="leaveConfirmTitle" class="text-[17px] font-bold text-[#fbf7f2]">대화방을 나가시겠습니까?</h3>
           <p id="leaveConfirmDesc" class="text-[13px] text-[#6b7684] leading-relaxed px-2">
             현재 상대와의 대화가 종료됩니다.
           </p>
@@ -774,13 +817,13 @@
 
     <!-- Modal 3: 3-Second Phone Verification Modal (SMS Auth to save & restore history) -->
     <div id="phoneAuthModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center overflow-y-auto p-4 sm:p-5">
-      <div class="bg-white border border-[#e2e5e9] rounded-3xl max-w-sm w-full min-w-0 max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 text-[#191f28] shadow-2xl space-y-4">
+      <div class="bg-[#2b2520] border border-[#483d32] rounded-3xl max-w-sm w-full min-w-0 max-h-[calc(100dvh-2rem)] overflow-y-auto p-5 text-[#fbf7f2] shadow-2xl space-y-4">
         <div class="flex items-center justify-between border-b border-[#eaedf0] pb-3">
           <div class="min-w-0">
-            <h3 id="phoneAuthTitle" class="text-[17px] font-bold text-[#191f28]">📱 휴대폰 번호로 대화 이어가기</h3>
+            <h3 id="phoneAuthTitle" class="text-[17px] font-bold text-[#fbf7f2]">📱 휴대폰 번호로 대화 이어가기</h3>
             <p id="phoneAuthSubtitle" class="text-[12px] text-rose-600 font-medium mt-0.5">복잡한 가입 없이 번호 하나로 내 인연을 보관합니다</p>
           </div>
-          <button id="btnClosePhoneAuth" type="button" aria-label="휴대폰 계정 화면 닫기" class="shrink-0 w-8 h-8 rounded-full bg-[#f1f3f5] hover:bg-[#e9ecef] text-[#495057] flex items-center justify-center font-bold">✕</button>
+          <button id="btnClosePhoneAuth" type="button" aria-label="휴대폰 계정 화면 닫기" class="shrink-0 w-8 h-8 rounded-full bg-[#3d342c] hover:bg-[#4a3f35] text-[#ded3c4] flex items-center justify-center font-bold">✕</button>
         </div>
 
         <div id="phoneAuthAccount" class="hidden rounded-2xl bg-emerald-50 border border-emerald-200 p-4 text-[13px] leading-relaxed">
@@ -792,8 +835,8 @@
           <div>
             <label class="block text-[12px] text-[#6b7684] mb-1">휴대폰 번호</label>
             <div class="grid grid-cols-1 min-[360px]:grid-cols-[minmax(0,1fr)_auto] gap-2">
-              <input id="inputPhoneNumber" type="tel" inputmode="tel" autocomplete="tel" maxlength="13" placeholder="010-1234-5678" class="min-w-0 w-full px-3.5 py-2.5 rounded-xl bg-[#f8f9fa] border border-[#e2e5e9] text-[#191f28] text-[16px] font-semibold focus:outline-none focus:border-amber-400" />
-              <button id="btnSendSmsCode" type="button" class="w-full whitespace-nowrap px-3.5 py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-[#b45309] font-bold text-[13px]">
+              <input id="inputPhoneNumber" type="tel" inputmode="tel" autocomplete="tel" maxlength="13" placeholder="010-1234-5678" class="min-w-0 w-full px-3.5 py-2.5 rounded-xl bg-[#221c17] border border-[#524538] text-[#fbf7f2] text-[16px] font-semibold focus:outline-none focus:border-[#e5a93c]" />
+              <button id="btnSendSmsCode" type="button" class="w-full whitespace-nowrap px-3.5 py-2.5 rounded-xl bg-[#443b33] hover:bg-[#52463d] border border-[#524538] text-[#ede2d5] font-bold text-[13px]">
                 인증번호 받기
               </button>
             </div>
@@ -804,10 +847,10 @@
               <label class="text-[12px] text-[#6b7684]">인증번호 6자리 입력</label>
               <span id="smsExpiryNotice" class="text-[11.5px] text-emerald-600 font-semibold">유효시간 5분 · 재발송 60초</span>
             </div>
-            <input id="inputSmsCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="인증번호 6자리" class="w-full px-3.5 py-2.5 rounded-xl bg-[#f8f9fa] border border-amber-400 text-[#191f28] text-[16px] font-bold tracking-widest text-center focus:outline-none" />
+            <input id="inputSmsCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="인증번호 6자리" class="w-full px-3.5 py-2.5 rounded-xl bg-[#221c17] border border-[#e5a93c] text-[#fbf7f2] text-[16px] font-bold tracking-widest text-center focus:outline-none" />
           </div>
 
-          <div id="phoneAuthNotice" class="p-3 rounded-xl bg-[#fffbeb] border border-[#fde68a] text-[12px] text-[#78350f] leading-relaxed">
+          <div id="phoneAuthNotice" class="p-3 rounded-xl bg-[#3b3024] border border-[#5d4a36] text-[12px] text-[#f0be64] leading-relaxed">
             🎁 <strong>첫 번호 인증 혜택:</strong> 인증 즉시 <strong>무료 100 하트</strong>가 추가 충전됩니다. 인증한 번호가 고객 ID가 되며, 하트 잔액과 대화는 서버에 보관되어 다른 기기에서도 복원됩니다.
           </div>
         </div>
@@ -815,10 +858,10 @@
         <p class="text-[11.5px] text-[#6b7684] leading-relaxed">현재 문자 인증은 휴대폰 번호 연결을 위한 절차이며, 실명·성인 확인이 아닙니다. <a href="/verification" class="underline">본인확인 도입 안내</a></p>
         <p id="phoneAuthStatus" role="status" class="text-[12px] text-rose-600" aria-live="polite"></p>
         <div id="phoneAuthAccountActions" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-2">
-          <button id="btnSwitchPhoneAccount" type="button" class="w-full px-3 py-3 rounded-xl bg-[#fee500] text-[#191919] font-bold text-[13px]">다른 번호로 로그인</button>
-          <button id="btnLogoutAccount" type="button" class="w-full px-3 py-3 rounded-xl border border-[#e2e5e9] text-[#4e5968] font-bold text-[13px]">로그아웃</button>
+          <button id="btnSwitchPhoneAccount" type="button" class="w-full px-3 py-3 rounded-xl bg-[#c48726] hover:bg-[#d8962d] text-[#1a140b] font-bold text-[13px] border border-[#e5a93c]/50">다른 번호로 로그인</button>
+          <button id="btnLogoutAccount" type="button" class="w-full px-3 py-3 rounded-xl bg-[#3d342c] hover:bg-[#4a3f35] border border-[#524538] text-[#ede2d5] font-bold text-[13px]">로그아웃</button>
         </div>
-        <button id="btnConfirmPhoneAuth" type="button" class="w-full py-3.5 rounded-xl bg-[#fee500] hover:bg-[#ebd300] text-[#191919] font-bold text-[15.5px] shadow-xs transition">
+        <button id="btnConfirmPhoneAuth" type="button" class="w-full py-3.5 rounded-xl bg-[#c48726] hover:bg-[#d8962d] text-[#1a140b] font-bold text-[15.5px] shadow-xs border border-[#e5a93c]/50 transition">
           인증 완료 및 대화 이어가기
         </button>
       </div>
@@ -826,57 +869,57 @@
 
     <!-- Modal 4: Heart Payment Modal (PG-ready structure) -->
     <div id="paymentModal" class="hidden absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col justify-end">
-      <div class="bg-white border-t border-[#e2e5e9] rounded-t-3xl max-h-[94%] flex flex-col overflow-hidden shadow-2xl text-[#191f28]">
-        <div class="px-5 py-4 border-b border-[#eaedf0] flex items-center justify-between bg-white shrink-0">
+      <div class="bg-[#2b2520] border-t border-[#483d32] rounded-t-3xl max-h-[94%] flex flex-col overflow-hidden shadow-2xl text-[#fbf7f2]">
+        <div class="px-5 py-4 border-b border-[#483d32] flex items-center justify-between bg-[#332b24] shrink-0">
           <div>
-            <h3 class="text-[18px] font-bold text-[#191f28] flex items-center gap-1.5">
+            <h3 class="text-[18px] font-bold text-[#fbf7f2] flex items-center gap-1.5">
               <span>하트 충전</span>
               <span class="text-rose-500">❤️</span>
             </h3>
             <p id="paymentModalSubtitle" class="text-[12px] text-[#6b7684] mt-0.5">1회성 충전 · 획득일부터 2년간 유효</p>
           </div>
-          <button id="btnClosePayment" type="button" class="w-8 h-8 rounded-full bg-[#f1f3f5] text-[#495057] flex items-center justify-center font-bold hover:bg-[#e9ecef] transition">✕</button>
+          <button id="btnClosePayment" type="button" class="w-8 h-8 rounded-full bg-[#3d342c] text-[#ded3c4] flex items-center justify-center font-bold hover:bg-[#4a3f35] transition">✕</button>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-4 space-y-3 chat-scroll text-[13.5px] bg-[#FAF7EE]">
+        <div class="flex-1 overflow-y-auto p-4 space-y-3 chat-scroll text-[13.5px] bg-[#2b2520]">
           <!-- Simple Free Bonus Banner -->
-          <div id="paymentBonusAuthBanner" class="py-2.5 px-3.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between gap-2 shadow-xs">
-            <div class="text-[12.5px] text-[#78350f]">
+          <div id="paymentBonusAuthBanner" class="py-2.5 px-3.5 rounded-xl bg-[#3b3024] border border-[#5d4a36] flex items-center justify-between gap-2 shadow-xs">
+            <div class="text-[12.5px] text-[#f0be64]">
               🎁 첫 휴대폰 연동 시 <strong>100하트 무료 지급!</strong>
             </div>
-            <button id="btnAuthFromPayment" type="button" class="shrink-0 px-3 py-1 rounded-lg bg-[#fee500] hover:bg-[#ebd300] text-[#111] font-bold text-[12px] border border-amber-300">
+            <button id="btnAuthFromPayment" type="button" class="shrink-0 px-3 py-1 rounded-lg bg-[#c48726] hover:bg-[#d8962d] text-[#1a140b] font-bold text-[12px] border border-[#e5a93c]/50">
               번호 연동하기
             </button>
             <span id="paymentUrgencyTimer" class="hidden"></span>
           </div>
 
-          <div id="paymentAuthRequirement" role="status" class="p-3 rounded-xl bg-white border border-amber-300 text-[13px] text-[#78350f] leading-relaxed">
+          <div id="paymentAuthRequirement" role="status" class="p-3 rounded-xl bg-[#362f29] border border-[#5d4a36] text-[13px] text-[#f0be64] leading-relaxed">
             <strong>휴대폰 번호 연동 전에는 결제할 수 없습니다.</strong><br>먼저 번호를 연동하고 첫 인증 혜택 100하트로 대화를 이어가세요.
           </div>
-          <div class="p-3 rounded-xl bg-white border border-[#e2e5e9] text-[12px] leading-relaxed">현재 실결제 준비 중입니다. 표시 가격은 부가세 포함 총액이며 자동 갱신되지 않습니다. <a href="/products" class="underline">상품 상세</a> · <a href="/terms" class="underline">이용약관</a> · <a href="/privacy" class="underline">개인정보처리방침</a> · <a href="/refund" class="underline">환불 정책</a> · <a href="/safety" class="underline">이용·청소년 보호</a> · <a href="/policies" class="underline">정책 변경</a><br>구매 후 7일 이내 해당 구매분 전량 미사용 시 전액 환불. 일부 사용·기한 경과 시 일반 환불 불가(법정 환급 예외 별도). 메이비웍스 · 대표 홍지민 · 666-01-04235 · 2026-안양동안-0369<br>경기도 안양시 동안구 시민대로 327번길 11-41, 3층<br>010-7364-2623 · maybeworks@naver.com</div>
-          <div id="paymentHeartExpiry" class="p-3 rounded-xl bg-white border border-[#e2e5e9] text-[12px] text-[#6b7684] leading-relaxed" aria-live="polite">보유 하트는 각 획득일로부터 2년간 유효합니다. 먼저 획득한 하트부터 사용되며, 만료된 하트는 자동 소멸됩니다.</div>
+          <div class="p-3 rounded-xl bg-[#362f29] border border-[#4d4135] text-[12px] text-[#d5c8b7] leading-relaxed">현재 실결제 준비 중입니다. 표시 가격은 부가세 포함 총액이며 자동 갱신되지 않습니다. <a href="/products" class="underline">상품 상세</a> · <a href="/terms" class="underline">이용약관</a> · <a href="/privacy" class="underline">개인정보처리방침</a> · <a href="/refund" class="underline">환불 정책</a> · <a href="/safety" class="underline">이용·청소년 보호</a> · <a href="/policies" class="underline">정책 변경</a><br>구매 후 7일 이내 해당 구매분 전량 미사용 시 전액 환불. 일부 사용·기한 경과 시 일반 환불 불가(법정 환급 예외 별도). 메이비웍스 · 대표 홍지민 · 666-01-04235 · 2026-안양동안-0369<br>경기도 안양시 동안구 시민대로 327번길 11-41, 3층<br>010-7364-2623 · maybeworks@naver.com</div>
+          <div id="paymentHeartExpiry" class="p-3 rounded-xl bg-[#362f29] border border-[#4d4135] text-[12px] text-[#baa997] leading-relaxed" aria-live="polite">보유 하트는 각 획득일로부터 2년간 유효합니다. 먼저 획득한 하트부터 사용되며, 만료된 하트는 자동 소멸됩니다.</div>
           <!-- Ultra-clean Package Cards -->
           <div class="space-y-2.5">
             <!-- Package 1: Starter -->
-            <div data-pkg="starter" class="pkg-card cursor-pointer p-4 rounded-2xl border border-[#e2e5e9] bg-white hover:bg-[#f8f9fa] flex items-center justify-between transition shadow-xs">
+            <div data-pkg="starter" class="pkg-card cursor-pointer p-4 rounded-2xl border border-[#4d4135] bg-[#362f29] hover:bg-[#3d352e] flex items-center justify-between transition shadow-xs">
               <div>
                 <div class="flex items-center gap-2">
-                  <span class="font-black text-[#191f28] text-[16px]">스타터 패키지</span>
+                  <span class="font-black text-[#fbf7f2] text-[16px]">스타터 패키지</span>
 
                 </div>
                 <div class="text-[14px] text-rose-600 font-black mt-1">하트 2,500개</div>
               </div>
               <div class="text-right">
 
-                <div class="text-[18px] font-black text-[#191f28]">19,900원</div>
+                <div class="text-[18px] font-black text-[#fbf7f2]">19,900원</div>
               </div>
             </div>
 
             <!-- Package 2: Popular [BEST] -->
-            <div data-pkg="popular" class="pkg-card cursor-pointer p-4 rounded-2xl border-2 border-amber-400 bg-amber-50/80 hover:bg-amber-50 flex items-center justify-between transition shadow-sm">
+            <div data-pkg="popular" class="pkg-card cursor-pointer p-4 rounded-2xl border-2 border-[#e5a93c] bg-[#423526] hover:bg-[#4d3d2c] flex items-center justify-between transition shadow-sm">
               <div>
                 <div class="flex items-center gap-2">
-                  <span class="font-black text-[#191f28] text-[16.5px]">베스트 패키지</span>
+                  <span class="font-black text-[#fbf7f2] text-[16.5px]">베스트 패키지</span>
 
 
                 </div>
@@ -889,32 +932,32 @@
             </div>
 
             <!-- Package 3: Mania -->
-            <div data-pkg="mania" class="pkg-card cursor-pointer p-4 rounded-2xl border border-[#e2e5e9] bg-white hover:bg-[#f8f9fa] flex items-center justify-between transition shadow-xs">
+            <div data-pkg="mania" class="pkg-card cursor-pointer p-4 rounded-2xl border border-[#4d4135] bg-[#362f29] hover:bg-[#3d352e] flex items-center justify-between transition shadow-xs">
               <div>
                 <div class="flex items-center gap-2">
-                  <span class="font-black text-[#191f28] text-[16px]">VIP 메가 패키지</span>
+                  <span class="font-black text-[#fbf7f2] text-[16px]">VIP 메가 패키지</span>
 
                 </div>
                 <div class="text-[14px] text-rose-600 font-black mt-1">하트 20,000개 <span class="text-[11.5px] text-purple-700 font-normal">(대용량)</span></div>
               </div>
               <div class="text-right">
 
-                <div class="text-[18px] font-black text-[#191f28]">89,000원</div>
+                <div class="text-[18px] font-black text-[#fbf7f2]">89,000원</div>
               </div>
             </div>
 
             <!-- Package 4: Master -->
-            <div data-pkg="master" class="pkg-card cursor-pointer p-4 rounded-2xl border border-[#e2e5e9] bg-white hover:bg-[#f8f9fa] flex items-center justify-between transition shadow-xs">
+            <div data-pkg="master" class="pkg-card cursor-pointer p-4 rounded-2xl border border-[#4d4135] bg-[#362f29] hover:bg-[#3d352e] flex items-center justify-between transition shadow-xs">
               <div>
                 <div class="flex items-center gap-2">
-                  <span class="font-black text-[#191f28] text-[16px]">VVIP 로열 패키지</span>
+                  <span class="font-black text-[#fbf7f2] text-[16px]">VVIP 로열 패키지</span>
 
                 </div>
                 <div class="text-[14px] text-rose-600 font-black mt-1">하트 50,000개</div>
               </div>
               <div class="text-right">
 
-                <div class="text-[18px] font-black text-[#191f28]">149,000원</div>
+                <div class="text-[18px] font-black text-[#fbf7f2]">149,000원</div>
               </div>
             </div>
           </div>
@@ -925,23 +968,23 @@
         </div>
 
         <!-- Sticky Footer: Payment Method & Pay Button -->
-        <div class="p-4 border-t border-[#eaedf0] bg-white shrink-0 space-y-2.5 shadow-[0_-4px_12px_rgba(0,0,0,0.05)]">
+        <div class="p-4 border-t border-[#483d32] bg-[#332b24] shrink-0 space-y-2.5 shadow-[0_-4px_12px_rgba(0,0,0,0.3)]">
           <div>
-            <div class="text-[12px] font-bold text-[#333333] mb-1.5">제공 예정 결제수단</div>
+            <div class="text-[12px] font-bold text-[#d5c8b7] mb-1.5">제공 예정 결제수단</div>
             <div class="grid grid-cols-3 gap-2">
-              <button type="button" data-paymethod="kakaopay" class="pay-method-btn py-2.5 px-2 rounded-xl border-2 border-[#fee500] bg-[#fee500]/25 text-[#191919] font-black text-[13px] shadow-xs flex items-center justify-center gap-1 transition">
+              <button type="button" data-paymethod="kakaopay" class="pay-method-btn py-2.5 px-2 rounded-xl border-2 border-[#e5a93c] bg-[#423526] text-[#f0be64] font-black text-[13px] shadow-xs flex items-center justify-center gap-1 transition">
                 <span>🟡</span> 카카오페이
               </button>
-              <button type="button" data-paymethod="card" class="pay-method-btn py-2.5 px-2 rounded-xl border border-[#e2e5e9] bg-white text-[#4e5968] font-semibold text-[13px] flex items-center justify-center gap-1 transition">
+              <button type="button" data-paymethod="card" class="pay-method-btn py-2.5 px-2 rounded-xl border border-[#4d4135] bg-[#362f29] text-[#d5c8b7] font-semibold text-[13px] flex items-center justify-center gap-1 transition">
                 <span>💳</span> 카드결제
               </button>
-              <button type="button" data-paymethod="phone" class="pay-method-btn py-2.5 px-2 rounded-xl border border-[#e2e5e9] bg-white text-[#4e5968] font-semibold text-[13px] flex items-center justify-center gap-1 transition">
+              <button type="button" data-paymethod="phone" class="pay-method-btn py-2.5 px-2 rounded-xl border border-[#4d4135] bg-[#362f29] text-[#d5c8b7] font-semibold text-[13px] flex items-center justify-center gap-1 transition">
                 <span>📱</span> 휴대폰결제
               </button>
             </div>
           </div>
 
-          <button id="btnExecutePayment" type="button" class="w-full py-4 rounded-xl bg-[#fee500] hover:bg-[#ebd300] active:scale-[0.99] text-[#191919] font-black text-[16.5px] shadow-md transition">
+          <button id="btnExecutePayment" type="button" class="w-full py-4 rounded-xl bg-[#c48726] hover:bg-[#d8962d] active:scale-[0.99] text-[#1a140b] font-black text-[16.5px] shadow-md border border-[#e5a93c]/50 transition">
             49,000원 결제하고 8,000 하트 받기
           </button>
         </div>
@@ -950,20 +993,20 @@
 
     <!-- HEART NEEDED DIALOG (Clear explanation before payment) -->
     <div id="heartNeededModal" class="hidden fixed inset-0 z-50 bg-black/60 backdrop-blur-xs flex items-center justify-center p-4">
-      <div class="w-full max-w-[360px] rounded-3xl bg-white p-6 shadow-2xl text-center space-y-4 border border-[#e8e4d8] msg-animate">
+      <div class="w-full max-w-[360px] rounded-3xl bg-[#2b2520] p-6 shadow-2xl text-center space-y-4 border border-[#483d32] text-[#fbf7f2] msg-animate">
         <div class="w-16 h-16 mx-auto rounded-3xl bg-rose-50 border border-rose-200 flex items-center justify-center text-3xl text-rose-500 shadow-xs">
           💔
         </div>
         <div class="space-y-1.5">
-          <h3 class="text-[18px] font-black text-[#191919]">하트가 부족해요!</h3>
+          <h3 class="text-[18px] font-black text-[#fbf7f2]">하트가 부족해요!</h3>
           <p id="heartNeededDesc" class="text-[13.5px] text-[#666666] leading-relaxed">
             상대방과 대화를 이어가려면 <strong class="text-rose-600">3.7 하트</strong>가 필요합니다.
           </p>
         </div>
-        <div class="p-3.5 rounded-2xl bg-[#FAF7EE] border border-[#ded8cb] text-left text-[12.5px] space-y-1">
+        <div class="p-3.5 rounded-2xl bg-[#362f29] border border-[#4d4135] text-left text-[12.5px] space-y-1 text-[#d5c8b7]">
           <div class="flex justify-between text-[#555]">
             <span>현재 보유 하트</span>
-            <span id="heartNeededCurrent" class="font-black text-[#191919]">0 하트</span>
+            <span id="heartNeededCurrent" class="font-black text-[#fbf7f2]">0 하트</span>
           </div>
           <div class="flex justify-between text-[#555]">
             <span>1회 대화 차감</span>
@@ -972,10 +1015,10 @@
         </div>
         <p id="heartNeededAuthNotice" class="text-[13px] text-[#78350f] leading-relaxed"></p>
         <div class="space-y-2 pt-1">
-          <button id="btnGoToCharge" type="button" class="w-full py-3.5 rounded-2xl bg-[#fee500] hover:bg-[#ebd300] active:scale-95 text-[#191919] font-black text-[15px] shadow-sm transition">
+          <button id="btnGoToCharge" type="button" class="w-full py-3.5 rounded-2xl bg-[#c48726] hover:bg-[#d8962d] active:scale-95 text-[#1a140b] font-black text-[15px] shadow-sm border border-[#e5a93c]/50 transition">
             하트 충전하고 계속 대화하기 ❤️
           </button>
-          <button id="btnCloseHeartNeeded" type="button" class="w-full py-2.5 text-[#888888] font-bold text-[13px] hover:text-[#333] transition">
+          <button id="btnCloseHeartNeeded" type="button" class="w-full py-2.5 text-[#a39585] font-bold text-[13px] hover:text-[#fbf7f2] transition">
             다음에 할게요
           </button>
         </div>
@@ -983,17 +1026,17 @@
     </div>
 
     <!-- Modal: Live Matching Radar Overlay (현장감 있는 실시간 매칭 탐색) -->
-    <div id="matchingRadarModal" class="hidden absolute inset-0 z-50 bg-white/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center select-none text-[#191f28]">
+    <div id="matchingRadarModal" class="hidden absolute inset-0 z-50 bg-[#2b2520]/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center select-none text-[#fbf7f2]">
       <div class="relative w-24 h-24 mb-5 flex items-center justify-center">
         <span class="absolute inset-0 rounded-full border border-amber-400/30 animate-ping"></span>
         <span class="absolute inset-2 rounded-full border border-amber-400/50 animate-pulse"></span>
-        <div class="w-16 h-16 rounded-2xl bg-amber-100 border border-amber-300 flex items-center justify-center text-[#b45309] shadow-md">
+        <div class="w-16 h-16 rounded-2xl bg-[#423526] border border-[#6b5239] flex items-center justify-center text-[#f0be64] shadow-md">
           <svg class="w-8 h-8 animate-spin" style="animation-duration: 3s;" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"/></svg>
         </div>
       </div>
-      <h3 class="text-[18px] font-bold text-[#191f28] mb-1.5 tracking-tight">새로운 인연을 탐색 중입니다</h3>
+      <h3 class="text-[18px] font-bold text-[#fbf7f2] mb-1.5 tracking-tight">새로운 인연을 탐색 중입니다</h3>
       <p id="matchingRadarSubtext" class="text-[13px] text-[#6b7684] leading-relaxed max-w-xs">조건에 맞는 가상 AI 캐릭터를 확인하고 있습니다...</p>
-      <div class="mt-5 px-3.5 py-1.5 rounded-full bg-[#f1f3f5] border border-[#e2e5e9] flex items-center gap-2 text-[12px] text-[#495057]">
+      <div class="mt-5 px-3.5 py-1.5 rounded-full bg-[#362f29] border border-[#4d4135] flex items-center gap-2 text-[12px] text-[#d5c8b7]">
         <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
         <span id="matchingRadarStatus">AI 캐릭터를 찾고 있어요</span>
       </div>
@@ -1001,15 +1044,15 @@
 
     <!-- ONBOARDING GENDER SELECTION MODAL (First Visit Branching) -->
     <div id="onboardingGenderModal" class="hidden fixed inset-0 z-[60] bg-black/70 backdrop-blur-md flex items-center justify-center p-4">
-      <div class="w-full max-w-[390px] rounded-[28px] bg-white p-6 shadow-2xl text-center space-y-5 border border-[#e8e4d8] msg-animate">
+      <div class="w-full max-w-[390px] rounded-[28px] bg-[#2b2520] p-6 shadow-2xl text-center space-y-5 border border-[#483d32] text-[#fbf7f2] msg-animate">
         <div class="w-16 h-16 mx-auto rounded-3xl bg-amber-50 border border-amber-200 flex items-center justify-center text-3xl shadow-xs">
           🏡
         </div>
         <div class="space-y-1.5">
-          <span class="inline-flex items-center gap-1.5 text-[11.5px] font-bold text-amber-800 bg-amber-50 border border-amber-200 px-3 py-0.5 rounded-full">
+          <span class="inline-flex items-center gap-1.5 text-[11.5px] font-bold text-[#f0be64] bg-[#423526] border border-[#6b5239] px-3 py-0.5 rounded-full">
             아지트챗 환영합니다
           </span>
-          <h3 class="text-[20px] font-black text-[#111111]">어떤 분과 대화하고 싶으세요?</h3>
+          <h3 class="text-[20px] font-black text-[#fbf7f2]">어떤 분과 대화하고 싶으세요?</h3>
           <p class="text-[13px] text-[#666666] leading-relaxed">
             가상의 AI 캐릭터와 대화하는 서비스입니다. AI 대화는 만 18세 이상 이용할 수 있고, 별도 성인인증 전에는 일반 대화만 가능합니다.
           </p>
@@ -1019,13 +1062,13 @@
         <!-- Two Big Selection Cards -->
         <div class="space-y-3 pt-1">
           <!-- Option A: Female Partners (For male users) -->
-          <button id="btnSelectFemalePartner" type="button" class="w-full p-4 rounded-2xl border-2 border-rose-200 bg-rose-50/50 hover:bg-rose-50 active:scale-[0.98] transition flex items-center gap-3.5 text-left shadow-xs group">
+          <button id="btnSelectFemalePartner" type="button" class="w-full p-4 rounded-2xl border-2 border-[#823b49] bg-[#3d292e] hover:bg-[#4d3238] active:scale-[0.98] transition flex items-center gap-3.5 text-left shadow-xs group">
             <div class="w-12 h-12 rounded-2xl bg-white border border-rose-200 flex items-center justify-center text-2xl shrink-0 shadow-2xs group-hover:scale-105 transition">
               👩
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-1.5">
-                <span class="font-black text-[#111111] text-[16px]">여성 상대와 대화</span>
+                <span class="font-black text-[#fbf7f2] text-[16px]">여성 상대와 대화</span>
                 <span class="px-1.5 py-0.2 rounded bg-rose-500 text-white text-[10px] font-bold">남성 추천</span>
               </div>
               <p class="text-[12px] text-[#666666] mt-0.5">다양한 연령대의 여성 캐릭터와 다정한 1:1 대화</p>
@@ -1033,13 +1076,13 @@
           </button>
 
           <!-- Option B: Male Partners (For female users - 4050 middle aged women focus) -->
-          <button id="btnSelectMalePartner" type="button" class="w-full p-4 rounded-2xl border-2 border-indigo-200 bg-indigo-50/50 hover:bg-indigo-50 active:scale-[0.98] transition flex items-center gap-3.5 text-left shadow-xs group">
+          <button id="btnSelectMalePartner" type="button" class="w-full p-4 rounded-2xl border-2 border-[#434b73] bg-[#2b2f3d] hover:bg-[#343a4d] active:scale-[0.98] transition flex items-center gap-3.5 text-left shadow-xs group">
             <div class="w-12 h-12 rounded-2xl bg-white border border-indigo-200 flex items-center justify-center text-2xl shrink-0 shadow-2xs group-hover:scale-105 transition">
               👨
             </div>
             <div class="flex-1 min-w-0">
               <div class="flex items-center gap-1.5">
-                <span class="font-black text-[#111111] text-[16px]">남성 상대와 대화</span>
+                <span class="font-black text-[#fbf7f2] text-[16px]">남성 상대와 대화</span>
                 <span class="px-1.5 py-0.2 rounded bg-indigo-600 text-white text-[10px] font-bold">여성 추천</span>
               </div>
               <p class="text-[12px] text-[#666666] mt-0.5">듬직하고 다정한 30~50대 남성들과 1:1 대화</p>
@@ -1153,7 +1196,7 @@
           <button id="btnResetFilterAll" type="button" class="px-4 py-3.5 rounded-xl bg-[#443b33] hover:bg-[#52463d] text-[#ede2d5] font-bold text-[13.5px] shrink-0 transition border border-[#524538]">
             조건 초기화
           </button>
-          <button id="btnApplyFilterAndMatch" type="button" class="flex-1 py-3.5 rounded-xl bg-[#fee500] hover:bg-[#ebd300] text-[#191919] font-bold text-[15.5px] shadow-xs transition">
+          <button id="btnApplyFilterAndMatch" type="button" class="flex-1 py-3.5 rounded-xl bg-[#c48726] hover:bg-[#d8962d] text-[#1a140b] font-bold text-[15.5px] shadow-xs border border-[#e5a93c]/50 transition">
             조건 적용하고 대화 시작
           </button>
         </div>
@@ -1245,7 +1288,7 @@
           </div>
         </div>
 
-        <button id="btnConfirmAiPolicy" type="button" class="w-full py-3.5 rounded-xl bg-[#fee500] hover:bg-[#ebd300] text-[#111111] font-black text-[15px] shadow-sm transition">
+        <button id="btnConfirmAiPolicy" type="button" class="w-full py-3.5 rounded-xl bg-[#c48726] hover:bg-[#d8962d] text-[#1a140b] font-black text-[15px] shadow-sm border border-[#e5a93c]/50 transition">
           설정 저장 및 닫기
         </button>
       </div>
@@ -1253,53 +1296,53 @@
 
     <!-- Modal 7: Kakao Gift Store Modal (카카오톡 선물하기 스타일 쇼핑몰 스토어) -->
     <div id="giftModal" class="hidden absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col justify-end">
-      <div class="bg-white border-t border-[#e2e5e9] rounded-t-3xl max-h-[92%] flex flex-col overflow-hidden shadow-2xl text-[#191f28]">
+      <div class="bg-[#2b2520] border-t border-[#483d32] rounded-t-3xl max-h-[92%] flex flex-col overflow-hidden shadow-2xl text-[#fbf7f2]">
         <!-- Store Top Bar -->
-        <div class="px-5 py-3.5 border-b border-[#eaedf0] flex items-center justify-between bg-white shrink-0">
+        <div class="px-5 py-3.5 border-b border-[#483d32] flex items-center justify-between bg-[#332b24] shrink-0">
           <div>
             <div class="flex items-center gap-2">
-              <span class="px-2 py-0.5 rounded-md bg-[#FEE500] text-zinc-950 font-black text-[11px] shadow-xs">선물하기 스토어</span>
-              <h3 class="text-[16px] font-bold text-[#191f28]">🎁 모바일 쇼핑몰</h3>
+              <span class="px-2 py-0.5 rounded-md bg-[#423526] text-[#f0be64] font-black text-[11px] border border-[#e5a93c]/40 shadow-xs">선물하기 스토어</span>
+              <h3 class="text-[16px] font-bold text-[#fbf7f2]">🎁 모바일 쇼핑몰</h3>
             </div>
             <p id="giftModalSubtitle" class="text-[12px] text-[#6b7684] mt-0.5">상대방에게 정성 담긴 기프티콘을 선물해보세요</p>
           </div>
           <div class="flex items-center gap-2">
             <span id="giftModalCreditBadge" class="text-[11.5px] font-bold px-2.5 py-1 rounded-full bg-[#fff1f2] text-rose-600 border border-[#fecdd3]">내 보유: 50 하트</span>
-            <button id="btnCloseGiftModal" type="button" class="w-8 h-8 rounded-full bg-[#f1f3f5] hover:bg-[#e9ecef] text-[#495057] flex items-center justify-center font-bold transition">✕</button>
+            <button id="btnCloseGiftModal" type="button" class="w-8 h-8 rounded-full bg-[#3d342c] hover:bg-[#4a3f35] text-[#ded3c4] flex items-center justify-center font-bold transition">✕</button>
           </div>
         </div>
 
         <!-- Categories Filter Tabs -->
-        <div id="giftCategoryTabs" class="px-4 py-2.5 flex gap-2 overflow-x-auto chat-scroll shrink-0 border-b border-[#eaedf0] bg-[#f8f9fa]"></div>
+        <div id="giftCategoryTabs" class="px-4 py-2.5 flex gap-2 overflow-x-auto chat-scroll shrink-0 border-b border-[#483d32] bg-[#2b2520]"></div>
 
         <!-- Shopping Mall Products Grid -->
-        <div id="giftGrid" class="p-4 grid grid-cols-2 auto-rows-max content-start gap-3 overflow-y-auto chat-scroll flex-1 bg-[#f8f9fa]"></div>
+        <div id="giftGrid" class="p-4 grid grid-cols-2 auto-rows-max content-start gap-3 overflow-y-auto chat-scroll flex-1 bg-[#2b2520]"></div>
       </div>
     </div>
 
     <!-- Modal 7-B: Gifticon Order & Message Card Modal (기프티콘 교환권 상세 & 메시지 카드 작성) -->
     <div id="giftOrderModal" class="hidden absolute inset-0 z-[55] bg-black/60 backdrop-blur-sm flex flex-col justify-end">
-      <div class="bg-white border-t border-[#e2e5e9] rounded-t-3xl max-h-[92%] flex flex-col overflow-hidden shadow-2xl text-[#191f28]">
+      <div class="bg-[#2b2520] border-t border-[#483d32] rounded-t-3xl max-h-[92%] flex flex-col overflow-hidden shadow-2xl text-[#fbf7f2]">
         <!-- Header -->
-        <div class="px-5 py-3.5 border-b border-[#eaedf0] flex items-center justify-between bg-white shrink-0">
+        <div class="px-5 py-3.5 border-b border-[#483d32] flex items-center justify-between bg-[#332b24] shrink-0">
           <div class="flex items-center gap-2">
-            <span class="px-2 py-0.5 rounded bg-[#FEE500] text-zinc-950 font-black text-[11px]">기프티콘 주문</span>
-            <span class="text-[15px] font-bold text-[#191f28]">선물 교환권 상세</span>
+            <span class="px-2 py-0.5 rounded bg-[#423526] text-[#f0be64] font-black text-[11px] border border-[#e5a93c]/40">기프티콘 주문</span>
+            <span class="text-[15px] font-bold text-[#fbf7f2]">선물 교환권 상세</span>
           </div>
-          <button id="btnCloseGiftOrderModal" type="button" class="w-8 h-8 rounded-full bg-[#f1f3f5] hover:bg-[#e9ecef] text-[#495057] flex items-center justify-center font-bold transition">✕</button>
+          <button id="btnCloseGiftOrderModal" type="button" class="w-8 h-8 rounded-full bg-[#3d342c] hover:bg-[#4a3f35] text-[#ded3c4] flex items-center justify-center font-bold transition">✕</button>
         </div>
 
-        <div class="p-4 overflow-y-auto chat-scroll space-y-4 bg-[#f8f9fa]">
+        <div class="p-4 overflow-y-auto chat-scroll space-y-4 bg-[#2b2520]">
           <!-- Product Preview Card -->
-          <div class="flex gap-3.5 p-3.5 rounded-2xl bg-white border border-[#e2e5e9] shadow-xs">
+          <div class="flex gap-3.5 p-3.5 rounded-2xl bg-[#362f29] border border-[#4d4135] shadow-xs">
             <div class="relative w-24 h-24 rounded-xl overflow-hidden bg-zinc-100 shrink-0 border border-[#e2e5e9]">
               <img id="giftOrderImg" src="" alt="" class="w-full h-full object-cover" />
-              <span id="giftOrderTag" class="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded text-[9.5px] font-extrabold bg-[#FEE500] text-zinc-950 shadow-xs">베스트</span>
+              <span id="giftOrderTag" class="absolute top-1.5 left-1.5 px-1.5 py-0.5 rounded text-[9.5px] font-extrabold bg-[#423526] text-[#f0be64] border border-[#e5a93c]/40 shadow-xs">베스트</span>
             </div>
             <div class="min-w-0 flex-1 flex flex-col justify-between">
               <div>
                 <div id="giftOrderBrand" class="text-[12px] font-bold text-rose-600">온도커피</div>
-                <div id="giftOrderName" class="text-[14.5px] font-bold text-[#191f28] leading-snug line-clamp-2 mt-0.5">시그니처 아메리카노</div>
+                <div id="giftOrderName" class="text-[14.5px] font-bold text-[#fbf7f2] leading-snug line-clamp-2 mt-0.5">시그니처 아메리카노</div>
                 <div id="giftOrderPrice" class="text-[17px] font-black text-rose-600 mt-1 flex items-center gap-1">
                   <span>❤️</span>
                   <span id="giftOrderCostValue">300 하트</span>
@@ -1310,19 +1353,19 @@
           </div>
 
           <!-- Description Section -->
-          <div class="p-3.5 rounded-2xl bg-white border border-[#e2e5e9] space-y-2 shadow-xs">
-            <div class="text-[12px] font-bold text-[#191f28]">📋 상품 상세 정보</div>
-            <p id="giftOrderDesc" class="text-[12.5px] text-[#495057] leading-relaxed"></p>
-            <div class="pt-2 border-t border-[#eaedf0] space-y-1 text-[11.5px] text-[#6b7684]">
+          <div class="p-3.5 rounded-2xl bg-[#362f29] border border-[#4d4135] space-y-2 shadow-xs">
+            <div class="text-[12px] font-bold text-[#fbf7f2]">📋 상품 상세 정보</div>
+            <p id="giftOrderDesc" class="text-[12.5px] text-[#d5c8b7] leading-relaxed"></p>
+            <div class="pt-2 border-t border-[#483d32] space-y-1 text-[11.5px] text-[#a39585]">
               <div>• <span class="text-[#8b95a1]">유효기간:</span> <span id="giftOrderExpiry">발송일로부터 93일</span></div>
               <div>• <span class="text-[#8b95a1]">사용처:</span> <span id="giftOrderUsage">전국 매장 및 테이크아웃 전용</span></div>
             </div>
           </div>
 
           <!-- Message Card Section -->
-          <div class="p-3.5 rounded-2xl bg-amber-50/70 border border-amber-200 space-y-2.5 shadow-xs">
+          <div class="p-3.5 rounded-2xl bg-[#3b3024] border border-[#5d4a36] space-y-2.5 shadow-xs">
             <div class="flex items-center justify-between">
-              <span class="text-[12.5px] font-bold text-[#b45309] flex items-center gap-1.5">
+              <span class="text-[12.5px] font-bold text-[#f0be64] flex items-center gap-1.5">
                 <span>💌</span>
                 <span>메시지 카드 (기프티콘과 함께 전송)</span>
               </span>
@@ -1331,13 +1374,13 @@
             <!-- Preset Pills -->
             <div id="giftMsgPresets" class="flex flex-wrap gap-1.5"></div>
             <!-- Input -->
-            <textarea id="giftMsgInput" rows="2" class="w-full px-3 py-2.5 rounded-xl bg-white border border-amber-300 text-[#191f28] text-[13px] leading-snug focus:outline-none focus:border-amber-500 resize-none placeholder:text-[#8b95a1]" placeholder="함께 전할 따뜻한 한마디를 적어보세요"></textarea>
+            <textarea id="giftMsgInput" rows="2" class="w-full px-3 py-2.5 rounded-xl bg-[#221c17] border border-[#524538] text-[#fbf7f2] text-[13px] leading-snug focus:outline-none focus:border-[#e5a93c] resize-none placeholder:text-[#8c7e6e]" placeholder="함께 전할 따뜻한 한마디를 적어보세요"></textarea>
           </div>
         </div>
 
         <!-- Order Button -->
-        <div class="p-4 border-t border-[#eaedf0] bg-white shrink-0">
-          <button id="btnConfirmSendGift" type="button" class="w-full py-3.5 rounded-2xl bg-[#FEE500] hover:bg-[#FDD835] active:scale-[0.98] text-zinc-950 font-black text-[15px] shadow-md flex items-center justify-center gap-2 transition">
+        <div class="p-4 border-t border-[#483d32] bg-[#332b24] shrink-0">
+          <button id="btnConfirmSendGift" type="button" class="w-full py-3.5 rounded-2xl bg-[#c48726] hover:bg-[#d8962d] active:scale-[0.98] text-[#1a140b] font-black text-[15px] shadow-md border border-[#e5a93c]/50 flex items-center justify-center gap-2 transition">
             <span>🎁</span>
             <span id="btnConfirmSendGiftText">기프티콘 선물 보내기</span>
           </button>
@@ -3560,7 +3603,7 @@
           </p>
         </div>
         <div class="pt-1">
-          <button id="btnLeaveBannerRematch" type="button" class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#fee500] hover:bg-[#ebd300] active:scale-95 text-[#191919] font-bold text-[14px] shadow-sm transition inline-flex items-center justify-center gap-1.5">
+          <button id="btnLeaveBannerRematch" type="button" class="w-full sm:w-auto px-6 py-2.5 rounded-xl bg-[#c48726] hover:bg-[#d8962d] active:scale-95 text-[#1a140b] font-bold text-[14px] shadow-sm border border-[#e5a93c]/50 transition inline-flex items-center justify-center gap-1.5">
             <span>새로운 상대 찾기</span>
             <span class="text-xs font-black">↻</span>
           </button>
@@ -4345,7 +4388,7 @@
             </div>
             <div class="max-w-[85%] bg-white border border-[#e2e5e9] text-[#191f28] rounded-2xl rounded-tr-sm overflow-hidden shadow-sm">
               <!-- Kakao Yellow Gift Header -->
-              <div class="bg-[#fee500] px-3.5 py-2 flex items-center justify-between text-[#191919] font-extrabold text-[12px]">
+              <div class="bg-[#423526] border-b border-[#5e4a35] px-3.5 py-2 flex items-center justify-between text-[#f0be64] font-extrabold text-[12px]">
                 <div class="flex items-center gap-1.5">
                   <span class="text-[14px]">🎁</span>
                   <span>모바일 교환권 (기프티콘)</span>
@@ -4390,7 +4433,7 @@
               ${isUnread ? '<span class="unread-one-badge text-[11.5px] font-bold text-amber-600 mb-1">1</span>' : ''}
               <span class="text-[11.5px] text-[#888888]">${timeStr}</span>
             </div>
-            <div class="max-w-[82%] bg-[#fee500] border border-[#e6ce00] text-[#111111] font-medium rounded-2xl rounded-tr-xs px-4 py-2.5 text-[16.5px] leading-relaxed shadow-xs break-words select-text">
+            <div class="max-w-[82%] bg-[#c48726] border border-[#e5a93c]/50 text-[#1a140b] font-medium rounded-2xl rounded-tr-xs px-4 py-2.5 text-[16.5px] leading-relaxed shadow-xs break-words select-text">
               ${escapeHtml(text)}
             </div>
           `;
@@ -5120,7 +5163,7 @@
                 위의 [새로운 상대와 대화 시작] 버튼을 눌러<br/>따뜻한 인연을 만나보세요!
               </p>
             </div>
-            <button id="btnEmptyStateNewMatch" type="button" class="mt-2 px-6 py-3.5 rounded-xl bg-[#fee500] hover:bg-[#ebd300] text-[#111111] font-black text-[15.5px] shadow-xs transition active:scale-95">
+            <button id="btnEmptyStateNewMatch" type="button" class="mt-2 px-6 py-3.5 rounded-xl bg-[#c48726] hover:bg-[#d8962d] text-[#1a140b] font-black text-[15.5px] shadow-xs border border-[#e5a93c]/50 transition active:scale-95">
               새로운 상대와 대화 시작
             </button>
           </div>
@@ -5358,7 +5401,7 @@
         const b = document.createElement('button');
         b.type = 'button';
         b.className = 'shrink-0 px-3.5 py-1.5 rounded-full text-[12px] font-bold transition ' + (giftActiveCategory === c.key
-          ? 'bg-[#fee500] text-[#191919] shadow-xs'
+          ? 'bg-[#423526] text-[#f0be64] border border-[#e5a93c] shadow-xs'
           : 'bg-gray-100 text-[#4e5968] hover:bg-gray-200');
         b.textContent = c.label;
         b.addEventListener('click', () => {
@@ -5379,7 +5422,7 @@
           card.innerHTML = `
             <div class="relative w-full aspect-[4/3] shrink-0 bg-gray-50 overflow-hidden cursor-pointer">
               <img src="${g.image}" alt="${escapeHtml(g.name)}" loading="lazy" class="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition duration-300" />
-              <span class="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-black bg-[#fee500] text-[#191919] shadow">
+              <span class="absolute top-2 left-2 px-2 py-0.5 rounded text-[10px] font-black bg-[#423526] text-[#f0be64] border border-[#e5a93c]/40 shadow">
                 ${g.tag || '베스트'}
               </span>
             </div>
@@ -5396,7 +5439,7 @@
                     <span>${state.isVipUnlimited ? 'VIP 무료' : g.cost.toLocaleString() + ' 하트'}</span>
                   </div>
                 </div>
-                <button type="button" class="btn-open-gift-order px-3.5 py-1.5 rounded-xl bg-[#fee500] hover:bg-[#ebd300] active:scale-95 text-[#191919] text-[12.5px] font-extrabold shadow-sm flex items-center gap-1 transition" data-key="${g.key}">
+                <button type="button" class="btn-open-gift-order px-3.5 py-1.5 rounded-xl bg-[#c48726] hover:bg-[#d8962d] active:scale-95 text-[#1a140b] text-[12.5px] font-extrabold shadow-sm border border-[#e5a93c]/50 flex items-center gap-1 transition" data-key="${g.key}">
                   <span>선물하기</span>
                 </button>
               </div>
@@ -5709,7 +5752,7 @@
           b.className = 'pay-method-btn py-2.5 px-2 rounded-xl border border-[#e2e5e9] bg-white text-[#4e5968] font-semibold text-[13px] flex items-center justify-center gap-1 transition';
         });
         if (state.selectedPayMethod === 'kakaopay') {
-          btn.className = 'pay-method-btn py-2.5 px-2 rounded-xl border-2 border-[#fee500] bg-[#fee500]/35 text-[#191919] font-black text-[13px] shadow-xs flex items-center justify-center gap-1 transition';
+          btn.className = 'pay-method-btn py-2.5 px-2 rounded-xl border-2 border-[#e5a93c] bg-[#423526] text-[#f0be64] font-black text-[13px] shadow-xs flex items-center justify-center gap-1 transition';
         } else {
           btn.className = 'pay-method-btn py-2.5 px-2 rounded-xl border-2 border-rose-500 bg-rose-50 text-rose-600 font-bold text-[13px] shadow-xs flex items-center justify-center gap-1 transition';
         }

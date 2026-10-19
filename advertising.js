@@ -29,7 +29,7 @@ async function sync(){
   else c.fbc=cookie('_fbc');c.fbp=cookie('_fbp');
   if(query.get('utm_campaign')==='azit_purchase_kr_m50_69_v3')c.campaign='azit_purchase_kr_m50_69_v3';
  }
- await ApiClient.request('/advertising/context','PUT',c);
+ await ApiClient.request('/advertising/context','PUT',c,{signal:AbortSignal.timeout(5000)});
  })().finally(()=>{syncing=null;});return syncing;
 }
 function safePixelPage(){return ['/','/index.html','/billing','/products'].includes(location.pathname)&&[...query.keys()].every(k=>['utm_source','utm_medium','utm_campaign','utm_content','gclid','gbraid','wbraid','fbclid'].includes(k))&&[...query.values()].every(v=>/^[A-Za-z0-9_.~-]{1,256}$/.test(v));}
@@ -58,19 +58,19 @@ async function start(){
 }
 async function drain(){
  if(busy||!started||!granted()||!window.ApiClient?.isConnected()||!ApiClient.user)return;busy=true;
- try{const d=await ApiClient.request('/advertising/pending');for(const e of d.events){
+ try{const d=await ApiClient.request('/advertising/pending'),callbacks=[];for(const e of d.events){
   if(!granted())break;
   const p={value:e.value??0,currency:'KRW',transaction_id:e.transaction_id||e.id,page_location:location.origin+'/',page_referrer:'',page_title:'아지트챗'};
   const spec=cfg.events?.[e.name]||(e.name==='purchase'?{googleLabel:cfg.googlePurchaseLabel,meta:'Purchase'}:{});
   if(e.destination==='google_browser'&&/^AW-\d+$/.test(cfg.googleAdsId)&&/^[\w-]+$/.test(spec.googleLabel||'')){
    // Ack only from tag callback. Blockers leave the durable event pending for another visit.
-   await new Promise(resolve=>{const t=setTimeout(resolve,5000);gtag('event','conversion',{...p,send_to:cfg.googleAdsId+'/'+spec.googleLabel,event_callback:()=>{ApiClient.request('/advertising/ack','POST',{id:e.id,destination:e.destination}).catch(()=>{});clearTimeout(t);resolve();}});});
+   callbacks.push(new Promise(resolve=>{const t=setTimeout(resolve,5000);gtag('event','conversion',{...p,send_to:cfg.googleAdsId+'/'+spec.googleLabel,event_callback:()=>{ApiClient.request('/advertising/ack','POST',{id:e.id,destination:e.destination}).catch(()=>{});clearTimeout(t);resolve();}});}));
   }else if(e.destination==='meta_browser'&&window.fbq?.callMethod&&spec.meta){
    fbq(spec.custom?'trackCustom':'track',spec.meta,{...(e.value!==undefined?{value:e.value??0,currency:'KRW'}:{})},{eventID:e.id});
    // fbq has no receipt callback: keep a truthful dispatch status, not a delivery claim.
    await ApiClient.request('/advertising/ack','POST',{id:e.id,destination:e.destination});
   }
- }}catch{/* Durable server queue remains available. */}finally{busy=false;}
+ }await Promise.all(callbacks);}catch{/* Durable server queue remains available. */}finally{busy=false;}
 }
 window.AzitAdvertising={sync,drain,track};
 const priceModal=document.getElementById('paymentModal');if(priceModal){let wasVisible=!priceModal.classList.contains('hidden');new MutationObserver(()=>{const visible=!priceModal.classList.contains('hidden');if(visible&&!wasVisible)track('view_pricing').catch(()=>{});wasVisible=visible;}).observe(priceModal,{attributes:true,attributeFilter:['class']});}

@@ -18,7 +18,7 @@ function payload(data,at,actionId=env.GOOGLE_ADS_PURCHASE_ACTION_ID){
 async function send(data,at,{validateOnly=false,actionId=env.GOOGLE_ADS_PURCHASE_ACTION_ID}={}){
  const body=payload(data,at,actionId);body.validateOnly=validateOnly;
  const res=await fetch('https://datamanager.googleapis.com/v1/events:ingest',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+await access(),...(env.GOOGLE_ADS_QUOTA_PROJECT?{'X-Goog-User-Project':env.GOOGLE_ADS_QUOTA_PROJECT}:{})},body:JSON.stringify(body),signal:AbortSignal.timeout(15000)});
- const b=await res.json();if(!res.ok||typeof b.requestId!=='string')throw Error('GOOGLE_INGEST_FAILED');return {requestId:b.requestId,warnings:Boolean(b.fieldWarnings?.length)};
+ const b=await res.json();if(!res.ok||typeof b.requestId!=='string')throw Object.assign(Error('GOOGLE_INGEST_FAILED'),{providerCode:b.error?.details?.flatMap(d=>d.fieldViolations||[]).map(f=>f.reason).find(r=>/^[A-Z_]{1,80}$/.test(r))||'GOOGLE_INGEST_FAILED'});return {requestId:b.requestId,warnings:Boolean(b.fieldWarnings?.length)};
 }
 async function status(requestId){
  const res=await fetch('https://datamanager.googleapis.com/v1/requestStatus:retrieve?requestId='+encodeURIComponent(requestId),{headers:{Authorization:'Bearer '+await access(),...(env.GOOGLE_ADS_QUOTA_PROJECT?{'X-Goog-User-Project':env.GOOGLE_ADS_QUOTA_PROJECT}:{})},signal:AbortSignal.timeout(15000)});
