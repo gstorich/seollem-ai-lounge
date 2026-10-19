@@ -85,10 +85,6 @@
         </div>
       </header>
 
-      <nav aria-label="서비스 안내" class="shrink-0 flex flex-wrap justify-center gap-x-4 gap-y-1 px-4 py-2 bg-white border-b border-[#e8e4d8] text-[12px] font-bold text-[#4b515d]">
-        <a href="/about" class="underline">서비스 소개</a><a href="/products" class="underline">상품 · 가격</a><a href="/verification" class="underline">본인확인 안내</a><a href="/billing" class="underline">결제 내역</a>
-      </nav>
-
       <!-- 2. Chat List Scrollable Body -->
       <div class="flex-1 overflow-y-auto chat-scroll p-4 space-y-4 bg-[#FAF7EE]">
         <!-- Friendly Hero Start Card (SimSimi / GagaLive style) -->
@@ -134,36 +130,39 @@
           <!-- Populated dynamically by renderChatRoomsList() -->
         </div>
 
-        <!-- Public business and policy information -->
-        <footer class="pt-6 pb-8 px-1 text-[#717680] border-t border-[#eae5d8] mt-6 text-[12px] space-y-3">
-          <div class="flex items-center gap-4 text-[12px]"><a href="/support" class="underline font-bold">고객센터 · 문의 내역</a><button type="button" data-analytics-preferences class="underline">쿠키 설정</button></div>
-          <div class="flex flex-wrap gap-x-4 gap-y-1"><a href="/about" class="underline font-bold">서비스 소개</a><a href="/products" class="underline font-bold">하트 상품 · 가격 · 이용 안내</a><a href="/verification" class="underline font-bold">본인확인 안내</a></div>
-          <!-- Policy Links -->
-          <div class="flex flex-wrap items-center gap-x-3 gap-y-1 text-[11.5px] font-medium text-[#5c616b]">
-            <a href="/terms" class="hover:underline">이용약관</a>
-            <span class="text-[#cbd0d6]">|</span>
-            <a href="/privacy" class="hover:underline font-bold">개인정보처리방침</a>
-            <span class="text-[#cbd0d6]">|</span>
-            <a href="/refund" class="hover:underline">환불 정책</a>
-            <span class="text-[#cbd0d6]">|</span>
-            <a href="https://www.ftc.go.kr/bizCommPop.do?wrkr_no=6660104235" target="_blank" rel="noopener" class="underline">사업자정보 확인</a> · <a href="/safety" class="underline">이용·청소년 보호</a> · <a href="/policies" class="underline">정책 변경</a>
+        <!-- Modernized, Streamlined Footer -->
+        <footer class="pt-6 pb-8 px-2 text-[#717680] border-t border-[#eae5d8] mt-6 text-[12px] space-y-3.5">
+          <!-- Essential Core Links (단 1줄의 정갈한 네비게이션) -->
+          <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[12px] font-semibold text-[#4b515d]">
+            <a href="/support" class="hover:text-[#111111] transition">고객센터</a>
+            <span class="text-[#cbd0d6]">·</span>
+            <a href="/terms" class="hover:text-[#111111] transition">이용약관</a>
+            <span class="text-[#cbd0d6]">·</span>
+            <a href="/privacy" class="hover:text-[#111111] font-bold transition">개인정보처리방침</a>
+            <span class="text-[#cbd0d6]">·</span>
+            <a href="/refund" class="hover:text-[#111111] transition">환불정책</a>
+            <span class="text-[#cbd0d6]">·</span>
+            <a href="/policies" class="text-rose-600 hover:text-rose-700 transition">서비스·운영정책 ↗</a>
           </div>
 
-          <p class="text-[12.5px] font-bold text-[#2b2f36] leading-snug">
-            아지트챗(AzitChat)은 상호 메이비웍스가 운영하는 온라인 가상 대화 콘텐츠 서비스입니다.
-          </p>
-
-          <section aria-label="사업자 및 고객센터 정보" class="rounded-xl bg-white/70 border border-[#e5dfd3] p-3">
-            <h2 class="font-bold text-[12px] text-[#4b515d]">사업자·고객센터 정보</h2>
-            <div class="mt-2.5 pt-2.5 border-t border-[#eee9dc] space-y-1.5 text-[11px] leading-relaxed text-[#686e7a]">
-              <div>상호 <span class="font-semibold text-[#3b404a]">메이비웍스</span> · 대표 <span class="font-semibold text-[#3b404a]">홍지민</span> · 사업자등록번호 <span class="font-semibold text-[#3b404a]">666-01-04235</span></div>
-              <div>통신판매업 신고번호 <span class="font-semibold text-[#3b404a]">2026-안양동안-0369</span> · 주소 <span class="font-semibold text-[#3b404a]">경기도 안양시 동안구 시민대로 327번길 11-41, 3층</span></div>
-              <div class="pt-0.5">고객센터 <a href="tel:010-7364-2623" class="font-semibold text-[#3b404a] underline">010-7364-2623</a> · <a href="mailto:maybeworks@naver.com" class="font-semibold text-[#3b404a] underline">maybeworks@naver.com</a></div>
+          <!-- Business Info Card -->
+          <div class="rounded-2xl bg-white/60 border border-[#e5dfd3] p-3 text-[11px] leading-relaxed text-[#7a808c] space-y-1">
+            <div class="flex flex-wrap items-center gap-x-2">
+              <span class="font-bold text-[#3b404a]">메이비웍스</span>
+              <span>대표 홍지민</span>
+              <span>사업자등록번호 666-01-04235</span>
+              <a href="https://www.ftc.go.kr/bizCommPop.do?wrkr_no=6660104235" target="_blank" rel="noopener" class="text-[#2563eb] hover:underline font-medium">사업자정보확인 ↗</a>
             </div>
-          </section>
+            <div>통신판매업 신고 2026-안양동안-0369 · 주소 경기도 안양시 동안구 시민대로 327번길 11-41, 3층</div>
+            <div>고객센터 <a href="tel:010-7364-2623" class="font-medium text-[#3b404a] underline">010-7364-2623</a> · <a href="mailto:maybeworks@naver.com" class="font-medium text-[#3b404a] underline">maybeworks@naver.com</a></div>
+            <div class="pt-1.5 border-t border-[#f0ebd9] text-[10.5px] text-[#9ca3af] flex items-center justify-between">
+              <span>© 2026 MaybeWorks. All rights reserved.</span>
+              <button type="button" data-analytics-preferences class="hover:underline text-[10.5px] text-[#888888]">쿠키 설정</button>
+            </div>
+          </div>
 
-          <p class="text-[10.5px] leading-relaxed text-[#8f95a0]">
-            아지트챗(AzitChat)은 오락·정서적 교감 목적의 자동 생성 디지털 가상 대화 콘텐츠이며, 특정 결과나 실제 인물과의 사실관계를 보장하지 않습니다.
+          <p class="text-[10px] text-center text-[#9ca3af] leading-tight">
+            아지트챗은 AI 가상 캐릭터와 대화하는 서비스이며, 실제 인물과의 사실관계를 보장하지 않습니다.
           </p>
         </footer>
       </div>
