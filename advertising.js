@@ -12,14 +12,14 @@ async function track(name,key=crypto.randomUUID()){
 }
 let sendingJobs=false;
 async function sendJobs(){
- if(sendingJobs||!granted()||!window.ApiClient?.isConnected())return;sendingJobs=true;
- try{while(jobs.length&&granted()){await sync();await ApiClient.request('/advertising/event','POST',jobs[0]);jobs.shift();}await drain();}catch{/* Retried with the same key on readiness/online/timer. */}finally{sendingJobs=false;}
+ if(sendingJobs||!granted()||!window.ApiClient?.isConnected()||!ApiClient.user)return;sendingJobs=true;
+ try{while(jobs.length&&granted()){await sync();await ApiClient.request('/advertising/event','POST',jobs[0],{keepalive:true});jobs.shift();}await drain();}catch{/* Retried with the same key on readiness/online/timer. */}finally{sendingJobs=false;}
 }
 const query=new URLSearchParams(location.search),click={},clickAt=Date.now();
 for(const name of ['gclid','gbraid','wbraid','fbclid']){const v=query.get(name);if(v&&v.length<=256&&/^[A-Za-z0-9_.~-]+$/.test(v))click[name]=v;}
 function cookie(name){return document.cookie.split(';').map(s=>s.trim()).find(s=>s.startsWith(name+'='))?.slice(name.length+1);}
 async function sync(){
- if(!window.ApiClient?.isConnected())return;
+ if(!window.ApiClient?.isConnected()||!ApiClient.user)return;
  if(syncing)return syncing;
  syncing=(async()=>{
  const c={granted:granted()};
@@ -36,6 +36,7 @@ function safePixelPage(){return ['/','/index.html','/billing','/products'].inclu
 async function start(){
  if(!granted())return;if(loading)return loading;
  loading=(async()=>{
+ if(location.pathname==='/products'&&!ApiClient.user)await ApiClient.checkBackendHealth();
  cfg=(await(await fetch('/api/public-config')).json()).advertising||{};
  if(!granted()){loading=null;return;}
  const newTag=!window.gtag;window.dataLayer=window.dataLayer||[];window.gtag=window.gtag||function(){window.dataLayer.push(arguments);};
@@ -56,7 +57,7 @@ async function start(){
  })().catch(()=>{loading=null;});return loading;
 }
 async function drain(){
- if(busy||!started||!granted()||!window.ApiClient?.isConnected())return;busy=true;
+ if(busy||!started||!granted()||!window.ApiClient?.isConnected()||!ApiClient.user)return;busy=true;
  try{const d=await ApiClient.request('/advertising/pending');for(const e of d.events){
   if(!granted())break;
   const p={value:e.value??0,currency:'KRW',transaction_id:e.transaction_id||e.id,page_location:location.origin+'/',page_referrer:'',page_title:'아지트챗'};
@@ -74,11 +75,11 @@ async function drain(){
 window.AzitAdvertising={sync,drain,track};
 const priceModal=document.getElementById('paymentModal');if(priceModal){let wasVisible=!priceModal.classList.contains('hidden');new MutationObserver(()=>{const visible=!priceModal.classList.contains('hidden');if(visible&&!wasVisible)track('view_pricing').catch(()=>{});wasVisible=visible;}).observe(priceModal,{attributes:true,attributeFilter:['class']});}
 
-window.addEventListener('azit-account-ready',()=>start().then(()=>sync()).then(drain).catch(()=>{}));
-window.addEventListener('azit-ad-account-ready',()=>start().then(()=>sync()).then(drain).catch(()=>{}));
+window.addEventListener('azit-account-ready',()=>start().then(()=>sync()).then(sendJobs).then(drain).catch(()=>{}));
+window.addEventListener('azit-ad-account-ready',()=>start().then(()=>sync()).then(sendJobs).then(drain).catch(()=>{}));
 window.addEventListener('online',()=>sync().then(sendJobs).then(drain).catch(()=>{}));
 window.addEventListener('azit-consent-change',()=>{
- if(granted()){if(window.fbq)fbq('consent','grant');if(window.gtag)gtag('consent','update',{ad_storage:'granted',ad_user_data:'granted',ad_personalization:'denied'});start().then(()=>sync()).then(drain).catch(()=>{});}else{jobs.splice(0);for(const k of Object.keys(click))delete click[k];for(const raw of document.cookie.split(';')){const name=raw.split('=')[0].trim();if(!/^_(?:gcl|fbp|fbc)/.test(name))continue;document.cookie=name+'=; Max-Age=0; path=/; Secure; SameSite=Lax';const parts=location.hostname.split('.');for(let i=0;i<parts.length-1;i++)document.cookie=name+'=; Max-Age=0; path=/; domain=.'+parts.slice(i).join('.')+'; Secure; SameSite=Lax';}if(window.fbq)fbq('consent','revoke');if(window.gtag)gtag('consent','update',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});sync().catch(()=>{});}
+ if(granted()){if(window.fbq)fbq('consent','grant');if(window.gtag)gtag('consent','update',{ad_storage:'granted',ad_user_data:'granted',ad_personalization:'denied'});start().then(()=>sync()).then(sendJobs).then(drain).catch(()=>{});}else{jobs.splice(0);for(const k of Object.keys(click))delete click[k];for(const raw of document.cookie.split(';')){const name=raw.split('=')[0].trim();if(!/^_(?:gcl|fbp|fbc)/.test(name))continue;document.cookie=name+'=; Max-Age=0; path=/; Secure; SameSite=Lax';const parts=location.hostname.split('.');for(let i=0;i<parts.length-1;i++)document.cookie=name+'=; Max-Age=0; path=/; domain=.'+parts.slice(i).join('.')+'; Secure; SameSite=Lax';}if(window.fbq)fbq('consent','revoke');if(window.gtag)gtag('consent','update',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});sync().catch(()=>{});}
 });
 window.addEventListener('storage',e=>{if(e.key===key)window.dispatchEvent(new Event('azit-consent-change'));});
 const timer=setInterval(()=>{if(granted())start().then(sendJobs).then(drain);},30000);window.addEventListener('pagehide',()=>clearInterval(timer));

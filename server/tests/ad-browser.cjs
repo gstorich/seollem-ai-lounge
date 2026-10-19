@@ -1,0 +1,22 @@
+'use strict';
+const assert=require('node:assert/strict'),vm=require('node:vm'),fs=require('node:fs'),crypto=require('node:crypto');
+const source=fs.readFileSync(require('node:path').resolve(__dirname,'../../advertising.js'),'utf8');
+const specs={page_view:{meta:'PageView'},new_visit:{meta:'NewVisitor',custom:true},sign_up:{meta:'CompleteRegistration'},first_chat:{meta:'Contact'},view_pricing:{meta:'ViewContent'},begin_checkout:{meta:'InitiateCheckout'},purchase:{meta:'Purchase'}};
+for(const [n,s]of Object.entries(specs))if(n!=='page_view')s.googleLabel='label_'+n;
+async function run(choice='granted',pathname='/',dnt='0',search=''){
+ const state={choice},requests=[],scripts=[],meta=[],tags=[],handlers={},acks=new Set();let observe;
+ const events=Object.keys(specs).flatMap((name,i)=>['meta_browser',...(name==='page_view'?[]:['google_browser'])].map(destination=>({name,id:'event-'+name,destination,...(name==='purchase'?{value:19900,transaction_id:'verified-order'}:{})})));
+ const modal={classList:{contains:()=>state.hidden!==false}};
+ const c={console,URLSearchParams,crypto,navigator:{doNotTrack:dnt},location:{pathname,search,origin:'https://azitchat.com',hostname:'azitchat.com'},localStorage:{getItem:k=>k==='azit_ads_consent'?state.choice:null},document:{cookie:'',querySelector:()=>null,getElementById:()=>modal,createElement:()=>({}),head:{appendChild:s=>{scripts.push(s.src);if(s.src.includes('fbevents')){queueMicrotask(()=>{c.fbq.callMethod=(...args)=>meta.push(args);s.onload?.();});}}}},MutationObserver:class{constructor(fn){observe=fn;}observe(){}},setTimeout,clearTimeout,setInterval:fn=>{state.tick=fn;return 1;},clearInterval(){},addEventListener:(n,fn)=>{handlers[n]=fn;},fetch:async()=>({json:async()=>({advertising:{googleAdsId:'AW-123456789',googlePurchaseLabel:'label_purchase',metaPixelId:'123456789',events:specs}})}),gtag:(...args)=>{tags.push(args);if(args[0]==='event')args[2].event_callback?.();},ApiClient:{user:{id:'not-exported'},isConnected:()=>true,request:async(route,method,body)=>{requests.push({route,body});if(route==='/advertising/pending')return {events:events.filter(e=>!acks.has(e.id+e.destination))};if(route==='/advertising/ack')acks.add(body.id+body.destination);return {success:true};}}};c.window=c;vm.runInNewContext(source,c);for(let i=0;i<12;i++)await new Promise(r=>setImmediate(r));return {c,state,requests,scripts,meta,tags,handlers,observe,acks};
+}
+(async()=>{
+ const r=await run();await r.c.AzitAdvertising.drain();const conversions=r.tags.filter(t=>t[0]==='event'&&t[1]==='conversion');assert.equal(conversions.length,6);assert.equal(r.meta.filter(e=>e[0]==='track'||e[0]==='trackCustom').length,7);
+ for(const [name,spec]of Object.entries(specs)){const m=r.meta.find(e=>e[1]===spec.meta);assert(m);assert.equal(m[3].eventID,'event-'+name);if(name!=='page_view'){const g=conversions.find(e=>e[2].send_to.endsWith('/label_'+name));assert(g);assert.equal(g[2].transaction_id,name==='purchase'?'verified-order':'event-'+name);assert.equal(g[2].value,name==='purchase'?19900:0);}}
+ assert.equal(r.meta.find(e=>e[1]==='NewVisitor')[0],'trackCustom');
+ r.state.hidden=false;r.observe();for(let i=0;i<4;i++)await new Promise(r=>setImmediate(r));assert(r.requests.some(e=>e.route==='/advertising/event'&&e.body.name==='view_pricing'));
+ const before=r.requests.filter(e=>e.route==='/advertising/event').length;r.observe();assert.equal(r.requests.filter(e=>e.route==='/advertising/event').length,before);
+ r.state.choice='denied';r.handlers['azit-consent-change']();await new Promise(r=>setImmediate(r));const count=r.tags.filter(e=>e[0]==='event').length;await r.c.AzitAdvertising.track('view_pricing');await r.c.AzitAdvertising.drain();assert.equal(r.tags.filter(e=>e[0]==='event').length,count);
+ for(const [choice,path,dnt]of [['denied','/','0'],['granted','/','1'],['granted','/admin','0']]){const x=await run(choice,path,dnt);assert.equal(x.scripts.length,0);assert.equal(x.requests.filter(e=>e.route==='/advertising/pending').length,0);}
+ const unsafe=await run('granted','/','0','?phone=01012345678&message=PRIVATE');assert(!unsafe.scripts.some(s=>s.includes('fbevents')));assert(!JSON.stringify(unsafe.tags).includes('01012345678'));assert(!JSON.stringify(unsafe.tags).includes('PRIVATE'));
+ console.log('PASS: browser dispatch for every mapped stage, exact Google labels, Meta browser/server IDs, zero upstream value, all modal entry paths, withdrawal/DNT/admin exclusion and sanitized URLs');
+})().catch(e=>{console.error(e);process.exitCode=1;});

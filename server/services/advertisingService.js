@@ -25,7 +25,7 @@ function updateContext(user,input={},captureVisit=true){
  db.transaction(()=>{
   db.sql.prepare('INSERT INTO ad_context VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at').run(user.id,JSON.stringify(data),Date.now());
   if(!granted){db.sql.prepare("UPDATE payment_orders SET data=json_remove(data,'$.adContext') WHERE user_id=?").run(user.id);db.sql.prepare("UPDATE ad_deliveries SET status='consent_revoked',last_error=NULL WHERE status IN ('pending','retry','blocked') AND event_id IN (SELECT id FROM ad_events WHERE user_id=?)").run(user.id);db.sql.prepare("UPDATE ad_events SET data='{}' WHERE user_id=?").run(user.id);}
-  if(captureVisit&&granted)record(user.id,'new_visit',user.id);
+  if(captureVisit&&granted&&!db.sql.prepare("SELECT 1 FROM ad_events WHERE user_id=? AND name='new_visit'").get(user.id))record(user.id,'new_visit',user.id);
  });return {granted};
 }
 function record(userId,name,key,data={},at=Date.now(),snapshot){
@@ -96,7 +96,10 @@ function diagnostics(){return {funnel:Object.entries(funnel.events).map(([name,s
 function start(){const t=setInterval(()=>flush().catch(()=>{}),30000);t.unref();return()=>clearInterval(t);}
 function clientEvent(user,name,key){
  if(!funnel.events[name]?.client||typeof key!=='string'||!/^[a-f0-9-]{36}$/.test(key))throw Error('INVALID_AD_EVENT');
- return record(user.id,name,user.id+':'+key);
+ const id='azit_'+crypto.createHash('sha256').update(name+':'+key).digest('hex').slice(0,40);
+ const existing=db.sql.prepare('SELECT user_id FROM ad_events WHERE id=?').get(id);
+ if(existing&&existing.user_id!==user.id)throw Error('INVALID_AD_EVENT');
+ return record(user.id,name,key);
 }
 function firstChat(userId){
  // Called inside the successful message/reply/debit transaction, before append.

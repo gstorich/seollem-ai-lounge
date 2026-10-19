@@ -15,7 +15,7 @@ let ready=false,measurementId='',queue=[];
 const choiceKey='azit_analytics_consent';
 function event(name){if(!allowed.has(name)||localStorage.getItem(choiceKey)!=='granted')return;if(ready)window.gtag('event',name,{send_to:measurementId});else if(queue.length<30)queue.push(name);}
 window.AzitAnalytics={event,preferences:consent};
-if(location.pathname!=='/'&&location.pathname!=='/index.html')return;
+if(!['/','/index.html','/products','/billing','/payment/complete'].includes(location.pathname))return;
 // Recognize only our published campaign tokens, never arbitrary URL values or click IDs.
 // This preserves manual acquisition reporting while keeping account/message data out of GA.
 function campaignLocation(){
