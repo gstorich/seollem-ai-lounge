@@ -90,7 +90,7 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-for (const [route,file] of [['/admin','admin.html'],['/support','support.html'],['/privacy','privacy.html'],['/terms','terms.html'],['/refund','refund.html'],['/products','products.html'],['/privacy-20261018-initial','privacy-20261018-initial.html']]) {
+for (const [route,file] of [['/admin','admin.html'],['/support','support.html'],['/privacy','privacy.html'],['/terms','terms.html'],['/refund','refund.html'],['/products','products.html'],['/about','about.html'],['/verification','verification.html'],['/privacy-20261018-initial','privacy-20261018-initial.html']]) {
   app.get([route,route+'.html'],(req,res)=>{res.set('Cache-Control','no-store');res.set('Content-Security-Policy',"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");res.sendFile(path.join(__dirname,'..',file));});
 }
 // Serve frontend SPA from root

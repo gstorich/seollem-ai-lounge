@@ -34,7 +34,7 @@ async function post(route, body, token) {
     assert.match(await (await fetch(base + '/')).text(), /apiClient.js/);
     const catalog = require('../../products.json');
     const packages = (await (await fetch(base + '/api/payment/packages')).json()).packages;
-    for (const [route, title] of [['terms','이용약관'],['privacy','개인정보처리방침'],['refund','환불 정책'],['products','하트 상품 안내']]) {
+    for (const [route, title] of [['terms','이용약관'],['privacy','개인정보처리방침'],['refund','환불 정책'],['products','하트 상품 안내'],['about','서비스 소개'],['verification','본인확인 안내']]) {
       const response = await fetch(base + '/' + route);
       assert.equal(response.status,200);
       const body = await response.text();
@@ -42,6 +42,8 @@ async function post(route, body, token) {
       assert(body.includes('maybeworks@naver.com'), route);
       assert(!body.includes('/analytics.js'), 'Policy pages must not load analytics');
       assert.equal((await fetch(base + '/' + route + '.html')).status,200);
+      assert(body.includes('href="/about"')&&body.includes('href="/verification"'),'Public guide navigation');
+      if(route==='verification'){assert(body.includes('/?account=phone'));assert(body.includes('disabled>본인확인 서비스 준비 중'));assert(body.includes('실명 확인이나 성인인증이 아닙니다'));}
       if(route==='products') for(const pkg of catalog) {
         assert.deepEqual(packages[pkg.id],pkg);
         assert(body.includes(pkg.price.toLocaleString('en-US')+'원'));
