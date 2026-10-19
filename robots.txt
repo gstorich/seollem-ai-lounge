@@ -1,0 +1,27 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /admin.html
+Disallow: /api/admin/
+Disallow: /api/identity/
+Disallow: /api/payment/
+
+# Crawl-delay for polite indexing
+Crawl-delay: 1
+
+# Major search engines explicit allow
+User-agent: Googlebot
+Allow: /
+
+User-agent: Yeti
+Allow: /
+
+User-agent: Daumoa
+Allow: /
+
+User-agent: Bingbot
+Allow: /
+
+# Sitemap
+Sitemap: https://azitchat.com/sitemap.xml
