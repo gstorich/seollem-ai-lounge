@@ -45,6 +45,8 @@ async function post(route, body, token) {
       assert(!body.includes('/analytics.js'), 'Policy pages must not load analytics');
       assert.equal((await fetch(base + '/' + route + '.html')).status,200);
       assert(body.includes('href="/about"')&&body.includes('href="/verification"'),'Public guide navigation');
+      if(['terms','verification','products','about'].includes(route))assert(body.includes('일반 대화'));
+      if(route==='terms'){assert(!body.includes('성인 이용자를 대상으로'));assert(body.includes('성적인 대화를 제공하지 않습니다'));}
       if(route==='verification'){assert(body.includes('/?account=phone'));assert(body.includes('disabled>본인확인 서비스 준비 중'));assert(body.includes('실명 확인이나 성인인증이 아닙니다'));}
       if(route==='products') for(const pkg of catalog) {
         assert.deepEqual(packages[pkg.id],pkg);

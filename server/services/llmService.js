@@ -2,6 +2,7 @@ const config = require('../config');
 const characterService = require('./characterService');
 const chatPunctuation = require('./chatPunctuation');
 const conversationContext = require('./conversationContext');
+const contentAccess = require('./contentAccess');
 
 function dialogueFeedback(reply,character,conversation,relationship){
   const latest=conversation.recent.at(-1)?.content||'';
@@ -17,7 +18,7 @@ function dialogueFeedback(reply,character,conversation,relationship){
   return null;
 }
 
-async function callGemini(messages, systemInstruction, apiKey, signal = AbortSignal.timeout(45000), responseSchema = conversationContext.responseSchema) {
+async function callGemini(messages, systemInstruction, apiKey, signal = AbortSignal.timeout(45000), responseSchema = conversationContext.responseSchema, moderation = false) {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.geminiModel)}:generateContent`;
 
   const contents = messages.map(m => ({
@@ -31,7 +32,7 @@ async function callGemini(messages, systemInstruction, apiKey, signal = AbortSig
       parts: [{ text: systemInstruction }]
     },
     generationConfig: {
-      temperature: 1.0,
+      temperature: moderation ? 0 : 1.0,
       // Leave headroom for internal reasoning and a complete visible reply.
       maxOutputTokens: 16384,
       responseMimeType: 'application/json',
@@ -39,7 +40,7 @@ async function callGemini(messages, systemInstruction, apiKey, signal = AbortSig
       thinkingConfig: { thinkingLevel: 'LOW' }
     },
     safetySettings: [
-      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: 'BLOCK_NONE' },
+      { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: moderation ? 'BLOCK_NONE' : 'BLOCK_LOW_AND_ABOVE' },
       { category: 'HARM_CATEGORY_HATE_SPEECH', threshold: 'BLOCK_NONE' },
       { category: 'HARM_CATEGORY_HARASSMENT', threshold: 'BLOCK_NONE' },
       { category: 'HARM_CATEGORY_DANGEROUS_CONTENT', threshold: 'BLOCK_NONE' }
@@ -47,7 +48,7 @@ async function callGemini(messages, systemInstruction, apiKey, signal = AbortSig
   };
 
   // Retry inside the same charged chat request; never expose a truncated candidate.
-  for (const maxOutputTokens of [16384, 16384]) {
+  for (const maxOutputTokens of (moderation ? [1024] : [16384, 16384])) {
     payload.generationConfig.maxOutputTokens = maxOutputTokens;
     const res = await fetch(url, {
       method: 'POST',
@@ -110,14 +111,21 @@ module.exports = {
   async generateReply(character, chatHistory, userContext = {}) {
     const relationship = userContext.relationship || require('./relationshipContext').buildRelationshipContext(character,chatHistory);
     const conversation = {...(userContext.conversation || conversationContext.prepare(chatHistory, null, {kind:userContext.greeting?'greeting':'chat',speechRegister:relationship.speechRegister})),defaultRegister:require('./characterBehavior').getProfile(character).defaultRegister};
-    const systemPrompt = conversationContext.referenceData(conversation)+'\n'+characterService.buildSystemPrompt(character, {...userContext,relationship,conversation});
+    const adult=userContext.verifiedAdult===true;
+    const systemPrompt = contentAccess.instruction(adult)+'\n'+conversationContext.referenceData(conversation)+'\n'+characterService.buildSystemPrompt(character, {...userContext,relationship,conversation});
     const selectedHistory = conversation.recent.map(m=>({role:m.role,content:m.content}));
     const signal = AbortSignal.timeout(45000);
-    async function generate(messages,prompt,schema){
-      if(config.geminiApiKey)return callGemini(messages,prompt,config.geminiApiKey,signal,schema);
+    async function generate(messages,prompt,schema,moderation=false){
+      if(config.geminiApiKey)return callGemini(messages,prompt,config.geminiApiKey,signal,schema,moderation);
       if(config.openaiApiKey)return callOpenAI(messages,prompt,config.openaiApiKey,signal);
       throw new Error('LLM_NOT_CONFIGURED');
     }
+    async function check(target){
+      const raw=await generate([{role:'user',content:JSON.stringify({context:selectedHistory.slice(-6),target})}],contentAccess.prompt,contentAccess.schema,true);
+      let result;try{result=JSON.parse(raw);}catch{throw Error('LLM_INVALID_SAFETY');}
+      contentAccess.enforce(result,adult);
+    }
+    if(!['greeting','proactive'].includes(conversation.kind))await check(selectedHistory.at(-1)?.content||'');
     const dialogueSchema={type:'OBJECT',properties:{reply:{type:'STRING'},roomLeft:{type:'BOOLEAN'}},required:['reply','roomLeft'],propertyOrdering:['reply','roomLeft']};
     let dialogue;
     for(let attempt=0;attempt<2;attempt++){
@@ -130,6 +138,7 @@ module.exports = {
       if(attempt===1&&issue.hard)throw Error('LLM_ADDRESS_CONTRACT');
     }
     let reply=dialogue.reply;
+    await check(reply);
     // Acting and record keeping are different tasks. The writer never sees the
     // lengthy extraction protocol, and the recorder cannot rewrite the dialogue.
     const memorySchema={type:'OBJECT',properties:{memory:conversationContext.getResponseSchema(conversation).properties.memory},required:['memory'],propertyOrdering:['memory']};

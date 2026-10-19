@@ -18,6 +18,16 @@ async function req(route,token,body,method=body===undefined?'GET':'POST'){const 
  assert.equal(first.data.heartsRemaining,balance);assert.equal(chargeCount(),1);
  const replay=await send('completion-retry','first');assert.equal(replay.data.replyId,first.data.replyId);assert.equal(chargeCount(),1);
  assert.equal((await send('different input','first')).status,409);
+ for(const marker of ['age-gate-input','unsafe-writer-test','minor-policy-test']){
+  const before=(await state()).user.hearts,previous=sql.prepare('SELECT * FROM conversation_state WHERE user_id=?').all(id);
+  const denied=await send(marker,marker);assert.equal(denied.status,403,marker);assert.equal(denied.data.error,marker==='minor-policy-test'?'CONTENT_NOT_ALLOWED':'ADULT_VERIFICATION_REQUIRED');assert.equal(denied.data.costDeducted,0);assert.equal(denied.data.partnerReply,undefined);assert.equal((await state()).user.hearts,before);assert.deepEqual(sql.prepare('SELECT * FROM conversation_state WHERE user_id=?').all(id),previous);
+  assert.equal(sql.prepare('SELECT count(*) n FROM conversation_messages WHERE user_id=? AND message_id=?').get(id,'reply_'+marker).n,0);
+ }
+ for(const marker of ['safety-network-test','invalid-safety-test']){const denied=await send(marker,marker);assert.equal(denied.status,503);assert.equal(denied.data.costDeducted,0);assert.equal(denied.data.partnerReply,undefined);}
+ // Client claims cannot alter trusted age verification.
+ await req('/account/state',token,{identityVerification:{verified:true,isAdult:true,verifiedAt:Date.now()},isAdult:true},'PUT');
+ assert.equal((await send('age-gate-input','client-age-claim')).status,403);
+
  for(const text of ['limit-test','blocked-test','empty-test','http-test','network-test','malformed-json-test','invalid-memory-test','wrong-role-test','memory-phase-fail']){
   const memoryBefore=sql.prepare('SELECT * FROM conversation_state WHERE user_id=?').all(id);
   const grants=sql.prepare('SELECT remaining_units,expires_at FROM heart_grants WHERE user_id=? ORDER BY id').all(id);
@@ -39,6 +49,16 @@ async function req(route,token,body,method=body===undefined?'GET':'POST'){const 
  assert.equal((await req('/chat/send',token,{characterId:male.id,message:'address-test 오늘 산책했어요',messageId:'address'})).status,200);
  assert.equal((await req('/chat/send',token,{characterId:male.id,message:'누나라고 부르지 마세요 address-test',messageId:'revoked'})).status,200);
  Object.assign(process.env,env);const db=require('../services/dbService');db.creditHearts(id,1000,'test_credit');
+ const adultUser=db.createUser({id:'01000001999',phone:'01000001999',hearts:50,createdAt:Date.now(),identityVerification:{verified:true,isAdult:true,verifiedAt:Date.now()}});
+ const adultToken=require('../middleware/auth').generateToken({userId:adultUser.id});
+ assert.equal((await req('/chat/send',adultToken,{characterId,message:'age-gate-input',messageId:'adult-general'})).status,200,'A verified adult may pass the non-explicit adult access gate');
+ const adultBefore=db.getUser(adultUser.id).hearts;
+ assert.equal((await req('/chat/send',adultToken,{characterId,message:'explicit-policy-test',messageId:'explicit'})).status,403,'Identity verification cannot override content safety');
+ assert.equal(db.getUser(adultUser.id).hearts,adultBefore);
+ db.updateUser(adultUser.id,{identityVerification:{verified:true,isAdult:false,verifiedAt:Date.now()}});
+ assert.equal((await req('/chat/send',adultToken,{characterId,message:'age-gate-input',messageId:'known-minor'})).status,403,'Known minors remain in general mode');
+ assert.equal((await req('/chat/send',adultToken,{characterId,message:'age-gate-input',messageId:'adult-general'})).status,403,'An adult response cannot be replayed after age access changes');
+ assert.equal((await req('/chat/send',adultToken,{characterId,message:'ordinary-topic',messageId:'minor-general'})).status,200,'Known minors can continue general chat');
  const memoryReply=await send('remember-test','remember');assert.equal(memoryReply.status,200);
  const remembered=db.getConversationState(id,characterId);assert(remembered.memory.userFacts.length);const revision=remembered.revision;
  assert.equal((await send('remember-test','remember')).status,200);assert.equal(db.getConversationState(id,characterId).revision,revision,'Replay cannot update memory twice');
@@ -74,6 +94,6 @@ async function req(route,token,body,method=body===undefined?'GET':'POST'){const 
  }
  assert.equal((await send('completion-retry','first')).data.replyId,first.data.replyId,'Provider-generated replay survives restart without a key or another charge');
  assert(!logs.includes('synthetic-test-key'));
- console.log('PASS: API-only chat/greeting/gift, no-key/network/HTTP/empty/blocked/truncated failures cost zero, original expiry preserved, atomic reply+debit rollback, retry and concurrency idempotency, restart replay and relationship history');
+ console.log('PASS: API-only chat/greeting/gift, no-key/network/HTTP/empty/blocked/truncated failures cost zero, original expiry preserved, atomic reply+debit rollback, retry and concurrency idempotency, restart replay, relationship history, input/output age gates and fail-closed safety');
  }finally{await stop();sql?.close();fs.rmSync(dir,{recursive:true,force:true});}
 })().catch(e=>{console.error(e);process.exitCode=1});

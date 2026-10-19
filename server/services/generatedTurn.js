@@ -13,6 +13,7 @@ module.exports = async function generatedTurn(req, res, {character, message, req
   const previous = db.getChatRequest(id, requestId);
   if (previous?.fingerprint && previous.fingerprint !== fingerprint) return res.status(409).json({success:false,error:'REQUEST_CONFLICT',message:'다른 메시지에 사용한 요청입니다.'});
   if (previous?.success) {
+    if(previous.contentAudience!=='general'&&!require('./contentAccess').verifiedAdult(db.getUser(id)))return res.status(403).json({success:false,error:'ADULT_VERIFICATION_REQUIRED',message:'성인인증 상태를 확인해주세요. 인증 전에는 일반 대화만 가능합니다.',costDeducted:0,heartsRemaining:db.getUser(id).hearts});
     if (!previous.isAiGenerated) return res.status(503).json({success:false,error:'AI_GENERATION_FAILED',message:FAILURE,costDeducted:0,heartsRemaining:db.getUser(id).hearts});
     return res.json({...previous,heartsRemaining:db.getUser(id).hearts});
   }
@@ -33,25 +34,27 @@ module.exports = async function generatedTurn(req, res, {character, message, req
       if (userMessage && kind !== 'gift') db.appendMessages(id,character.id,[{...userMessage,id:requestId,sender:'user',text:message,createdAt:Date.now()}]);
       db.saveChatRequest(id,requestId,{status:'pending',fingerprint,createdAt:Date.now()});
     });
-    const result = await llm.generateReply(character,[...history,{role:'user',content:message}],{relationship,conversation,...(kind==='greeting'?{greeting:true}:{})});
+    const result = await llm.generateReply(character,[...history,{role:'user',content:message}],{verifiedAdult:require('./contentAccess').verifiedAdult(user),relationship,conversation,...(kind==='greeting'?{greeting:true}:{})});
     if (!result.isAiGenerated || !result.text?.trim()) throw Error('Invalid generated reply');
     const response = db.transaction(()=>{
+      if(require('./contentAccess').verifiedAdult(user)&&!require('./contentAccess').verifiedAdult(db.getUser(id)))throw Object.assign(Error('ADULT_VERIFICATION_REQUIRED'),{accessBlocked:true});
       const charged = cost > 0 ? db.debit(id,cost,kind==='gift'?'gift:'+userMessage.giftKey:'chat') : db.getUser(id);
       if (!charged) { const error=Error('Insufficient balance after generation');error.code='INSUFFICIENT_HEARTS';throw error; }
       const replyId='reply_'+requestId;
       const current=db.appendMessages(id,character.id,[...(kind==='gift'?[{...userMessage,id:requestId,sender:'user',text:message,createdAt:Date.now()}]:[]),{id:replyId,sender:'ai',text:result.text,createdAt:Date.now(),time:new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'})}]);
       db.saveConversationState(id,character.id,result.memory,replyId,storedState.revision);
-      const value={success:true,partnerReply:result.text,replyId,roomLeft:result.roomLeft,heartsRemaining:current.hearts,costDeducted:charged.isVipUnlimited?0:cost,isAiGenerated:true,fingerprint,...(kind==='gift'?{giftMessageId:requestId}:{})};
+      const value={success:true,partnerReply:result.text,replyId,roomLeft:result.roomLeft,heartsRemaining:current.hearts,costDeducted:charged.isVipUnlimited?0:cost,isAiGenerated:true,contentAudience:require('./contentAccess').verifiedAdult(user)?'adult':'general',fingerprint,...(kind==='gift'?{giftMessageId:requestId}:{})};
       db.saveChatRequest(id,requestId,value);
       if(kind==='chat'&&!result.roomLeft) require('./proactiveService').schedule(id,character.id);
       return value;
     });
     return res.json(response);
   } catch (error) {
-    const status=error.code==='INSUFFICIENT_HEARTS'?402:503;
+    const accessBlocked=error.accessBlocked===true;
+    const status=accessBlocked?403:error.code==='INSUFFICIENT_HEARTS'?402:503;
     const errorCode=/^(LLM_[A-Z_]+|CONVERSATION_CHANGED|Gemini API Error \(\d{3}\)|OpenAI API Error \(\d{3}\))$/.test(error.message)?error.message:undefined;
     console.warn('[LLM] generated turn failed:', JSON.stringify({kind,status,errorType:error.name || 'Error',errorCode}));
-    const failure={success:false,error:status===402?'INSUFFICIENT_HEARTS':'AI_GENERATION_FAILED',message:status===402?'하트가 부족합니다.':FAILURE,costDeducted:0,fingerprint};
+    const failure={success:false,error:accessBlocked?error.message:status===402?'INSUFFICIENT_HEARTS':'AI_GENERATION_FAILED',message:accessBlocked?(error.message==='ADULT_VERIFICATION_REQUIRED'?'이 내용은 성인인증 후 이용할 수 있습니다. 인증 전에는 일반 대화만 가능하며 하트는 차감되지 않았습니다.':'제공할 수 없는 내용입니다. 일반 대화를 이어가주세요. 하트는 차감되지 않았습니다.'):status===402?'하트가 부족합니다.':FAILURE,costDeducted:0,fingerprint};
     // Keep failures retryable with the same ID; never cache a fabricated reply.
     db.saveChatRequest(id,requestId,failure);
     return res.status(status).json({...failure,heartsRemaining:db.getUser(id)?.hearts});

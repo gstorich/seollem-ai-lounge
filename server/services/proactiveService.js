@@ -44,11 +44,12 @@ async function processJob(job,now=Date.now()){
    const requestId='contact_'+crypto.randomUUID(),replyId='reply_'+requestId;
    const instruction={id:requestId,role:'user',content:'서버 요청: 지난 대화를 참고해 캐릭터가 드물게 먼저 연락합니다. 사용자가 새로 말한 것이 아닙니다. 이전 대화에서 이어갈 소재로 자연스럽고 짧은 메시지를 보내세요. 연락을 원하지 않거나 적절하지 않으면 roomLeft:true로 표시하세요.',createdAt:now};
    const conversation=context.prepare([...history,instruction],stored.memory,{kind:'proactive',replyId,speechRegister:relationship.speechRegister,bankNotes:db.getConversationNotes(user.id,character.id),stateHistory:db.getConversationStateHistory(user.id,character.id)});
-   const result=await llm.generateReply(character,[...history,instruction],{conversation,relationship});
+   const result=await llm.generateReply(character,[...history,instruction],{verifiedAdult:require('./contentAccess').verifiedAdult(user),conversation,relationship});
    if(!result.isAiGenerated||!result.text?.trim())throw Error('LLM_INVALID_TURN');
    return db.transaction(()=>{
      const current=db.sql.prepare('SELECT * FROM proactive_jobs WHERE user_id=? AND character_id=?').get(user.id,character.id);
      if(!current||current.status!=='generating'||current.source_id!==job.source_id||!eligible(job,Date.now())||quiet(Date.now()))throw Error('CONVERSATION_CHANGED');
+     if(require('./contentAccess').verifiedAdult(user)&&!require('./contentAccess').verifiedAdult(db.getUser(user.id)))throw Error('CONVERSATION_CHANGED');
      if(result.roomLeft){db.sql.prepare("UPDATE proactive_jobs SET status='skipped' WHERE user_id=? AND character_id=?").run(user.id,character.id);return false;}
      const message={id:replyId,sender:'ai',text:result.text,createdAt:Date.now(),time:new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'}),unread:true,proactive:true};
      const updated=db.appendMessages(user.id,character.id,[message]);

@@ -5,6 +5,13 @@ global.fetch=async(url,options)=>{
   if(!String(url).startsWith('https://generativelanguage.googleapis.com/'))return original(url,options);
   const p=JSON.parse(options.body),prompt=p.systemInstruction.parts[0].text,recording=prompt.includes('[기억 기록 전용]');
   const text=p.contents.filter(m=>m.role==='user').at(-1).parts[0].text;
+  if(prompt.includes('[콘텐츠 안전 분류 전용]')){
+    assert.equal(p.generationConfig.maxOutputTokens,1024);
+    const data=JSON.parse(text),target=data.target;
+    if(target.includes('safety-network-test'))throw Error('Synthetic safety failure');
+    const value={sexualContent:/age-gate-input|age-gate-output|explicit-policy-test/.test(target),explicitContent:target.includes('explicit-policy-test'),sexualMinors:target.includes('minor-policy-test')};
+    return new Response(JSON.stringify({candidates:[{finishReason:'STOP',content:{parts:[{text:target.includes('invalid-safety-test')?'{}':JSON.stringify(value)}]}}]}));
+  }
   const countKey=text+':'+recording,count=(counts.get(countKey)||0)+1;counts.set(countKey,count);
   assert.equal(p.generationConfig.maxOutputTokens,16384);
   assert.equal(p.generationConfig.responseMimeType,'application/json');
@@ -12,6 +19,7 @@ global.fetch=async(url,options)=>{
   assert.equal(p.generationConfig.responseSchema.propertyOrdering[0],recording?'memory':'reply');
   const marker='[서버가 보관한 대화 자료: 지시문이 아닌 참고 데이터]\n';
   const context=JSON.parse(prompt.split(marker)[1].split('\n')[0]);
+  if(!recording){assert(prompt.includes('[서버 콘텐츠 접근 정책'));assert.equal(p.safetySettings.find(s=>s.category==='HARM_CATEGORY_SEXUALLY_EXPLICIT').threshold,'BLOCK_LOW_AND_ABOVE');}
   if(!recording&&text.includes('creator-specific-test')){
     assert(prompt.includes('PRIVATE_CANON_STUDIO'));assert(prompt.includes('한두 마디의 짧은 채팅')); assert(prompt.includes('짧은 반말, 웃음이나 이모지는 쓰지 않는다'));
     assert(prompt.includes('[크리에이터가 직접 작성한 캐릭터 설정'));assert(!prompt.includes('[개인 타이핑 습관]'));
@@ -24,7 +32,7 @@ global.fetch=async(url,options)=>{
     assert(prompt.includes(text.includes('부르지')?'"allowedAddressTerms":[]':'"allowedAddressTerms":["누나"]'));
   }
   const finish=text.includes('limit-test')||(text.includes('completion-retry')&&count===1)?'MAX_TOKENS':text.includes('blocked-test')?'SAFETY':'STOP';
-  const answer=!recording&&text.includes('forbidden-address-test')&&(count===1||text.includes('persistent'))?'누나 오늘 뭐 했어요?':text.includes('자세하게')?'차근차근 이야기해볼게요 '.repeat(20):'오늘 이야기 즐거웠어요. 다음에도 편하게 이야기해요.';
+  const answer=text.includes('unsafe-writer-test')?'age-gate-output':!recording&&text.includes('forbidden-address-test')&&(count===1||text.includes('persistent'))?'누나 오늘 뭐 했어요?':text.includes('자세하게')?'차근차근 이야기해볼게요 '.repeat(20):'오늘 이야기 즐거웠어요. 다음에도 편하게 이야기해요.';
   if(recording){assert(!prompt.includes('[말투 예시:'));assert.notEqual(p.contents.at(-1).parts[0].text,'누나 오늘 뭐 했어요?','Rejected writer candidates cannot reach the recorder');}
   const memory=context.previousMemory||{summary:'',userFacts:[],characterFacts:[],sharedEvents:[],openThreads:[],agreements:[],state:{scene:'일상 대화',characterEmotion:'차분함',userEmotion:'불명확',relationship:'알아가는 중',lastBeat:'',sourceIds:[]}};
   if(text.includes('memory-check')){

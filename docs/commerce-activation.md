@@ -55,3 +55,11 @@ PORTONE_V2_API_SECRET=
 - https://developers.portone.io/opi/ko/integration/cancel/v1/basic?v=v1
 - https://developers.portone.io/opi/ko/extra/identity-verification/readme-v2
 - https://developers.portone.io/api/rest-v2/identityVerification
+
+## 일반 이용과 성인 제한 콘텐츠 (2026-10-19)
+- 서비스 전체는 성인 전용이 아니다. 일반 대화는 성인인증 없이 가능하고, 문자 번호 인증은 성인인증이 아니다.
+- 콘텐츠 접근은 서버에 저장된 본인확인 결과(verified/isAdult/verifiedAt)와 연결 전화번호로만 판단한다. 클라이언트의 나이·인증 주장과 관리자 비밀번호는 근거가 아니다.
+- 실제 대화 입력과 AI 출력에 문맥 기반 안전 분류를 적용한다. 미인증·미성년자는 성적인 대화를 차단하며, 첫 인사·선물·먼저 연락·관리자 미리보기에도 출력 검사가 적용된다. 미리보기는 기본 일반 모드다.
+- 차단·분류 장애 시 AI 답변·기억·하트 차감이 커밋되지 않는다. 인증 안내는 캐릭터 발화가 아닌 중앙 공지와 인증 상태 확인 링크로 표시한다.
+- 성인인증 후에도 노골적인 성적 묘사와 미성년자 성적 대상화는 제공하지 않는다. 생성 API의 성적 안전 필터를 활성화한다.
+- 현재 정식 인증 연동이 비활성 상태이므로 이용자는 일반 대화만 이용한다. 성인 전용 콘텐츠에 대한 심사·계약 승인을 의미하지 않는다.

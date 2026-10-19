@@ -561,7 +561,7 @@
           </span>
           <h3 class="text-[20px] font-black text-[#111111]">어떤 분과 대화하고 싶으세요?</h3>
           <p class="text-[13px] text-[#666666] leading-relaxed">
-            가상의 AI 캐릭터와 대화하는 성인 대상 서비스입니다.
+            가상의 AI 캐릭터와 대화하는 서비스입니다. 성인인증 전에는 일반 대화만 가능합니다.
           </p>
           <p class="text-[12px] text-[#666666] leading-relaxed"><a href="/products" class="underline">상품·가격</a> · <a href="/terms" class="underline">이용약관</a> · <a href="/privacy" class="underline">개인정보처리방침</a> · <a href="/refund" class="underline">환불 정책</a></p>
         </div>
@@ -3561,14 +3561,14 @@
       };
     }
 
-    function showGenerationError(retry) {
+    function showGenerationError(retry, message) {
       document.getElementById('generationErrorNotice')?.remove();
       const notice = document.createElement('div');
       notice.id = 'generationErrorNotice';
       notice.setAttribute('role', 'alert');
       notice.className = 'mx-auto my-4 max-w-[90%] rounded-xl bg-[#e5e1d8] px-4 py-3 text-center text-[12px] text-[#66635d] leading-relaxed';
       const text = document.createElement('p');
-      text.textContent = '문제가 발생했습니다. 잠시 후에 다시 시도해주세요.';
+      text.textContent = message || '문제가 발생했습니다. 잠시 후에 다시 시도해주세요.';
       notice.appendChild(text);
       if (retry) {
         const button = document.createElement('button');
@@ -3579,6 +3579,17 @@
       }
       chatContainer.appendChild(notice);
       scrollToBottom();
+    }
+
+    function showContentAccessNotice(error) {
+      if (!['ADULT_VERIFICATION_REQUIRED','CONTENT_NOT_ALLOWED'].includes(error.code)) return false;
+      showGenerationError(null,error.message);
+      if (error.code === 'ADULT_VERIFICATION_REQUIRED') {
+        const link=document.createElement('a'); link.href='/billing'; link.textContent='성인인증 · 인증 상태 확인';
+        link.className='inline-block mt-2 underline underline-offset-2';
+        document.getElementById('generationErrorNotice')?.appendChild(link);
+      }
+      return true;
     }
 
     async function retryGeneratedReply(char, text, requestId) {
@@ -3605,7 +3616,7 @@
         if (state.currentChar?.id !== char?.id) return {bubbles:[],failed:true};
         if (typeof error.data?.heartsRemaining === 'number') { state.hearts = state.credits = error.data.heartsRemaining; updateAccountAndCreditUI(); }
         if (error.code === 'INSUFFICIENT_HEARTS') openHeartNeededModal(char.name);
-        else showGenerationError(() => retryGeneratedReply(char,userText,requestId));
+        else if (!showContentAccessNotice(error)) showGenerationError(() => retryGeneratedReply(char,userText,requestId));
         return {bubbles:[],failed:true};
       }
     }
@@ -3888,7 +3899,7 @@
         if (state.currentChar?.id !== char.id || !state.isGreetingPending) return;
         await runRealisticReplySequence({bubbles:[result.partnerReply],replyId:result.replyId,greeting:true},false,null,greetingStartedAt);
       } catch (error) {
-        if (state.currentChar?.id === char.id) showGenerationError(() => deliverFirstGreeting(char,requestId));
+        if (state.currentChar?.id === char.id && !showContentAccessNotice(error)) showGenerationError(() => deliverFirstGreeting(char,requestId));
       } finally {
         if (state.currentChar?.id === char.id) {
           state.isAiBusy = false;
@@ -4112,7 +4123,7 @@
       } catch (error) {
         if (state.currentChar?.id === char.id) {
           if (error.code === 'INSUFFICIENT_HEARTS') openHeartNeededModal(char.name);
-          else showGenerationError(()=>sendGiftToCurrentChar(giftKey,customMsg,requestId));
+          else if (!showContentAccessNotice(error)) showGenerationError(()=>sendGiftToCurrentChar(giftKey,customMsg,requestId));
         }
       } finally { if(state.currentChar?.id===char.id){state.isAiBusy=false;hideTypingIndicator();updateHeaderDefaultStatus();} }
     }
