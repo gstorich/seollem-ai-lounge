@@ -1,4 +1,14 @@
 (()=>{'use strict';
+const isTester = Boolean(
+  (typeof localStorage !== 'undefined' && localStorage.getItem('azit_tester') === '1') ||
+  (typeof document !== 'undefined' && /(?:^|;\s*)azit_tester=1/.test(document.cookie || '')) ||
+  (typeof document !== 'undefined' && /(?:^|;\s*)(?:__Host-)?azit_admin=/.test(document.cookie || '')) ||
+  (typeof location !== 'undefined' && /[?&](tester|test|operator)=1/.test(location.search || ''))
+);
+if (isTester) {
+  window.AzitAnalytics = { event: () => {} };
+  return;
+}
 // Only explicitly named product actions are sent; never attach account or message data.
 const allowed=new Set(['chat_message_sent','match_started','phone_verified','phone_login','gift_sent','support_created','open_charge']);
 let ready=false,measurementId='',queue=[];

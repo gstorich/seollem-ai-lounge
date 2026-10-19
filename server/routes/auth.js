@@ -12,18 +12,29 @@ router.post('/guest', optionalAuth, (req, res) => {
   // Restore only a session whose JWT was verified; an ID alone is not proof.
   let user = req.user || browserSession.restore(req);
   const restored = Boolean(user);
+  const cookie = req.headers.cookie || '';
+  const adminCookieName = config.nodeEnv === 'production' ? '__Host-azit_admin' : 'azit_admin';
+  const isTester = Boolean(
+    req.headers['x-azit-tester'] === '1' ||
+    req.body?.isTester === true ||
+    /(?:^|;\s*)azit_tester=1/.test(cookie) ||
+    cookie.includes(adminCookieName)
+  );
 
   if (!user) {
     const newId = `guest_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
     user = dbService.createUser({
       id: newId,
-      hearts: config.defaultGuestHearts
+      hearts: config.defaultGuestHearts,
+      isTester
     });
+  } else if (isTester && !user.isTester) {
+    user = dbService.updateUser(user.id, { isTester: true });
   }
 
   browserSession.save(res,user);
   user = dbService.updateUser(user.id,{lastSeenAt:Date.now()});
-  if(!restored)require('../services/operationsService').track('guest_created',user.id);
+  if(!restored && !user.isTester)require('../services/operationsService').track('guest_created',user.id);
   const token = generateToken({ userId: user.id });
   return res.json({
     success: true,
@@ -34,7 +45,8 @@ router.post('/guest', optionalAuth, (req, res) => {
       hearts: user.hearts,
       isVipUnlimited: user.isVipUnlimited,
       phoneBonusClaimed: user.phoneBonusClaimed,
-      isAdult: require('../services/contentAccess').verifiedAdult(user)
+      isAdult: require('../services/contentAccess').verifiedAdult(user),
+      isTester: Boolean(user.isTester)
     }
   });
 });

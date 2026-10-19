@@ -14,7 +14,15 @@
     user: null,
     isHosted: () => hosted,
     isConnected: () => connected,
-    getHeaders() { return { 'Content-Type': 'application/json', ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}) }; },
+    getHeaders() {
+      const isTester = (typeof localStorage !== 'undefined' && localStorage.getItem('azit_tester') === '1') ||
+        (typeof document !== 'undefined' && /(?:^|;\s*)azit_tester=1/.test(document.cookie || ''));
+      return {
+        'Content-Type': 'application/json',
+        ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+        ...(isTester ? { 'X-Azit-Tester': '1' } : {})
+      };
+    },
     setToken(token) { authToken = token || ''; if (authToken) localStorage.setItem('seollem_auth_token', authToken); else localStorage.removeItem('seollem_auth_token'); },
     async request(route, method = 'GET', body, options = {}) {
       const res = await fetch(`${API_BASE}${route}`, { method, headers: this.getHeaders(),
@@ -50,7 +58,9 @@
       const initialize=async()=>{
         // Another tab may have established a session while this tab was starting.
         authToken=localStorage.getItem('seollem_auth_token')||authToken;
-        const data=await this.request('/auth/guest','POST',{});
+        const isTester = (typeof localStorage !== 'undefined' && localStorage.getItem('azit_tester') === '1') ||
+          (typeof document !== 'undefined' && /(?:^|;\s*)azit_tester=1/.test(document.cookie || ''));
+        const data=await this.request('/auth/guest','POST',{ isTester });
         this.setToken(data.token);this.user=data.user;return data.user;
       };
       guestInit=(navigator.locks?navigator.locks.request('azit-session-bootstrap',initialize):initialize());

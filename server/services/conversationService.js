@@ -17,6 +17,8 @@ function scope(kind='all',days=0,userId=''){
  const clauses=['u.id=m.user_id'],args=[];
  if(kind==='members')clauses.push('u.phone IS NOT NULL');
  if(kind==='guests')clauses.push('u.phone IS NULL');
+ if(kind==='testers')clauses.push("coalesce(json_extract(u.data,'$.isTester'),0)=1");
+ else clauses.push("coalesce(json_extract(u.data,'$.isTester'),0)!=1");
  if(days){clauses.push('m.created_at>=?');args.push(Date.now()-days*86400000);}
  if(userId){clauses.push('u.id=?');args.push(userId);}
  return {where:clauses.join(' AND '),args};

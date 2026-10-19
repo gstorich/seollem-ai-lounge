@@ -782,6 +782,15 @@
               전체 데이터 초기화
             </button>
           </div>
+          <div class="pt-2 border-t border-[#ded8cb] flex items-center justify-between">
+            <div class="flex flex-col">
+              <span class="font-bold text-[#191f28]">🧪 테스터 모드 (집계 제외)</span>
+              <span class="text-[11px] text-[#777777]">방문자 및 게스트 통계 집계 제외</span>
+            </div>
+            <button id="btnToggleTesterMode" type="button" class="py-1 px-3 rounded-lg border font-bold text-[11.5px] transition shadow-xs cursor-pointer">
+              확인 중...
+            </button>
+          </div>
         </div>
 
         <button id="btnConfirmAiPolicy" type="button" class="w-full py-3.5 rounded-xl bg-[#fee500] hover:bg-[#ebd300] text-[#111111] font-black text-[15px] shadow-sm transition">
@@ -899,6 +908,10 @@
   <script src="chatTiming.js"></script>
   <script src="notifications.js" defer></script>
   <script>
+    if (/[?&](tester|test|operator)=1/.test(location.search) || /(?:^|;\s*)(?:__Host-)?azit_admin=/.test(document.cookie || '')) {
+      localStorage.setItem('azit_tester', '1');
+      document.cookie = 'azit_tester=1; path=/; max-age=31536000; SameSite=Lax';
+    }
     // =========================================================================
     // 1. 1,250+ KOREAN FEMALE PERSONAS ENGINE (20대 ~ 60대, 5가지 성격, 7대 지역권)
     // =========================================================================
@@ -2825,6 +2838,16 @@
         if (currentModeLabel) currentModeLabel.textContent = `현재: ❤️ 일반 하트 차감 모드 (${heartsFormatted}개 보유)`;
         if (btnModalToggleVip) btnModalToggleVip.textContent = 'VIP 무제한 모드로 전환';
         if (chatInput) chatInput.placeholder = '따뜻한 메시지를 입력해보세요...';
+      }
+
+      const btnToggleTester = document.getElementById('btnToggleTesterMode');
+      if (btnToggleTester) {
+        const isTester = (typeof localStorage !== 'undefined' && localStorage.getItem('azit_tester') === '1') ||
+          (typeof document !== 'undefined' && /(?:^|;\s*)azit_tester=1/.test(document.cookie || ''));
+        btnToggleTester.textContent = isTester ? 'ON (집계 제외)' : 'OFF (일반 모드)';
+        btnToggleTester.className = isTester
+          ? 'py-1 px-2.5 rounded-lg bg-emerald-50 text-emerald-700 border border-emerald-300 font-bold text-[11px] transition shadow-xs cursor-pointer'
+          : 'py-1 px-2.5 rounded-lg bg-white text-gray-600 border border-gray-300 font-bold text-[11px] transition shadow-xs cursor-pointer';
       }
 
       const listAuthCta = document.getElementById('btnListAuthCta');
@@ -5226,6 +5249,21 @@
     const btnModalResetData = document.getElementById('btnModalResetData');
     if (btnModalResetData) {
       btnModalResetData.addEventListener('click', resetAllAccountData);
+    }
+
+    const btnToggleTester = document.getElementById('btnToggleTesterMode');
+    if (btnToggleTester) {
+      btnToggleTester.onclick = () => {
+        const current = localStorage.getItem('azit_tester') === '1' || /(?:^|;\s*)azit_tester=1/.test(document.cookie || '');
+        if (current) {
+          localStorage.removeItem('azit_tester');
+          document.cookie = 'azit_tester=; path=/; max-age=0';
+        } else {
+          localStorage.setItem('azit_tester', '1');
+          document.cookie = 'azit_tester=1; path=/; max-age=31536000; SameSite=Lax';
+        }
+        updateAccountAndCreditUI();
+      };
     }
 
     function updateApiTestBadge() {
