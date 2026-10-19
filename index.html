@@ -3619,35 +3619,113 @@
         notice.innerHTML = `
           <div class="flex items-center justify-center gap-1.5 font-bold text-[#ff5376] text-[14px] mb-1.5"><span>🔞</span><span>성인 인증이 필요한 대화입니다</span></div>
           <p class="text-[#d8c7cb] text-[12px] leading-relaxed mb-3">${error.message || '더 깊은 대화나 성인 수위로 넘어가려면 성인 인증(만 19세 이상)을 완료해야 합니다.'}</p>
-          <div class="flex flex-col items-center gap-2">
-            <button type="button" id="resumeAdultVerifyBtn" class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#ff4b72] to-[#e02653] text-white font-semibold text-[13px] shadow hover:opacity-95 transition-all cursor-pointer">성인 인증 확인하고 대화 계속하기 ↻</button>
-            <a href="/verification" target="_blank" rel="noopener" class="text-[11.5px] text-[#a89aa0] underline underline-offset-2 hover:text-[#f2e6e8]">성인인증 안내 보기 ↗</a>
+          <div class="flex flex-col items-center gap-2 w-full max-w-xs mx-auto">
+            <button type="button" id="startAdultVerifyBtn" class="w-full inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#ff4b72] to-[#e02653] text-white font-semibold text-[13px] shadow hover:opacity-95 transition-all cursor-pointer">🔒 성인인증(본인확인) 시작하기</button>
+            <button type="button" id="resumeAdultVerifyBtn" class="w-full inline-flex items-center justify-center px-4 py-2 rounded-xl bg-white/10 hover:bg-white/15 text-[#f2e6e8] font-medium text-[12px] transition-all cursor-pointer">이미 인증 완료함 (대화 다시 시도) ↻</button>
+            <button type="button" id="cancelAdultVerifyBtn" class="text-[11.5px] text-[#a89aa0] hover:text-[#f2e6e8] underline underline-offset-2 transition-all cursor-pointer mt-1">취소하고 일반 대화 이어가기</button>
           </div>
           <p id="adultVerifyFeedback" class="hidden text-[12px] mt-2.5 leading-relaxed"></p>
         `;
-        const btn = notice.querySelector('#resumeAdultVerifyBtn');
+        const startBtn = notice.querySelector('#startAdultVerifyBtn');
+        const resumeBtn = notice.querySelector('#resumeAdultVerifyBtn');
+        const cancelBtn = notice.querySelector('#cancelAdultVerifyBtn');
         const feedback = notice.querySelector('#adultVerifyFeedback');
-        btn.onclick = async () => {
-          btn.disabled = true;
-          btn.textContent = '인증 상태 확인 중...';
+
+        const onSuccess = () => {
+          notice.remove();
+          state.adultGatedTurn = null;
+          if (retry) retry();
+        };
+
+        cancelBtn.onclick = () => {
+          notice.remove();
+          if (state.adultGatedTurn?.requestId) {
+            const failedId = state.adultGatedTurn.requestId;
+            state.messages = state.messages.filter(m => m.id !== failedId);
+            const el = chatContainer.querySelector(`[data-msg-id="${failedId}"]`);
+            if (el) el.remove();
+            saveAccountState();
+          }
+          state.adultGatedTurn = null;
+        };
+
+        startBtn.onclick = async () => {
+          startBtn.disabled = true;
+          startBtn.textContent = '본인확인 창 준비 중...';
+          feedback.classList.add('hidden');
+          try {
+            if (!state.verifiedPhone) {
+              startBtn.disabled = false;
+              startBtn.textContent = '🔒 성인인증(본인확인) 시작하기';
+              feedback.className = 'text-[12px] mt-2.5 text-[#ff7b94] leading-relaxed';
+              feedback.textContent = '본인확인을 위해 먼저 휴대폰 번호로 로그인해주세요.';
+              feedback.classList.remove('hidden');
+              openPhoneAuthModal();
+              return;
+            }
+            const identityCfg = await ApiClient.request('/identity/config');
+            if (!identityCfg.enabled) {
+              const isTester = (typeof localStorage !== 'undefined' && localStorage.getItem('azit_tester') === '1') ||
+                (typeof document !== 'undefined' && /(?:^|;\s*)azit_tester=1/.test(document.cookie || ''));
+              if (isTester) {
+                const res = await ApiClient.request('/account/state', 'GET');
+                if (res.user?.id) {
+                  try { await ApiClient.request(`/customers/${res.user.id}/adult-verification`, 'POST', { isAdult: true, verified: true }); } catch {}
+                }
+                const data = await ApiClient.loadState();
+                if (data.user?.isAdult) { onSuccess(); return; }
+              }
+              throw new Error('본인확인 서비스가 준비 중입니다. 관리자 문의를 이용해주세요.');
+            }
+            let module = window.PortOne;
+            if (!module) {
+              await new Promise((resolve, reject) => {
+                const s = document.createElement('script');
+                s.src = 'https://cdn.portone.io/v2/browser-sdk.js';
+                s.onload = resolve;
+                s.onerror = () => reject(new Error('인증 모듈을 불러오지 못했습니다.'));
+                document.head.appendChild(s);
+              });
+              module = window.PortOne;
+            }
+            const prepared = await ApiClient.request('/identity/prepare', 'POST', {});
+            const result = await module.requestIdentityVerification(prepared);
+            if (!result || result.code !== undefined) throw new Error(result?.message || '본인확인을 완료하지 않았습니다.');
+            await ApiClient.request('/identity/complete', 'POST', { identityVerificationId: prepared.identityVerificationId });
+            const finalState = await ApiClient.loadState();
+            if (finalState.user?.isAdult) {
+              onSuccess();
+            } else {
+              throw new Error('본인확인은 완료되었으나 성인(만 19세 이상) 인증 대상이 아닙니다.');
+            }
+          } catch (err) {
+            startBtn.disabled = false;
+            startBtn.textContent = '🔒 성인인증(본인확인) 시작하기';
+            feedback.className = 'text-[12px] mt-2.5 text-[#ff7b94] leading-relaxed';
+            feedback.textContent = err.message || '본인확인을 완료하지 못했습니다.';
+            feedback.classList.remove('hidden');
+          }
+        };
+
+        resumeBtn.onclick = async () => {
+          resumeBtn.disabled = true;
+          resumeBtn.textContent = '인증 상태 확인 중...';
           feedback.classList.add('hidden');
           try {
             const data = await ApiClient.loadState();
             const isAdult = Boolean(data.user?.isAdult || data.user?.identityVerification?.isAdult);
             if (isAdult) {
-              notice.remove();
-              state.adultGatedTurn = null;
-              if (retry) retry();
+              onSuccess();
             } else {
-              btn.disabled = false;
-              btn.textContent = '성인 인증 확인하고 대화 계속하기 ↻';
+              resumeBtn.disabled = false;
+              resumeBtn.textContent = '이미 인증 완료함 (대화 다시 시도) ↻';
               feedback.className = 'text-[12px] mt-2.5 text-[#ff7b94] leading-relaxed';
-              feedback.textContent = '아직 성인 인증(만 19세 이상)이 확인되지 않았습니다. 관리자 승인 또는 본인확인 완료 후 다시 눌러주세요.';
+              feedback.textContent = '아직 성인 인증(만 19세 이상)이 확인되지 않았습니다. 인증 완료 후 다시 눌러주세요.';
               feedback.classList.remove('hidden');
             }
           } catch (err) {
-            btn.disabled = false;
-            btn.textContent = '성인 인증 확인하고 대화 계속하기 ↻';
+            resumeBtn.disabled = false;
+            resumeBtn.textContent = '이미 인증 완료함 (대화 다시 시도) ↻';
             feedback.className = 'text-[12px] mt-2.5 text-[#ff7b94] leading-relaxed';
             feedback.textContent = '인증 상태를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.';
             feedback.classList.remove('hidden');

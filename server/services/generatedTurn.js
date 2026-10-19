@@ -27,15 +27,18 @@ module.exports = async function generatedTurn(req, res, {character, message, req
     const oldMessages = user.savedRooms?.[character.id]?.messages || [];
     const storedState = db.getConversationState(id,character.id);
     const agreementSources=db.getConversationSources(id,character.id,(storedState.memory?.agreements||[]).map(note=>note.sourceId));
-    const relationship = require('./relationshipContext').buildRelationshipContext(character,[...agreementSources,...oldMessages,...(userMessage?[{sender:'user',text:message}]:[])]);
-    const history = oldMessages.filter(m => {
+    const validOldMessages = oldMessages.filter((m, idx, arr) => {
       if (!['user','ai'].includes(m.sender) || !m.text || m.id === requestId) return false;
       if (m.sender === 'user') {
         const reqRecord = db.getChatRequest(id, m.id);
         if (reqRecord && reqRecord.success === false) return false;
+        const next = arr[idx + 1];
+        if (!next || next.sender !== 'ai') return false;
       }
       return true;
-    }).map(m=>({id:m.id,role:m.sender==='user'?'user':'assistant',content:m.text,createdAt:m.createdAt}));
+    });
+    const relationship = require('./relationshipContext').buildRelationshipContext(character,[...agreementSources,...validOldMessages,...(userMessage?[{sender:'user',text:message}]:[])]);
+    const history = validOldMessages.map(m=>({id:m.id,role:m.sender==='user'?'user':'assistant',content:m.text,createdAt:m.createdAt}));
     const conversation = require('./conversationContext').prepare([...history,{id:requestId,role:'user',content:message,createdAt:Date.now()}],storedState.memory,{replyId:'reply_'+requestId,kind,speechRegister:relationship.speechRegister,bankNotes:db.getConversationNotes(id,character.id),stateHistory:db.getConversationStateHistory(id,character.id)});
     db.transaction(()=>{
       db.saveChatRequest(id,requestId,{status:'pending',fingerprint,createdAt:Date.now()});
