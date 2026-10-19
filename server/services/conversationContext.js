@@ -24,17 +24,15 @@ function getResponseSchema(context) {
   for(const id of context.memory?.state?.sourceIds||[])if(!roles.has(id))roles.set(id,'reference');
   for(const item of context.recalledStates||[])if(!roles.has(item.replyId))roles.set(item.replyId,'reference');
   const additionSources=new Set([context.recent.at(-1)?.id,context.replyId,...context.recalled.map(m=>m.id),...(!context.memory?context.recent.map(m=>m.id):[])]);
+  // Note source IDs and state source IDs are strictly grounded in parseTurn.
+  // Large enum combinations across five note arrays exceed Gemini's OpenAPI schema
+  // complexity limits and trigger 400 INVALID_ARGUMENT errors in active conversations.
   for(const key of Object.keys(LIST_LIMITS)){
     const ids=[...roles].filter(([id,role])=>additionSources.has(id)&&!(context.kind==='proactive'&&role==='system')&&(['userFacts','agreements'].includes(key)?role==='user':key==='characterFacts'?role==='assistant':true)).map(([id])=>id);
-    if(ids.length)schema.properties.memory.properties[key].items.properties.sourceId.enum=ids;
-    else schema.properties.memory.properties[key].maxItems=0;
+    if(!ids.length)schema.properties.memory.properties[key].maxItems=0;
   }
-  schema.properties.memory.properties.state.properties.sourceIds.items.enum=[...new Set([context.recent.at(-1)?.id,context.replyId,...(context.memory?.state?.sourceIds||[]),...(context.recalledStates||[]).map(item=>item.replyId)])].filter(Boolean);
   const memoryIds=Object.keys(LIST_LIMITS).flatMap(key=>(context.memory?.[key]||[]).map(note=>note.id).filter(Boolean));
-  // Large note-ID enums combined with source enums can exceed Gemini's schema
-  // complexity limit. Validate retirement IDs against the stored set in parseTurn.
   if(!memoryIds.length)schema.properties.memory.properties.retirements.maxItems=0;
-  schema.properties.memory.properties.retirements.items.properties.sourceId.enum=[context.recent.at(-1)?.id,context.replyId].filter(Boolean);
   return schema;
 }
 

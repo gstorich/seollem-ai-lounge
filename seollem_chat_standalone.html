@@ -5066,8 +5066,7 @@
       updateAccountAndCreditUI();
     }
 
-    // 캐릭터 성격·직업·지역·나이·시간대 및 고유 컨셉 태그에 최적화된 동적 첫인사 생성기
-    async function deliverFirstGreeting(char, requestId = 'greet_' + crypto.randomUUID()) {
+    async function deliverFirstGreeting(char, requestId = 'greet_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6)) {
       const greetingStartedAt = Date.now();
       if (state.currentChar?.id !== char.id) return;
       state.isAiBusy = true;
