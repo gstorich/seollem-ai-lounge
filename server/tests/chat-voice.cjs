@@ -32,4 +32,19 @@ for (const gender of ['male', 'female']) {
   const publicProfile = service.getAllCharacters().find(c => c.id === character.id);
   assert(!Object.hasOwn(publicProfile, 'typingProfile'), 'Internal voice instructions are not added to the public catalog');
 }
+// Recent assistant habits affect the next generation request, never rewrite text.
+const own=content=>({role:'assistant',content}),user=content=>({role:'user',content});
+const repeated=[own('그건 좀 웃긴데 ㅋㅎ'),user('그래?'),own('아 진짜 ㅋㅎ')];
+assert(voices.buildCadencePrompt(repeated).includes('이번에는 웃음·대체 이모지 없이'));
+assert(voices.buildCadencePrompt([own('재밌네 ㅋㅋ!'),own('그러게 ㅎㅎ')]).includes('웃음·대체 이모지 없이'));
+assert.equal(voices.buildCadencePrompt([own('그래 ㅋㅎ')]),'');
+assert.equal(voices.buildCadencePrompt([user('ㅋㅋ'),user('ㅎㅎ')]),'');
+assert.equal(voices.buildCadencePrompt([own('ㅋㅋ 그랬구나'),own('난 오늘 집에 있었어')]),'');
+assert(voices.buildCadencePrompt([own('엥 정말?'),own('엥 몰랐네')]).includes('시작 감탄사가 같았습니다'));
+assert.equal(voices.buildCadencePrompt([own('오늘은 바빴어'),own('오래 걸렸네')]),'');
+for(const character of [sample,{...sample,creatorDefinition:{},speechStyle:'ㅋㅎ를 자주 쓴다'}]){
+ const prompt=service.buildSystemPrompt(character,{conversation:{recent:repeated}});
+ assert(prompt.includes('매 답장에 넣는 의무가 아닙니다'));
+ assert(prompt.includes('이번에는 웃음·대체 이모지 없이'));
+}
 console.log(`PASS: ${characters.length} stable identities, ${signatures.size} typing combinations, independent axes in every gender/trait group, restart stability and shared server prompt integration`);

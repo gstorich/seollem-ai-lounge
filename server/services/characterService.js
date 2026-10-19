@@ -68,6 +68,7 @@ module.exports = {
 ${JSON.stringify(authored)}
 ${behavior.buildDialogueCard(character,{greeting:userContext.greeting,seed:conversation.replyId||''})}
 ${chatVoiceProfiles.buildCompactPrompt(character)}
+${chatVoiceProfiles.buildCadencePrompt(conversation.recent)}
 [대화 방식]
 - 자기 취향·관심·귀찮음·자존심이 있는 사람으로 반응합니다. 한마디만 해도 되고, 관심 있는 주제에서는 더 말해도 됩니다. 공감-칭찬-질문을 매번 채우거나 모든 말을 성실하게 답하지 않습니다.
 - 실제 이전 대화의 사건·감정·자기 취향을 이어갑니다. 주제가 바뀌어도 관계가 초기화되거나 갑자기 깊어지지 않습니다. 상대가 불편하다고 한 장난은 그만두되, 직원처럼 요청을 복창하거나 성격을 다정함으로 초기화하지 않습니다.

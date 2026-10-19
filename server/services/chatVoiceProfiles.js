@@ -72,6 +72,7 @@ function buildPrompt(character) {
   const habits = Object.entries(AXES).map(([axis, options]) => `- ${options.find(option => option[0] === profile[axis])[2]}`).join('\n');
   return `[이 사람만의 고정 타이핑 습관: 공통 표기 예시·성별에 따른 표기 제한보다 우선]
 ${habits}
+${FREQUENCY_GUIDANCE}
 - 성격은 무엇을 느끼고 말할지, 타이핑 습관은 그 말을 어떻게 적을지 정합니다. 차분한 사람도 초성을 쓰고, 유쾌한 사람도 이모지 없이 말할 수 있습니다. 성별·직업·지역 때문에 이 습관을 다른 캐릭터의 습관으로 바꾸지 마세요.
 - 이 조합은 이 캐릭터가 계속 쓰는 경향입니다. 답장마다 다른 유형으로 갈아타거나 사용자의 웃음 표기를 그대로 따라 하지 마세요. 예전 AI 답변이 획일적이었더라도 지금부터 이 습관을 적용하되 대화 사실과 자기 취향은 이어가세요.
 - 사용자가 정한 존댓말/반말, 부르지 말라는 호칭, 이모지·초성을 빼달라는 명시적인 요청이 이 습관보다 우선합니다. 시작 말높임은 개인 반응 성향을 따르며, 음슴체·느슨한 말끝 설정만으로 친밀한 호칭이나 실제 관계를 전제하지 않습니다.
@@ -79,9 +80,24 @@ ${habits}
 - 사용자에게 습관 목록을 설명하거나 예문을 외워 답하지 마세요. SNS 원문·게시자·게시판 호칭을 복사하지 말고, 현재 대화의 내용은 반드시 API로 새로 생성하세요. 맞춤법을 전부 망가뜨리거나 무작위 오타를 만들지 마세요.`;
 }
 
-function buildCompactPrompt(character){
-  if(character.creatorDefinition)return '[작성자가 정한 말투: 자동 타이핑 조합보다 우선]\n'+character.speechStyle+'\n사용자가 요청한 말높임·호칭·웃음·이모지 제한은 우선합니다. 설정에 없는 무작위 말버릇을 추가하지 않습니다.';
-  const profile=getProfile(character);
-  return '[개인 타이핑 습관]\n'+Object.entries(AXES).map(([axis,options])=>options.find(option=>option[0]===profile[axis])[2]).join('\n')+'\n습관은 매번 과시하지 않고, 사용자가 빼달라고 한 웃음·이모지·호칭은 뺍니다. 다른 사람의 말투를 복제하지 않습니다.';
+const FREQUENCY_GUIDANCE = `
+[말버릇의 빈도]
+- '자주·주로·즐겨'는 쓸 때 선호하는 방식이지 매 답장에 넣는 의무가 아닙니다. 아무 표식 없는 답장도 자연스럽게 자주 보냅니다.
+- 웃음은 실제 웃기거나 머쓱한 맥락에서만 씁니다. 모든 메시지 끝에 ㅋㅎ·ㅋㅋ·ㅎㅎ 등을 서명처럼 붙이지 않습니다. 약어·감탄사·이모지·특수문자도 매번 성격을 증명하려고 넣지 않습니다.
+- 최근 자기 답장의 시작말과 끝 장식이 반복되면 이번에는 그 장식을 쉬어갑니다. 반복을 피하려고 ㅋㅎ를 ㅎㅎ나 이모지로 기계적으로 바꿔 붙이지 않습니다. 말버릇을 생략해도 성격·말높임·취향·대화 흐름은 그대로 유지합니다.`;
+function buildCadencePrompt(recent=[]){
+  const own=recent.filter(m=>m.role==='assistant'&&typeof m.content==='string').slice(-2);
+  if(own.length<2)return '';
+  const laughter=m=>/[ㅋㅎ]{1,}[\s.!?~…]*$/u.test(m.content.trim());
+  const prefix=m=>m.content.trim().match(/^(엥|아니|와|음|오)(?=[\s,.!?~ㅋㅎ]|$)/u)?.[1];
+  const repeated=[];
+  if(own.every(laughter))repeated.push('최근 자기 답장 두 개가 모두 웃음 표기로 끝났습니다. 이번에는 웃음·대체 이모지 없이 내용으로 반응하세요.');
+  if(prefix(own[0])&&prefix(own[0])===prefix(own[1]))repeated.push('최근 자기 답장 두 개의 시작 감탄사가 같았습니다. 이번에는 그 시작말을 생략하고 바로 할 말을 하세요.');
+  return repeated.length?'[이번 답장의 반복 완화]\n'+repeated.join('\n'):'';
 }
-module.exports = { getProfile, buildPrompt, buildCompactPrompt };
+function buildCompactPrompt(character){
+  if(character.creatorDefinition)return '[작성자가 정한 말투: 자동 타이핑 조합보다 우선]\n'+character.speechStyle+'\n사용자가 요청한 말높임·호칭·웃음·이모지 제한은 우선합니다. 설정에 없는 무작위 말버릇을 추가하지 않습니다.'+FREQUENCY_GUIDANCE;
+  const profile=getProfile(character);
+  return '[개인 타이핑 습관]\n'+Object.entries(AXES).map(([axis,options])=>options.find(option=>option[0]===profile[axis])[2]).join('\n')+'\n습관은 매번 과시하지 않고, 사용자가 빼달라고 한 웃음·이모지·호칭은 뺍니다. 다른 사람의 말투를 복제하지 않습니다.'+FREQUENCY_GUIDANCE;
+}
+module.exports = { getProfile, buildPrompt, buildCompactPrompt, buildCadencePrompt };
