@@ -37,6 +37,12 @@ router.post('/request', requireAuth, require('../services/legalService').require
     : characterService.findMatch(filters || user.matchFilter, user.metCharIds || []);
   if(!matchedChar)return res.status(404).json({success:false,error:'조건에 맞는 공개 캐릭터가 없습니다.'});
 
+  // 추천 로깅 (7:3 Bandit telemetry)
+  const mode = matchedChar._matchMode || (characterId ? 'direct_choice' : 'popular_exploitation');
+  if (dbService.recordMatchRecommendation) {
+    dbService.recordMatchRecommendation(user.id, matchedChar.id, mode, filters || user.matchFilter);
+  }
+
   // Update met character history
   const metIds = Array.isArray(user.metCharIds) ? [...user.metCharIds] : [];
   if (!metIds.includes(matchedChar.id)) {
@@ -51,6 +57,7 @@ router.post('/request', requireAuth, require('../services/legalService').require
   return res.json({
     success: true,
     character: characterService.publicProfile(matchedChar),
+    matchMode: mode,
     ...access
   });
 });

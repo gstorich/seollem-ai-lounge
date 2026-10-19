@@ -24,6 +24,8 @@ CREATE TABLE IF NOT EXISTS conversation_messages(user_id TEXT NOT NULL,character
 CREATE TABLE IF NOT EXISTS conversation_state(user_id TEXT NOT NULL,character_id TEXT NOT NULL,data TEXT,last_reply_id TEXT,revision INTEGER NOT NULL DEFAULT 0,updated_at INTEGER NOT NULL,PRIMARY KEY(user_id,character_id));
 CREATE TABLE IF NOT EXISTS conversation_memory_items(user_id TEXT NOT NULL,character_id TEXT NOT NULL,note_id TEXT NOT NULL,kind TEXT NOT NULL,data TEXT NOT NULL,active INTEGER NOT NULL DEFAULT 1,retired_source_id TEXT,created_at INTEGER NOT NULL,PRIMARY KEY(user_id,character_id,note_id));
 CREATE TABLE IF NOT EXISTS conversation_state_events(user_id TEXT NOT NULL,character_id TEXT NOT NULL,reply_id TEXT NOT NULL,data TEXT NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(user_id,character_id,reply_id));
+CREATE TABLE IF NOT EXISTS match_recommendations(id TEXT PRIMARY KEY, user_id TEXT NOT NULL, character_id TEXT NOT NULL, mode TEXT NOT NULL, filter_applied TEXT, created_at INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS match_rec_time ON match_recommendations(created_at);
 CREATE INDEX IF NOT EXISTS conversation_time ON conversation_messages(created_at,user_id,character_id);`);
 const { createWallet, units } = require('./heartWallet');
 const wallet = createWallet(sql);
@@ -252,5 +254,77 @@ module.exports = {
   },
   createOrder(order) { const data = { ...order, status: 'pending', createdAt: Date.now() }; sql.prepare('INSERT INTO orders VALUES(?,?)').run(order.id, JSON.stringify(data)); return data; },
   getOrder(id) { const row = sql.prepare('SELECT data FROM orders WHERE id=?').get(id); return row ? JSON.parse(row.data) : null; },
-  updateOrder(id, updates) { const order = module.exports.getOrder(id); if (!order) return null; Object.assign(order, updates); sql.prepare('UPDATE orders SET data=? WHERE id=?').run(JSON.stringify(order), id); return order; }
+  updateOrder(id, updates) { const order = module.exports.getOrder(id); if (!order) return null; Object.assign(order, updates); sql.prepare('UPDATE orders SET data=? WHERE id=?').run(JSON.stringify(order), id); return order; },
+  recordMatchRecommendation(userId, characterId, mode, filterApplied = {}) {
+    try {
+      const crypto = require('node:crypto');
+      const id = 'mrec_' + crypto.randomUUID();
+      sql.prepare('INSERT INTO match_recommendations(id, user_id, character_id, mode, filter_applied, created_at) VALUES(?,?,?,?,?,?)')
+        .run(id, resolveUserId(userId), characterId, mode, JSON.stringify(filterApplied || {}), Date.now());
+      return id;
+    } catch (e) {
+      console.warn('[db] recordMatchRecommendation failed:', e.message);
+      return null;
+    }
+  },
+  getCharacterTurnStats(days = 30) {
+    try {
+      const since = days > 0 ? Date.now() - days * 86400000 : 0;
+      const rows = sql.prepare(`
+        SELECT character_id,
+               count(*) as total_messages,
+               sum(json_extract(data, '$.sender') = 'user') as user_turns,
+               count(DISTINCT user_id) as unique_users
+        FROM conversation_messages
+        WHERE created_at >= ?
+        GROUP BY character_id
+      `).all(since);
+      const stats = {};
+      for (const r of rows) {
+        stats[r.character_id] = {
+          totalMessages: Number(r.total_messages) || 0,
+          userTurns: Number(r.user_turns) || 0,
+          uniqueUsers: Number(r.unique_users) || 0
+        };
+      }
+      return stats;
+    } catch {
+      return {};
+    }
+  },
+  getMatchingBanditStats(days = 30) {
+    try {
+      const since = days > 0 ? Date.now() - days * 86400000 : 0;
+      const totalRow = sql.prepare(`
+        SELECT count(*) as total,
+               sum(mode = 'popular_exploitation') as popular,
+               sum(mode = 'cold_exploration') as cold
+        FROM match_recommendations
+        WHERE created_at >= ?
+      `).get(since);
+
+      const total = Number(totalRow?.total) || 0;
+      const popular = Number(totalRow?.popular) || 0;
+      const cold = Number(totalRow?.cold) || 0;
+
+      const recs = sql.prepare(`
+        SELECT character_id, mode, count(*) as count
+        FROM match_recommendations
+        WHERE created_at >= ?
+        GROUP BY character_id, mode
+        ORDER BY count DESC
+      `).all(since);
+
+      return {
+        total,
+        popular,
+        cold,
+        popularRatio: total > 0 ? Math.round((popular / total) * 1000) / 10 : 70.0,
+        coldRatio: total > 0 ? Math.round((cold / total) * 1000) / 10 : 30.0,
+        recentRecommendations: recs
+      };
+    } catch {
+      return { total: 0, popular: 0, cold: 0, popularRatio: 70.0, coldRatio: 30.0, recentRecommendations: [] };
+    }
+  }
 };

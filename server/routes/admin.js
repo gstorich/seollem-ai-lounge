@@ -32,6 +32,35 @@ router.get('/conversations/:userId/:characterId',(req,res)=>{
  ops.audit(req.admin.id,'conversation_view',req.params.userId,{characterId:req.params.characterId,page:page(req)});res.json({success:true,conversation});
 });
 router.get('/conversation-insights',(req,res)=>res.json({success:true,...conversations.insights(chatKind(req),chatDays(req)||30)}));
+router.get('/matching-insights',(req,res)=>{
+  const days=[7,30,90].includes(Number(req.query.days))?Number(req.query.days):30;
+  const db=require('../services/dbService'),characters=require('../services/characterService');
+  const bandit=db.getMatchingBanditStats(days),turns=db.getCharacterTurnStats(days),catalog=characters.getAllCharacters();
+  const all=catalog.map(c=>{
+    const s=turns[c.id]||{totalMessages:0,userTurns:0,uniqueUsers:0};
+    return {id:c.id,name:c.name,age:c.age,gender:c.gender||'female',job:c.job,traitKey:c.traitKey,scenario:c.conceptTitle||c.bio||'',userTurns:s.userTurns,totalMessages:s.totalMessages,uniqueUsers:s.uniqueUsers,isPopular:s.userTurns>=3};
+  });
+  const popular=all.filter(c=>c.isPopular).sort((a,b)=>b.userTurns-a.userTurns||b.totalMessages-a.totalMessages);
+  const cold=all.filter(c=>!c.isPopular).sort((a,b)=>a.userTurns-b.userTurns);
+  const traitCounts={},ageDecades={};
+  popular.forEach(c=>{
+    traitCounts[c.traitKey]=(traitCounts[c.traitKey]||0)+1;
+    const decade=`${Math.floor(c.age/10)*10}대`;
+    ageDecades[decade]=(ageDecades[decade]||0)+1;
+  });
+  res.json({
+    success:true,
+    bandit,
+    popularCandidates:popular.slice(0,30),
+    coldCandidates:cold.slice(0,30),
+    popularTotal:popular.length,
+    coldTotal:cold.length,
+    traitsAnalysis:{
+      traits:Object.entries(traitCounts).sort((a,b)=>b[1]-a[1]).map(([key,count])=>({key,count})),
+      ageDecades:Object.entries(ageDecades).sort((a,b)=>b[1]-a[1]).map(([key,count])=>({key,count}))
+    }
+  });
+});
 router.post('/customers/:id/notes',(req,res)=>{const body=String(req.body.body||'').trim();if(!body||body.length>3000)return res.status(400).json({error:'메모는 1~3,000자입니다.'});if(!ops.addNote(req.admin.id,req.params.id,body))return res.sendStatus(404);res.json({success:true});});
 router.post('/customers/:id/hearts',(req,res)=>{
  const {delta,reason,requestId}=req.body;

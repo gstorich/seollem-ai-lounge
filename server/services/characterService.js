@@ -65,8 +65,45 @@ module.exports = {
       if (sensualPool.length > 0) pool = sensualPool;
     }
 
+    // 7:3 Multi-Armed Bandit (인기 검증 캐릭터 70% : 정보 부족/탐색 캐릭터 30%)
+    let matchMode = 'popular_exploitation';
+    try {
+      const db = require('./dbService');
+      const stats = db.getCharacterTurnStats ? db.getCharacterTurnStats(30) : {};
+
+      const popular = pool.filter(c => (stats[c.id]?.userTurns || 0) >= 3);
+      const cold = pool.filter(c => (stats[c.id]?.userTurns || 0) < 3);
+
+      const roll = Math.random();
+      if (roll < 0.70) {
+        // 70% 확률: 대화량 높은 인기 검증 캐릭터 우선 추천
+        if (popular.length > 0) {
+          popular.sort((a, b) => (stats[b.id]?.userTurns || 0) - (stats[a.id]?.userTurns || 0));
+          const topSlice = popular.slice(0, Math.max(1, Math.ceil(popular.length * 0.5)));
+          pool = topSlice;
+          matchMode = 'popular_exploitation';
+        } else {
+          matchMode = 'cold_exploration';
+        }
+      } else {
+        // 30% 확률: 정보 부족 신규/테스트 캐릭터 탐색 노출
+        if (cold.length > 0) {
+          pool = cold;
+          matchMode = 'cold_exploration';
+        } else {
+          matchMode = 'popular_exploitation';
+        }
+      }
+    } catch {
+      // fallback to pool as-is
+    }
+
     const randomIndex = Math.floor(Math.random() * pool.length);
-    return pool[randomIndex] || null;
+    const chosen = pool[randomIndex] || null;
+    if (chosen) {
+      chosen._matchMode = matchMode;
+    }
+    return chosen;
   },
 
   buildSystemPrompt(character, userContext = {}) {

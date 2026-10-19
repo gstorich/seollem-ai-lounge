@@ -26,6 +26,8 @@ async function render(){
   await renderConversations();
  }else if(view==='insights'){
   await renderInsights();
+ }else if(view==='matching'){
+  await renderMatchingInsights();
  }else if(view==='customers'||view==='guests'){
   const d=await api('/customers?q='+encodeURIComponent(query)+'&page='+page+'&kind='+(view==='guests'?'guests':'members')+'&engagement='+engagement);
   $('content').innerHTML=`<section class="card"><form id="searchForm" class="row"><input id="search" placeholder="휴대폰 번호 또는 고객 ID 검색" aria-label="고객 검색" value="${esc(query)}"><button class="primary">검색</button></form><p class="muted">${view==='guests'?'게스트는 브라우저별 세션이며 실제 사람 수가 아닙니다. 비공개 창·다른 브라우저·저장소 삭제 시 별도 세션이 생길 수 있습니다.':'휴대폰 인증 회원만 표시합니다. 게스트는 별도 메뉴에서 확인하세요.'}</p><select id="engagementFilter" aria-label="대화 활동"><option value="all">전체 활동</option><option value="active" ${engagement==='active'?'selected':''}>대화한 계정</option><option value="unused" ${engagement==='unused'?'selected':''}>사용자 메시지 없음</option></select><div class="table-scroll spaced"><table><thead><tr><th>고객</th><th>구분</th><th>잔액</th><th>사용자 메시지</th><th>가입일</th><th>최근 접속</th><th></th></tr></thead><tbody>${d.items.map(x=>`<tr><td>${esc(x.phone?x.phone.replace(/(\d{3})\d{4}(\d{4})/,'$1-****-$2'):x.id)}</td><td>${x.phone?'인증 회원':'게스트'}${x.isAdult?' <span class="pill active" style="font-size:10px;padding:2px 5px;">19+</span>':''}</td><td>${fmt(x.hearts)} 하트</td><td>${fmt(x.userTurns)}</td><td>${date(x.createdAt)}</td><td>${date(x.lastSeenAt)}</td><td><button data-customer="${esc(x.id)}">관리</button></td></tr>`).join('')}</tbody></table></div>${pager(d.total,30)}</section>`;
@@ -70,6 +72,108 @@ async function renderInsights(){
  const ranking=(title,rows,character=false)=>`<section class="card spaced"><h2>${title}</h2><div class="table-scroll"><table><thead><tr><th>순위 · 이름</th><th>사용자</th><th>대화방</th><th>메시지</th><th>방당 메시지</th><th>다른 날 재방문 방</th>${character?'<th></th>':''}</tr></thead><tbody>${rows.map((x,i)=>`<tr><td>${i+1}. ${esc(x.label)}${character?'<br><small>'+esc(x.gender==='male'?'남성':'여성')+' · '+esc(x.scenario)+'</small>':''}</td><td>${fmt(x.users)}</td><td>${fmt(x.rooms)}</td><td>${fmt(x.turns)}</td><td>${fmt(x.averageTurns)}</td><td>${fmt(x.returnRooms)}</td>${character?'<td><button data-insight-character="'+esc(x.key)+'">대화 보기</button></td>':''}</tr>`).join('')}</tbody></table></div>${rows.length?'':'<p class="empty">기간 내 사용자 메시지가 없습니다.</p>'}</section>`;
  $('content').innerHTML=`<section class="card"><div class="row"><h2>대화 선호·이용 분석</h2>${kindSelect()}</div><p class="muted">${esc(d.method)}</p><p>사용자 메시지 <strong>${fmt(d.totalTurns)}</strong>개 · 활동 계정 <strong>${fmt(d.activeUsers)}</strong>개 · 대화방 <strong>${fmt(d.activeRooms)}</strong>개</p>${d.truncated?'<div class="notice">최근 50,000개 사용자 메시지를 분석했습니다. 전체 기간 메시지는 '+fmt(d.totalTurns)+'개이며 아래 순위는 표본 기준입니다.</div>':''}<p class="muted">미사용 게스트와 AI의 첫 인사는 인기 집계에서 제외합니다. 게스트 수는 실제 사람 수를 뜻하지 않습니다.</p></section>${ranking('캐릭터 인기 · 사용자 메시지 순',d.characters,true)}${ranking('이용한 캐릭터 시나리오',d.scenarios)}${ranking('실제 대화 주제 · 사용자 발화 키워드',d.topics)}${ranking('대화 주제 전환 흐름 · 키워드 추정',d.flows||[])}<p class="muted">주제 전환 표의 메시지 수는 전환 발생 횟수입니다. 사용자 발화의 대표 주제가 바뀐 순서를 집계하며, 줄거리나 감정을 확정한 분석은 아닙니다.</p>`;
  $('chatKind').onchange=()=>{chatKind=$('chatKind').value;load();};document.querySelectorAll('[data-insight-character]').forEach(b=>b.onclick=()=>{chatCharacter=b.dataset.insightCharacter;query='';page=0;view='conversations';$('pageTitle').textContent='전체 채팅';load();});
+}
+async function renderMatchingInsights(){
+ const d=await api('/matching-insights?days='+$('days').value);
+ const b=d.bandit||{total:0,popular:0,cold:0,popularRatio:70,coldRatio:30};
+ const t=d.traitsAnalysis||{traits:[],ageDecades:[]};
+ const candidateTable=(candidates,typeNote)=>`
+  <div class="table-scroll">
+   <table>
+    <thead>
+     <tr>
+      <th>캐릭터명</th>
+      <th>나이 · 성별</th>
+      <th>특징 / 태그</th>
+      <th>대화 턴(사용자)</th>
+      <th>대화자</th>
+      <th>대화방</th>
+      <th></th>
+     </tr>
+    </thead>
+    <tbody>
+     ${candidates.map(c=>`
+      <tr>
+       <td><strong>${esc(c.name)}</strong><br><small>${esc(c.role||c.id)}</small></td>
+       <td>${c.age?c.age+'세':'미상'} · ${c.gender==='male'?'남성':'여성'}</td>
+       <td><small>${esc((c.tags||[]).slice(0,4).join(', ') || '-')}</small></td>
+       <td>${fmt(c.userTurns||0)}회</td>
+       <td>${fmt(c.users||0)}명</td>
+       <td>${fmt(c.rooms||0)}개</td>
+       <td><button data-insight-character="${esc(c.id)}">대화 보기</button></td>
+      </tr>
+     `).join('')}
+    </tbody>
+   </table>
+  </div>
+  ${candidates.length?'':`<p class="empty">${typeNote}</p>`}
+ `;
+
+ $('content').innerHTML=`
+  <div class="split">
+   <section class="card">
+    <h2>🎯 7:3 밴딧 매칭 노출 현황</h2>
+    <p class="muted">고객 반응 극대화(인기 캐릭터 70%)와 신규 반응 테스트(정보 부족 캐릭터 30%)를 Multi-Armed Bandit 방식으로 자동 조율합니다.</p>
+    <div style="margin:16px 0;background:rgba(255,255,255,0.06);border-radius:12px;padding:16px;">
+     <div style="display:flex;justify-content:space-between;font-size:13px;font-weight:600;margin-bottom:8px;">
+      <span style="color:#ff6b8b;">🔥 인기 검증 노출 (${b.popularRatio}%)</span>
+      <span style="color:#4dabf7;">🧪 반응 테스트 노출 (${b.coldRatio}%)</span>
+     </div>
+     <div style="display:flex;height:14px;border-radius:7px;overflow:hidden;background:#222;">
+      <div style="width:${Math.max(5,Math.min(95,b.popularRatio))}%;background:linear-gradient(90deg,#ff6b8b,#f06595);transition:width 0.3s;"></div>
+      <div style="width:${Math.max(5,Math.min(95,b.coldRatio))}%;background:linear-gradient(90deg,#339af0,#4dabf7);transition:width 0.3s;"></div>
+     </div>
+     <div style="display:flex;justify-content:space-between;font-size:11px;color:rgba(255,255,255,0.5);margin-top:6px;">
+      <span>누적 ${fmt(b.popular||0)}회 (목표 70%)</span>
+      <span>누적 ${fmt(b.cold||0)}회 (목표 30%)</span>
+     </div>
+    </div>
+    <div class="grid" style="grid-template-columns:repeat(3,1fr);gap:8px;">
+     <div class="card" style="padding:12px;"><div class="card-title">총 매칭 추천</div><div class="stat" style="font-size:20px;">${fmt(b.total||0)}</div><small>기간 내 추천 수</small></div>
+     <div class="card" style="padding:12px;"><div class="card-title">인기 검증 풀</div><div class="stat" style="font-size:20px;color:#ff6b8b;">${fmt(d.popularTotal||0)}</div><small>3턴 이상 검증됨</small></div>
+     <div class="card" style="padding:12px;"><div class="card-title">정보 부족 풀</div><div class="stat" style="font-size:20px;color:#4dabf7;">${fmt(d.coldTotal||0)}</div><small>반응 테스트 대상</small></div>
+    </div>
+   </section>
+
+   <section class="card">
+    <h2>인기 캐릭터 특성 군집</h2>
+    <p class="muted">대화가 많이 발생하는 상위 캐릭터들의 선호 태그 및 연령대 분포입니다.</p>
+    <div style="margin-bottom:12px;">
+     <div class="card-title" style="margin-bottom:6px;">선호 태그 / 키워드</div>
+     <div style="display:flex;flex-wrap:wrap;gap:6px;">
+      ${(t.traits||[]).slice(0,10).map(x=>`<span class="pill active" style="font-size:12px;padding:3px 8px;">#${esc(x.key)} <strong>${fmt(x.count)}</strong></span>`).join('') || '<span class="muted">데이터 부족</span>'}
+     </div>
+    </div>
+    <div>
+     <div class="card-title" style="margin-bottom:6px;">선호 연령대</div>
+     <div style="display:flex;flex-wrap:wrap;gap:6px;">
+      ${(t.ageDecades||[]).map(x=>`<span class="pill" style="font-size:12px;padding:3px 8px;">${esc(x.key)}대 <strong>${fmt(x.count)}명</strong></span>`).join('') || '<span class="muted">데이터 부족</span>'}
+     </div>
+    </div>
+   </section>
+  </div>
+
+  <section class="card spaced">
+   <h2>🔥 인기 검증 캐릭터 풀 (Exploitation 70% 대상군)</h2>
+   <p class="muted">대화 수 3턴 이상 발생하여 고객 몰입도가 입증된 캐릭터들입니다. 매칭 시 70% 가중 분배됩니다.</p>
+   ${candidateTable(d.popularCandidates||[],'인기 검증 캐릭터 풀이 아직 없습니다.')}
+  </section>
+
+  <section class="card spaced">
+   <h2>🧪 신규 및 정보 부족 캐릭터 풀 (Exploration 30% 대상군)</h2>
+   <p class="muted">아직 고객 반응 데이터가 부족한 캐릭터들입니다. 인기 캐릭터 편중을 방지하고 새로운 반응을 수집하기 위해 30% 비율로 노출됩니다.</p>
+   ${candidateTable(d.coldCandidates||[],'정보 부족 캐릭터가 없습니다. 모든 캐릭터가 검증되었습니다.')}
+  </section>
+ `;
+
+ document.querySelectorAll('[data-insight-character]').forEach(b=>b.onclick=()=>{
+  chatCharacter=b.dataset.insightCharacter;
+  query='';
+  page=0;
+  view='conversations';
+  $('pageTitle').textContent='전체 채팅';
+  load();
+ });
 }
 function markTester(){localStorage.setItem('azit_tester','1');document.cookie='azit_tester=1; path=/; max-age=31536000; SameSite=Lax';}
 $('loginForm').onsubmit=async e=>{e.preventDefault();const b=e.submitter;b.disabled=true;try{await api('/session','POST',{password:$('password').value});markTester();$('password').value='';$('login').hidden=true;$('app').hidden=false;await load();}catch(e){$('loginError').textContent=e.message;}finally{b.disabled=false;}};
