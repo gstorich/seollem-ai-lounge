@@ -76,9 +76,13 @@
   } catch {}
  }
  async function notifyAiMessage(char, text, options) {
+  if (options && options.inActiveRoom) {
+    if (typeof document !== 'undefined' && document.visibilityState === 'visible' && (!document.hasFocus || document.hasFocus())) {
+      return;
+    }
+  }
   playNotificationSound();
   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
-  if (options && options.inActiveRoom) return;
   try {
     const title = char?.name || '아지트챗';
     const body = (text || '새 메시지가 도착했어요').slice(0, 100);

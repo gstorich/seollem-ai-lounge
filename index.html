@@ -4971,7 +4971,7 @@
       chatContainer.appendChild(row);
       scrollToBottom();
       if (sender === 'ai' && !skipPush) {
-        window.AzitNotifications?.notifyAiMessage(char, text);
+        window.AzitNotifications?.notifyAiMessage(char, text, { inActiveRoom: true });
       }
     }
 
@@ -5517,9 +5517,6 @@
       if (!viewChatList || !viewChatRoom) return;
 
       if (viewName === 'chatList') {
-        if (state.currentChar?.id) {
-          flushPendingDeliveryForChar(state.currentChar.id);
-        }
         saveAccountState();
         renderChatRoomsList();
         updateAccountAndCreditUI();
