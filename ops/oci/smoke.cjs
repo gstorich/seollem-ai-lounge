@@ -40,6 +40,8 @@ async function post(route, body, token) {
       const body = await response.text();
       assert(body.includes('<h1>' + title + '</h1>'), route);
       assert(body.includes('maybeworks@naver.com'), route);
+      if(['terms','products','refund'].includes(route)){assert(body.includes('구매 후 7일 이내'));assert(body.includes('전량 미사용')||body.includes('전혀 사용하지 않은'));assert(!body.includes('미사용 유료 잔액 비례 환급'));}
+      if(route==='refund')assert(body.includes('가분적 디지털 콘텐츠')&&body.includes('고객센터'));
       assert(!body.includes('/analytics.js'), 'Policy pages must not load analytics');
       assert.equal((await fetch(base + '/' + route + '.html')).status,200);
       assert(body.includes('href="/about"')&&body.includes('href="/verification"'),'Public guide navigation');

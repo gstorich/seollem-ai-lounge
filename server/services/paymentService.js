@@ -11,11 +11,22 @@ function grant(o){return o.grantId?db.sql.prepare('SELECT * FROM heart_grants WH
 function refundRecord(id){const r=db.sql.prepare('SELECT data FROM payment_refunds WHERE order_id=?').get(id);return r?JSON.parse(r.data):null;}
 function saveRefund(r){db.sql.prepare('INSERT INTO payment_refunds VALUES(?,?) ON CONFLICT(order_id) DO UPDATE SET data=excluded.data').run(r.orderId,JSON.stringify(r));}
 async function locked(id,fn){if(locks.has(id))throw error('PAYMENT_BUSY',409);locks.add(id);try{return await fn();}finally{locks.delete(id);}}
-function publicOrder(o){db.getUser(o.userId);const g=grant(o),r=refundRecord(o.id);return {id:o.id,name:o.name,price:o.price,hearts:o.hearts,createdAt:o.createdAt,status:o.status,cancelledAmount:o.cancelledAmount||0,remainingPaidHearts:(g?.remaining_units||0)/10,refundableAmount:g?Math.min(o.price-(o.cancelledAmount||0),Math.floor(o.price*g.remaining_units/g.granted_units)):0,refundPending:r?.status==='pending',reviewRequired:Boolean(o.reviewRequired)};}
+const REFUND_WINDOW=7*86400000;
+function refundEligibility(o,g,now=Date.now()){
+ const deadline=Number.isSafeInteger(o.paidAt)?o.paidAt+REFUND_WINDOW:null;
+ let reason=null;
+ if(o.status!=='paid'||!g||o.cancelledAmount)reason='PAYMENT_NOT_PAID';
+ else if(g.remaining_units!==g.granted_units||g.removed_units||g.expired_units)reason='REFUND_PURCHASE_USED';
+ else if(!deadline)reason='REFUND_DATE_UNCONFIRMED';
+ else if(now>deadline)reason='REFUND_WINDOW_EXPIRED';
+ return {refundableAmount:reason?0:o.price,refundIneligibleReason:reason,refundDeadline:deadline};
+}
+function publicOrder(o){db.getUser(o.userId);const g=grant(o),r=refundRecord(o.id);return {id:o.id,name:o.name,price:o.price,hearts:o.hearts,createdAt:o.createdAt,paidAt:o.paidAt||null,status:o.status,cancelledAmount:o.cancelledAmount||0,remainingPaidHearts:(g?.remaining_units||0)/10,...refundEligibility(o,g),refundPending:r?.status==='pending',reviewRequired:Boolean(o.reviewRequired)};}
+
 function create(user,pkgKey){
  if(!gateway.ready('payment'))throw error('PAYMENT_NOT_READY',503);if(!user.phone)throw error('PHONE_VERIFICATION_REQUIRED',403);
  const pkg=packages.find(p=>p.id===pkgKey);if(!pkg)throw error('INVALID_PACKAGE');const id='azit_'+crypto.randomBytes(16).toString('hex'),createdAt=Date.now();
- const o={id,userId:user.id,name:pkg.name,price:pkg.price,hearts:pkg.hearts,status:'pending',createdAt,termsVersion:'2026-10-18',checkoutConfirmedAt:createdAt,mode:gateway.settings.mode,pgId:gateway.settings.pgId,channelKey:gateway.settings.channelKey,nonce:crypto.randomBytes(24).toString('hex'),cancelledAmount:0};
+ const o={id,userId:user.id,name:pkg.name,price:pkg.price,hearts:pkg.hearts,status:'pending',createdAt,termsVersion:'2026-10-19',refundPolicyVersion:'unused-7d-v1',checkoutConfirmedAt:createdAt,mode:gateway.settings.mode,pgId:gateway.settings.pgId,channelKey:gateway.settings.channelKey,nonce:crypto.randomBytes(24).toString('hex'),cancelledAmount:0};
  db.sql.prepare('INSERT INTO payment_orders VALUES(?,?,?,?)').run(id,user.id,JSON.stringify(o),createdAt);
  return {order:publicOrder(o),userCode:gateway.settings.userCode,request:{channelKey:o.channelKey,pay_method:'card',merchant_uid:id,name:o.name,amount:o.price,currency:'KRW',buyer_tel:user.phone,custom_data:{azitOrder:o.nonce},m_redirect_url:gateway.settings.origin+'/payment/complete?orderId='+id,notice_url:gateway.settings.origin+'/api/payment/webhook'}};
 }
@@ -23,12 +34,14 @@ function validate(o,p){
  let custom=p.custom_data;try{if(typeof custom==='string')custom=JSON.parse(custom);}catch{custom=null;}
  if(p.merchant_uid!==o.id||p.amount!==o.price||p.name!==o.name||p.currency!=='KRW'||p.pay_method!=='card'||p.pg_provider!=='danal_tpay'||p.pg_id!==o.pgId||custom?.azitOrder!==o.nonce||!/^imp_[a-zA-Z0-9_]+$/.test(p.imp_uid||'')||!Number.isInteger(p.cancel_amount)||p.cancel_amount<0||p.cancel_amount>o.price||!['paid','cancelled','failed','ready'].includes(p.status))throw error('PAYMENT_MISMATCH',409);
  if(o.impUid&&o.impUid!==p.imp_uid)throw error('PAYMENT_MISMATCH',409);
+ if(['paid','cancelled'].includes(p.status)&&(!Number.isSafeInteger(p.paid_at)||p.paid_at<=0||p.paid_at*1000>Date.now()+300000||o.providerPaidAt&&o.providerPaidAt!==p.paid_at*1000))throw error('PAYMENT_MISMATCH',409);
 }
 function apply(id,p){return db.transaction(()=>{
  const o=get(id);if(!o)throw error('ORDER_NOT_FOUND',404);validate(o,p);
  const bound=db.sql.prepare('SELECT order_id FROM payment_receipts WHERE imp_uid=?').get(p.imp_uid);if(bound&&bound.order_id!==id)throw error('PAYMENT_MISMATCH',409);
+ if(['paid','cancelled'].includes(p.status)){o.providerPaidAt=p.paid_at*1000;o.paidAt=o.providerPaidAt;}
  if(p.cancel_amount<(o.cancelledAmount||0))throw error('STALE_PAYMENT',409);db.getUser(o.userId);
- if(!o.grantId&&['paid','cancelled'].includes(p.status)&&p.cancel_amount<o.price){db.sql.prepare('INSERT INTO payment_receipts VALUES(?,?)').run(p.imp_uid,id);db.creditHearts(o.userId,o.hearts,'payment:'+id);o.grantId=db.sql.prepare('SELECT id FROM heart_grants WHERE user_id=? AND reason=?').get(o.userId,'payment:'+id).id;o.impUid=p.imp_uid;o.paidAt=Date.now();}
+ if(!o.grantId&&['paid','cancelled'].includes(p.status)&&p.cancel_amount<o.price){db.sql.prepare('INSERT INTO payment_receipts VALUES(?,?)').run(p.imp_uid,id);db.creditHearts(o.userId,o.hearts,'payment:'+id);o.grantId=db.sql.prepare('SELECT id FROM heart_grants WHERE user_id=? AND reason=?').get(o.userId,'payment:'+id).id;o.impUid=p.imp_uid;}
  if(!o.grantId){o.status=p.cancel_amount>0?'cancelled_before_credit':p.status;o.cancelledAmount=p.cancel_amount;return save(o);}
  const r=refundRecord(id),g=grant(o);if(r?.status==='pending'&&p.cancel_amount>=r.targetCancelled){r.status='completed';r.completedAt=Date.now();saveRefund(r);}
  const target=Math.ceil(units(o.hearts)*p.cancel_amount/o.price),held=r?.units||0,additional=Math.max(0,target-(o.revokedUnits||0)-held),take=Math.min(g.remaining_units,additional);
@@ -41,7 +54,7 @@ async function refund(id,userId){
  return locked(id,async()=>{
   let o=get(id);if(!o||o.userId!==userId)throw error('ORDER_NOT_FOUND',404);if(!o.impUid)throw error('PAYMENT_NOT_PAID',409);
   let p=await gateway.payment(o.impUid);o=apply(id,p);const existing=refundRecord(id);if(existing?.status==='pending')throw error('REFUND_CHECK_PENDING',409);if(existing?.status==='completed')return publicOrder(o);
-  const held=db.transaction(()=>{db.getUser(userId);const g=grant(o);if(!g||g.remaining_units<=0)throw error('NO_REFUNDABLE_HEARTS',409);const amount=Math.min(o.price-p.cancel_amount,Math.floor(o.price*g.remaining_units/g.granted_units));if(amount<1)throw error('CONTACT_SUPPORT_FOR_REFUND',409);
+  const held=db.transaction(()=>{db.getUser(userId);const g=grant(o),eligibility=refundEligibility(o,g);if(eligibility.refundableAmount===0)throw error(eligibility.refundIneligibleReason,409);const amount=eligibility.refundableAmount;
    const r={orderId:id,units:g.remaining_units,amount,targetCancelled:p.cancel_amount+amount,status:'pending',createdAt:Date.now()};db.sql.prepare('UPDATE heart_grants SET removed_units=removed_units+remaining_units,remaining_units=0 WHERE id=?').run(g.id);db.sql.prepare('INSERT INTO ledger(user_id,delta,reason,created_at) VALUES(?,?,?,?)').run(userId,-r.units,'refund_hold:'+id,Date.now());saveRefund(r);db.getUser(userId);return r;});
   // Timeouts keep a durable hold; never automatically retry a money movement.
   let accepted=false;
