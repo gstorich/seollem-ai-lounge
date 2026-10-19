@@ -757,6 +757,14 @@
           </button>
         </div>
 
+        <div class="space-y-3 p-3 rounded-2xl border text-sm">
+          <strong>먼저 오는 연락 · 알림</strong>
+          <label class="flex items-center justify-between gap-3"><span>가끔 먼저 오는 연락 받기</span><input id="allowFirstContact" type="checkbox" checked class="w-5 h-5 accent-amber-400" /></label>
+          <p class="text-xs text-gray-600">일부 AI 캐릭터가 이전 대화를 떠올리며 먼저 연락할 수 있어요. 먼저 온 메시지는 무료이며 밤 10시~오전 10시에는 보내지 않아요.</p>
+          <button id="btnBrowserNotifications" type="button" class="w-full py-2.5 rounded-xl bg-amber-50 border border-amber-300 font-bold">브라우저 알림 허용</button>
+          <p id="notificationStatus" role="status" class="text-xs text-gray-600">알림을 허용하면 새 메시지가 왔을 때 알려드려요.</p>
+        </div>
+
         <!-- 3. Test & Developer Controls (VIP Mode, Reset) -->
         <div id="settingsDevControls" class="space-y-2 p-3 rounded-2xl bg-[#faf9f5] border border-[#e8e4d8] text-[12.5px]">
           <div class="flex items-center justify-between">
@@ -897,6 +905,7 @@
   <script src="/legal.js"></script>
   <script src="apiClient.js"></script>
   <script src="chatTiming.js"></script>
+  <script src="notifications.js" defer></script>
   <script>
     if (/[?&](tester|test|operator)=1/.test(location.search) || /(?:^|;\s*)(?:__Host-)?azit_admin=/.test(document.cookie || '')) {
       localStorage.setItem('azit_tester', '1');
@@ -4007,6 +4016,9 @@
       }
       chatContainer.appendChild(row);
       scrollToBottom();
+      if (sender === 'ai' && !skipPush) {
+        window.AzitNotifications?.notifyAiMessage(char, text);
+      }
     }
 
     function escapeHtml(str) {

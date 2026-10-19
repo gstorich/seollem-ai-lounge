@@ -4017,6 +4017,9 @@
       }
       chatContainer.appendChild(row);
       scrollToBottom();
+      if (sender === 'ai' && !skipPush) {
+        window.AzitNotifications?.notifyAiMessage(char, text);
+      }
     }
 
     function escapeHtml(str) {

@@ -56,7 +56,28 @@
    try{const inbox=await api.request('/notifications/inbox?visible=1');if(generation===epoch)window.dispatchEvent(new CustomEvent('azit-contact-inbox',{detail:inbox.items}));}
    catch{}finally{polling=false;}
  }
- window.AzitNotifications={logout:unsubscribe};
+ function notifyAiMessage(char, text) {
+   if (typeof Notification === 'undefined' || Notification.permission !== 'granted') return;
+   if (typeof document !== 'undefined' && document.visibilityState === 'visible' && (typeof document.hasFocus !== 'function' || document.hasFocus())) return;
+   try {
+     const title = char?.name || '아지트챗';
+     const body = (text || '새 메시지가 도착했어요').slice(0, 100);
+     const icon = char?.avatar || '/app-icon.svg';
+     if (typeof Notification === 'function') {
+       const n = new Notification(title, {
+         body,
+         icon,
+         tag: 'azit-msg-' + (char?.id || 'chat')
+       });
+       n.onclick = function() {
+         if (typeof window !== 'undefined' && window.focus) window.focus();
+         if (char?.id) window.dispatchEvent(new CustomEvent('azit-open-contact', { detail: char.id }));
+         n.close();
+       };
+     }
+   } catch {}
+ }
+ window.AzitNotifications={logout:unsubscribe,subscribe,notifyAiMessage};
  window.addEventListener('azit-account-ready',()=>{initialize();poll();});
  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')poll();});
  navigator.serviceWorker?.addEventListener('message',event=>{
