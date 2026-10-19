@@ -142,10 +142,32 @@ module.exports = {
     await check(reply);
     // Acting and record keeping are different tasks. The writer never sees the
     // lengthy extraction protocol, and the recorder cannot rewrite the dialogue.
-    const memorySchema={type:'OBJECT',properties:{memory:conversationContext.getResponseSchema(conversation).properties.memory},required:['memory'],propertyOrdering:['memory']};
-    const recordingPrompt=conversationContext.buildPrompt(conversation)+'\n[기억 기록 전용]\n마지막 assistant 메시지는 이미 선택된 실제 답장입니다. 다시 쓰거나 대체 답장을 생성하지 마세요. 해당 답장까지의 사실·감정 변화를 근거 ID에 맞춰 기록합니다. 출력은 {memory} JSON만 쓰며 reply나 roomLeft 필드를 만들지 않습니다. 스타일 예시는 실제 사건이 아닙니다.';
-    const recorded=await generate([...selectedHistory,{role:'assistant',content:reply}],recordingPrompt,memorySchema);
-    let memory;try{memory=JSON.parse(recorded).memory;}catch{throw Error('LLM_INVALID_MEMORY');}
+    let memory;
+    if (conversation.kind === 'greeting') {
+      // 첫인사(그리팅)는 사용자 발화가 없으므로 메모리 추출 단계(LLM 추가 호출)를 건너뛰어 응답 속도 대폭 단축
+      memory = {
+        summary: '',
+        retirements: [],
+        userFacts: [],
+        characterFacts: [],
+        sharedEvents: [],
+        openThreads: [],
+        agreements: [],
+        state: {
+          scene: '첫 만남',
+          characterEmotion: '호기심',
+          userEmotion: '미확인',
+          relationship: '첫 인사',
+          lastBeat: '첫 인사 시작',
+          sourceIds: []
+        }
+      };
+    } else {
+      const memorySchema={type:'OBJECT',properties:{memory:conversationContext.getResponseSchema(conversation).properties.memory},required:['memory'],propertyOrdering:['memory']};
+      const recordingPrompt=conversationContext.buildPrompt(conversation)+'\n[기억 기록 전용]\n마지막 assistant 메시지는 이미 선택된 실제 답장입니다. 다시 쓰거나 대체 답장을 생성하지 마세요. 해당 답장까지의 사실·감정 변화를 근거 ID에 맞춰 기록합니다. 출력은 {memory} JSON만 쓰며 reply나 roomLeft 필드를 만들지 않습니다. 스타일 예시는 실제 사건이 아닙니다.';
+      const recorded=await generate([...selectedHistory,{role:'assistant',content:reply}],recordingPrompt,memorySchema);
+      try{memory=JSON.parse(recorded).memory;}catch{throw Error('LLM_INVALID_MEMORY');}
+    }
     const turn=conversationContext.parseTurn(JSON.stringify({reply,roomLeft:dialogue.roomLeft,memory}),conversation);
 
     // Check for room left exit tag
