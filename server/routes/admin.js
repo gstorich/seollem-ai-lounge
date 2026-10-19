@@ -37,6 +37,13 @@ router.post('/customers/:id/hearts',(req,res)=>{
  if(!Number.isFinite(delta)||delta===0||Math.abs(delta)>10000||Math.abs(delta*10-Math.round(delta*10))>1e-7||typeof reason!=='string'||reason.trim().length<3||reason.length>500||typeof requestId!=='string'||! /^[a-f0-9-]{36}$/.test(requestId))return res.status(400).json({error:'하트는 0.1 단위, 최대 10,000개이며 처리 사유가 필요합니다.'});
  try{res.json({success:true,...ops.adjust(req.admin.id,req.params.id,delta,reason.trim(),requestId)});}catch(e){res.status(400).json({error:e.message});}
 });
+router.post('/customers/:id/adult-verification',(req,res)=>{
+ const {isAdult,reason}=req.body;
+ if(typeof isAdult!=='boolean')return res.status(400).json({error:'성인 인증 여부(true/false)가 필요합니다.'});
+ const result=ops.setAdultVerification(req.admin.id,req.params.id,isAdult,String(reason||'').trim().slice(0,500));
+ if(!result)return res.sendStatus(404);
+ res.json({success:true,...result});
+});
 router.get('/tickets',(req,res)=>res.json({success:true,...ops.tickets(null,['open','in_progress','answered','closed'].includes(req.query.status)?req.query.status:'all',page(req))}));
 router.get('/tickets/:id',(req,res)=>{const ticket=ops.getTicket(req.params.id);if(!ticket)return res.sendStatus(404);ops.audit(req.admin.id,'ticket_view',ticket.id);res.json({success:true,ticket});});
 router.post('/tickets/:id/replies',(req,res)=>{const body=String(req.body.body||'').trim();if(!body||body.length>5000)return res.status(400).json({error:'답변은 1~5,000자입니다.'});try{const ticket=ops.reply(req.params.id,req.admin.id,body,req.body.internal===true);if(!ticket)return res.sendStatus(404);res.json({success:true,ticket});}catch(e){res.status(400).json({error:e.message});}});

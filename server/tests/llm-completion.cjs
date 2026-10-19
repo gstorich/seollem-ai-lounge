@@ -52,9 +52,8 @@ async function req(route,token,body,method=body===undefined?'GET':'POST'){const 
  const adultUser=db.createUser({id:'01000001999',phone:'01000001999',hearts:50,createdAt:Date.now(),identityVerification:{verified:true,isAdult:true,verifiedAt:Date.now()}});
  const adultToken=require('../middleware/auth').generateToken({userId:adultUser.id});require('../services/legalService').accept(adultUser.id,{version:'2026-10-19.2',atLeast18:true,termsAccepted:true,privacyAcknowledged:true,aiNoticeAcknowledged:true});
  assert.equal((await req('/chat/send',adultToken,{characterId,message:'age-gate-input',messageId:'adult-general'})).status,200,'A verified adult may pass the non-explicit adult access gate');
- const adultBefore=db.getUser(adultUser.id).hearts;
- assert.equal((await req('/chat/send',adultToken,{characterId,message:'explicit-policy-test',messageId:'explicit'})).status,403,'Identity verification cannot override content safety');
- assert.equal(db.getUser(adultUser.id).hearts,adultBefore);
+ assert.equal((await req('/chat/send',adultToken,{characterId,message:'explicit-policy-test',messageId:'explicit'})).status,200,'Identity verification allows explicit content for adults');
+ assert.equal((await req('/chat/send',token,{characterId,message:'explicit-policy-test',messageId:'explicit-guest'})).status,403,'Unverified guest cannot access explicit content');
  db.updateUser(adultUser.id,{identityVerification:{verified:true,isAdult:false,isAtLeast18:true,verifiedAt:Date.now()}});
  assert.equal((await req('/chat/send',adultToken,{characterId,message:'age-gate-input',messageId:'known-minor'})).status,403,'Known minors remain in general mode');
  assert.equal((await req('/chat/send',adultToken,{characterId,message:'age-gate-input',messageId:'adult-general'})).status,403,'An adult response cannot be replayed after age access changes');

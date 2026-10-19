@@ -3584,12 +3584,21 @@
 
     function showContentAccessNotice(error) {
       if (!['MINIMUM_AGE_REQUIRED','ADULT_VERIFICATION_REQUIRED','CONTENT_NOT_ALLOWED'].includes(error.code)) return false;
-      showGenerationError(null,error.message);
+      document.getElementById('generationErrorNotice')?.remove();
+      const notice = document.createElement('div');
+      notice.id = 'generationErrorNotice';
+      notice.setAttribute('role', 'alert');
       if (error.code === 'ADULT_VERIFICATION_REQUIRED') {
-        const link=document.createElement('a'); link.href='/billing'; link.textContent='성인인증 · 인증 상태 확인';
-        link.className='inline-block mt-2 underline underline-offset-2';
-        document.getElementById('generationErrorNotice')?.appendChild(link);
+        notice.className = 'mx-auto my-4 max-w-[92%] rounded-2xl bg-gradient-to-b from-[#2a2428] to-[#1e1b20] border border-[#ff5376]/50 p-4 text-center text-[#f2e6e8] shadow-xl';
+        notice.innerHTML = `<div class="flex items-center justify-center gap-1.5 font-bold text-[#ff5376] text-[14px] mb-1.5"><span>🔞</span><span>성인 인증이 필요한 대화입니다</span></div><p class="text-[#d8c7cb] text-[12px] leading-relaxed mb-3">${error.message || '더 깊은 대화나 성인 수위로 넘어가려면 성인 인증(만 19세 이상)을 완료해야 합니다.'}</p><a href="/billing" class="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-gradient-to-r from-[#ff4b72] to-[#e02653] text-white font-semibold text-[13px] shadow hover:opacity-95 transition-all">성인 인증 완료하고 대화 계속하기 ↗</a>`;
+      } else {
+        notice.className = 'mx-auto my-4 max-w-[90%] rounded-xl bg-[#e5e1d8] px-4 py-3 text-center text-[12px] text-[#66635d] leading-relaxed';
+        const text = document.createElement('p');
+        text.textContent = error.message || '문제가 발생했습니다. 잠시 후에 다시 시도해주세요.';
+        notice.appendChild(text);
       }
+      chatContainer.appendChild(notice);
+      scrollToBottom();
       return true;
     }
 
