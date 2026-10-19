@@ -15,10 +15,11 @@ router.post('/session',rateLimit({windowMs:15*60000,limit:5,skipSuccessfulReques
 });
 router.use(requireAdmin);
 router.use('/characters',require('./adminCharacters'));
+router.use('/commerce',require('./adminCommerce'));
 router.get('/session',(req,res)=>res.json({success:true,operator:'관리자'}));
 router.delete('/session',(req,res)=>{res.clearCookie(cookieName,{httpOnly:true,secure:config.nodeEnv==='production',sameSite:'strict',path:'/'});res.json({success:true});});
 const page=req=>Math.max(0,Math.min(10000,parseInt(req.query.page)||0));
-router.get('/overview',(req,res)=>res.json({success:true,...ops.overview([7,30,90].includes(Number(req.query.days))?Number(req.query.days):30),runtime:{model:config.geminiModel,smsConfigured:sms.configured(),uptimeSeconds:Math.floor(process.uptime()),paymentEnabled:false},analytics:{measurementId:ops.setting('ga_measurement_id')??config.gaMeasurementId,propertyId:ops.setting('ga_property_id')??config.gaPropertyId}}));
+router.get('/overview',(req,res)=>res.json({success:true,...ops.overview([7,30,90].includes(Number(req.query.days))?Number(req.query.days):30),runtime:{model:config.geminiModel,smsConfigured:sms.configured(),uptimeSeconds:Math.floor(process.uptime()),paymentEnabled:require('../services/portoneGateway').ready('payment')},analytics:{measurementId:ops.setting('ga_measurement_id')??config.gaMeasurementId,propertyId:ops.setting('ga_property_id')??config.gaPropertyId}}));
 router.get('/customers',(req,res)=>res.json({success:true,...ops.users(String(req.query.q||'').slice(0,80),page(req),req.query.kind,req.query.engagement)}));
 router.get('/customers/:id',(req,res)=>{const customer=ops.customer(req.params.id);if(!customer)return res.sendStatus(404);ops.audit(req.admin.id,'customer_view',req.params.id);res.json({success:true,customer});});
 const conversations=require('../services/conversationService');

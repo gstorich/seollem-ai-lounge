@@ -88,7 +88,7 @@
       </header>
 
       <nav aria-label="서비스 안내" class="shrink-0 flex flex-wrap justify-center gap-x-4 gap-y-1 px-4 py-2 bg-white border-b border-[#e8e4d8] text-[12px] font-bold text-[#4b515d]">
-        <a href="/about" class="underline">서비스 소개</a><a href="/products" class="underline">상품 · 가격</a><a href="/verification" class="underline">본인확인 안내</a>
+        <a href="/about" class="underline">서비스 소개</a><a href="/products" class="underline">상품 · 가격</a><a href="/verification" class="underline">본인확인 안내</a><a href="/billing" class="underline">결제 내역</a>
       </nav>
 
       <!-- 2. Chat List Scrollable Body -->
@@ -4616,7 +4616,7 @@
       const pkg = PACKAGES[state.selectedPkg] || PACKAGES.popular;
       const button = document.getElementById('btnExecutePayment');
       if (button) button.textContent = verified
-        ? (window.ApiClient?.isHosted() ? '실결제 서비스 준비 중' : `${pkg.priceText} 결제하고 ${pkg.hearts.toLocaleString()} 하트 받기`)
+        ? (window.ApiClient?.isHosted() ? '결제 가능 여부 · 내역 확인' : `${pkg.priceText} 결제하고 ${pkg.hearts.toLocaleString()} 하트 받기`)
         : '휴대폰 연동하고 100하트 받기';
       document.querySelectorAll('.pay-method-btn').forEach(button => {
         button.disabled = !verified;
@@ -5081,7 +5081,7 @@
 
     document.getElementById('btnExecutePayment').addEventListener('click', () => {
       if (!state.verifiedPhone) { openPhoneAuthModal(); return; }
-      if (window.ApiClient?.isHosted()) { showToast('결제 서비스는 준비 중입니다. 결제나 하트 적립은 발생하지 않습니다.'); return; }
+      if (window.ApiClient?.isHosted()) { location.href='/billing?package='+encodeURIComponent(state.selectedPkg||'popular'); return; }
       const pkg = PACKAGES[state.selectedPkg] || PACKAGES.popular;
       const btn = document.getElementById('btnExecutePayment');
       const origText = btn.textContent;

@@ -51,6 +51,14 @@ async function post(route, body, token) {
         assert(body.includes('/?package='+pkg.id));
       }
     }
+    for(const route of ['/billing','/payment/complete','/verification/complete']){
+      const response=await fetch(base+route);assert.equal(response.status,200);const body=await response.text();assert(body.includes('/commerce.js'));assert(response.headers.get('content-security-policy').includes('https://cdn.portone.io'));
+    }
+    assert.equal((await (await fetch(base+'/api/payment/config')).json()).enabled,false);
+    assert.equal((await (await fetch(base+'/api/identity/config')).json()).enabled,false);
+    assert.equal((await fetch(base+'/api/payment/orders')).status,401);
+    assert.equal((await fetch(base+'/api/identity/status')).status,401);
+    assert.equal((await fetch(base+'/api/admin/commerce')).status,401);
     assert.match((await fetch(base + '/policy.css')).headers.get('content-type'),/css/);
     assert.match(await (await fetch(base + '/apiClient.js')).text(), /checkBackendHealth/);
     assert.match(await (await fetch(base + '/chatTiming.js')).text(), /AzitChatTiming/);
