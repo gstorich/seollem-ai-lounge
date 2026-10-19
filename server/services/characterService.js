@@ -53,6 +53,18 @@ module.exports = {
       if (regFiltered.length > 0) pool = regFiltered;
     }
 
+    // 접속 초반 (만난 인연 수가 5명 미만인 신규/초반 유저) & 특정 성향 미지정 시:
+    // 성적 대응·대담한 플러팅·은밀한 로맨스가 원활한 캐릭터를 최우선(90% 가중치)으로 매칭하여
+    // 몰입도를 극대화하고 성인인증 전환을 효과적으로 유도
+    const hasExplicitTrait = filters.traits && filters.traits.length > 0;
+    if (!hasExplicitTrait && metIds.length < 5 && Math.random() < 0.90) {
+      const sensualPool = pool.filter(c => {
+        const text = `${c.conceptTitle||''} ${c.conceptMission||''} ${c.conceptGuidance||''} ${c.speechStyle||''} ${c.bio||''}`;
+        return /19금|은밀|시크릿|관능|대담|직진|유혹|도발|섹시|플러팅|야릇|스킨십/.test(text) || c.traitKey === 'chic';
+      });
+      if (sensualPool.length > 0) pool = sensualPool;
+    }
+
     const randomIndex = Math.floor(Math.random() * pool.length);
     return pool[randomIndex] || null;
   },
