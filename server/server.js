@@ -50,6 +50,7 @@ app.use(['/api/chat/send','/api/chat/greeting','/api/chat/gift'], requestLimit(1
 // Static Assets (Avatars, Gifts) from project root
 app.use('/avatars', express.static(path.join(__dirname, '..', 'avatars')));
 app.use('/gifts', express.static(path.join(__dirname, '..', 'gifts')));
+app.get('/styles/app.css',(req,res)=>res.sendFile(path.join(__dirname,'..','styles','app.css')));
 app.get('/app-icon.svg',(req,res)=>res.sendFile(path.join(__dirname,'..','app-icon.svg')));
 
 // API Routes
@@ -96,9 +97,12 @@ app.get('/api/health', (req, res) => {
 });
 
 for (const [route,file] of [['/admin','admin.html'],['/support','support.html'],['/privacy','privacy.html'],['/terms','terms.html'],['/refund','refund.html'],['/products','products.html'],['/about','about.html'],['/verification','verification.html'],['/billing','billing.html'],['/payment/complete','billing.html'],['/verification/complete','billing.html'],['/privacy-20261018-initial','privacy-20261018-initial.html'],['/safety','safety.html'],['/policies','policies.html'],['/terms-20261019-v1','terms-20261019-v1.html'],['/privacy-20261019-v1','privacy-20261019-v1.html'],['/privacy-20261019-v2','privacy-20261019-v2.html'],['/refund-20261019-v1','refund-20261019-v1.html']]) {
-  app.get([route,route+'.html'],(req,res)=>{res.set('Cache-Control','no-store');res.set('Content-Security-Policy',file==='billing.html'?"default-src 'self'; script-src 'self' https://cdn.iamport.kr https://cdn.portone.io https://www.googletagmanager.com https://connect.facebook.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.iamport.kr https://*.portone.io https://www.google-analytics.com https://*.google.com https://*.googleadservices.com https://*.doubleclick.net https://www.facebook.com; frame-src https:; frame-ancestors 'none'; base-uri 'none'; form-action 'self' https:":"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");res.sendFile(path.join(__dirname,'..',file));});
+  app.get(route+'.html',(req,res)=>res.redirect(301,route+(req.originalUrl.includes('?')?req.originalUrl.slice(req.originalUrl.indexOf('?')):'')));
+  app.get(route,(req,res)=>{res.set('Cache-Control','no-store');res.set('Content-Security-Policy',file==='billing.html'?"default-src 'self'; script-src 'self' https://cdn.iamport.kr https://cdn.portone.io https://www.googletagmanager.com https://connect.facebook.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.iamport.kr https://*.portone.io https://www.google-analytics.com https://*.google.com https://*.googleadservices.com https://*.doubleclick.net https://www.facebook.com; frame-src https:; frame-ancestors 'none'; base-uri 'none'; form-action 'self' https:":"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");res.sendFile(path.join(__dirname,'..',file));});
 }
-// Serve frontend SPA from root
+app.get('/index.html',(req,res)=>res.redirect(301,'/'+(req.originalUrl.includes('?')?req.originalUrl.slice(req.originalUrl.indexOf('?')):'')));
+app.get('/',(req,res)=>res.sendFile(path.join(__dirname,'..','index.html')));
+// Public static assets
 app.get('/robots.txt', (req, res) => {
   res.type('text/plain');
   res.sendFile(path.join(__dirname, '..', 'robots.txt'));
@@ -108,9 +112,9 @@ app.get('/sitemap.xml', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'sitemap.xml'));
 });
 for (const file of [
-  'legal.js', 'commerce.js', 'advertising.js', 'index.html', 'apiClient.js', 'chatTiming.js', 'analytics.js',
+  'legal.js', 'commerce.js', 'advertising.js', 'apiClient.js', 'chatTiming.js', 'analytics.js',
   'notifications.js', 'notification-worker.js', 'manifest.webmanifest', 'admin.js',
-  'adminCharacters.js', 'support.js', 'operations.css', 'policy.css', 'custom_avatars_manifest.json',
+  'adminCharacters.js', 'adminFunnel.js', 'support.js', 'operations.css', 'policy.css', 'custom_avatars_manifest.json',
   'logo.png', 'logo-horizontal.png', 'app-icon.png', 'app-icon-192.png', 'app-icon-512.png',
   'apple-touch-icon.png', 'favicon.png', 'favicon-64.png', 'favicon.ico',
   'robots.txt', 'sitemap.xml'
@@ -123,7 +127,7 @@ app.use(['/server', '/.git', '/.env'], (req, res) => res.sendStatus(404));
 
 app.get('*', (req, res, next) => {
   if (req.path.startsWith('/api')) return next();
-  res.sendFile(path.join(__dirname, '..', 'index.html'));
+  res.status(404).set('X-Robots-Tag','noindex').type('html').send('<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>페이지를 찾을 수 없습니다 · 아지트챗</title><h1>페이지를 찾을 수 없습니다</h1><p>주소를 확인하거나 <a href="/">아지트챗 홈</a>으로 이동해주세요.</p></html>');
 });
 
 // 404 Handler for API

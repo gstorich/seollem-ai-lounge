@@ -3847,6 +3847,54 @@
       updateChatListBadges();
     }
 
+    // 창에서 벗어났을 때도 예정된 시간에 맞춰 방에 메시지를 저장하고 알림을 울리는 백그라운드 배송기
+    function deliverBubbleToRoom(char, bubbleText, msgId, mediaItem) {
+      if (!char?.id) return;
+      const room = state.savedRooms[char.id];
+      if (!room) return;
+      room.messages = room.messages || [];
+      const timeStr = new Date().toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true });
+
+      let added = false;
+      if (bubbleText && !room.messages.some(m => m.id === msgId || (m.sender === 'ai' && m.text === bubbleText && Math.abs((m.createdAt || 0) - Date.now()) < 5000))) {
+        room.messages.push({
+          id: msgId,
+          sender: 'ai',
+          text: bubbleText,
+          time: timeStr,
+          createdAt: Date.now(),
+          unread: true
+        });
+        added = true;
+      }
+      if (mediaItem) {
+        const mId = `${msgId}_media`;
+        if (!room.messages.some(m => m.id === mId)) {
+          room.messages.push({
+            id: mId,
+            sender: 'ai',
+            text: mediaItem.caption || '',
+            time: timeStr,
+            createdAt: Date.now(),
+            unread: true,
+            ...mediaItem
+          });
+          added = true;
+        }
+      }
+
+      if (added) {
+        room.unreadCount = (room.unreadCount || 0) + 1;
+        room.updatedAt = Date.now();
+        saveAccountState();
+        renderChatRoomsList();
+        updateChatListBadges();
+        if (window.AzitNotifications?.notifyAiMessage) {
+          AzitNotifications.notifyAiMessage(char, bubbleText || mediaItem?.caption || '새 메시지가 도착했습니다', { inActiveRoom: false });
+        }
+      }
+    }
+
     // 캐릭터 성향별 자연스럽고 설레는 무응답 선톡/재촉 멘트 생성기
     function pickCharacterFollowUpLine(char, count) {
       if (!char) return null;
@@ -3993,17 +4041,10 @@
           };
         }
 
+        const isInActiveRoom = () => !state.roomLeft && (!state.currentView || state.currentView === 'chatRoom') && (!state.currentChar || state.currentChar.id === char?.id);
+
         for (let idx = 0; idx < bubbles.length; idx++) {
           if (turnId && turnId !== state.messageTurnId) return;
-
-          // 사용자가 방을 나갔거나 다른 방을 보고 있으면 즉시 flush하고 안전 종료
-          if (state.roomLeft || (char?.id && state.currentChar?.id !== char.id) || (state.currentView && state.currentView !== 'chatRoom')) {
-            if (char?.id && typeof flushPendingDeliveryForChar === 'function') {
-              flushPendingDeliveryForChar(char.id);
-            }
-            if (char && window.AzitNotifications?.notifyAiMessage) AzitNotifications.notifyAiMessage(char, bubbles[idx]);
-            return;
-          }
 
           const bubbleText = bubbles[idx];
           const elapsed = idx === 0 && typingStartedAt ? Date.now() - typingStartedAt : 0;
@@ -4011,9 +4052,11 @@
             ? AzitChatTiming.greetingRemainingDelay(elapsed)
             : AzitChatTiming.remainingDelay(bubbleText, elapsed);
 
-          headerStatusText.textContent = `${char.name}님이 입력 중...`;
-          headerStatusText.className = 'text-[12.5px] text-emerald-600 mt-0.5 font-medium leading-snug';
-          showTypingIndicator(`${char.name}님이 입력 중...`);
+          if (isInActiveRoom()) {
+            headerStatusText.textContent = `${char.name}님이 입력 중...`;
+            headerStatusText.className = 'text-[12.5px] text-emerald-600 mt-0.5 font-medium leading-snug';
+            showTypingIndicator(`${char.name}님이 입력 중...`);
+          }
 
           await new Promise(resolve => {
             registerTimeout(resolve, remainingTypeMs);
@@ -4021,22 +4064,17 @@
 
           if (turnId && turnId !== state.messageTurnId) return;
 
-          // 타이머 대기 도중 사용자가 나갔을 경우 즉시 안전 저장
-          if (state.roomLeft || (char?.id && state.currentChar?.id !== char.id) || (state.currentView && state.currentView !== 'chatRoom')) {
-            if (char?.id && typeof flushPendingDeliveryForChar === 'function') {
-              flushPendingDeliveryForChar(char.id);
-            }
-            if (char && window.AzitNotifications?.notifyAiMessage) AzitNotifications.notifyAiMessage(char, bubbleText);
-            return;
+          if (isInActiveRoom()) {
+            hideTypingIndicator();
+            appendMessage('ai', bubbleText, { id: `${replyPlan.replyId}_${idx}` });
+            saveAccountState();
+          } else {
+            deliverBubbleToRoom(char, bubbleText, `${replyPlan.replyId}_${idx}`);
           }
-
-          hideTypingIndicator();
-          appendMessage('ai', bubbleText, { id: `${replyPlan.replyId}_${idx}` });
 
           if (char?.id && state.activePendingDeliveries?.[char.id]?.bubbles) {
             state.activePendingDeliveries[char.id].bubbles.splice(0, 1);
           }
-          saveAccountState();
 
           if (idx === bubbles.length - 1 && (!replyPlan || !replyPlan.mediaItem)) {
             if (char?.id && state.activePendingDeliveries) {
@@ -4048,7 +4086,7 @@
                 handlePartnerLeftRoom();
               }, 300);
             } else {
-              updateHeaderDefaultStatus();
+              if (isInActiveRoom()) updateHeaderDefaultStatus();
               scheduleIdleFollowUp();
             }
             return;
@@ -4064,10 +4102,6 @@
         // 사진 또는 음성 메시지가 첨부된 경우
         if (replyPlan && replyPlan.mediaItem && !replyPlan.leaveRoom) {
           if (turnId && turnId !== state.messageTurnId) return;
-          if (state.roomLeft || (char?.id && state.currentChar?.id !== char.id) || (state.currentView && state.currentView !== 'chatRoom')) {
-            if (char?.id && typeof flushPendingDeliveryForChar === 'function') flushPendingDeliveryForChar(char.id);
-            return;
-          }
 
           const isVoice = replyPlan.mediaItem.mediaType === 'voice';
           const actionText = isVoice
@@ -4075,25 +4109,28 @@
             : `${char.name}님이 사진을 선택하여 전송 중...`;
           const mediaWaitMs = isVoice ? 1200 : 900;
 
-          headerStatusText.textContent = actionText;
-          showTypingIndicator(actionText);
+          if (isInActiveRoom()) {
+            headerStatusText.textContent = actionText;
+            showTypingIndicator(actionText);
+          }
 
           await new Promise(resolve => {
             registerTimeout(resolve, mediaWaitMs);
           });
 
           if (turnId && turnId !== state.messageTurnId) return;
-          if (state.roomLeft || (char?.id && state.currentChar?.id !== char.id) || (state.currentView && state.currentView !== 'chatRoom')) {
-            if (char?.id && typeof flushPendingDeliveryForChar === 'function') flushPendingDeliveryForChar(char.id);
-            return;
+
+          if (isInActiveRoom()) {
+            hideTypingIndicator();
+            appendMessage('ai', replyPlan.mediaItem.caption || '', replyPlan.mediaItem);
+            updateHeaderDefaultStatus();
+            saveAccountState();
+          } else {
+            deliverBubbleToRoom(char, replyPlan.mediaItem.caption || '', `${replyPlan.replyId}_media`, replyPlan.mediaItem);
           }
 
-          hideTypingIndicator();
-          appendMessage('ai', replyPlan.mediaItem.caption || '', replyPlan.mediaItem);
           if (char?.id && state.activePendingDeliveries) delete state.activePendingDeliveries[char.id];
           state.isAiBusy = false;
-          updateHeaderDefaultStatus();
-          saveAccountState();
           scheduleIdleFollowUp();
         }
       } catch (err) {
@@ -5213,22 +5250,8 @@
       // 첫 대화 시작 시 알림 배너 업데이트
       updateNotificationBanners();
 
-      // 만약 사용자가 답변 대기 중에 방을 나갔더라도 응답을 버리지 않고 안전하게 보관 및 알림
-      if (state.currentChar?.id !== char.id || state.currentView !== 'chatRoom') {
-        state.activePendingDeliveries[char.id] = {
-          charId: char.id,
-          bubbles: plan.bubbles || [],
-          mediaItem: plan.mediaItem,
-          replyId: plan.replyId,
-          leaveRoom: plan.leaveRoom
-        };
-        flushPendingDeliveryForChar(char.id);
-        if (plan.bubbles && plan.bubbles[0] && window.AzitNotifications?.notifyAiMessage) {
-          AzitNotifications.notifyAiMessage(char, plan.bubbles[0]);
-        }
-        return;
-      }
-      await runRealisticReplySequence(plan,false,turnId,startedAt);
+      // 사용자가 방에 있든 뒤로가기를 눌러 목록에 있든, 예정된 현실적 타이핑 시간 후에 안전하게 배송 및 알림
+      await runRealisticReplySequence(plan, false, turnId, startedAt);
     }
 
     function updateFilterModalUI() {
@@ -6741,6 +6764,14 @@
         localStorage.setItem('azit_user_gender_pref', userGenderPref);
         updateFilterModalUI();
       }
+      window.addEventListener('pagehide', () => {
+        if (state.activePendingDeliveries) {
+          Object.keys(state.activePendingDeliveries).forEach(charId => {
+            flushPendingDeliveryForChar(charId);
+          });
+        }
+        saveAccountState();
+      });
     });
   </script>
 </body>

@@ -94,6 +94,11 @@ async function post(route, body, token) {
     }
     assert.equal((await post('/api/payment/verify', {}, guest.token)).status, 403);
     assert.equal((await fetch(base + '/api/missing')).status, 404);
+    const missing=await fetch(base+'/definitely-missing-seo-page');assert.equal(missing.status,404);assert.match(missing.headers.get('x-robots-tag'),/noindex/);
+    const alias=await fetch(base+'/about.html?utm_source=qa',{redirect:'manual'});assert.equal(alias.status,301);assert.equal(alias.headers.get('location'),'/about?utm_source=qa');
+    const indexAlias=await fetch(base+'/index.html?utm_source=qa',{redirect:'manual'});assert.equal(indexAlias.status,301);assert.equal(indexAlias.headers.get('location'),'/?utm_source=qa');
+    assert.match((await fetch(base+'/styles/app.css')).headers.get('content-type'),/css/);
+
     let limited;
     for (let i = 0; i < 10; i++) limited = await post('/api/auth/guest', {});
     assert.equal(limited.status, 429);

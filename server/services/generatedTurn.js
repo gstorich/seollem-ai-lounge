@@ -58,6 +58,9 @@ module.exports = async function generatedTurn(req, res, {character, message, req
       const value={success:true,partnerReply:result.text,replyId,roomLeft:result.roomLeft,heartsRemaining:current.hearts,costDeducted:charged.isVipUnlimited?0:cost,isAiGenerated:true,contentAudience:require('./contentAccess').verifiedAdult(user)?'adult':'general',fingerprint,...(kind==='gift'?{giftMessageId:requestId}:{})};
       db.saveChatRequest(id,requestId,value);
       if(kind==='chat'&&!result.roomLeft) require('./proactiveService').schedule(id,character.id);
+      if((kind==='chat'||kind==='gift')&&!result.roomLeft){
+        require('./pushService').sendNotificationToUser(id,character.id,result.text).catch(()=>{});
+      }
       return value;
     });
     return res.json(response);

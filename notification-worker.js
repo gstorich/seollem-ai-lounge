@@ -4,7 +4,7 @@ self.addEventListener('push',event=>{
  const characterId=typeof data.characterId==='string'&&/^[a-zA-Z0-9_-]{1,100}$/.test(data.characterId)?data.characterId:null;
  event.waitUntil(self.registration.showNotification('아지트챗',{
    body:'대화 상대에게 새 메시지가 왔어요',tag:typeof data.tag==='string'?data.tag:'azit-contact',
-   icon:'/app-icon.png',data:{characterId},renotify:false
+   icon:'/app-icon.png',badge:'/favicon-64.png',data:{characterId},renotify:true
  }));
 });
 self.addEventListener('notificationclick',event=>{

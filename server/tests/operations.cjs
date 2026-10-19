@@ -10,10 +10,12 @@ async function req(route,{method='GET',body,token,cookie,headers={}}={}){const r
  const guest=(await req('/auth/guest',{method:'POST',body:{}})).data,other=(await req('/auth/guest',{method:'POST',body:{}})).data;
  const phone='01000000001',user={id:phone,phone,hearts:50,createdAt:Date.now(),updatedAt:Date.now(),savedRooms:{},metCharIds:[]};sql.prepare('INSERT INTO users VALUES(?,?,?)').run(phone,phone,JSON.stringify(user));const memberToken=jwt.sign({userId:phone},secret,{expiresIn:'1h'});
  assert.equal((await req('/admin/overview')).status,401);
+ assert.equal((await req('/admin/funnel')).status,401);
  assert.equal((await req('/admin/overview',{token:memberToken})).status,401,'Customer JWT cannot access admin');
  assert.equal((await req('/admin/session',{method:'POST',body:{password:'wrong'}})).status,401);
  const login=await req('/admin/session',{method:'POST',body:{password}});assert.equal(login.status,200);assert.match(login.cookie,/HttpOnly/);assert.match(login.cookie,/Secure/);assert.match(login.cookie,/SameSite=Strict/);assert.match(login.cookie,/__Host-azit_admin=/);const cookie=login.cookie.split(';')[0];
  assert.equal((await req('/admin/overview',{cookie})).status,200);
+ const funnel=await req('/admin/funnel?days=7',{cookie});assert.equal(funnel.status,200);assert.equal(funnel.data.daily.length,7);assert.equal(funnel.cache,'no-store');
  assert.equal((await req('/admin/overview',{cookie})).cache,'no-store');
  assert.equal((await req('/admin/analytics',{method:'PUT',cookie,body:{measurementId:'G-ABCDEF1234'},headers:{Origin:'https://evil.example'}})).status,403);
  assert.equal((await req('/admin/analytics',{method:'PUT',cookie,body:{measurementId:'G-ABCDEF1234'},headers:{'X-Azit-Admin':''}})).status,403);

@@ -10,7 +10,7 @@ assert.equal(timing.greetingRemainingDelay(100),500);
 (async()=>{
  for(const file of ['index.html','seollem_chat_standalone.html']){
   const html=fs.readFileSync(path.resolve(__dirname,'../..',file),'utf8');
-  for(const match of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/g))new vm.Script(match[1]);
+  for(const match of html.matchAll(/<script\b([^>]*)>([\s\S]*?)<\/script>/g)){if(/type=["']application\/ld\+json["']/i.test(match[1]))continue;new vm.Script(match[2]);}
   const start=html.indexOf('    async function runRealisticReplySequence('),end=html.indexOf('    // 매 턴마다',start);
   let timers=[],messages=[];
   const state={currentChar:{name:'테스트'},roomLeft:false,messageTurnId:7};

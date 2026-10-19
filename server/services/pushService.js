@@ -49,4 +49,25 @@ async function deliverPending(send=webpush.sendNotification){
  }
 }
 const DAY=86400000;
-module.exports={ready,publicKey,validSubscription,subscribe,deliverPending};
+async function sendNotificationToUser(userId, characterId, text, send = webpush.sendNotification) {
+  if (!ready && send === webpush.sendNotification) return;
+  try {
+    const payload = JSON.stringify({
+      tag: 'azit-chat-' + characterId,
+      characterId
+    });
+    const rows = db.sql.prepare('SELECT endpoint, data FROM push_subscriptions WHERE user_id=?').all(userId);
+    for (const row of rows) {
+      try {
+        await send(JSON.parse(row.data), payload, { TTL: 3600, urgency: 'high', timeout: 5000 });
+      } catch (error) {
+        if ([404, 410].includes(error.statusCode)) {
+          db.sql.prepare('DELETE FROM push_subscriptions WHERE endpoint=? AND user_id=?').run(row.endpoint, userId);
+        }
+      }
+    }
+  } catch (e) {
+    console.warn('[push] sendNotificationToUser failed:', e.message);
+  }
+}
+module.exports={ready,publicKey,validSubscription,subscribe,deliverPending,sendNotificationToUser};

@@ -39,7 +39,7 @@ async function browserTests(){
  await req('/notifications/unsubscribe',two.token,{endpoint:subscription.endpoint});assert.equal(sql.prepare('SELECT count(*) n FROM push_subscriptions').get().n,1,'Other accounts cannot unsubscribe this device');
  await req('/notifications/unsubscribe',one.token,{endpoint:subscription.endpoint});assert.equal(sql.prepare('SELECT count(*) n FROM push_subscriptions').get().n,0);sql.close();
  for(const file of ['notification-worker.js','notifications.js','manifest.webmanifest','app-icon.svg']){const response=await fetch(base+'/'+file);assert.equal(response.status,200);assert(!(await response.text()).startsWith('<!DOCTYPE html>'));}
- const html=await(await fetch(base+'/')).text();for(const script of html.matchAll(/<script(?:\s[^>]*)?>([\s\S]*?)<\/script>/g))if(script[1].trim())new vm.Script(script[1]);
+ const html=await(await fetch(base+'/')).text();for(const script of html.matchAll(/<script(?:\s([^>]*))?>([\s\S]*?)<\/script>/g))if(script[2].trim()&&!/type=["']application\/ld\+json["']/i.test(script[1]||''))new vm.Script(script[2]);
  await browserTests();
  console.log('PASS: authenticated notification settings, account isolation, protected device unsubscribe, safe static worker/manifest, consent only on click, logout removal, generic push display and authenticated room deep link');
  }finally{if(child&&child.exitCode===null){const done=new Promise(r=>child.once('exit',r));child.kill();await done;}fs.rmSync(dir,{recursive:true,force:true});}})().catch(e=>{console.error(e);process.exitCode=1;});

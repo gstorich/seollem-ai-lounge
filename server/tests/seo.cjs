@@ -1,52 +1,29 @@
-const assert = require('node:assert/strict');
-const fs = require('node:fs');
-const path = require('node:path');
-
-const root = path.resolve(__dirname, '../..');
-
-(() => {
-  // 1. robots.txt 존재 및 내용 검증
-  const robots = fs.readFileSync(path.join(root, 'robots.txt'), 'utf8');
-  assert.match(robots, /User-agent:\s*\*/i);
-  assert.match(robots, /Allow:\s*\//i);
-  assert.match(robots, /Disallow:\s*\/admin/i);
-  assert.match(robots, /Sitemap:\s*https:\/\/azitchat\.com\/sitemap\.xml/i);
-
-  // 2. sitemap.xml 존재 및 내용 검증
-  const sitemap = fs.readFileSync(path.join(root, 'sitemap.xml'), 'utf8');
-  assert.match(sitemap, /<urlset/);
-  assert.match(sitemap, /<loc>https:\/\/azitchat\.com\/<\/loc>/);
-  assert.match(sitemap, /<loc>https:\/\/azitchat\.com\/about\.html<\/loc>/);
-
-  // 3. index.html SEO 태그 검증
-  const indexHtml = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-  assert.match(indexHtml, /<title>아지트챗 \(AzitChat\) - 1:1 실시간 AI 채팅 & 설렘 라운지<\/title>/);
-  assert.match(indexHtml, /<meta name="description"/);
-  assert.match(indexHtml, /<meta name="keywords"/);
-  assert.match(indexHtml, /<meta name="robots" content="index, follow/);
-  assert.match(indexHtml, /<meta property="og:title"/);
-  assert.match(indexHtml, /<meta property="og:description"/);
-  assert.match(indexHtml, /<meta property="og:image"/);
-  assert.match(indexHtml, /<meta name="twitter:card"/);
-  assert.match(indexHtml, /application\/ld\+json/);
-  assert.match(indexHtml, /schema\.org/);
-  assert.match(indexHtml, /WebSite/);
-  assert.match(indexHtml, /WebApplication/);
-  assert.match(indexHtml, /FAQPage/);
-
-  // 4. nginx-azitchat.conf noindex 헤더 격리 검증 (전역 noindex 제거 및 admin에만 적용)
-  const nginxConf = fs.readFileSync(path.join(root, 'ops/oci/nginx-azitchat.conf'), 'utf8');
-  assert.match(nginxConf, /location ~\*\s*\^\/\(admin\|admin\\\.html\|api\/admin\)\s*\{[^}]*add_header X-Robots-Tag "noindex/);
-  // 전역(location 밖)에 noindex가 없어야 함
-  const lines = nginxConf.split('\n');
-  let insideLocation = false;
-  for (const line of lines) {
-    if (line.includes('location ')) insideLocation = true;
-    if (insideLocation && line.includes('}')) insideLocation = false;
-    if (!insideLocation && line.includes('X-Robots-Tag')) {
-      assert.fail('X-Robots-Tag should not be set outside location blocks');
-    }
-  }
-
-  console.log('PASS: SEO configuration, robots.txt, sitemap.xml, Schema.org JSON-LD, and nginx search crawler headers');
-})();
+'use strict';
+const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path');
+const root=path.resolve(__dirname,'../..'),read=n=>fs.readFileSync(path.join(root,n),'utf8');
+const robots=read('robots.txt');
+assert.equal((robots.match(/User-agent:/gi)||[]).length,1,'Specific crawler groups must not override sensitive-path exclusions');
+for(const p of ['/admin','/api/','/billing','/payment/'])assert(robots.includes('Disallow: '+p));
+assert(robots.includes('Sitemap: https://azitchat.com/sitemap.xml'));
+const urls=[...read('sitemap.xml').matchAll(/<loc>([^<]+)<\/loc>/g)].map(m=>m[1]);
+assert.equal(new Set(urls).size,urls.length);assert(urls.includes('https://azitchat.com/'));assert(urls.includes('https://azitchat.com/about'));
+const titles=new Set();
+for(const url of urls){const parsed=new URL(url);assert.equal(parsed.origin,'https://azitchat.com');assert(!parsed.search);assert(!parsed.pathname.endsWith('.html'));
+ const html=read(parsed.pathname==='/'?'index.html':parsed.pathname.slice(1)+'.html');
+ assert(!/<meta[^>]+name="robots"[^>]+content="[^"]*noindex/.test(html),'No noindex pages in sitemap');
+ const canonical=html.match(/<link[^>]+rel="canonical"[^>]+href="([^"]+)"/);assert.equal(canonical?.[1],url);
+ const title=html.match(/<title>(.*?)<\/title>/s)?.[1];assert(title&&title.length<65);assert(!titles.has(title));titles.add(title);
+ assert(/<meta name="description" content="[^"]{20,}"/.test(html));assert(/<html lang="ko"/.test(html));
+}
+assert(!urls.some(u=>/support|admin|billing|complete/.test(u)));
+const html=read('index.html');
+assert(!/user-scalable=no|maximum-scale=1/.test(html));assert(!html.includes('cdn.tailwindcss.com'));assert(html.includes('/styles/app.css'));
+assert.equal((html.match(/<h1(?:\s|>)/g)||[]).length,1);
+assert(!html.includes('100% 프라이빗'));assert(!html.includes('모든 대화는 암호화'));
+const graph=JSON.parse(html.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1])['@graph'];
+for(const type of ['WebSite','Organization','WebApplication'])assert(graph.some(x=>x['@type']===type));
+assert(!graph.some(x=>x['@type']==='FAQPage'),'No hidden FAQ markup');assert(!graph.some(x=>x.aggregateRating),'Never invent review ratings');
+assert.equal(graph.find(x=>x['@type']==='Organization').logo.width,1024);
+assert.match(read('styles/app.css'),/Tailwind|tailwind|--tw-/);
+const nginx=read('ops/oci/nginx-azitchat.conf');assert.match(nginx,/location ~\*\s*\^\/\(admin\|admin\\\.html\|api\/admin\)\s*\{[^}]*add_header X-Robots-Tag "noindex/);
+console.log('PASS SEO: canonical sitemap/indexability consistency, crawler exclusions, unique metadata, static schema, no hidden FAQ or privacy guarantees, scalable viewport and compiled CSS');
