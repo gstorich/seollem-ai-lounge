@@ -3137,7 +3137,9 @@
           const bubbleText = bubbles[idx];
 
           const elapsed = idx === 0 && typingStartedAt ? Date.now() - typingStartedAt : 0;
-          const remainingTypeMs = AzitChatTiming.remainingDelay(bubbleText, elapsed);
+          const remainingTypeMs = replyPlan?.greeting
+            ? AzitChatTiming.greetingRemainingDelay(elapsed)
+            : AzitChatTiming.remainingDelay(bubbleText, elapsed);
 
           // 각 말풍선 타이핑 시작
           headerStatusText.textContent = `${char.name}님이 입력 중...`;
@@ -3875,6 +3877,7 @@
 
     // 캐릭터 성격·직업·지역·나이·시간대 및 고유 컨셉 태그에 최적화된 동적 첫인사 생성기
     async function deliverFirstGreeting(char, requestId = 'greet_' + crypto.randomUUID()) {
+      const greetingStartedAt = Date.now();
       if (state.currentChar?.id !== char.id) return;
       state.isAiBusy = true;
       state.isGreetingPending = true;
@@ -3885,7 +3888,7 @@
         const result = await ApiClient.sendGreeting(char.id, requestId);
         if (!result.isAiGenerated || !result.partnerReply?.trim()) throw new Error('Invalid generated greeting');
         if (state.currentChar?.id !== char.id || !state.isGreetingPending) return;
-        await runRealisticReplySequence({bubbles:[result.partnerReply],replyId:result.replyId});
+        await runRealisticReplySequence({bubbles:[result.partnerReply],replyId:result.replyId,greeting:true},false,null,greetingStartedAt);
       } catch (error) {
         if (state.currentChar?.id === char.id) showGenerationError(() => deliverFirstGreeting(char,requestId));
       } finally {
