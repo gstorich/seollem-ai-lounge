@@ -39,6 +39,15 @@ global.fetch=async(url,options)=>{
  for(const body of sentGoogle){const name=actionNames.get(body.destinations[0].productDestinationId);assert(name);const e=before.find(e=>e.destination==='google_browser'&&e.name===name);assert.equal(body.events[0].transactionId,e.transaction_id||e.id);assert.equal(body.events[0].conversionValue,['purchase','begin_checkout'].includes(name)?19900:0);}
  for(const e of sentMeta)assert(before.some(b=>b.destination==='meta_browser'&&b.id===e.event_id));
  await ads.flush();assert.equal(sentMeta.length,7);assert.equal(sentGoogle.length,6);
+ // Readiness probes validate only; never seed production learning. Failed new actions retry later.
+ let probes=0,failProbe=true;global.fetch=async(url,opts)=>{const b=JSON.parse(opts.body);assert.equal(b.validateOnly,true);probes++;const name=actionNames.get(b.destinations[0].productDestinationId);if(name==='first_chat'&&failProbe)return {ok:false,json:async()=>({error:{details:[{fieldViolations:[{reason:'NOT_FOUND'}]}]}})};return {ok:true,json:async()=>({requestId:'validate-only-'+probes})};};
+ await ads.validateDestinations();assert.equal(probes,6);assert(ads.diagnostics().destinationHealth.some(h=>h.name==='first_chat'&&h.detail==='NOT_FOUND'&&h.status==='validation_failed'));
+ await ads.validateDestinations();assert.equal(probes,6);failProbe=false;db.sql.prepare("UPDATE ad_destination_health SET checked_at=0 WHERE name='first_chat'").run();await ads.validateDestinations();assert.equal(probes,7);assert(ads.diagnostics().destinationHealth.every(h=>h.status==='validated'));
+ assert.equal(db.sql.prepare('SELECT count(*) n FROM ad_events').get().n,7);
+ // A downstream processing failure stays retryable, preserving the same conversion identity.
+ db.sql.prepare("UPDATE ad_deliveries SET next_at=0 WHERE destination='google_server' AND status='ingested'").run();global.fetch=async(url,opts)=>url.includes('requestStatus:retrieve')?{ok:true,json:async()=>({requestStatusPerDestination:[{requestStatus:'FAILED'}]})}:Promise.reject(Error('not due yet'));
+ await ads.flush();assert.equal(db.sql.prepare("SELECT count(*) n FROM ad_deliveries WHERE destination='google_server' AND status='retry'").get().n,6);
+
  const denied=db.createUser({id:'denied'});ads.clientEvent(denied,'page_view',crypto.randomUUID());assert.equal(ads.pending(denied).length,0);
  const tester=db.createUser({id:'tester',isTester:true});ads.updateContext(tester,{granted:true});ads.clientEvent(tester,'view_pricing',crypto.randomUUID());assert.equal(ads.pending(tester).length,0);
  ads.updateContext(member,{granted:false});assert.equal(ads.pending(member).length,0);assert(db.sql.prepare('SELECT data FROM ad_events WHERE user_id=?').all(member.id).every(e=>e.data==='{}'));

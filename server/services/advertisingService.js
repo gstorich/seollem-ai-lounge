@@ -89,7 +89,7 @@ async function checkGoogleReceipts(){
  for(const r of db.sql.prepare("SELECT * FROM ad_deliveries WHERE destination='google_server' AND status IN ('ingested','ingested_with_warnings') AND next_at<=? LIMIT 10").all(Date.now())){
   try{const result=await google.status(r.request_id),d=result[0];let status=r.status;
    if(d?.requestStatus==='SUCCESS')status=d.warningInfo?.warningCounts?.length?'accepted_with_warnings':'accepted';
-   else if(['FAILED','PARTIAL_SUCCESS'].includes(d?.requestStatus))status='provider_rejected';
+   else if(['FAILED','PARTIAL_SUCCESS'].includes(d?.requestStatus))status='retry';
    db.sql.prepare('UPDATE ad_deliveries SET status=?,provider_diagnostics=?,checks=checks+1,next_at=?,delivered_at=? WHERE event_id=? AND destination=?').run(status,JSON.stringify(result),Date.now()+Math.min(3600000,1800000*1.3**Math.min(r.checks+1,8)),status.startsWith('accepted')?Date.now():null,r.event_id,r.destination);
   }catch{db.sql.prepare("UPDATE ad_deliveries SET checks=checks+1,next_at=?,last_error='DIAGNOSTICS_UNAVAILABLE' WHERE event_id=? AND destination=?").run(Date.now()+3600000,r.event_id,r.destination);}
  }

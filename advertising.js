@@ -77,6 +77,7 @@ const priceModal=document.getElementById('paymentModal');if(priceModal){let wasV
 
 window.addEventListener('azit-account-ready',()=>start().then(()=>sync()).then(sendJobs).then(drain).catch(()=>{}));
 window.addEventListener('azit-ad-account-ready',()=>start().then(()=>sync()).then(sendJobs).then(drain).catch(()=>{}));
+window.addEventListener('azit-product-event',e=>{if(['chat_message_sent','phone_verified','phone_login'].includes(e.detail))start().then(()=>sync()).then(sendJobs).then(drain).catch(()=>{});});
 window.addEventListener('online',()=>sync().then(sendJobs).then(drain).catch(()=>{}));
 window.addEventListener('azit-consent-change',()=>{
  if(granted()){if(window.fbq)fbq('consent','grant');if(window.gtag)gtag('consent','update',{ad_storage:'granted',ad_user_data:'granted',ad_personalization:'denied'});start().then(()=>sync()).then(sendJobs).then(drain).catch(()=>{});}else{jobs.splice(0);for(const k of Object.keys(click))delete click[k];for(const raw of document.cookie.split(';')){const name=raw.split('=')[0].trim();if(!/^_(?:gcl|fbp|fbc)/.test(name))continue;document.cookie=name+'=; Max-Age=0; path=/; Secure; SameSite=Lax';const parts=location.hostname.split('.');for(let i=0;i<parts.length-1;i++)document.cookie=name+'=; Max-Age=0; path=/; domain=.'+parts.slice(i).join('.')+'; Secure; SameSite=Lax';}if(window.fbq)fbq('consent','revoke');if(window.gtag)gtag('consent','update',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});sync().catch(()=>{});}
