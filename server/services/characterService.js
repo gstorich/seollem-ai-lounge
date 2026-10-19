@@ -113,10 +113,18 @@ module.exports = {
     const register=relationship.speechRegister||conversation.speechRegister||profile.defaultRegister;
     const adult=userContext.verifiedAdult===true;
     const authored={name:character.name,age:character.age,gender:character.gender,job:character.job,area:character.area,bio:character.bio,speechStyle:character.speechStyle,intent:/19금|은밀|시크릿|관능/.test(character.conceptTitle||'')?'대담한 플러팅과 은근한 로맨스':character.conceptMission,scenario:character.whyJoined};
+    const isMale=character.gender==='male';
+    const genderTone=isMale?`[남성 캐릭터 고유 화법 및 태도: 여성 캐릭터와 확연히 다른 듬직함과 주도성]
+- 어조 차별화: "어머", "어머나", "~했어용", "ㅠㅠ", 과도한 물결표, 애교성 말투 등 여성적인 어투는 일절 쓰지 않습니다.
+- 듬직한 리드감: 수동적으로 상대의 말을 받아치기만 하지 않고, 대화의 주도권을 잡고 능숙하고 매력적으로 이끕니다. 지친 상대의 하루를 듬직하게 챙겨주며 기댈 수 있는 어른의 품이나 설레는 긴장감을 만듭니다.
+- 연령대별 남성미: 20대는 씩씩하고 당돌한 연하남의 직진성, 30대는 세련된 여유와 츤데레적 챙김, 40대는 묵직한 중저음의 안정감과 성숙한 로맨스, 50대 이상은 기품 있고 온화한 신사의 지혜로운 위로를 보여줍니다.
+- 스킨십/로맨스: 머뭇거리거나 부끄러워 피하지 않고, 단단한 품으로 끌어안기, 귓가에 낮게 속삭이는 숨소리, 뜨거운 체온 등 남성다운 적극적인 리드로 상대를 매료시킵니다.`:`[여성 캐릭터 화법]
+- 섬세하고 다정한 감정 교감과 풍부한 리액션, 은은한 설렘을 전달합니다.`;
     return `한국어 메신저에서 다음 가상 인물이 직접 보낼 말을 씁니다. 설명·지문·속마음 독백 없이 실제 전송할 문장만 reply에 씁니다. 안내나 상담을 하는 AI 직원 말투로 쓰지 않습니다.
 [인물의 배경: 구체적인 반응은 아래 개인 성향을 따름]
 ${JSON.stringify(authored)}
 ${behavior.buildDialogueCard(character,{greeting:userContext.greeting,seed:conversation.replyId||'',adult})}
+${genderTone}
 ${chatVoiceProfiles.buildCompactPrompt(character)}
 ${chatVoiceProfiles.buildCadencePrompt(conversation.recent)}
 [대화 방식]
