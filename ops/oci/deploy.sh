@@ -9,6 +9,7 @@ node server/tests/operations.cjs
 node server/tests/analytics.cjs
 node server/tests/matching.cjs
 node server/tests/commerce.cjs
+node server/tests/legal.cjs
 node server/tests/heart-expiry.cjs
 node server/tests/llm-completion.cjs
 node server/tests/chat-timing.cjs
@@ -51,7 +52,7 @@ fi
 mv "$incoming" "$release"
 chown -R seollem:seollem "$release"
 runuser -u seollem -- sh -c 'cd "$1/server" && npm ci --omit=dev --cache /var/lib/seollem-ai-lounge/npm-cache' sh "$release"
-runuser -u seollem -- sh -c 'cd "$1" && node server/tests/accounts.cjs && node server/tests/operations.cjs && node server/tests/matching.cjs && node server/tests/commerce.cjs && node server/tests/heart-expiry.cjs && node server/tests/llm-completion.cjs && node server/tests/chat-timing.cjs && node server/tests/chat-voice.cjs && node server/tests/character-behavior.cjs && node server/tests/character-studio.cjs && node server/tests/conversation-context.cjs && node server/tests/proactive.cjs && node server/tests/notifications.cjs && node server/tests/address-context.cjs && node server/tests/conversations.cjs' sh "$release"
+runuser -u seollem -- sh -c 'cd "$1" && node server/tests/accounts.cjs && node server/tests/operations.cjs && node server/tests/matching.cjs && node server/tests/commerce.cjs && node server/tests/legal.cjs && node server/tests/heart-expiry.cjs && node server/tests/llm-completion.cjs && node server/tests/chat-timing.cjs && node server/tests/chat-voice.cjs && node server/tests/character-behavior.cjs && node server/tests/character-studio.cjs && node server/tests/conversation-context.cjs && node server/tests/proactive.cjs && node server/tests/notifications.cjs && node server/tests/address-context.cjs && node server/tests/conversations.cjs' sh "$release"
 install -d -m 0700 /var/backups/seollem-ai-lounge
 if [ -f /var/lib/seollem-ai-lounge/seollem.json ]; then
   cp -n /var/lib/seollem-ai-lounge/seollem.json /var/backups/seollem-ai-lounge/pre-sqlite.json
@@ -83,6 +84,9 @@ ln -sfn "$release" /opt/seollem-ai-lounge/current
 install -m 0644 "$release/ops/oci/seollem-ai-lounge.service" /etc/systemd/system/seollem-ai-lounge.service
 install -m 0644 "$release/ops/oci/seollem-backup.service" /etc/systemd/system/seollem-backup.service
 install -m 0644 "$release/ops/oci/seollem-backup.timer" /etc/systemd/system/seollem-backup.timer
+install -d -o root -g adm -m 0750 /var/log/azitchat
+install -m 0644 "$release/ops/oci/azitchat-logrotate" /etc/logrotate.d/azitchat
+logrotate -d /etc/logrotate.d/azitchat
 systemctl daemon-reload
 systemctl enable seollem-ai-lounge.service
 systemctl restart seollem-ai-lounge.service

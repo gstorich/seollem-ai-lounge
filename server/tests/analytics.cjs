@@ -15,6 +15,6 @@ async function run(consent,pathname='/',dnt='0'){
  const calls=allowed.context.dataLayer.map(x=>Array.from(x));
  assert(calls.some(x=>x[0]==='event'&&x[1]==='chat_message_sent'));
  const serialized=JSON.stringify(calls);assert(!serialized.includes('01099999999'));assert(!serialized.includes('private-message'));assert(!serialized.includes('user_id'));
- const config=calls.find(x=>x[0]==='config')[2];assert.equal(config.send_page_view,false);assert.equal(config.allow_google_signals,false);assert.equal(config.allow_ad_personalization_signals,false);assert.equal(config.page_location,'https://azitchat.com/');assert.equal(config.page_referrer,'https://example.com');
+ const config=calls.find(x=>x[0]==='config')[2];assert.equal(config.cookie_expires,180*86400);assert.equal(config.cookie_update,false);assert.equal(config.send_page_view,false);assert.equal(config.allow_google_signals,false);assert.equal(config.allow_ad_personalization_signals,false);assert.equal(config.page_location,'https://azitchat.com/');assert.equal(config.page_referrer,'https://example.com');
  console.log('PASS: GA consent/DNT/admin exclusion, explicit event whitelist, sanitized URL/referrer and no customer identifiers');
 })().catch(e=>{console.error(e);process.exitCode=1;});

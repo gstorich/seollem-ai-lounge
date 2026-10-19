@@ -1,7 +1,7 @@
 const assert=require('node:assert/strict'),{spawn}=require('node:child_process'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),crypto=require('node:crypto'),{DatabaseSync}=require('node:sqlite'),jwt=require('jsonwebtoken');
 const root=path.resolve(__dirname,'../..'),dir=fs.mkdtempSync(path.join(os.tmpdir(),'azit-matching-')),secret=crypto.randomBytes(48).toString('hex'),base='http://127.0.0.1:19414/api';
 let child,sql,logs='';
-async function request(route,token,body){const response=await fetch(base+route,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});return {status:response.status,...await response.json()};}
+async function request(route,token,body){const response=await fetch(base+route,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json',...(token?{Authorization:'Bearer '+token}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});const data=await response.json();if(route==='/auth/guest'&&data.token)assert.equal((await request('/legal/accept',data.token,{version:'2026-10-19.2',atLeast18:true,termsAccepted:true,privacyAcknowledged:true,aiNoticeAcknowledged:true})).status,200);return {status:response.status,...data};}
 (async()=>{try{
  child=spawn(process.execPath,['server/server.js'],{cwd:root,env:{...process.env,NODE_ENV:'production',HOST:'127.0.0.1',PORT:'19414',DATABASE_FILE:path.join(dir,'legacy.json'),SQLITE_FILE:path.join(dir,'test.sqlite'),JWT_SECRET:secret,GEMINI_API_KEY:'',OPENAI_API_KEY:'',DEFAULT_GUEST_HEARTS:'1.9'},stdio:['ignore','pipe','pipe']});child.stdout.on('data',x=>logs+=x);child.stderr.on('data',x=>logs+=x);
  let ready=false;for(let i=0;i<100;i++){try{if((await fetch(base+'/health')).ok){ready=true;break;}}catch{}await new Promise(r=>setTimeout(r,50));}assert(ready,logs);
@@ -36,6 +36,7 @@ async function request(route,token,body){const response=await fetch(base+route,{
  update({hearts:0});assert.equal((await request('/match/request',token,{characterId:'p_0002'})).status,402,'Balance is checked again after preflight');
  update({hearts:0,isVipUnlimited:true});assert.equal((await request('/match/request',token,{characterId:'p_0002'})).status,200,'Existing unlimited entitlement remains valid');
  const phone='01000000001',member={id:phone,phone,hearts:0,createdAt:Date.now(),savedRooms:{},metCharIds:[]};sql.prepare('INSERT INTO users VALUES(?,?,?)').run(phone,phone,JSON.stringify(member));const memberToken=jwt.sign({userId:phone},secret,{expiresIn:'1h'});
+ assert.equal((await request('/legal/accept',memberToken,{version:'2026-10-19.2',atLeast18:true,termsAccepted:true,privacyAcknowledged:true,aiNoticeAcknowledged:true})).status,200);
  const memberBlocked=await request('/match/request',memberToken,{});assert.equal(memberBlocked.status,402);assert.equal(memberBlocked.phoneVerified,true);
  for(const route of ['/payment/prepare','/payment/verify']){const pending=await request(route,memberToken,{pkgKey:'starter'});assert.equal(pending.status,503);assert.equal(pending.error,'PAYMENT_NOT_READY');}
  assert.equal(sql.prepare('SELECT count(*) n FROM orders').get().n,0);

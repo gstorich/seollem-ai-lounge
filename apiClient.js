@@ -20,6 +20,7 @@
       const res = await fetch(`${API_BASE}${route}`, { method, headers: this.getHeaders(),
         ...(body === undefined ? {} : { body: JSON.stringify(body) }), ...options });
       const data = await res.json();
+      if(data.error==='LEGAL_ACCEPTANCE_REQUIRED'&&!route.startsWith('/legal/')&&window.AzitLegal){await window.AzitLegal.ensure();return this.request(route,method,body,options);}
       if (!res.ok || data.success === false) {
         const error = new Error(data.message || data.error || '서버 요청에 실패했습니다.');
         error.status = res.status;

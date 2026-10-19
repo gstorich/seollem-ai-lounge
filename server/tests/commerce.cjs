@@ -4,7 +4,7 @@ Object.assign(process.env,{NODE_ENV:'test',DATABASE_FILE:path.join(dir,'old.json
 const db=require('../services/dbService'),gateway=require('../services/portoneGateway'),payments=require('../services/paymentService'),identity=require('../services/identityService');
 const vendor={...gateway};
 const cases=new Map();let cancelCalls=0,mode='success',identityResult,server;
-function user(phone){return db.createUser({id:phone,phone,hearts:0,createdAt:Date.now()});}
+function user(phone){const u=db.createUser({id:phone,phone,hearts:0,createdAt:Date.now()});require('../services/legalService').accept(u.id,{version:'2026-10-19.2',atLeast18:true,termsAccepted:true,privacyAcknowledged:true,aiNoticeAcknowledged:true});return db.getUser(u.id);}
 function prepare(u){const d=payments.create(u,'starter'),id=d.order.id;const p={merchant_uid:id,imp_uid:'imp_'+id.replaceAll('-','_'),status:'paid',paid_at:Math.floor(Date.now()/1000),amount:d.request.amount,name:d.request.name,currency:'KRW',pay_method:'card',pg_provider:'danal_tpay',pg_id:'test-mid',custom_data:d.request.custom_data,cancel_amount:0};cases.set(id,p);return p;}
 gateway.payment=async imp=>{const p=[...cases.values()].find(p=>p.imp_uid===imp);if(!p)throw Error('notfound');return structuredClone(p);};gateway.find=async id=>structuredClone(cases.get(id));
 gateway.cancel=async(imp,amount,checksum)=>{cancelCalls++;const p=[...cases.values()].find(p=>p.imp_uid===imp);assert.equal(checksum,p.amount-p.cancel_amount);if(mode==='reject')throw Object.assign(Error('declined'),{definitive:true});if(mode==='timeout-before')throw Error('timeout');p.cancel_amount+=amount;p.status=p.cancel_amount===p.amount?'cancelled':'paid';if(mode==='timeout-after')throw Error('timeout');return structuredClone(p);};

@@ -38,6 +38,7 @@ module.exports = async function generatedTurn(req, res, {character, message, req
     if (!result.isAiGenerated || !result.text?.trim()) throw Error('Invalid generated reply');
     const response = db.transaction(()=>{
       if(require('./contentAccess').verifiedAdult(user)&&!require('./contentAccess').verifiedAdult(db.getUser(id)))throw Object.assign(Error('ADULT_VERIFICATION_REQUIRED'),{accessBlocked:true});
+      if(!require('./legalService').accepted(db.getUser(id)))throw Object.assign(Error('LLM_CONSENT_CHANGED'),{accessBlocked:true});
       const charged = cost > 0 ? db.debit(id,cost,kind==='gift'?'gift:'+userMessage.giftKey:'chat') : db.getUser(id);
       if (!charged) { const error=Error('Insufficient balance after generation');error.code='INSUFFICIENT_HEARTS';throw error; }
       const replyId='reply_'+requestId;

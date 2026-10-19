@@ -8,7 +8,7 @@ const catalog=require('../services/characterService').getAllCharacters(),charact
 const selected=catalog.filter(c=>service.selected(c.id));assert(selected.length/catalog.length>.02&&selected.length/catalog.length<.08);
 const charId=character.id;
 function room(id,at=now-20*HOUR){
- db.createUser({id,hearts:0});
+ db.createUser({id,hearts:0});require('../services/legalService').accept(id,{version:'2026-10-19.2',atLeast18:true,termsAccepted:true,privacyAcknowledged:true,aiNoticeAcknowledged:true});
  db.appendMessages(id,charId,Array.from({length:8},(_,i)=>({id:id+'_'+i,sender:i%2?'ai':'user',text:i%2?'말해준 발표 기억할게':'발표 끝나면 이야기할게',createdAt:at+i})));
  assert(service.schedule(id,charId,at));
  return db.sql.prepare('SELECT * FROM proactive_jobs WHERE user_id=?').get(id);

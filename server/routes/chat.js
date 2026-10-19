@@ -5,7 +5,7 @@ const characters = require('../services/characterService');
 const config = require('../config');
 const generatedTurn = require('../services/generatedTurn');
 const {requireAuth} = require('../middleware/auth');
-router.use(requireAuth);
+router.use(requireAuth,require('../services/legalService').requireAcceptance);
 function characterAndId(req,res) {
   const {characterId}=req.body;
   const requestId=req.body.messageId || crypto.randomUUID();

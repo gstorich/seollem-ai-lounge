@@ -26,7 +26,7 @@ function publicOrder(o){db.getUser(o.userId);const g=grant(o),r=refundRecord(o.i
 function create(user,pkgKey){
  if(!gateway.ready('payment'))throw error('PAYMENT_NOT_READY',503);if(!user.phone)throw error('PHONE_VERIFICATION_REQUIRED',403);
  const pkg=packages.find(p=>p.id===pkgKey);if(!pkg)throw error('INVALID_PACKAGE');const id='azit_'+crypto.randomBytes(16).toString('hex'),createdAt=Date.now();
- const o={id,userId:user.id,name:pkg.name,price:pkg.price,hearts:pkg.hearts,status:'pending',createdAt,termsVersion:'2026-10-19',refundPolicyVersion:'unused-7d-v1',checkoutConfirmedAt:createdAt,mode:gateway.settings.mode,pgId:gateway.settings.pgId,channelKey:gateway.settings.channelKey,nonce:crypto.randomBytes(24).toString('hex'),cancelledAmount:0};
+ const o={id,userId:user.id,name:pkg.name,price:pkg.price,hearts:pkg.hearts,status:'pending',createdAt,termsVersion:require('./legalService').version,refundPolicyVersion:'unused-7d-v1',checkoutConfirmedAt:createdAt,mode:gateway.settings.mode,pgId:gateway.settings.pgId,channelKey:gateway.settings.channelKey,nonce:crypto.randomBytes(24).toString('hex'),cancelledAmount:0};
  db.sql.prepare('INSERT INTO payment_orders VALUES(?,?,?,?)').run(id,user.id,JSON.stringify(o),createdAt);
  return {order:publicOrder(o),userCode:gateway.settings.userCode,request:{channelKey:o.channelKey,pay_method:'card',merchant_uid:id,name:o.name,amount:o.price,currency:'KRW',buyer_tel:user.phone,custom_data:{azitOrder:o.nonce},m_redirect_url:gateway.settings.origin+'/payment/complete?orderId='+id,notice_url:gateway.settings.origin+'/api/payment/webhook'}};
 }

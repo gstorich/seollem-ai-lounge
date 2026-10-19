@@ -20,7 +20,7 @@ router.get('/eligibility', requireAuth, (req, res) => {
 });
 
 // POST /api/match/request
-router.post('/request', requireAuth, (req, res) => {
+router.post('/request', requireAuth, require('../services/legalService').requireAcceptance, (req, res) => {
   const user = req.user;
   const access = eligibility(user);
   if (!access.canMatch) return res.status(402).json({
@@ -56,7 +56,7 @@ router.post('/request', requireAuth, (req, res) => {
 });
 
 // POST /api/match/recall-previous
-router.post('/recall-previous', requireAuth, (req, res) => {
+router.post('/recall-previous', requireAuth, require('../services/legalService').requireAcceptance, (req, res) => {
   const user = req.user;
   const requestedId = typeof req.body.characterId === 'string' ? req.body.characterId : user.prevCharId;
   if (!requestedId || !(user.metCharIds || []).includes(requestedId)) {
