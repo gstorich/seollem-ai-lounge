@@ -16,6 +16,7 @@ router.post('/session',rateLimit({windowMs:15*60000,limit:5,skipSuccessfulReques
 router.use(requireAdmin);
 router.use('/characters',require('./adminCharacters'));
 router.use('/commerce',require('./adminCommerce'));
+router.get('/advertising',(req,res)=>res.json({success:true,...require('../services/advertisingService').diagnostics()}));
 router.get('/session',(req,res)=>res.json({success:true,operator:'관리자'}));
 router.delete('/session',(req,res)=>{res.clearCookie(cookieName,{httpOnly:true,secure:config.nodeEnv==='production',sameSite:'strict',path:'/'});res.json({success:true});});
 const page=req=>Math.max(0,Math.min(10000,parseInt(req.query.page)||0));

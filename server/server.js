@@ -70,7 +70,7 @@ app.use('/api/admin', requestLimit(60), require('./routes/admin'));
 app.use('/api/support', require('./routes/support'));
 app.get('/api/public-config', (req,res) => {
   res.set('Cache-Control','no-store');
-  res.json({gaMeasurementId: require('./services/operationsService').setting('ga_measurement_id') ?? config.gaMeasurementId});
+  res.json({advertising:require('./services/advertisingService').publicConfig(),gaMeasurementId: require('./services/operationsService').setting('ga_measurement_id') ?? config.gaMeasurementId});
 });
 app.use('/api/auth', authRoutes);
 app.use('/api/legal',require('./routes/legal'));
@@ -80,8 +80,10 @@ app.use('/api/match', matchRoutes);
 app.use('/api/chat', chatRoutes);
 app.use('/api/media', mediaRoutes);
 app.use('/api/payment', paymentRoutes);
+app.use('/api/advertising',requestLimit(60),require('./routes/advertising'));
 app.use('/api/identity',requestLimit(20),require('./routes/identity'));
 const stopCommerce=require('./services/paymentService').startWorker();
+const stopAdvertising=require('./services/advertisingService').start();
 
 // Health Check Endpoint (Essential for OCI Load Balancer / Health Checks)
 app.get('/api/health', (req, res) => {
@@ -94,11 +96,11 @@ app.get('/api/health', (req, res) => {
 });
 
 for (const [route,file] of [['/admin','admin.html'],['/support','support.html'],['/privacy','privacy.html'],['/terms','terms.html'],['/refund','refund.html'],['/products','products.html'],['/about','about.html'],['/verification','verification.html'],['/billing','billing.html'],['/payment/complete','billing.html'],['/verification/complete','billing.html'],['/privacy-20261018-initial','privacy-20261018-initial.html'],['/safety','safety.html'],['/policies','policies.html'],['/terms-20261019-v1','terms-20261019-v1.html'],['/privacy-20261019-v1','privacy-20261019-v1.html'],['/refund-20261019-v1','refund-20261019-v1.html']]) {
-  app.get([route,route+'.html'],(req,res)=>{res.set('Cache-Control','no-store');res.set('Content-Security-Policy',file==='billing.html'?"default-src 'self'; script-src 'self' https://cdn.iamport.kr https://cdn.portone.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.iamport.kr https://*.portone.io; frame-src https:; frame-ancestors 'none'; base-uri 'none'; form-action 'self' https:":"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");res.sendFile(path.join(__dirname,'..',file));});
+  app.get([route,route+'.html'],(req,res)=>{res.set('Cache-Control','no-store');res.set('Content-Security-Policy',file==='billing.html'?"default-src 'self'; script-src 'self' https://cdn.iamport.kr https://cdn.portone.io https://www.googletagmanager.com https://connect.facebook.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.iamport.kr https://*.portone.io https://www.google-analytics.com https://*.google.com https://*.googleadservices.com https://*.doubleclick.net https://www.facebook.com; frame-src https:; frame-ancestors 'none'; base-uri 'none'; form-action 'self' https:":"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");res.sendFile(path.join(__dirname,'..',file));});
 }
 // Serve frontend SPA from root
 for (const file of [
-  'legal.js', 'commerce.js', 'index.html', 'apiClient.js', 'chatTiming.js', 'analytics.js',
+  'legal.js', 'commerce.js', 'advertising.js', 'index.html', 'apiClient.js', 'chatTiming.js', 'analytics.js',
   'notifications.js', 'notification-worker.js', 'manifest.webmanifest', 'admin.js',
   'adminCharacters.js', 'support.js', 'operations.css', 'policy.css', 'custom_avatars_manifest.json',
   'logo.png', 'logo-horizontal.png', 'app-icon.png', 'app-icon-192.png', 'app-icon-512.png',
@@ -144,4 +146,5 @@ const server = app.listen(config.port, config.host, () => {
 server.on('close', stopHeartExpiry);
 server.on('close', stopProactive);
 server.on('close', stopCommerce);
+server.on('close',stopAdvertising);
 module.exports = { app, server };

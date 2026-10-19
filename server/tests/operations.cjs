@@ -32,7 +32,7 @@ async function req(route,{method='GET',body,token,cookie,headers={}}={}){const r
  assert.equal(sql.prepare("SELECT count(*) n FROM ledger WHERE user_id=? AND reason='admin_adjustment'").get(phone).n,1);
  assert.equal((await req('/admin/analytics',{method:'PUT',cookie,body:{measurementId:'G-ABCDEF1234',propertyId:'123456789'}})).status,200);
  assert.equal((await req('/public-config')).data.gaMeasurementId,'G-ABCDEF1234');
- assert.deepEqual(Object.keys((await req('/public-config')).data),['gaMeasurementId']);
+ assert.deepEqual(Object.keys((await req('/public-config')).data).sort(),['advertising','gaMeasurementId']);
  await req('/admin/analytics',{method:'PUT',cookie,body:{measurementId:'',propertyId:''}});assert.equal((await req('/public-config')).data.gaMeasurementId,'','Empty saved setting disables environment default');
  await req('/admin/analytics',{method:'PUT',cookie,body:{measurementId:'G-ABCDEF1234',propertyId:'123456789'}});
  const audits=(await req('/admin/audit',{cookie})).data.items;assert(audits.some(x=>x.action==='heart_adjustment'));assert(!JSON.stringify(audits).includes(password));
