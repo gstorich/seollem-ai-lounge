@@ -10,17 +10,84 @@
   let paused = false;
   let roomFingerprints = new Map();
   let catalogVersion='';
+  let cachedDeviceId = '';
+  function getDeviceId() {
+    if (cachedDeviceId) return cachedDeviceId;
+    try {
+      const parts = [];
+      const s = window.screen || {};
+      parts.push(`${s.width||0}x${s.height||0}x${s.colorDepth||0}@${window.devicePixelRatio||1}`);
+      const nav = window.navigator || {};
+      parts.push(nav.userAgent || '');
+      parts.push(nav.platform || '');
+      parts.push(nav.language || '');
+      parts.push(nav.languages ? nav.languages.join(',') : '');
+      parts.push(String(nav.hardwareConcurrency || 0));
+      parts.push(String(nav.deviceMemory || 0));
+      try {
+        parts.push(Intl.DateTimeFormat().resolvedOptions().timeZone || '');
+        parts.push(String(new Date().getTimezoneOffset()));
+      } catch {}
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = 200;
+        canvas.height = 40;
+        const ctx = canvas.getContext('2d');
+        if (ctx) {
+          ctx.textBaseline = 'alphabetic';
+          ctx.fillStyle = '#f60';
+          ctx.fillRect(10, 5, 80, 20);
+          ctx.fillStyle = '#069';
+          ctx.font = '14px Arial';
+          ctx.fillText('azitchat_dev_fp,987!', 4, 25);
+          ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
+          ctx.fillText('azitchat_dev_fp,987!', 6, 27);
+          parts.push(canvas.toDataURL());
+        }
+      } catch {}
+      try {
+        const glCanvas = document.createElement('canvas');
+        const gl = glCanvas.getContext('webgl') || glCanvas.getContext('experimental-webgl');
+        if (gl) {
+          const ext = gl.getExtension('WEBGL_debug_renderer_info');
+          if (ext) {
+            parts.push(gl.getParameter(ext.UNMASKED_VENDOR_WEBGL) || '');
+            parts.push(gl.getParameter(ext.UNMASKED_RENDERER_WEBGL) || '');
+          }
+        }
+      } catch {}
+
+      const raw = parts.join('|||');
+      let h1 = 0xdeadbeef ^ 0, h2 = 0x41c6ce57 ^ 0;
+      for (let i = 0; i < raw.length; i++) {
+        const ch = raw.charCodeAt(i);
+        h1 = Math.imul(h1 ^ ch, 2654435761);
+        h2 = Math.imul(h2 ^ ch, 1597334677);
+      }
+      h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+      h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+      const hex = (h1 >>> 0).toString(16).padStart(8, '0') + (h2 >>> 0).toString(16).padStart(8, '0');
+      cachedDeviceId = `dev_${hex}`;
+      return cachedDeviceId;
+    } catch {
+      return 'dev_unknown';
+    }
+  }
+
   const ApiClient = {
     user: null,
     isHosted: () => hosted,
     isConnected: () => connected,
+    getDeviceId: () => getDeviceId(),
     getHeaders() {
       const isTester = (typeof localStorage !== 'undefined' && localStorage.getItem('azit_tester') === '1') ||
         (typeof document !== 'undefined' && /(?:^|;\s*)azit_tester=1/.test(document.cookie || ''));
+      const devId = getDeviceId();
       return {
         'Content-Type': 'application/json',
         ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-        ...(isTester ? { 'X-Azit-Tester': '1' } : {})
+        ...(isTester ? { 'X-Azit-Tester': '1' } : {}),
+        ...(devId && devId !== 'dev_unknown' ? { 'X-Device-Id': devId } : {})
       };
     },
     setToken(token) { authToken = token || ''; if (authToken) localStorage.setItem('seollem_auth_token', authToken); else localStorage.removeItem('seollem_auth_token'); },
@@ -60,7 +127,8 @@
         authToken=localStorage.getItem('seollem_auth_token')||authToken;
         const isTester = (typeof localStorage !== 'undefined' && localStorage.getItem('azit_tester') === '1') ||
           (typeof document !== 'undefined' && /(?:^|;\s*)azit_tester=1/.test(document.cookie || ''));
-        const data=await this.request('/auth/guest','POST',{ isTester });
+        const deviceId = getDeviceId();
+        const data=await this.request('/auth/guest','POST',{ isTester, deviceId });
         this.setToken(data.token);this.user=data.user;return data.user;
       };
       guestInit=(navigator.locks?navigator.locks.request('azit-session-bootstrap',initialize):initialize());

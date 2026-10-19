@@ -26,7 +26,9 @@ CREATE TABLE IF NOT EXISTS conversation_memory_items(user_id TEXT NOT NULL,chara
 CREATE TABLE IF NOT EXISTS conversation_state_events(user_id TEXT NOT NULL,character_id TEXT NOT NULL,reply_id TEXT NOT NULL,data TEXT NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(user_id,character_id,reply_id));
 CREATE TABLE IF NOT EXISTS match_recommendations(id TEXT PRIMARY KEY, user_id TEXT NOT NULL, character_id TEXT NOT NULL, mode TEXT NOT NULL, filter_applied TEXT, created_at INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS match_rec_time ON match_recommendations(created_at);
-CREATE INDEX IF NOT EXISTS conversation_time ON conversation_messages(created_at,user_id,character_id);`);
+CREATE INDEX IF NOT EXISTS conversation_time ON conversation_messages(created_at,user_id,character_id);
+CREATE TABLE IF NOT EXISTS device_profiles (device_id TEXT PRIMARY KEY, current_user_id TEXT NOT NULL, initial_user_id TEXT NOT NULL, welcome_granted INTEGER NOT NULL DEFAULT 1, ip TEXT, user_agent TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
+CREATE INDEX IF NOT EXISTS device_profiles_current_user ON device_profiles(current_user_id);`);
 const { createWallet, units } = require('./heartWallet');
 const wallet = createWallet(sql);
 function transaction(fn) {
@@ -157,6 +159,7 @@ module.exports = {
         sql.prepare('UPDATE legal_acceptance_events SET user_id=? WHERE user_id=?').run(user.id,sessionId);
         sql.prepare('UPDATE ledger SET user_id=? WHERE user_id=?').run(user.id, sessionId);
         sql.prepare('UPDATE chat_requests SET user_id=? WHERE user_id=?').run(user.id, sessionId);
+        sql.prepare('UPDATE device_profiles SET current_user_id=?, updated_at=? WHERE current_user_id=?').run(user.id, Date.now(), sessionId);
       }
       user.hearts = getUser(user.id).hearts;
       putUser(user);
@@ -326,5 +329,27 @@ module.exports = {
     } catch {
       return { total: 0, popular: 0, cold: 0, popularRatio: 70.0, coldRatio: 30.0, recentRecommendations: [] };
     }
+  },
+  getDeviceProfile(deviceId) {
+    if (!deviceId || typeof deviceId !== 'string') return null;
+    return sql.prepare('SELECT * FROM device_profiles WHERE device_id=?').get(deviceId) || null;
+  },
+  bindDeviceProfile(deviceId, userId, { ip, userAgent, welcomeGranted = 1 } = {}) {
+    if (!deviceId || typeof deviceId !== 'string' || !userId) return;
+    const now = Date.now();
+    sql.prepare(`
+      INSERT INTO device_profiles(device_id, current_user_id, initial_user_id, welcome_granted, ip, user_agent, created_at, updated_at)
+      VALUES(?,?,?,?,?,?,?,?)
+      ON CONFLICT(device_id) DO UPDATE SET
+        current_user_id=excluded.current_user_id,
+        ip=coalesce(excluded.ip, device_profiles.ip),
+        user_agent=coalesce(excluded.user_agent, device_profiles.user_agent),
+        updated_at=excluded.updated_at
+    `).run(deviceId, userId, userId, welcomeGranted ? 1 : 0, ip || null, userAgent || null, now, now);
+  },
+  updateDeviceUser(oldUserId, newUserId) {
+    if (!oldUserId || !newUserId) return;
+    sql.prepare('UPDATE device_profiles SET current_user_id=?, updated_at=? WHERE current_user_id=?')
+      .run(newUserId, Date.now(), oldUserId);
   }
 };

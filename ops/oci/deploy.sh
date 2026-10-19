@@ -27,6 +27,7 @@ node server/tests/notifications.cjs
 node server/tests/address-context.cjs
 node server/tests/conversations.cjs
 node server/tests/matching-bandit.cjs
+node server/tests/device-account.cjs
 node server/tests/seo.cjs
 host=haze-oci-a1
 incoming="/tmp/seollem-$release"

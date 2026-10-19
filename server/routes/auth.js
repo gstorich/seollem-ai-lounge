@@ -9,9 +9,7 @@ router.use((req,res,next)=>{res.set('Cache-Control','no-store');next();});
 
 // POST /api/auth/guest - Issue or restore guest session
 router.post('/guest', optionalAuth, (req, res) => {
-  // Restore only a session whose JWT was verified; an ID alone is not proof.
   let user = req.user || browserSession.restore(req);
-  const restored = Boolean(user);
   const cookie = req.headers.cookie || '';
   const adminCookieName = config.nodeEnv === 'production' ? '__Host-azit_admin' : 'azit_admin';
   const isTester = Boolean(
@@ -21,15 +19,61 @@ router.post('/guest', optionalAuth, (req, res) => {
     cookie.includes(adminCookieName)
   );
 
+  const rawDeviceId = req.headers['x-device-id'] || req.body?.deviceId;
+  const deviceId = (typeof rawDeviceId === 'string' && /^dev_[a-zA-Z0-9_-]{8,64}$/.test(rawDeviceId.trim()))
+    ? rawDeviceId.trim()
+    : null;
+
+  let restoredByDevice = false;
+
+  // If no active session from token or cookie, attempt to restore guest by device
+  if (!user && deviceId) {
+    const profile = dbService.getDeviceProfile(deviceId);
+    if (profile) {
+      const existingUser = dbService.getUser(profile.current_user_id);
+      if (existingUser && !existingUser.phone) {
+        user = existingUser;
+        restoredByDevice = true;
+      }
+    }
+  }
+
+  const restored = Boolean(user);
+
   if (!user) {
     const newId = `guest_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
+    let welcomeHearts = config.defaultGuestHearts;
+    if (deviceId) {
+      const profile = dbService.getDeviceProfile(deviceId);
+      if (profile && profile.welcome_granted) {
+        welcomeHearts = 0; // Prevent farming 50 welcome hearts on same device
+      }
+    }
+
     user = dbService.createUser({
       id: newId,
-      hearts: config.defaultGuestHearts,
-      isTester
+      hearts: welcomeHearts,
+      isTester,
+      deviceId: deviceId || undefined
     });
-  } else if (isTester && !user.isTester) {
-    user = dbService.updateUser(user.id, { isTester: true });
+
+    if (deviceId) {
+      dbService.bindDeviceProfile(deviceId, user.id, {
+        ip: req.ip,
+        userAgent: req.headers['user-agent'],
+        welcomeGranted: welcomeHearts > 0 ? 1 : 0
+      });
+    }
+  } else {
+    if (isTester && !user.isTester) {
+      user = dbService.updateUser(user.id, { isTester: true });
+    }
+    if (deviceId) {
+      dbService.bindDeviceProfile(deviceId, user.id, {
+        ip: req.ip,
+        userAgent: req.headers['user-agent']
+      });
+    }
   }
 
   browserSession.save(res,user);
@@ -39,6 +83,7 @@ router.post('/guest', optionalAuth, (req, res) => {
   return res.json({
     success: true,
     token,
+    restoredByDevice,
     user: {
       id: user.id,
       phone: user.phone,
