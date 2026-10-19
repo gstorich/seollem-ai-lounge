@@ -63,31 +63,33 @@
     #headerStatusText:empty { display: none; }
 
     /* =========================================================================
-       AZITCHAT MIDNIGHT LOUNGE THEME (은밀하고 아늑한 심야 프라이빗 라운지)
+       AZITCHAT MID WARM TAUPE & MOCHA LOUNGE THEME
+       (칠흑 같은 어둠을 걷어내고, 은은한 밤 조명 느낌의 소프트 차콜 & 샴페인 골드)
        ========================================================================= */
     :root {
-      --lounge-bg-canvas: #0d0b0a;
-      --lounge-bg-shell: #181512;
-      --lounge-bg-surface: #201b17;
-      --lounge-bg-surface-hover: #29231e;
-      --lounge-bg-input: #14110f;
-      --lounge-border: #332b24;
-      --lounge-border-light: #443a31;
-      --lounge-text-main: #f5eee6;
-      --lounge-text-sub: #b3a594;
-      --lounge-text-muted: #756a5c;
-      --lounge-gold: #d99a2c;
+      --lounge-bg-canvas: #1e1916;
+      --lounge-bg-shell: #27221d;
+      --lounge-bg-content: #2e2823;
+      --lounge-bg-surface: #383029;
+      --lounge-bg-surface-hover: #443b32;
+      --lounge-bg-input: #241e1a;
+      --lounge-border: #4d4135;
+      --lounge-border-light: #615243;
+      --lounge-text-main: #fbf7f2;
+      --lounge-text-sub: #d5c8b7;
+      --lounge-text-muted: #9e9080;
+      --lounge-gold: #e5a93c;
     }
 
     body {
-      background-color: #0d0b0a !important;
-      color: #f5eee6 !important;
+      background-color: #1a1613 !important;
+      color: #fbf7f2 !important;
     }
 
     #appShell {
-      background-color: #181512 !important;
-      border-color: #332b24 !important;
-      box-shadow: 0 16px 50px rgba(0, 0, 0, 0.6) !important;
+      background-color: #27221d !important;
+      border-color: #483d32 !important;
+      box-shadow: 0 16px 50px rgba(0, 0, 0, 0.45) !important;
     }
 
     /* Headers & Footers */
@@ -95,60 +97,61 @@
     #viewChatRoom header,
     #viewChatList footer,
     #viewChatRoom footer {
-      background-color: #201b17 !important;
-      border-color: #332b24 !important;
-      color: #f5eee6 !important;
+      background-color: #332b24 !important;
+      border-color: #483d32 !important;
+      color: #fbf7f2 !important;
     }
 
-    /* Views background */
+    /* Views background (밝지도 않고 칠흑도 아닌 온기 있는 소프트 모카) */
     #viewChatList,
     #viewChatList > div,
     #viewChatRoom,
     #chatContainer,
     #liveActionRow {
-      background-color: #141210 !important;
+      background-color: #2b2520 !important;
     }
 
     /* Chat List Hero Start Card & Sub Cards */
     #viewChatList .bg-white {
-      background-color: #201b17 !important;
-      border-color: #332b24 !important;
-      color: #f5eee6 !important;
+      background-color: #362e27 !important;
+      border-color: #4d4136 !important;
+      color: #fbf7f2 !important;
     }
 
     /* Primary Accent Gold Buttons (새 대화 시작, 다음 상대, 전송) */
     #btnListNewMatch,
     #btnHeaderNextMatch,
     #btnEmptyStateNewMatch {
-      background: linear-gradient(135deg, #e5a93c 0%, #b87a1d 100%) !important;
-      border-color: #a86c14 !important;
-      color: #140f08 !important;
-      box-shadow: 0 3px 12px rgba(229, 169, 60, 0.25) !important;
+      background: linear-gradient(135deg, #e8b354 0%, #c48726 100%) !important;
+      border-color: #b57a1e !important;
+      color: #1a140b !important;
+      font-weight: 900 !important;
+      box-shadow: 0 4px 14px rgba(232, 179, 84, 0.28) !important;
     }
     #btnListNewMatch:hover,
     #btnHeaderNextMatch:hover,
     #btnEmptyStateNewMatch:hover {
-      background: linear-gradient(135deg, #edb247 0%, #c58421 100%) !important;
+      background: linear-gradient(135deg, #f0be64 0%, #d49533 100%) !important;
     }
 
     #btnSend {
-      background: linear-gradient(135deg, #e5a93c 0%, #b87a1d 100%) !important;
-      color: #140f08 !important;
-      border: 1px solid #a86c14 !important;
+      background: linear-gradient(135deg, #e8b354 0%, #c48726 100%) !important;
+      color: #1a140b !important;
+      border: 1px solid #b57a1e !important;
     }
 
     /* Secondary Navigation Buttons (조건, 설정, 뒤로가기) */
     #btnListOpenFilter,
     #btnListOpenAiPolicy,
     #btnBackToChatList {
-      background-color: #27211c !important;
-      border-color: #3a3129 !important;
-      color: #ded3c4 !important;
+      background-color: #3a322a !important;
+      border-color: #524538 !important;
+      color: #ede2d5 !important;
     }
     #btnListOpenFilter:hover,
     #btnListOpenAiPolicy:hover,
     #btnBackToChatList:hover {
-      background-color: #312923 !important;
+      background-color: #453b32 !important;
     }
 
     /* Typography Overrides */
@@ -156,23 +159,23 @@
     .text-\[\#191919\],
     .text-\[\#191f28\],
     .text-\[\#333333\] {
-      color: #f5eee6 !important;
+      color: #fbf7f2 !important;
     }
     .text-\[\#444444\],
     .text-\[\#555555\],
     .text-\[\#666666\] {
-      color: #b5a796 !important;
+      color: #d5c8b7 !important;
     }
     .text-\[\#888888\],
     .text-\[\#999999\],
     .text-\[\#717680\],
     .text-\[\#8b95a1\] {
-      color: #7a6e60 !important;
+      color: #a39585 !important;
     }
     .text-\[\#b45309\],
     .text-\[\#854d0e\],
     .text-\[\#92400e\] {
-      color: #e5a93c !important;
+      color: #f0be64 !important;
     }
 
     /* Border Overrides */
@@ -181,76 +184,76 @@
     .border-\[\#ded8cb\],
     .border-\[\#eae5d8\],
     .border-\[\#e2e5e9\] {
-      border-color: #332b24 !important;
+      border-color: #4a3e32 !important;
     }
 
     /* Badges & Pills */
     #listTotalRoomsBadge {
-      background-color: #2b231c !important;
-      color: #e5a93c !important;
-      border: 1px solid #3d3125 !important;
+      background-color: #42362a !important;
+      color: #f0be64 !important;
+      border: 1px solid #5d4a36 !important;
     }
     #listFilterActiveBar {
-      background-color: #261f18 !important;
-      border-color: #423528 !important;
-      color: #f59e0b !important;
+      background-color: #3b3024 !important;
+      border-color: #5c4b37 !important;
+      color: #fbbf24 !important;
     }
 
     /* Chat Input Area */
     #chatForm > div:nth-child(2) {
-      background-color: #14110f !important;
-      border-color: #332b24 !important;
+      background-color: #241e1a !important;
+      border-color: #4a3e32 !important;
     }
     #chatInput {
-      color: #f5eee6 !important;
+      color: #fbf7f2 !important;
     }
     #chatInput::placeholder {
-      color: #63584c !important;
+      color: #8c7e6e !important;
     }
 
     /* Gift & Recharge Buttons */
     #btnOpenGiftModal {
-      background-color: #271a1e !important;
-      border-color: #42242c !important;
-      color: #fb7185 !important;
+      background-color: #3b252c !important;
+      border-color: #5e3541 !important;
+      color: #fda4af !important;
     }
     #btnOpenPaymentFooter,
     #btnOpenPaymentListFooter {
-      background-color: #2a2016 !important;
-      border-color: #443220 !important;
-      color: #f59e0b !important;
+      background-color: #3b3024 !important;
+      border-color: #5d4a36 !important;
+      color: #fbbf24 !important;
     }
 
     /* Message Bubbles */
-    /* AI Partner Message Bubble: Elegant Dark Cocoa */
+    /* AI Partner Message Bubble: Elegant Warm Mocha Card */
     #chatContainer .bg-white.text-\[\#111111\],
     #chatContainer .bg-white {
-      background-color: #221c18 !important;
-      border-color: #382e25 !important;
-      color: #f5eee6 !important;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.4) !important;
+      background-color: #383029 !important;
+      border-color: #4f4236 !important;
+      color: #fbf7f2 !important;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25) !important;
     }
     /* User Message Bubble: Rich Warm Amber Gold */
     #chatContainer .bg-\[\#fee500\] {
-      background: linear-gradient(135deg, #c88728 0%, #a86c1a 100%) !important;
-      border-color: #8c5510 !important;
+      background: linear-gradient(135deg, #d49539 0%, #b3741c 100%) !important;
+      border-color: #965f12 !important;
       color: #ffffff !important;
-      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.3) !important;
+      box-shadow: 0 1px 4px rgba(0, 0, 0, 0.2) !important;
     }
 
     /* Typing Indicator */
     #liveActionRow > div {
-      background-color: #221c18 !important;
-      border-color: #382e25 !important;
-      color: #f5eee6 !important;
+      background-color: #383029 !important;
+      border-color: #4f4236 !important;
+      color: #fbf7f2 !important;
     }
 
     /* Scrollbars in dark mode */
     .chat-scroll::-webkit-scrollbar-thumb {
-      background: rgba(255, 255, 255, 0.12) !important;
+      background: rgba(255, 255, 255, 0.18) !important;
     }
 
-    /* Modals & Dialogs (Warm Midnight Lounge Surface) */
+    /* Modals & Dialogs (Warm Mid Lounge Surface) */
     #aiPolicyModal > div,
     #phoneAuthModal > div,
     #leaveConfirmModal > div,
@@ -261,98 +264,98 @@
     #heartNeededModal > div,
     #onboardingGenderModal > div,
     #matchFilterModal > div {
-      background-color: #201b17 !important;
-      border-color: #3a3128 !important;
-      color: #f5eee6 !important;
-      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.75) !important;
+      background-color: #332b24 !important;
+      border-color: #4d4135 !important;
+      color: #fbf7f2 !important;
+      box-shadow: 0 25px 60px rgba(0, 0, 0, 0.6) !important;
     }
     #matchingRadarModal {
-      background-color: rgba(20, 17, 15, 0.96) !important;
-      color: #f5eee6 !important;
+      background-color: rgba(43, 37, 32, 0.96) !important;
+      color: #fbf7f2 !important;
     }
     #matchingRadarModal h3 {
-      color: #f5eee6 !important;
+      color: #fbf7f2 !important;
     }
     #matchingRadarModal #matchingRadarSubtext {
-      color: #b5a796 !important;
+      color: #d5c8b7 !important;
     }
     #matchingRadarModal .bg-\[\#f1f3f5\] {
-      background-color: #2a221a !important;
-      border-color: #3d3125 !important;
-      color: #e5a93c !important;
+      background-color: #3d3329 !important;
+      border-color: #594938 !important;
+      color: #f0be64 !important;
     }
 
     #paymentModal header,
     #paymentModal > div > div:first-child,
     #paymentModal > div > div:last-child,
     #matchFilterModal > div > div:first-child {
-      background-color: #201b17 !important;
-      border-color: #332b24 !important;
-      color: #f5eee6 !important;
+      background-color: #332b24 !important;
+      border-color: #483d32 !important;
+      color: #fbf7f2 !important;
     }
     #paymentModal .overflow-y-auto,
     #matchFilterModal .overflow-y-auto {
-      background-color: #181512 !important;
+      background-color: #2b2520 !important;
     }
 
     /* Modal Cards & Boxes */
     #paymentModal .pkg-card {
-      background-color: #241e19 !important;
-      border-color: #382e25 !important;
-      color: #f5eee6 !important;
+      background-color: #383029 !important;
+      border-color: #4f4236 !important;
+      color: #fbf7f2 !important;
     }
     #paymentModal .pkg-card:hover {
-      background-color: #2c251f !important;
+      background-color: #423830 !important;
     }
     #paymentModal .pkg-card[data-pkg="popular"] {
-      background-color: #2e2318 !important;
-      border-color: #d99a2c !important;
+      background-color: #423526 !important;
+      border-color: #e5a93c !important;
     }
     #paymentBonusAuthBanner {
-      background-color: #2a2016 !important;
-      border-color: #443220 !important;
-      color: #f5eee6 !important;
+      background-color: #3b3024 !important;
+      border-color: #5d4a36 !important;
+      color: #fbf7f2 !important;
     }
     #paymentBonusAuthBanner > div {
-      color: #e5a93c !important;
+      color: #f0be64 !important;
     }
     #paymentAuthRequirement,
     #paymentHeartExpiry,
     #paymentModal .bg-white {
-      background-color: #201b17 !important;
-      border-color: #332b24 !important;
-      color: #b5a796 !important;
+      background-color: #362e27 !important;
+      border-color: #4d4136 !important;
+      color: #d5c8b7 !important;
     }
 
     #phoneAuthAccount {
-      background-color: #19261d !important;
-      border-color: #264733 !important;
+      background-color: #213527 !important;
+      border-color: #355d43 !important;
       color: #d1fae5 !important;
     }
     #phoneAuthNotice {
-      background-color: #2a2016 !important;
-      border-color: #443220 !important;
-      color: #e5a93c !important;
+      background-color: #3d3123 !important;
+      border-color: #614c33 !important;
+      color: #f0be64 !important;
     }
     #inputPhoneNumber,
     #inputSmsCode,
     #inputAuthCode {
-      background-color: #14110f !important;
-      border-color: #3d3227 !important;
-      color: #f5eee6 !important;
+      background-color: #241e1a !important;
+      border-color: #524538 !important;
+      color: #fbf7f2 !important;
     }
     #inputPhoneNumber::placeholder,
     #inputSmsCode::placeholder {
-      color: #63584c !important;
+      color: #8c7e6e !important;
     }
 
     /* Modal Close Buttons */
     button[id^="btnClose"] {
-      background-color: #2d2620 !important;
+      background-color: #3d342c !important;
       color: #ded3c4 !important;
     }
     button[id^="btnClose"]:hover {
-      background-color: #382f28 !important;
+      background-color: #4a3f35 !important;
     }
 
     /* Modal Accent Action Buttons */
@@ -360,55 +363,55 @@
     #btnExecutePayment,
     #btnGoToCharge,
     #btnSwitchPhoneAccount {
-      background: linear-gradient(135deg, #e5a93c 0%, #b87a1d 100%) !important;
-      border-color: #a86c14 !important;
-      color: #140f08 !important;
+      background: linear-gradient(135deg, #e8b354 0%, #c48726 100%) !important;
+      border-color: #b57a1e !important;
+      color: #1a140b !important;
       font-weight: 900 !important;
     }
     #btnSelectFemalePartner,
     #btnSelectMalePartner {
-      background-color: #241e19 !important;
-      border-color: #382e25 !important;
-      color: #f5eee6 !important;
+      background-color: #383029 !important;
+      border-color: #4f4236 !important;
+      color: #fbf7f2 !important;
     }
     #btnSelectFemalePartner:hover,
     #btnSelectMalePartner:hover {
-      background-color: #2d2620 !important;
+      background-color: #443a31 !important;
     }
     #heartNeededModal .bg-\[\#FAF7EE\] {
-      background-color: #181512 !important;
-      border-color: #332b24 !important;
-      color: #b5a796 !important;
+      background-color: #2b2520 !important;
+      border-color: #483d32 !important;
+      color: #d5c8b7 !important;
     }
     #heartNeededModal .text-\[\#191919\] {
-      color: #f5eee6 !important;
+      color: #fbf7f2 !important;
     }
   </style>
   <script src="/analytics.js" defer></script>
   <script src="/advertising.js" defer></script>
 </head>
-<body class="w-full h-full flex items-center justify-center bg-[#0d0b0a] select-none text-[#f5eee6]">
+<body class="w-full h-full flex items-center justify-center bg-[#1a1613] select-none text-[#fbf7f2]">
 
   <!-- Main Mobile Container -->
-  <div id="appShell" class="relative w-full max-w-[460px] h-full sm:h-[94dvh] sm:max-h-[900px] sm:rounded-[28px] sm:shadow-[0_16px_50px_rgba(0,0,0,0.6)] sm:border sm:border-[#332b24] flex flex-col overflow-hidden bg-[#181512]">
+  <div id="appShell" class="relative w-full max-w-[460px] h-full sm:h-[94dvh] sm:max-h-[900px] sm:rounded-[28px] sm:shadow-[0_16px_50px_rgba(0,0,0,0.45)] sm:border sm:border-[#483d32] flex flex-col overflow-hidden bg-[#27221d]">
 
     <!-- VIEW 1: 대화방 목록 화면 (Messenger Chat List / Retro Lounge) -->
-    <section id="viewChatList" class="flex flex-col h-full w-full bg-[#FAF7EE]">
+    <section id="viewChatList" class="flex flex-col h-full w-full bg-[#2b2520]">
       <!-- 1. Chat List Header -->
-      <header class="shrink-0 bg-white border-b border-[#e8e4d8] px-4 py-3 z-30 flex items-center justify-between shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
+      <header class="shrink-0 bg-[#332b24] border-b border-[#483d32] px-4 py-3 z-30 flex items-center justify-between shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
         <div class="flex items-center gap-2 min-w-0">
           <h1 class="flex items-center">
             <img src="/logo-horizontal.png" alt="아지트 대화방" class="h-8 sm:h-[34px] w-auto object-contain max-w-[170px]" />
             <span class="sr-only">아지트 대화방</span>
           </h1>
-          <span id="listTotalRoomsBadge" class="px-2 py-0.5 rounded-full bg-[#f4efe4] text-[#605a4e] text-[12px] font-bold shrink-0">0</span>
+          <span id="listTotalRoomsBadge" class="px-2 py-0.5 rounded-full bg-[#42362a] text-[#f0be64] text-[12px] font-bold shrink-0">0</span>
         </div>
         <div class="flex items-center gap-2">
-          <button id="btnListOpenFilter" type="button" class="relative px-3 py-1.5 rounded-xl bg-[#FAF7EE] hover:bg-[#f2ede0] border border-[#ded8cb] text-[#333333] transition active:scale-95 text-[13.5px] font-bold flex items-center gap-1.5 shadow-xs" title="대화 상대 조건 설정">
+          <button id="btnListOpenFilter" type="button" class="relative px-3 py-1.5 rounded-xl bg-[#3a322a] hover:bg-[#453b32] border border-[#524538] text-[#ede2d5] transition active:scale-95 text-[13.5px] font-bold flex items-center gap-1.5 shadow-xs" title="대화 상대 조건 설정">
             <span>🎯 조건</span>
             <span id="listFilterActiveDot" class="hidden w-2 h-2 rounded-full bg-rose-500"></span>
           </button>
-          <button id="btnListOpenAiPolicy" type="button" class="px-3 py-1.5 rounded-xl bg-[#FAF7EE] hover:bg-[#f2ede0] border border-[#ded8cb] text-[#333333] transition active:scale-95 text-[13.5px] font-bold flex items-center gap-1 shadow-xs" title="환경설정">
+          <button id="btnListOpenAiPolicy" type="button" class="px-3 py-1.5 rounded-xl bg-[#3a322a] hover:bg-[#453b32] border border-[#524538] text-[#ede2d5] transition active:scale-95 text-[13.5px] font-bold flex items-center gap-1 shadow-xs" title="환경설정">
             <span>⚙️ 설정</span>
           </button>
           <!-- Hidden fallback hook for phone auth if needed -->
@@ -417,13 +420,13 @@
       </header>
 
       <!-- 2. Chat List Scrollable Body -->
-      <div class="flex-1 overflow-y-auto chat-scroll p-4 space-y-4 bg-[#FAF7EE]">
+      <div class="flex-1 overflow-y-auto chat-scroll p-4 space-y-4 bg-[#2b2520]">
         <!-- Lounge Hero Start Card -->
-        <div class="p-5 rounded-2xl bg-[#201b17] border border-[#332b24] shadow-md space-y-3.5">
+        <div class="p-5 rounded-2xl bg-[#362f29] border border-[#4d4135] shadow-md space-y-3.5">
           <div>
-            <span class="inline-flex items-center gap-1.5 text-[12px] font-bold text-[#e5a93c] bg-[#2a2219] border border-[#443320] px-2.5 py-0.5 rounded-full"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>실시간 1:1 프라이빗 대화</span>
-            <h2 class="text-[19px] font-black text-[#f5eee6] mt-2 leading-snug">지금 접속 중인 상대 <span id="waitingCountText" class="text-[#e5a93c] font-black tracking-tight">불러오는 중</span></h2>
-            <p class="text-[13.5px] text-[#b5a796] mt-1 leading-relaxed">나를 기다리는 매력적인 상대들과 기다림 없이, 지금 바로 단둘만의 1:1 대화로 연결됩니다.</p>
+            <span class="inline-flex items-center gap-1.5 text-[12px] font-bold text-[#e5a93c] bg-[#42362a] border border-[#5e4b36] px-2.5 py-0.5 rounded-full"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>실시간 1:1 프라이빗 대화</span>
+            <h2 class="text-[19px] font-black text-[#fbf7f2] mt-2 leading-snug">지금 접속 중인 상대 <span id="waitingCountText" class="text-[#e5a93c] font-black tracking-tight">불러오는 중</span></h2>
+            <p class="text-[13.5px] text-[#d5c8b7] mt-1 leading-relaxed">나를 기다리는 매력적인 상대들과 기다림 없이, 지금 바로 단둘만의 1:1 대화로 연결됩니다.</p>
           </div>
 
           <!-- Active Filter Tag Bar (if conditions are active) -->
@@ -4987,13 +4990,13 @@
 
       if (entries.length === 0) {
         container.innerHTML = `
-          <div class="py-12 px-4 text-center space-y-3.5 bg-[#201b17] rounded-2xl border border-[#332b24] shadow-xs">
-            <div class="w-14 h-14 mx-auto rounded-2xl bg-[#2a2219] border border-[#443320] flex items-center justify-center text-[#d99a2c] text-2xl">
+          <div class="py-12 px-4 text-center space-y-3.5 bg-[#362f29] rounded-2xl border border-[#4d4135] shadow-xs">
+            <div class="w-14 h-14 mx-auto rounded-2xl bg-[#42362a] border border-[#5e4b36] flex items-center justify-center text-[#e5a93c] text-2xl">
               🍸
             </div>
             <div class="space-y-1">
-              <p class="text-[17px] font-black text-[#f5eee6]">진행 중인 대화가 없습니다</p>
-              <p class="text-[13.5px] text-[#b5a796] leading-relaxed">
+              <p class="text-[17px] font-black text-[#fbf7f2]">진행 중인 대화가 없습니다</p>
+              <p class="text-[13.5px] text-[#d5c8b7] leading-relaxed">
                 위의 [새로운 상대와 대화 시작] 버튼을 눌러<br/>나만의 아늑한 인연을 만나보세요
               </p>
             </div>
@@ -5031,33 +5034,33 @@
         const card = document.createElement('div');
         card.className = `p-3.5 rounded-2xl border transition flex items-center gap-3.5 cursor-pointer select-none active:scale-[0.99] ${
           isCurrent
-            ? 'bg-[#29221b] hover:bg-[#312920] border-[#d99a2c] shadow-sm'
+            ? 'bg-[#42372a] hover:bg-[#4d3f2f] border-[#e5a93c] shadow-sm'
             : unreadCnt > 0
-            ? 'bg-[#2b1d20] hover:bg-[#342327] border-[#e11d48] shadow-xs'
-            : 'bg-[#201b17] hover:bg-[#28221c] border-[#332b24] shadow-xs'
+            ? 'bg-[#402a2f] hover:bg-[#4d3238] border-[#f43f5e] shadow-xs'
+            : 'bg-[#362f29] hover:bg-[#3f3730] border-[#4d4135] shadow-xs'
         }`;
 
         card.innerHTML = `
           <div class="relative shrink-0">
-            <img src="${escapeHtml(char.avatar)}" alt="${escapeHtml(char.name)}" class="rounded-2xl object-cover border border-[#443a31] shadow-xs" style="width: 52px; height: 52px;" />
-            <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-[#201b17]"></span>
-            ${unreadCnt > 0 ? `<span class="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 rounded-full bg-rose-500 text-white text-[11px] font-black flex items-center justify-center shadow-md ring-2 ring-[#201b17]">${unreadCnt}</span>` : ''}
+            <img src="${escapeHtml(char.avatar)}" alt="${escapeHtml(char.name)}" class="rounded-2xl object-cover border border-[#5e5143] shadow-xs" style="width: 52px; height: 52px;" />
+            <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-[#362f29]"></span>
+            ${unreadCnt > 0 ? `<span class="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 rounded-full bg-rose-500 text-white text-[11px] font-black flex items-center justify-center shadow-md ring-2 ring-[#362f29]">${unreadCnt}</span>` : ''}
           </div>
 
           <div class="flex-1 min-w-0">
             <div class="flex items-center justify-between gap-1.5 mb-0.5">
               <div class="flex items-center gap-2 min-w-0">
-                <span class="font-black text-[#f5eee6] text-[16px] whitespace-nowrap shrink-0">${escapeHtml(char.name)}</span>
-                <span class="text-[12.5px] text-[#e5a93c] font-bold truncate">${char.age}세 · ${escapeHtml(char.job)}</span>
+                <span class="font-black text-[#fbf7f2] text-[16px] whitespace-nowrap shrink-0">${escapeHtml(char.name)}</span>
+                <span class="text-[12.5px] text-[#f0be64] font-bold truncate">${char.age}세 · ${escapeHtml(char.job)}</span>
               </div>
-              <span class="text-[12px] text-[#7a6e60] shrink-0 whitespace-nowrap">${timeDisplay}</span>
+              <span class="text-[12px] text-[#a39585] shrink-0 whitespace-nowrap">${timeDisplay}</span>
             </div>
 
-            <p class="text-[14px] ${unreadCnt > 0 ? 'text-[#f5eee6] font-bold' : 'text-[#b5a796]'} truncate leading-snug">${escapeHtml(lastMsg.text || '대화가 시작되었습니다.')}</p>
+            <p class="text-[14px] ${unreadCnt > 0 ? 'text-[#fbf7f2] font-bold' : 'text-[#d5c8b7]'} truncate leading-snug">${escapeHtml(lastMsg.text || '대화가 시작되었습니다.')}</p>
           </div>
 
           <div class="shrink-0 pl-1 flex items-center">
-            <button type="button" data-role="delete" class="p-2 rounded-xl bg-[#2a241f] hover:bg-rose-950/60 hover:text-rose-400 text-[#7a6e60] text-[13px] font-bold transition" title="대화방 나가기">
+            <button type="button" data-role="delete" class="p-2 rounded-xl bg-[#443b33] hover:bg-rose-900/60 hover:text-rose-300 text-[#a39585] text-[13px] font-bold transition" title="대화방 나가기">
               ✕
             </button>
           </div>

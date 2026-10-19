@@ -31,6 +31,17 @@ gateway.find=async()=>({...receipt});gateway.payment=async()=>({...receipt});
  const t=pay.create(u,'starter').order; // Test mode never enters production learning.
  stored=pay.get(t.id);ads.payment({...stored,status:'paid',grantId:'fake',paidAt:Date.now()});assert.equal(db.sql.prepare("SELECT count(*) n FROM ad_events WHERE name='purchase'").get().n,1);
  ads.payment({...pay.get(order.id),status:'refunded',cancelledAmount:19900},0);ads.payment({...pay.get(order.id),status:'refunded',cancelledAmount:19900},0);assert.equal(db.sql.prepare("SELECT count(*) n FROM ad_events WHERE name='refund'").get().n,1);
+ Object.assign(process.env,{GOOGLE_ADS_OAUTH_CLIENT_ID:'synthetic-client',GOOGLE_ADS_OAUTH_CLIENT_SECRET:'synthetic-secret',GOOGLE_ADS_OAUTH_REFRESH_TOKEN:'synthetic-refresh',GOOGLE_ADS_CUSTOMER_ID:'1234567890',GOOGLE_ADS_PURCHASE_ACTION_ID:'12345'});
+ const google=require('../services/googleConversionGateway');let googlePosts=0;
+ global.fetch=async(url,options)=>{
+  if(url.includes('oauth2.'))return {ok:true,json:async()=>({access_token:'test-access',expires_in:3600})};
+  if(url.includes('requestStatus:retrieve'))return {ok:true,json:async()=>({requestStatusPerDestination:[{requestStatus:'SUCCESS',eventsIngestionStatus:{recordCount:'1'}}]})};
+  googlePosts++;const b=JSON.parse(options.body);assert.equal(b.events[0].transactionId,order.id);assert.equal(b.events[0].currency,'KRW');assert.equal(b.events[0].conversionValue,19900);assert(!JSON.stringify(b).includes(u.phone));return {ok:true,json:async()=>({requestId:'test-request'})};
+ };
+ assert.throws(()=>google.payload({context:{}},Date.now()),/NO_AD_IDENTIFIER/);
+ db.sql.prepare("UPDATE ad_deliveries SET next_at=0 WHERE destination='google_server'").run();await ads.flush();assert.equal(googlePosts,1);assert(ads.diagnostics().deliveries.some(r=>r.destination==='google_server'&&r.status==='ingested'));
+ // The refund waits until the original upload has a successful provider receipt.
+ db.sql.prepare("UPDATE ad_deliveries SET next_at=0 WHERE destination='google_server' AND status='ingested'").run();global.fetch=async(url,options)=>{if(url.includes('requestStatus:retrieve'))return {ok:true,json:async()=>({requestStatusPerDestination:[{requestStatus:'SUCCESS',eventsIngestionStatus:{recordCount:'1'}}]})};const b=JSON.parse(options.body);assert.equal(b.events[0].conversionValue,0);assert.equal(b.events[0].transactionId,order.id);return {ok:true,json:async()=>({requestId:'test-refund'})};};await ads.flush();assert(ads.diagnostics().deliveries.some(r=>r.destination==='google_server'&&r.status==='accepted'));global.fetch=original;
  ads.updateContext(u,{granted:false});assert.equal(ads.pending(u).length,0);assert.equal(JSON.stringify(ads.context(u.id)).includes('valid-click'),false);assert(db.sql.prepare('SELECT data FROM ad_events WHERE user_id=?').all(u.id).every(r=>r.data==='{}'));
  db.sql.close();fs.rmSync(dir,{recursive:true,force:true});console.log('PASS: verified live payment/outbox atomicity, duplicate webhook/order deduplication, test exclusion, owner-only replay, Meta retries/stable event ID/provider receipt, refunds and consent revocation; no phone/chat data exported');
 })().catch(e=>{console.error(e);process.exitCode=1;});

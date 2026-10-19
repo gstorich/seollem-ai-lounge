@@ -20,18 +20,18 @@ if(location.pathname!=='/'&&location.pathname!=='/index.html')return;
 // This preserves manual acquisition reporting while keeping account/message data out of GA.
 function campaignLocation(){
  const url=new URL(location.origin+'/'),query=new URLSearchParams(location.search||'');
- const campaigns=new Set(['azit_purchase_kr_m40_70_v1']);
- const sources={google:'cpc',facebook:'paid_social',instagram:'paid_social'};
- const contents=new Set(['search_ai','search_character','meta_conversation','meta_character','meta_continue']);
+ const campaigns=new Set(['azit_purchase_kr_m40_70_v1','azit_purchase_kr_m50_69_v3']);
+ const sources={google:['cpc','display'],facebook:['paid_social'],instagram:['paid_social']};
+ const contents=new Set(['search_ai','search_character','meta_conversation','meta_character','meta_continue',...Array.from({length:10},(_,i)=>'ad'+String(i+1).padStart(2,'0'))]);
  const source=query.get('utm_source'),campaign=query.get('utm_campaign'),content=query.get('utm_content');
- if(!Object.hasOwn(sources,source)||query.get('utm_medium')!==sources[source]||!campaigns.has(campaign)||!contents.has(content))return url.href;
+ if(!Object.hasOwn(sources,source)||!sources[source].includes(query.get('utm_medium'))||!campaigns.has(campaign)||!contents.has(content))return url.href;
  for(const key of ['utm_source','utm_medium','utm_campaign','utm_content'])url.searchParams.set(key,query.get(key));
  return url.href;
 }
 async function enable(){if(ready||localStorage.getItem(choiceKey)!=='granted'||navigator.doNotTrack==='1')return;
  try{const config=await(await fetch('/api/public-config')).json();if(!/^G-[A-Z0-9]{6,20}$/.test(config.gaMeasurementId||''))return;measurementId=config.gaMeasurementId;
  window.dataLayer=window.dataLayer||[];window.gtag=function(){window.dataLayer.push(arguments);};
- window.gtag('consent','default',{analytics_storage:'granted',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});
+ window.gtag('consent','default',{analytics_storage:'granted',ad_storage:localStorage.getItem('azit_ads_consent')==='granted'?'granted':'denied',ad_user_data:localStorage.getItem('azit_ads_consent')==='granted'?'granted':'denied',ad_personalization:'denied'});
  window.gtag('js',new Date());
  let referrer='';try{referrer=new URL(document.referrer).origin;}catch{}
  const pageLocation=campaignLocation();

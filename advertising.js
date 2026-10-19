@@ -4,7 +4,7 @@ if(!allowedPaths.has(location.pathname))return;
 const excluded=()=>navigator.doNotTrack==='1'||localStorage.getItem('azit_tester')==='1'||/(?:^|;\s*)(?:azit_tester=1|(?:__Host-)?azit_admin=)/.test(document.cookie||'');
 const granted=()=>!excluded()&&localStorage.getItem(key)==='granted';
 let cfg,started=false,loading,busy=false,syncing;
-const query=new URLSearchParams(location.search),click={};
+const query=new URLSearchParams(location.search),click={},clickAt=Date.now();
 for(const name of ['gclid','gbraid','wbraid','fbclid']){const v=query.get(name);if(v&&v.length<=256&&/^[A-Za-z0-9_.~-]+$/.test(v))click[name]=v;}
 function cookie(name){return document.cookie.split(';').map(s=>s.trim()).find(s=>s.startsWith(name+'='))?.slice(name.length+1);}
 async function sync(){
@@ -14,7 +14,7 @@ async function sync(){
  const c={granted:granted()};
  if(c.granted){
   Object.assign(c,click);delete c.fbclid;
-  if(click.fbclid)c.fbc='fb.1.'+Date.now()+'.'+click.fbclid;
+  if(click.fbclid)c.fbc='fb.1.'+clickAt+'.'+click.fbclid;
   else c.fbc=cookie('_fbc');c.fbp=cookie('_fbp');
   if(query.get('utm_campaign')==='azit_purchase_kr_m50_69_v3')c.campaign='azit_purchase_kr_m50_69_v3';
  }
@@ -26,7 +26,8 @@ async function start(){
  if(!granted())return;if(loading)return loading;
  loading=(async()=>{
  cfg=(await(await fetch('/api/public-config')).json()).advertising||{};
- window.dataLayer=window.dataLayer||[];window.gtag=window.gtag||function(){window.dataLayer.push(arguments);};
+ const newTag=!window.gtag;window.dataLayer=window.dataLayer||[];window.gtag=window.gtag||function(){window.dataLayer.push(arguments);};
+ if(newTag)window.gtag('consent','default',{analytics_storage:'denied',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});
  window.gtag('consent','update',{ad_storage:'granted',ad_user_data:'granted',ad_personalization:'denied'});
  window.gtag('set',{page_location:location.origin+location.pathname,page_referrer:'',page_title:'아지트챗'});
  if(/^AW-\d+$/.test(cfg.googleAdsId)){
@@ -36,7 +37,7 @@ async function start(){
  if(/^\d+$/.test(cfg.metaPixelId)&&safePixelPage()){
   if(!window.fbq){const f=window.fbq=function(){f.callMethod?f.callMethod.apply(f,arguments):f.queue.push(arguments);};f.queue=[];f.loaded=true;f.version='2.0';window._fbq=f;
    f('set','autoConfig',false,cfg.metaPixelId);f('init',cfg.metaPixelId);f('consent','grant');f('track','PageView');
-   const s=document.createElement('script');s.async=true;s.src='https://connect.facebook.net/en_US/fbevents.js';document.head.appendChild(s);
+   const s=document.createElement('script');s.async=true;s.src='https://connect.facebook.net/en_US/fbevents.js';s.onload=()=>sync().then(drain).catch(()=>{});document.head.appendChild(s);
   }
  }
  started=true;await sync();await drain();
@@ -62,7 +63,7 @@ window.addEventListener('azit-account-ready',()=>start().then(()=>sync()).then(d
 window.addEventListener('azit-ad-account-ready',()=>start().then(()=>sync()).then(drain).catch(()=>{}));
 window.addEventListener('online',()=>sync().then(drain).catch(()=>{}));
 window.addEventListener('azit-consent-change',()=>{
- if(granted())start();else{if(window.fbq)fbq('consent','revoke');if(window.gtag)gtag('consent','update',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});sync().catch(()=>{});}
+ if(granted()){if(window.fbq)fbq('consent','grant');if(window.gtag)gtag('consent','update',{ad_storage:'granted',ad_user_data:'granted',ad_personalization:'denied'});start().then(()=>sync()).then(drain).catch(()=>{});}else{for(const k of Object.keys(click))delete click[k];for(const raw of document.cookie.split(';')){const name=raw.split('=')[0].trim();if(!/^_(?:gcl|fbp|fbc)/.test(name))continue;document.cookie=name+'=; Max-Age=0; path=/; Secure; SameSite=Lax';const parts=location.hostname.split('.');for(let i=0;i<parts.length-1;i++)document.cookie=name+'=; Max-Age=0; path=/; domain=.'+parts.slice(i).join('.')+'; Secure; SameSite=Lax';}if(window.fbq)fbq('consent','revoke');if(window.gtag)gtag('consent','update',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});sync().catch(()=>{});}
 });
 window.addEventListener('storage',e=>{if(e.key===key)window.dispatchEvent(new Event('azit-consent-change'));});
 const timer=setInterval(()=>{if(granted())start().then(drain);},30000);window.addEventListener('pagehide',()=>clearInterval(timer));

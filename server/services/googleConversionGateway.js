@@ -15,9 +15,13 @@ function payload(data,at){
  const account={accountType:'GOOGLE_ADS',accountId:env.GOOGLE_ADS_CUSTOMER_ID};
  return {destinations:[{operatingAccount:account,loginAccount:{accountType:'GOOGLE_ADS',accountId:env.GOOGLE_ADS_LOGIN_CUSTOMER_ID||env.GOOGLE_ADS_CUSTOMER_ID},productDestinationId:env.GOOGLE_ADS_PURCHASE_ACTION_ID}],encoding:'HEX',consent:{adUserData:'CONSENT_GRANTED',adPersonalization:'CONSENT_DENIED'},events:[{eventTimestamp:new Date(at).toISOString(),transactionId:data.transaction_id,eventSource:'WEB',conversionValue:data.value,currency:'KRW',adIdentifiers}],validateOnly:false};
 }
-async function send(data,at){
- const body=payload(data,at);
+async function send(data,at,{validateOnly=false}={}){
+ const body=payload(data,at);body.validateOnly=validateOnly;
  const res=await fetch('https://datamanager.googleapis.com/v1/events:ingest',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+await access(),...(env.GOOGLE_ADS_QUOTA_PROJECT?{'X-Goog-User-Project':env.GOOGLE_ADS_QUOTA_PROJECT}:{})},body:JSON.stringify(body),signal:AbortSignal.timeout(15000)});
  const b=await res.json();if(!res.ok||typeof b.requestId!=='string')throw Error('GOOGLE_INGEST_FAILED');return {requestId:b.requestId,warnings:Boolean(b.fieldWarnings?.length)};
 }
-module.exports={ready,payload,send};
+async function status(requestId){
+ const res=await fetch('https://datamanager.googleapis.com/v1/requestStatus:retrieve?requestId='+encodeURIComponent(requestId),{headers:{Authorization:'Bearer '+await access(),...(env.GOOGLE_ADS_QUOTA_PROJECT?{'X-Goog-User-Project':env.GOOGLE_ADS_QUOTA_PROJECT}:{})},signal:AbortSignal.timeout(15000)});
+ const b=await res.json();if(!res.ok||!Array.isArray(b.requestStatusPerDestination))throw Error('GOOGLE_STATUS_FAILED');return b.requestStatusPerDestination;
+}
+module.exports={ready,payload,send,status};
