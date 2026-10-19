@@ -386,6 +386,129 @@
     #heartNeededModal .text-\[\#191919\] {
       color: #fbf7f2 !important;
     }
+
+    /* Match Filter Modal Specifics */
+    #matchFilterModal header,
+    #matchFilterModal > div > div:first-child,
+    #matchFilterModal > div > div:last-child {
+      background-color: #332b24 !important;
+      border-color: #483d32 !important;
+    }
+    #matchFilterModal .overflow-y-auto {
+      background-color: #2b2520 !important;
+    }
+    #matchFilterModal label {
+      color: #fbf7f2 !important;
+    }
+    #matchFilterModal .filter-age-btn,
+    #matchFilterModal .filter-trait-btn,
+    #matchFilterModal .filter-region-btn,
+    #matchFilterModal .filter-gender-btn {
+      background-color: #383029 !important;
+      border-color: #4d4135 !important;
+      color: #d5c8b7 !important;
+    }
+    #matchFilterModal .filter-age-btn:hover,
+    #matchFilterModal .filter-trait-btn:hover,
+    #matchFilterModal .filter-region-btn:hover,
+    #matchFilterModal .filter-gender-btn:hover {
+      background-color: #423830 !important;
+      color: #fbf7f2 !important;
+    }
+    #matchFilterModal .border-amber-500,
+    #matchFilterModal .border-\[\#e5a93c\] {
+      background-color: #423526 !important;
+      border-color: #e5a93c !important;
+      color: #f0be64 !important;
+      font-weight: bold !important;
+    }
+    #btnResetFilterAll,
+    #btnResetMetHistory {
+      background-color: #3d342c !important;
+      border-color: #524538 !important;
+      color: #ede2d5 !important;
+    }
+    #btnResetFilterAll:hover,
+    #btnResetMetHistory:hover {
+      background-color: #4a3f35 !important;
+    }
+    #btnApplyFilterAndMatch,
+    #btnConfirmAiPolicy {
+      background: linear-gradient(135deg, #e8b354 0%, #c48726 100%) !important;
+      border-color: #b57a1e !important;
+      color: #1a140b !important;
+      font-weight: 900 !important;
+      box-shadow: 0 4px 14px rgba(232, 179, 84, 0.28) !important;
+    }
+    #btnApplyFilterAndMatch:hover,
+    #btnConfirmAiPolicy:hover {
+      background: linear-gradient(135deg, #f0be64 0%, #d49533 100%) !important;
+    }
+
+    /* AI Policy (Settings) Modal Specifics */
+    #aiPolicyModal .bg-\[\#faf9f5\],
+    #aiPolicyModal .rounded-2xl.border {
+      background-color: #362e27 !important;
+      border-color: #4d4136 !important;
+      color: #d5c8b7 !important;
+    }
+    #aiPolicyModal select,
+    #aiPolicyModal input[type="password"],
+    #aiPolicyModal input[type="text"] {
+      background-color: #241e1a !important;
+      border-color: #4d4136 !important;
+      color: #fbf7f2 !important;
+    }
+    #btnClearApiKey,
+    #btnModalToggleVip {
+      background-color: #3d342c !important;
+      border-color: #524538 !important;
+      color: #ede2d5 !important;
+    }
+    #btnClearApiKey:hover,
+    #btnModalToggleVip:hover {
+      background-color: #4a3f35 !important;
+    }
+    #btnSettingsOpenPhoneAuth,
+    #btnBrowserNotifications {
+      background-color: #3d3123 !important;
+      border-color: #614c33 !important;
+      color: #f0be64 !important;
+    }
+    #btnSettingsOpenPhoneAuth:hover,
+    #btnBrowserNotifications:hover {
+      background-color: #473929 !important;
+    }
+    #btnModalResetData {
+      background-color: #3d2327 !important;
+      border-color: #5e353c !important;
+      color: #f87171 !important;
+    }
+    #btnModalResetData:hover {
+      background-color: #49282d !important;
+    }
+    #btnToggleTesterMode {
+      background-color: #3d342c !important;
+      border-color: #524538 !important;
+      color: #ede2d5 !important;
+    }
+
+    /* Gift Modal Specifics */
+    #giftModal header,
+    #giftModal > div > div:first-child {
+      background-color: #332b24 !important;
+      border-color: #483d32 !important;
+      color: #fbf7f2 !important;
+    }
+    #giftModal .bg-white {
+      background-color: #2b2520 !important;
+      color: #fbf7f2 !important;
+    }
+    #giftModalCreditBadge {
+      background-color: #3d2327 !important;
+      border-color: #5e353c !important;
+      color: #fb7185 !important;
+    }
   </style>
   <script src="/analytics.js" defer></script>
   <script src="/advertising.js" defer></script>
@@ -430,13 +553,13 @@
           </div>
 
           <!-- Active Filter Tag Bar (if conditions are active) -->
-          <div id="listFilterActiveBar" class="hidden px-3.5 py-2.5 rounded-xl bg-amber-50 border border-amber-200 flex items-center justify-between text-[13px] text-[#854d0e]">
+          <div id="listFilterActiveBar" class="hidden px-3.5 py-2.5 rounded-xl bg-[#423526] border border-[#6b5239] flex items-center justify-between text-[13px] text-[#f0be64]">
             <div class="flex items-center gap-1.5 min-w-0 truncate">
               <span class="text-sm shrink-0">🎯</span>
-              <span class="font-bold shrink-0 text-[#92400e]">선택 조건:</span>
-              <span id="listFilterSummaryText" class="truncate font-semibold text-[#78350f]">전체 조건</span>
+              <span class="font-bold shrink-0 text-[#f0be64]">선택 조건:</span>
+              <span id="listFilterSummaryText" class="truncate font-semibold text-[#fbf7f2]">전체 조건</span>
             </div>
-            <button id="btnListFilterResetQuick" type="button" class="shrink-0 text-[12px] font-bold text-[#b45309] hover:text-[#78350f] underline ml-2 py-0.5 px-1.5" title="기본값으로 초기화">초기화</button>
+            <button id="btnListFilterResetQuick" type="button" class="shrink-0 text-[12px] font-bold text-[#e5a93c] hover:text-[#fbf7f2] underline ml-2 py-0.5 px-1.5" title="기본값으로 초기화">초기화</button>
           </div>
 
           <!-- Big, Senior-Friendly Yellow Start Button -->
@@ -448,15 +571,15 @@
 
         <!-- Hidden hooks for promo and auth banners to keep JS references valid without visual clutter -->
         <div id="listPromoBanner" class="hidden"><span id="listBannerTimer"></span></div>
-        <div id="listAuthNoticeBox"><button id="btnListAuthCta" type="button" class="w-full py-3 px-4 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 text-[13px] font-bold"><span id="listAuthBtnText">휴대폰 번호로 로그인 · 대화 보관</span></button></div>
+        <div id="listAuthNoticeBox"><button id="btnListAuthCta" type="button" class="w-full py-3 px-4 rounded-xl bg-[#362f29] border border-[#4d4135] text-[#d5c8b7] text-[13px] font-bold"><span id="listAuthBtnText">휴대폰 번호로 로그인 · 대화 보관</span></button></div>
 
         <!-- Section Title: 진행 중인 대화 -->
         <div class="flex items-center justify-between px-1 pt-1">
-          <div class="text-[15px] font-bold text-[#191919] flex items-center gap-1.5">
+          <div class="text-[15px] font-bold text-[#fbf7f2] flex items-center gap-1.5">
             <span>💬 내가 나누던 대화</span>
-            <span id="listSectionCount" class="text-rose-600 font-black">0</span>
+            <span id="listSectionCount" class="text-rose-400 font-black">0</span>
           </div>
-          <span class="text-[12px] text-[#888888]">터치하면 대화방으로 이동합니다</span>
+          <span class="text-[12px] text-[#a89a8a]">터치하면 대화방으로 이동합니다</span>
         </div>
 
         <!-- Chat Rooms List Container -->
@@ -464,52 +587,52 @@
           <!-- Populated dynamically by renderChatRoomsList() -->
         </div>
 
-        <!-- Modernized, Streamlined Footer -->
-        <footer class="pt-6 pb-8 px-2 text-[#7a6e60] border-t border-[#332b24] mt-6 text-[12px] space-y-3.5">
-          <!-- Essential Core Links (단 1줄의 정갈한 네비게이션) -->
-          <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[12px] font-semibold text-[#baa997]">
-            <a href="/support" class="hover:text-[#f5eee6] transition">고객센터</a>
-            <span class="text-[#443a31]">·</span>
-            <a href="/terms" class="hover:text-[#f5eee6] transition">이용약관</a>
-            <span class="text-[#443a31]">·</span>
-            <a href="/privacy" class="hover:text-[#f5eee6] font-bold transition">개인정보처리방침</a>
-            <span class="text-[#443a31]">·</span>
-            <a href="/refund" class="hover:text-[#f5eee6] transition">환불정책</a>
-            <span class="text-[#443a31]">·</span>
-            <a href="/policies" class="text-amber-500 hover:text-amber-400 transition">서비스·운영정책 ↗</a>
+        <!-- Modernized, Streamlined Footer (Moved far below, muted and unobtrusive) -->
+        <footer class="mt-36 pt-10 pb-16 px-3 text-[#6e6152] border-t border-[#332a22]/70 text-[11.5px] space-y-3 opacity-60 hover:opacity-95 transition-opacity duration-300">
+          <!-- Essential Core Links (정갈한 네비게이션) -->
+          <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11.5px] font-medium text-[#7d7060]">
+            <a href="/support" class="hover:text-[#c4b5a2] transition">고객센터</a>
+            <span class="text-[#3d3328]">·</span>
+            <a href="/terms" class="hover:text-[#c4b5a2] transition">이용약관</a>
+            <span class="text-[#3d3328]">·</span>
+            <a href="/privacy" class="hover:text-[#c4b5a2] font-bold transition">개인정보처리방침</a>
+            <span class="text-[#3d3328]">·</span>
+            <a href="/refund" class="hover:text-[#c4b5a2] transition">환불정책</a>
+            <span class="text-[#3d3328]">·</span>
+            <a href="/policies" class="text-[#8a7b6b] hover:text-[#d4c3af] transition">서비스·운영정책 ↗</a>
           </div>
 
           <!-- Business Info Card -->
-          <div class="rounded-2xl bg-[#1e1915] border border-[#332b24] p-3 text-[11px] leading-relaxed text-[#8a7d6d] space-y-1">
+          <div class="rounded-2xl bg-[#1c1713]/60 border border-[#2e251d] p-3 text-[10.5px] leading-relaxed text-[#685c4e] space-y-1">
             <div class="flex flex-wrap items-center gap-x-2">
-              <span class="font-bold text-[#d4c8b8]">메이비웍스</span>
+              <span class="font-bold text-[#9e8f7e]">메이비웍스</span>
               <span>대표 홍지민</span>
               <span>사업자등록번호 666-01-04235</span>
-              <a href="https://www.ftc.go.kr/bizCommPop.do?wrkr_no=6660104235" target="_blank" rel="noopener" class="text-amber-500 hover:underline font-medium">사업자정보확인 ↗</a>
+              <a href="https://www.ftc.go.kr/bizCommPop.do?wrkr_no=6660104235" target="_blank" rel="noopener" class="text-[#8a7b6b] hover:underline font-medium">사업자정보확인 ↗</a>
             </div>
             <div>통신판매업 신고 2026-안양동안-0369 · 주소 경기도 안양시 동안구 시민대로 327번길 11-41, 3층</div>
-            <div>고객센터 <a href="tel:010-7364-2623" class="font-medium text-[#d4c8b8] underline">010-7364-2623</a> · <a href="mailto:maybeworks@naver.com" class="font-medium text-[#d4c8b8] underline">maybeworks@naver.com</a></div>
-            <div class="pt-1.5 border-t border-[#2d251e] text-[10.5px] text-[#6b6051] flex items-center justify-between">
+            <div>고객센터 <a href="tel:010-7364-2623" class="font-medium text-[#8a7b6b] underline">010-7364-2623</a> · <a href="mailto:maybeworks@naver.com" class="font-medium text-[#8a7b6b] underline">maybeworks@naver.com</a></div>
+            <div class="pt-1.5 border-t border-[#261f18] text-[10px] text-[#554a3e] flex items-center justify-between">
               <span>© 2026 MaybeWorks. All rights reserved.</span>
-              <button type="button" data-analytics-preferences class="hover:underline text-[10.5px] text-[#7a6e60]">쿠키 설정</button>
+              <button type="button" data-analytics-preferences class="hover:underline text-[10px] text-[#685c4e]">쿠키 설정</button>
             </div>
           </div>
 
-          <p class="text-[10px] text-center text-[#665b4e] leading-tight">
+          <p class="text-[9.5px] text-center text-[#554a3e] leading-tight">
             아지트챗은 AI 가상 캐릭터와 대화하는 서비스이며, 실제 인물과의 사실관계를 보장하지 않습니다.
           </p>
         </footer>
       </div>
 
       <!-- 3. List View Bottom Credit Bar -->
-      <footer class="shrink-0 bg-white px-4 py-3 border-t border-[#e8e4d8] z-20 flex items-center justify-between text-[13px] text-[#555555] shadow-[0_-1px_3px_rgba(0,0,0,0.02)]">
+      <footer class="shrink-0 bg-[#241e1a] px-4 py-3 border-t border-[#3d332a] z-20 flex items-center justify-between text-[13px] text-[#baa997] shadow-[0_-2px_8px_rgba(0,0,0,0.25)]">
         <div class="flex items-center gap-2">
-          <span id="listFooterCreditText" class="text-[#191919] font-bold text-[14px]">내 보유: 50 하트 ❤️</span>
-          <button id="btnOpenPaymentListFooter" type="button" class="px-3 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-rose-600 text-[12.5px] font-bold border border-rose-200 transition">
+          <span id="listFooterCreditText" class="text-[#fbf7f2] font-bold text-[14px]">내 보유: 50 하트 ❤️</span>
+          <button id="btnOpenPaymentListFooter" type="button" class="px-3 py-1 rounded-lg bg-[#443328] hover:bg-[#523d2f] text-[#f0be64] text-[12.5px] font-bold border border-[#6b5239] transition">
             충전하기
           </button>
         </div>
-        <div class="flex items-center gap-1 text-[12px] text-[#888888]">
+        <div class="flex items-center gap-1 text-[12px] text-[#8a7c6c]">
           <button id="btnListSwitchVip" type="button" class="hidden">모드전환</button>
           <span>1:1 안심 대화</span>
         </div>
@@ -604,15 +727,15 @@
           </button>
         </form>
 
-        <div class="flex items-center justify-between mt-2.5 text-[12.5px] text-[#666666] px-1">
+        <div class="flex items-center justify-between mt-2.5 text-[12.5px] text-[#baa997] px-1">
           <div class="flex items-center gap-2">
-            <span id="footerCreditText" class="text-[#191919] font-bold">보유 50 하트 ❤️</span>
-            <button id="btnOpenPaymentFooter" type="button" class="px-2 py-0.5 rounded bg-rose-50 hover:bg-rose-100 text-rose-600 text-[11.5px] font-bold border border-rose-200 transition">
+            <span id="footerCreditText" class="text-[#fbf7f2] font-bold">보유 50 하트 ❤️</span>
+            <button id="btnOpenPaymentFooter" type="button" class="px-2 py-0.5 rounded bg-[#443328] hover:bg-[#523d2f] text-[#f0be64] text-[11.5px] font-bold border border-[#6b5239] transition">
               충전하기
             </button>
           </div>
-          <div class="flex items-center gap-1.5 text-[12px] text-[#888888]">
-            <a href="/support" class="underline">고객센터</a>
+          <div class="flex items-center gap-1.5 text-[12px] text-[#8a7c6c]">
+            <a href="/support" class="hover:text-[#d4c3af] underline">고객센터</a>
             <!-- Hidden hooks to maintain event listeners safely -->
             <button id="btnFooterSwitchVip" type="button" class="hidden">하트모드</button>
             <button id="btnOpenPhoneAuthFooter" type="button" class="hidden">인증</button>
@@ -936,25 +1059,25 @@
 
     <!-- Modal 5: Match Condition Filter Modal (새 대화 상대 조건 설정) -->
     <div id="matchFilterModal" class="hidden absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex flex-col justify-end">
-      <div class="bg-white border-t border-[#e2e5e9] rounded-t-3xl max-h-[90%] flex flex-col overflow-hidden shadow-2xl text-[#191f28]">
-        <div class="px-5 py-4 border-b border-[#eaedf0] flex items-center justify-between bg-white shrink-0">
+      <div class="bg-[#2b2520] border-t border-[#483d32] rounded-t-3xl max-h-[90%] flex flex-col overflow-hidden shadow-2xl text-[#fbf7f2]">
+        <div class="px-5 py-4 border-b border-[#483d32] flex items-center justify-between bg-[#332b24] shrink-0">
           <div>
-            <h3 class="text-[17px] font-bold text-[#191f28]">🔍 새 대화 상대 조건 설정</h3>
-            <p class="text-[12px] text-[#6b7684] mt-0.5">원하는 성별·연령대·성격·지역의 새로운 상대와 매칭됩니다</p>
+            <h3 class="text-[17px] font-bold text-[#fbf7f2]">🔍 새 대화 상대 조건 설정</h3>
+            <p class="text-[12px] text-[#d5c8b7] mt-0.5">원하는 성별·연령대·성격·지역의 새로운 상대와 매칭됩니다</p>
           </div>
-          <button id="btnCloseMatchFilter" type="button" class="w-8 h-8 rounded-full bg-[#f1f3f5] text-[#495057] flex items-center justify-center font-bold hover:bg-[#e9ecef] transition">✕</button>
+          <button id="btnCloseMatchFilter" type="button" class="w-8 h-8 rounded-full bg-[#3d342c] text-[#ded3c4] flex items-center justify-center font-bold hover:bg-[#4a3f35] transition">✕</button>
         </div>
 
-        <div class="flex-1 overflow-y-auto p-4 space-y-4 chat-scroll text-[13px] bg-[#f8f9fa]">
+        <div class="flex-1 overflow-y-auto p-4 space-y-4 chat-scroll text-[13px] bg-[#2b2520]">
           <!-- 0. Gender Selection Filter (NEW: Female / Male) -->
           <div class="space-y-2">
-            <label class="block font-bold text-[#191f28] text-[13.5px]">희망 대화 상대 성별</label>
+            <label class="block font-bold text-[#fbf7f2] text-[13.5px]">희망 대화 상대 성별</label>
             <div id="filterGenderGroup" class="grid grid-cols-2 gap-2">
-              <button type="button" data-gender="female" class="filter-gender-btn py-2.5 px-3 rounded-xl border-2 border-rose-500 bg-rose-50 text-rose-700 font-black text-[13px] shadow-xs flex items-center justify-center gap-1.5 transition">
+              <button type="button" data-gender="female" class="filter-gender-btn py-2.5 px-3 rounded-xl border-2 border-[#e11d48] bg-[#40262b] text-[#fda4af] font-black text-[13px] shadow-sm flex items-center justify-center gap-1.5 transition">
                 <span>👩</span>
                 <span>여성 상대</span>
               </button>
-              <button type="button" data-gender="male" class="filter-gender-btn py-2.5 px-3 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] font-bold text-[13px] flex items-center justify-center gap-1.5 transition">
+              <button type="button" data-gender="male" class="filter-gender-btn py-2.5 px-3 rounded-xl border border-[#4d4135] bg-[#362f29] text-[#d5c8b7] font-bold text-[13px] flex items-center justify-center gap-1.5 transition">
                 <span>👨</span>
                 <span>남성 상대</span>
               </button>
@@ -962,15 +1085,15 @@
           </div>
 
           <!-- 0. Recall Previous Partner Card (방금 스쳐간 인연 다시 부르기) -->
-          <div id="recallPrevPartnerBox" class="hidden p-3.5 rounded-2xl bg-amber-50 border border-amber-200 flex items-center justify-between gap-3 shadow-xs">
+          <div id="recallPrevPartnerBox" class="hidden p-3.5 rounded-2xl bg-[#3b3024] border border-[#5d4a36] flex items-center justify-between gap-3 shadow-xs">
             <div class="flex items-center gap-3 min-w-0">
-              <img id="recallPrevAvatar" src="avatars/avatar_01_park_hayoung.jpg" alt="이전 상대" class="w-11 h-11 rounded-2xl object-cover border border-amber-300 shrink-0" />
+              <img id="recallPrevAvatar" src="avatars/avatar_01_park_hayoung.jpg" alt="이전 상대" class="w-11 h-11 rounded-2xl object-cover border border-[#b57a1e] shrink-0" />
               <div class="min-w-0">
-                <div class="text-[11px] text-[#b45309] font-bold">↩ 방금 스쳐간 인연</div>
-                <div id="recallPrevNameInfo" class="text-[14px] font-bold text-[#191f28] truncate">박하영 (29세 · 카페 운영)</div>
+                <div class="text-[11px] text-[#f0be64] font-bold">↩ 방금 스쳐간 인연</div>
+                <div id="recallPrevNameInfo" class="text-[14px] font-bold text-[#fbf7f2] truncate">박하영 (29세 · 카페 운영)</div>
               </div>
             </div>
-            <button id="btnRecallPrevPartner" type="button" class="shrink-0 px-3 py-2 rounded-xl bg-[#f59e0b] hover:bg-[#d97706] text-white font-bold text-[12px] shadow-xs">
+            <button id="btnRecallPrevPartner" type="button" class="shrink-0 px-3 py-2 rounded-xl bg-[#e8b354] hover:bg-[#c48726] text-[#1a140b] font-black text-[12px] shadow-xs">
               다시 부르기 (20 하트)
             </button>
           </div>
@@ -978,60 +1101,60 @@
           <!-- 1. Age Group Filter (20s ~ 60s) -->
           <div class="space-y-2">
             <div class="flex items-center justify-between">
-              <label class="font-bold text-[#191f28] text-[13.5px]">1. 희망 연령대 <span class="text-[#8b95a1] font-normal text-[11.5px]">(복수 선택 가능)</span></label>
+              <label class="font-bold text-[#fbf7f2] text-[13.5px]">1. 희망 연령대 <span class="text-[#a39585] font-normal text-[11.5px]">(복수 선택 가능)</span></label>
             </div>
             <div id="filterAgeGroup" class="grid grid-cols-3 gap-2">
-              <button type="button" data-age="all" class="filter-age-btn py-2.5 px-2 rounded-xl border-2 border-amber-500 bg-amber-50 text-[#b45309] font-bold text-[12.5px] shadow-xs">전체 연령</button>
-              <button type="button" data-age="20" class="filter-age-btn py-2.5 px-2 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] font-medium text-[12.5px]">20대 (20~29세)</button>
-              <button type="button" data-age="30" class="filter-age-btn py-2.5 px-2 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] font-medium text-[12.5px]">30대 (30~39세)</button>
-              <button type="button" data-age="40" class="filter-age-btn py-2.5 px-2 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] font-medium text-[12.5px]">40대 (40~49세)</button>
-              <button type="button" data-age="50" class="filter-age-btn py-2.5 px-2 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] font-medium text-[12.5px]">50대 (50~59세)</button>
-              <button type="button" data-age="60" class="filter-age-btn py-2.5 px-2 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] font-medium text-[12.5px]">60대 (60~69세)</button>
+              <button type="button" data-age="all" class="filter-age-btn py-2.5 px-2 rounded-xl border-2 border-[#e5a93c] bg-[#423526] text-[#f0be64] font-bold text-[12.5px] shadow-sm">전체 연령</button>
+              <button type="button" data-age="20" class="filter-age-btn py-2.5 px-2 rounded-xl border border-[#4d4135] bg-[#362f29] text-[#d5c8b7] font-medium text-[12.5px]">20대 (20~29세)</button>
+              <button type="button" data-age="30" class="filter-age-btn py-2.5 px-2 rounded-xl border border-[#4d4135] bg-[#362f29] text-[#d5c8b7] font-medium text-[12.5px]">30대 (30~39세)</button>
+              <button type="button" data-age="40" class="filter-age-btn py-2.5 px-2 rounded-xl border border-[#4d4135] bg-[#362f29] text-[#d5c8b7] font-medium text-[12.5px]">40대 (40~49세)</button>
+              <button type="button" data-age="50" class="filter-age-btn py-2.5 px-2 rounded-xl border border-[#4d4135] bg-[#362f29] text-[#d5c8b7] font-medium text-[12.5px]">50대 (50~59세)</button>
+              <button type="button" data-age="60" class="filter-age-btn py-2.5 px-2 rounded-xl border border-[#4d4135] bg-[#362f29] text-[#d5c8b7] font-medium text-[12.5px]">60대 (60~69세)</button>
             </div>
           </div>
 
           <!-- 2. Personality / Vibe Filter -->
           <div class="space-y-2">
-            <label class="block font-bold text-[#191f28] text-[13.5px]">2. 선호 성격 및 대화 스타일 <span class="text-[#8b95a1] font-normal text-[11.5px]">(복수 선택 가능)</span></label>
+            <label class="block font-bold text-[#fbf7f2] text-[13.5px]">2. 선호 성격 및 대화 스타일 <span class="text-[#a39585] font-normal text-[11.5px]">(복수 선택 가능)</span></label>
             <div id="filterTraitGroup" class="grid grid-cols-2 gap-2">
-              <button type="button" data-trait="all" class="filter-trait-btn py-2.5 px-3 rounded-xl border-2 border-amber-500 bg-amber-50 text-[#b45309] font-bold text-[12.5px] shadow-xs">전체 성격</button>
-              <button type="button" data-trait="warm" class="filter-trait-btn py-2.5 px-3 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] font-medium text-[12.5px]">다정·상냥함</button>
-              <button type="button" data-trait="calm" class="filter-trait-btn py-2.5 px-3 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] font-medium text-[12.5px]">차분·지적인 교양</button>
-              <button type="button" data-trait="lively" class="filter-trait-btn py-2.5 px-3 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] font-medium text-[12.5px]">유쾌·솔직담백</button>
-              <button type="button" data-trait="chic" class="filter-trait-btn py-2.5 px-3 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] font-medium text-[12.5px]">도도·쿨한 매력</button>
-              <button type="button" data-trait="shy" class="filter-trait-btn py-2.5 px-3 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] font-medium text-[12.5px]">조심스럽고 수줍음</button>
+              <button type="button" data-trait="all" class="filter-trait-btn py-2.5 px-3 rounded-xl border-2 border-[#e5a93c] bg-[#423526] text-[#f0be64] font-bold text-[12.5px] shadow-sm">전체 성격</button>
+              <button type="button" data-trait="warm" class="filter-trait-btn py-2.5 px-3 rounded-xl border border-[#4d4135] bg-[#362f29] text-[#d5c8b7] font-medium text-[12.5px]">다정·상냥함</button>
+              <button type="button" data-trait="calm" class="filter-trait-btn py-2.5 px-3 rounded-xl border border-[#4d4135] bg-[#362f29] text-[#d5c8b7] font-medium text-[12.5px]">차분·지적인 교양</button>
+              <button type="button" data-trait="lively" class="filter-trait-btn py-2.5 px-3 rounded-xl border border-[#4d4135] bg-[#362f29] text-[#d5c8b7] font-medium text-[12.5px]">유쾌·솔직담백</button>
+              <button type="button" data-trait="chic" class="filter-trait-btn py-2.5 px-3 rounded-xl border border-[#4d4135] bg-[#362f29] text-[#d5c8b7] font-medium text-[12.5px]">도도·쿨한 매력</button>
+              <button type="button" data-trait="shy" class="filter-trait-btn py-2.5 px-3 rounded-xl border border-[#4d4135] bg-[#362f29] text-[#d5c8b7] font-medium text-[12.5px]">조심스럽고 수줍음</button>
             </div>
           </div>
 
           <!-- 3. Region Filter -->
           <div class="space-y-2">
-            <label class="block font-bold text-[#191f28] text-[13.5px]">3. 선호 지역권 <span class="text-[#8b95a1] font-normal text-[11.5px]">(복수 선택 가능)</span></label>
+            <label class="block font-bold text-[#fbf7f2] text-[13.5px]">3. 선호 지역권 <span class="text-[#a39585] font-normal text-[11.5px]">(복수 선택 가능)</span></label>
             <div id="filterRegionGroup" class="grid grid-cols-4 gap-1.5">
-              <button type="button" data-region="all" class="filter-region-btn py-2 px-2 rounded-xl border-2 border-amber-500 bg-amber-50 text-[#b45309] font-bold text-[12px] shadow-xs">전체</button>
-              <button type="button" data-region="서울" class="filter-region-btn py-2 px-2 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] font-medium text-[12px]">서울</button>
-              <button type="button" data-region="경기·인천" class="filter-region-btn py-2 px-2 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] font-medium text-[12px]">경기·인천</button>
-              <button type="button" data-region="부산·경남" class="filter-region-btn py-2 px-2 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] font-medium text-[12px]">부산·경남</button>
-              <button type="button" data-region="대구·경북" class="filter-region-btn py-2 px-2 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] font-medium text-[12px]">대구·경북</button>
-              <button type="button" data-region="대전·충청" class="filter-region-btn py-2 px-2 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] font-medium text-[12px]">대전·충청</button>
-              <button type="button" data-region="광주·전라" class="filter-region-btn py-2 px-2 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] font-medium text-[12px]">광주·전라</button>
-              <button type="button" data-region="강원·제주" class="filter-region-btn py-2 px-2 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] font-medium text-[12px]">강원·제주</button>
+              <button type="button" data-region="all" class="filter-region-btn py-2 px-2 rounded-xl border-2 border-[#e5a93c] bg-[#423526] text-[#f0be64] font-bold text-[12px] shadow-sm">전체</button>
+              <button type="button" data-region="서울" class="filter-region-btn py-2 px-2 rounded-xl border border-[#4d4135] bg-[#362f29] text-[#d5c8b7] font-medium text-[12px]">서울</button>
+              <button type="button" data-region="경기·인천" class="filter-region-btn py-2 px-2 rounded-xl border border-[#4d4135] bg-[#362f29] text-[#d5c8b7] font-medium text-[12px]">경기·인천</button>
+              <button type="button" data-region="부산·경남" class="filter-region-btn py-2 px-2 rounded-xl border border-[#4d4135] bg-[#362f29] text-[#d5c8b7] font-medium text-[12px]">부산·경남</button>
+              <button type="button" data-region="대구·경북" class="filter-region-btn py-2 px-2 rounded-xl border border-[#4d4135] bg-[#362f29] text-[#d5c8b7] font-medium text-[12px]">대구·경북</button>
+              <button type="button" data-region="대전·충청" class="filter-region-btn py-2 px-2 rounded-xl border border-[#4d4135] bg-[#362f29] text-[#d5c8b7] font-medium text-[12px]">대전·충청</button>
+              <button type="button" data-region="광주·전라" class="filter-region-btn py-2 px-2 rounded-xl border border-[#4d4135] bg-[#362f29] text-[#d5c8b7] font-medium text-[12px]">광주·전라</button>
+              <button type="button" data-region="강원·제주" class="filter-region-btn py-2 px-2 rounded-xl border border-[#4d4135] bg-[#362f29] text-[#d5c8b7] font-medium text-[12px]">강원·제주</button>
             </div>
           </div>
 
           <!-- 4. Unmet Pool Info & Reset -->
-          <div class="p-3.5 rounded-2xl bg-white border border-[#e2e5e9] flex items-center justify-between gap-2 shadow-xs">
-            <div class="text-[12px] leading-relaxed text-[#495057]">
+          <div class="p-3.5 rounded-2xl bg-[#362f29] border border-[#4d4135] flex items-center justify-between gap-2 shadow-xs">
+            <div class="text-[12px] leading-relaxed text-[#d5c8b7]">
               <div>✓ <strong>만났던 상대 재매칭 방지 적용 중</strong></div>
-              <div id="filterPoolCountText" class="text-rose-600 font-bold mt-0.5">조건에 맞는 새로운 상대: 1,250명 대기 중</div>
+              <div id="filterPoolCountText" class="text-rose-400 font-bold mt-0.5">조건에 맞는 새로운 상대: 1,250명 대기 중</div>
             </div>
-            <button id="btnResetMetHistory" type="button" class="shrink-0 px-2.5 py-1.5 rounded-lg bg-[#f1f3f5] hover:bg-[#e9ecef] text-[#495057] text-[11px] font-medium">
+            <button id="btnResetMetHistory" type="button" class="shrink-0 px-2.5 py-1.5 rounded-lg bg-[#443b33] hover:bg-[#52463d] text-[#ede2d5] text-[11px] font-medium">
               중복방지 초기화
             </button>
           </div>
         </div>
 
-        <div class="p-4 border-t border-[#eaedf0] bg-white flex gap-2 shrink-0">
-          <button id="btnResetFilterAll" type="button" class="px-4 py-3.5 rounded-xl bg-[#f1f3f5] hover:bg-[#e9ecef] text-[#495057] font-bold text-[13.5px] shrink-0 transition">
+        <div class="p-4 border-t border-[#483d32] bg-[#332b24] flex gap-2 shrink-0">
+          <button id="btnResetFilterAll" type="button" class="px-4 py-3.5 rounded-xl bg-[#443b33] hover:bg-[#52463d] text-[#ede2d5] font-bold text-[13.5px] shrink-0 transition border border-[#524538]">
             조건 초기화
           </button>
           <button id="btnApplyFilterAndMatch" type="button" class="flex-1 py-3.5 rounded-xl bg-[#fee500] hover:bg-[#ebd300] text-[#191919] font-bold text-[15.5px] shadow-xs transition">
@@ -1043,83 +1166,84 @@
 
     <!-- Modal 6: Comprehensive Settings Modal (AI Key, Phone Auth, VIP Mode, Reset) -->
     <div id="aiPolicyModal" class="hidden absolute inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
-      <div class="bg-white border border-[#e2e5e9] rounded-3xl max-w-sm w-full p-5 text-[#191f28] shadow-2xl space-y-4 max-h-[92%] overflow-y-auto chat-scroll">
-        <div class="flex items-center justify-between border-b border-[#eaedf0] pb-3">
-          <h3 class="text-[17px] font-bold text-[#191f28] flex items-center gap-1.5">
+      <div class="bg-[#2b2520] border border-[#483d32] rounded-3xl max-w-sm w-full p-5 text-[#fbf7f2] shadow-2xl space-y-4 max-h-[92%] overflow-y-auto chat-scroll">
+        <div class="flex items-center justify-between border-b border-[#44382c] pb-3">
+          <h3 class="text-[17px] font-bold text-[#fbf7f2] flex items-center gap-1.5">
             <span>⚙️</span>
             <span>환경설정 & 계정 관리</span>
           </h3>
-          <button id="btnCloseAiPolicy" type="button" class="w-8 h-8 rounded-full bg-[#f1f3f5] text-[#495057] flex items-center justify-center font-bold hover:bg-[#e9ecef] transition">✕</button>
+          <button id="btnCloseAiPolicy" type="button" class="w-8 h-8 rounded-full bg-[#3d342c] text-[#ded3c4] flex items-center justify-center font-bold hover:bg-[#4a3f35] transition">✕</button>
         </div>
 
         <!-- 1. AI API Key Configuration -->
-        <div id="settingsAiConfig" class="space-y-2 text-[12.5px] p-3 rounded-2xl bg-[#faf9f5] border border-[#e8e4d8]">
+        <div id="settingsAiConfig" class="space-y-2 text-[12.5px] p-3 rounded-2xl bg-[#362f29] border border-[#4d4135]">
           <div class="flex items-center justify-between">
-            <span class="text-[#191f28] font-bold">🔑 AI 모델 및 API 키 설정</span>
-            <span id="apiTestStatusBadge" class="text-[11.5px] text-[#b45309] font-medium">기본 엔진</span>
+            <span class="text-[#fbf7f2] font-bold">🔑 AI 모델 및 API 키 설정</span>
+            <span id="apiTestStatusBadge" class="text-[11.5px] text-[#f0be64] font-medium">기본 엔진</span>
           </div>
-          <select id="selectTestModel" class="w-full px-3 py-2 rounded-xl border border-[#ded8cb] bg-white text-[#191f28] text-[12.5px] font-medium focus:outline-none focus:border-amber-400">
+          <select id="selectTestModel" class="w-full px-3 py-2 rounded-xl border border-[#524538] bg-[#221c17] text-[#fbf7f2] text-[12.5px] font-medium focus:outline-none focus:border-[#e5a93c]">
             <option value="gemini-2.5-flash">Google Gemini Flash (AIza... 키)</option>
             <option value="claude-sonnet-openrouter">Claude 3.7 Sonnet (OpenRouter sk-or-... 키)</option>
             <option value="claude-direct">Claude 3.5 Haiku / Sonnet (Anthropic sk-ant-... 키)</option>
             <option value="gpt-4o-mini">OpenAI GPT-4o-mini (sk-... 키)</option>
           </select>
           <div class="flex gap-1.5">
-            <input id="inputTestApiKey" type="password" placeholder="본인 API 키 (AIza... / sk-...)" class="flex-1 px-3 py-2 rounded-xl border border-[#ded8cb] bg-white text-[#191f28] font-mono text-[12px] focus:outline-none focus:border-amber-400" />
-            <button id="btnClearApiKey" type="button" class="shrink-0 px-3 py-2 rounded-xl bg-[#f1f3f5] hover:bg-[#e9ecef] text-[#495057] text-[12px] font-semibold">
+            <input id="inputTestApiKey" type="password" placeholder="본인 API 키 (AIza... / sk-...)" class="flex-1 px-3 py-2 rounded-xl border border-[#524538] bg-[#221c17] text-[#fbf7f2] font-mono text-[12px] focus:outline-none focus:border-[#e5a93c]" />
+            <button id="btnClearApiKey" type="button" class="shrink-0 px-3 py-2 rounded-xl bg-[#443b33] hover:bg-[#52463d] text-[#ede2d5] text-[12px] font-semibold border border-[#524538]">
               비우기
             </button>
           </div>
-          <p class="text-[11px] text-emerald-700 leading-snug">
+          <p class="text-[11px] text-emerald-400 leading-snug">
             🔒 API 키는 브라우저 내부(localStorage)에만 안전하게 보관됩니다.
           </p>
         </div>
 
         <!-- 2. Account & Phone Backup -->
-        <div class="space-y-2 p-3 rounded-2xl bg-[#faf9f5] border border-[#e8e4d8] text-[12.5px]">
+        <div class="space-y-2 p-3 rounded-2xl bg-[#362f29] border border-[#4d4135] text-[12.5px]">
           <div class="flex items-center justify-between">
-            <span class="font-bold text-[#191f28] flex items-center gap-1">
+            <span class="font-bold text-[#fbf7f2] flex items-center gap-1">
               <span>📱</span>
               <span>휴대폰 번호 연동 (대화 보관)</span>
             </span>
           </div>
-          <p class="text-[11.5px] text-[#666666] leading-snug">
+          <p class="text-[11.5px] text-[#baa997] leading-snug">
             휴대폰 번호를 연동하시면 기기를 바꾸어도 모든 대화 기록과 보유 하트가 안전하게 이어집니다.
           </p>
-          <button id="btnSettingsOpenPhoneAuth" type="button" class="w-full py-2.5 rounded-xl bg-amber-50 hover:bg-amber-100 border border-amber-300 text-amber-900 font-bold text-[12.5px] transition shadow-xs">
+          <button id="btnSettingsOpenPhoneAuth" type="button" class="w-full py-2.5 rounded-xl bg-[#4a3b2c] hover:bg-[#574634] border border-[#785e43] text-[#f3ca85] font-bold text-[12.5px] transition shadow-xs">
             휴대폰 번호 연동하기 (+100 하트 무료)
           </button>
         </div>
 
-        <div class="space-y-3 p-3 rounded-2xl border text-sm">
-          <strong>먼저 오는 연락 · 알림</strong>
-          <label class="flex items-center justify-between gap-3"><span>가끔 먼저 오는 연락 받기</span><input id="allowFirstContact" type="checkbox" checked class="w-5 h-5 accent-amber-400" /></label>
-          <p class="text-xs text-gray-600">일부 AI 캐릭터가 이전 대화를 떠올리며 먼저 연락할 수 있어요. 먼저 온 메시지는 무료이며 밤 10시~오전 10시에는 보내지 않아요.</p>
-          <button id="btnBrowserNotifications" type="button" class="w-full py-2.5 rounded-xl bg-amber-50 border border-amber-300 font-bold">브라우저 알림 허용</button>
-          <p id="notificationStatus" role="status" class="text-xs text-gray-600">알림을 허용하면 새 메시지가 왔을 때 알려드려요.</p>
+        <div class="space-y-3 p-3 rounded-2xl bg-[#362f29] border border-[#4d4135] text-[12.5px]">
+          <strong class="text-[#fbf7f2]">먼저 오는 연락 · 알림</strong>
+          <label class="flex items-center justify-between gap-3 text-[#d5c8b7]"><span>가끔 먼저 오는 연락 받기</span><input id="allowFirstContact" type="checkbox" checked class="w-5 h-5 accent-amber-400" /></label>
+          <p class="text-[11.5px] text-[#a39585]">일부 AI 캐릭터가 이전 대화를 떠올리며 먼저 연락할 수 있어요. 먼저 온 메시지는 무료이며 밤 10시~오전 10시에는 보내지 않아요.</p>
+          <button id="btnBrowserNotifications" type="button" class="w-full py-2.5 rounded-xl bg-[#443b33] hover:bg-[#52463d] border border-[#524538] text-[#ede2d5] font-bold">브라우저 알림 허용</button>
+          <p id="notificationStatus" role="status" class="text-[11.5px] text-[#a39585]">알림을 허용하면 새 메시지가 왔을 때 알려드려요.</p>
         </div>
+
         <!-- 3. Test & Developer Controls (VIP Mode, Reset) -->
-        <div id="settingsDevControls" class="space-y-2 p-3 rounded-2xl bg-[#faf9f5] border border-[#e8e4d8] text-[12.5px]">
+        <div id="settingsDevControls" class="space-y-2 p-3 rounded-2xl bg-[#362f29] border border-[#4d4135] text-[12.5px]">
           <div class="flex items-center justify-between">
-            <span class="font-bold text-[#191f28] flex items-center gap-1">
+            <span class="font-bold text-[#fbf7f2] flex items-center gap-1">
               <span>👑</span>
               <span id="currentModeLabel">현재: 일반 하트 차감 모드</span>
             </span>
           </div>
           <div class="grid grid-cols-2 gap-2 pt-1">
-            <button id="btnModalToggleVip" type="button" class="py-2.5 px-2 rounded-xl bg-white hover:bg-gray-50 border border-[#ded8cb] text-[#444444] font-bold text-[12px] transition shadow-xs text-center">
+            <button id="btnModalToggleVip" type="button" class="py-2.5 px-2 rounded-xl bg-[#443b33] hover:bg-[#52463d] border border-[#5a4c3f] text-[#ede2d5] font-bold text-[12px] transition shadow-xs text-center">
               VIP 무제한 전환
             </button>
-            <button id="btnModalResetData" type="button" class="py-2.5 px-2 rounded-xl bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-600 font-bold text-[12px] transition shadow-xs text-center">
+            <button id="btnModalResetData" type="button" class="py-2.5 px-2 rounded-xl bg-[#422227] hover:bg-[#522930] border border-[#70303b] text-[#fca5a5] font-bold text-[12px] transition shadow-xs text-center">
               전체 데이터 초기화
             </button>
           </div>
-          <div class="pt-2 border-t border-[#ded8cb] flex items-center justify-between">
+          <div class="pt-2 border-t border-[#483d32] flex items-center justify-between">
             <div class="flex flex-col">
-              <span class="font-bold text-[#191f28]">🧪 테스터 모드 (집계 제외)</span>
-              <span class="text-[11px] text-[#777777]">방문자 및 게스트 통계 집계 제외</span>
+              <span class="font-bold text-[#fbf7f2]">🧪 테스터 모드 (집계 제외)</span>
+              <span class="text-[11px] text-[#a39585]">방문자 및 게스트 통계 집계 제외</span>
             </div>
-            <button id="btnToggleTesterMode" type="button" class="py-1 px-3 rounded-lg border font-bold text-[11.5px] transition shadow-xs cursor-pointer">
+            <button id="btnToggleTesterMode" type="button" class="py-1 px-3 rounded-lg border border-[#524538] bg-[#2b2520] text-[#ded3c4] font-bold text-[11.5px] transition shadow-xs cursor-pointer">
               확인 중...
             </button>
           </div>
@@ -4697,9 +4821,9 @@
       }
 
       // 성별 필터 버튼 UI 갱신
-      const genderFemaleActiveCls = 'filter-gender-btn py-2.5 px-3 rounded-xl border-2 border-rose-500 bg-rose-50 text-rose-700 font-black text-[13px] shadow-xs flex items-center justify-center gap-1.5 transition';
-      const genderMaleActiveCls = 'filter-gender-btn py-2.5 px-3 rounded-xl border-2 border-indigo-600 bg-indigo-50 text-indigo-700 font-black text-[13px] shadow-xs flex items-center justify-center gap-1.5 transition';
-      const genderInactiveCls = 'filter-gender-btn py-2.5 px-3 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] hover:bg-[#f8f9fa] font-bold text-[13px] flex items-center justify-center gap-1.5 transition';
+      const genderFemaleActiveCls = 'filter-gender-btn py-2.5 px-3 rounded-xl border-2 border-[#e11d48] bg-[#40262b] text-[#fda4af] font-black text-[13px] shadow-sm flex items-center justify-center gap-1.5 transition';
+      const genderMaleActiveCls = 'filter-gender-btn py-2.5 px-3 rounded-xl border-2 border-[#6366f1] bg-[#27283d] text-[#c7d2fe] font-black text-[13px] shadow-sm flex items-center justify-center gap-1.5 transition';
+      const genderInactiveCls = 'filter-gender-btn py-2.5 px-3 rounded-xl border border-[#4d4135] bg-[#362f29] text-[#d5c8b7] hover:bg-[#413831] hover:text-[#fbf7f2] font-bold text-[13px] flex items-center justify-center gap-1.5 transition';
 
       const currentGender = state.matchFilter.gender || (typeof localStorage !== 'undefined' && localStorage.getItem('azit_user_gender_pref')) || 'female';
       document.querySelectorAll('.filter-gender-btn').forEach(btn => {
@@ -4711,8 +4835,8 @@
         }
       });
 
-      const activeCls = 'py-2.5 px-2 rounded-xl border-2 border-amber-500 bg-amber-50 text-[#b45309] font-bold text-[12.5px] shadow-xs transition';
-      const inactiveCls = 'py-2.5 px-2 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] hover:bg-[#f8f9fa] font-medium text-[12.5px] transition';
+      const activeCls = 'py-2.5 px-2 rounded-xl border-2 border-[#e5a93c] bg-[#423526] text-[#f0be64] font-bold text-[12.5px] shadow-sm transition';
+      const inactiveCls = 'py-2.5 px-2 rounded-xl border border-[#4d4135] bg-[#362f29] text-[#d5c8b7] hover:bg-[#413831] hover:text-[#fbf7f2] font-medium text-[12.5px] transition';
 
       document.querySelectorAll('.filter-age-btn').forEach(btn => {
         const val = btn.getAttribute('data-age');
@@ -4726,8 +4850,8 @@
         btn.className = `filter-trait-btn ${selected ? activeCls : inactiveCls}`;
       });
 
-      const regActiveCls = 'py-2 px-2 rounded-xl border-2 border-amber-500 bg-amber-50 text-[#b45309] font-bold text-[12px] shadow-xs transition';
-      const regInactiveCls = 'py-2 px-2 rounded-xl border border-[#e2e5e9] bg-white text-[#495057] hover:bg-[#f8f9fa] font-medium text-[12px] transition';
+      const regActiveCls = 'py-2 px-2 rounded-xl border-2 border-[#e5a93c] bg-[#423526] text-[#f0be64] font-bold text-[12px] shadow-sm transition';
+      const regInactiveCls = 'py-2 px-2 rounded-xl border border-[#4d4135] bg-[#362f29] text-[#d5c8b7] hover:bg-[#413831] hover:text-[#fbf7f2] font-medium text-[12px] transition';
       document.querySelectorAll('.filter-region-btn').forEach(btn => {
         const val = btn.getAttribute('data-region');
         const selected = val === 'all' ? (!regions || regions.length === 0) : (regions && regions.includes(val));

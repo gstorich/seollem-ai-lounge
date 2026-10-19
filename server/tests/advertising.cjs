@@ -19,6 +19,8 @@ gateway.find=async()=>({...receipt});gateway.payment=async()=>({...receipt});
  db.sql.exec('DROP TRIGGER ad_fail');
  await pay.reconcile(order.id);await pay.reconcile(order.id);assert.equal(db.getUser(u.id).hearts,2500);
  assert.equal(db.sql.prepare("SELECT count(*) n FROM ad_events WHERE name='purchase'").get().n,1);
+ // Purchase transport tests below isolate the purchase; funnel transport has its own suite.
+ db.sql.prepare("UPDATE ad_deliveries SET status='fixture_excluded' WHERE event_id IN (SELECT id FROM ad_events WHERE name!='purchase')").run();
  const events=ads.pending(u);assert.equal(events.length,2);assert(events.every(e=>e.value===19900&&e.currency==='KRW'&&e.transaction_id===order.id));
  assert(!JSON.stringify(events).includes(u.phone));assert.equal(ads.pending(v).length,0);
  ads.acknowledge(v,events[0].id,events[0].destination);assert.equal(ads.pending(u).length,2);

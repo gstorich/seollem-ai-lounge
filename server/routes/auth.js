@@ -105,7 +105,6 @@ router.post('/verify-otp', requireAuth, requireLoggedOutForOtp, verifyLimit, (re
   const result = dbService.verifyOtp(challengeId, phone, req.user.id, otpDigest(challengeId, phone, code));
   if (!result) return res.status(400).json({ success: false, error: '인증번호가 틀렸거나 만료되었습니다. 5회 틀리면 새로 받아주세요.' });
   require('../services/operationsService').track(result.bonusAwarded ? 'phone_verified' : 'phone_login', result.user.id);
-  const ads=require('../services/advertisingService');const acquisition=ads.context(req.user.id);if(acquisition.granted)ads.updateContext(result.user,acquisition);if(result.bonusAwarded)ads.record(result.user.id,'sign_up',result.user.id);
 
   browserSession.save(res,result.user);
   const token = generateToken({ userId: result.user.id });

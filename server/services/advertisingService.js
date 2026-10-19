@@ -1,6 +1,6 @@
 'use strict';
 // Purchase intent comes only from paymentService after provider verification.
-const crypto=require('node:crypto'),db=require('./dbService');
+const crypto=require('node:crypto'),db=require('./dbService'),funnel=require('./adFunnel');
 db.sql.exec(`CREATE TABLE IF NOT EXISTS ad_context(user_id TEXT PRIMARY KEY,data TEXT NOT NULL,updated_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS ad_events(id TEXT PRIMARY KEY,user_id TEXT NOT NULL,name TEXT NOT NULL,data TEXT NOT NULL,created_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS ad_deliveries(event_id TEXT NOT NULL,destination TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'pending',attempts INTEGER NOT NULL DEFAULT 0,next_at INTEGER NOT NULL DEFAULT 0,last_error TEXT,delivered_at INTEGER,PRIMARY KEY(event_id,destination));
@@ -8,11 +8,11 @@ CREATE TABLE IF NOT EXISTS app_settings(key TEXT PRIMARY KEY,value TEXT NOT NULL
 const deliveryColumns=new Set(db.sql.prepare('PRAGMA table_info(ad_deliveries)').all().map(r=>r.name));
 for(const [name,type] of [['request_id','TEXT'],['provider_diagnostics','TEXT'],['checks','INTEGER NOT NULL DEFAULT 0']])if(!deliveryColumns.has(name))db.sql.exec('ALTER TABLE ad_deliveries ADD COLUMN '+name+' '+type);
 const setting=(key)=>db.sql.prepare('SELECT value FROM app_settings WHERE key=?').get(key)?.value||'';
-function publicConfig(){return {googleAdsId:setting('google_ads_id'),googlePurchaseLabel:setting('google_purchase_label'),metaPixelId:setting('meta_pixel_id')};}
+function publicConfig(){return {googleAdsId:setting('google_ads_id'),googlePurchaseLabel:setting('google_purchase_label'),metaPixelId:setting('meta_pixel_id'),events:Object.fromEntries(Object.entries(funnel.events).filter(([name])=>name!=='refund').map(([name,spec])=>[name,{meta:spec.meta,custom:Boolean(spec.custom),googleLabel:funnel.google(name,setting)?.label||''}]))};}
 const clean=(v,re,max=256)=>typeof v==='string'&&v.length<=max&&re.test(v)?v:undefined;
 const opaque=/^[a-zA-Z0-9_.~-]+$/;
 function context(userId){const r=db.sql.prepare('SELECT data FROM ad_context WHERE user_id=?').get(userId);return r?JSON.parse(r.data):{};}
-function updateContext(user,input={}){
+function updateContext(user,input={},captureVisit=true){
  const granted=input.granted===true&&!user.isTester,old=context(user.id),data={granted,at:Date.now(),version:'ads-consent-20261020-v1'};
  if(granted){
   data.externalId=old.externalId||crypto.randomUUID();
@@ -25,13 +25,16 @@ function updateContext(user,input={}){
  db.transaction(()=>{
   db.sql.prepare('INSERT INTO ad_context VALUES(?,?,?) ON CONFLICT(user_id) DO UPDATE SET data=excluded.data,updated_at=excluded.updated_at').run(user.id,JSON.stringify(data),Date.now());
   if(!granted){db.sql.prepare("UPDATE payment_orders SET data=json_remove(data,'$.adContext') WHERE user_id=?").run(user.id);db.sql.prepare("UPDATE ad_deliveries SET status='consent_revoked',last_error=NULL WHERE status IN ('pending','retry','blocked') AND event_id IN (SELECT id FROM ad_events WHERE user_id=?)").run(user.id);db.sql.prepare("UPDATE ad_events SET data='{}' WHERE user_id=?").run(user.id);}
+  if(captureVisit&&granted)record(user.id,'new_visit',user.id);
  });return {granted};
 }
 function record(userId,name,key,data={},at=Date.now(),snapshot){
+ if(!funnel.events[name])throw Error('UNKNOWN_AD_EVENT');
  const user=db.getUser(userId),c=snapshot||context(userId),id='azit_'+crypto.createHash('sha256').update(name+':'+key).digest('hex').slice(0,40);
  const eligible=c.granted===true&&!user?.isTester&&Date.now()-c.at<90*86400000;
  db.sql.prepare('INSERT OR IGNORE INTO ad_events VALUES(?,?,?,?,?)').run(id,userId,name,JSON.stringify(eligible?{...data,context:c}:{}),at);
- for(const dest of name==='refund'?['google_server']:name==='purchase'?['google_browser','google_server','meta_browser','meta_server']:['meta_server'])db.sql.prepare('INSERT OR IGNORE INTO ad_deliveries(event_id,destination,status) VALUES(?,?,?)').run(id,dest,eligible?'pending':'no_consent');
+ const destinations=[...(funnel.events[name].meta?['meta_browser','meta_server']:[]),...(funnel.events[name].google?['google_server',...(name!=='refund'?['google_browser']:[])]:[])];
+ for(const dest of destinations)db.sql.prepare('INSERT OR IGNORE INTO ad_deliveries(event_id,destination,status) VALUES(?,?,?)').run(id,dest,eligible?'pending':'no_consent');
  return id;
 }
 function payment(o,previousCancelled=0){
@@ -53,7 +56,7 @@ async function flush(){
   const c=context(row.user_id),data=JSON.parse(row.data),cfg=publicConfig();
   if(!c.granted||db.getUser(row.user_id)?.isTester){db.sql.prepare("UPDATE ad_deliveries SET status='consent_revoked' WHERE event_id=? AND destination=?").run(row.event_id,row.destination);continue;}
   if(row.destination==='google_server'){
-   const google=require('./googleConversionGateway');
+   const google=require('./googleConversionGateway'),destination=funnel.google(row.name,setting);
    if(row.name==='refund'){
     const original=db.sql.prepare("SELECT d.status FROM ad_deliveries d JOIN ad_events e ON e.id=d.event_id WHERE d.destination='google_server' AND e.name='purchase' AND json_extract(e.data,'$.transaction_id')=?").get(data.transaction_id);
     if(!original||!['accepted','accepted_with_warnings'].includes(original.status))continue;
@@ -61,7 +64,7 @@ async function flush(){
     if(latest.at>row.created_at){db.sql.prepare("UPDATE ad_deliveries SET status='superseded' WHERE event_id=? AND destination=?").run(row.event_id,row.destination);continue;}
    }
    let status='blocked',reason='SERVER_CREDENTIALS_MISSING',requestId=null;
-   if(google.ready())try{const result=await google.send(data,data.purchaseAt||row.created_at);status=result.warnings?'ingested_with_warnings':'ingested';requestId=result.requestId;reason=result.warnings?'PROVIDER_FIELD_WARNING':null;}catch(e){status=e.message==='NO_AD_IDENTIFIER'?'unattributable':'retry';reason=e.message==='NO_AD_IDENTIFIER'?'NO_AD_IDENTIFIER':'TRANSPORT_OR_PROVIDER_ERROR';}
+   if(google.ready()&&/^\d+$/.test(destination?.actionId||''))try{const result=await google.send({...data,transaction_id:data.transaction_id||row.event_id},data.purchaseAt||row.created_at,{actionId:destination.actionId});status=result.warnings?'ingested_with_warnings':'ingested';requestId=result.requestId;reason=result.warnings?'PROVIDER_FIELD_WARNING':null;}catch(e){status=e.message==='NO_AD_IDENTIFIER'?'unattributable':'retry';reason=e.message==='NO_AD_IDENTIFIER'?'NO_AD_IDENTIFIER':'TRANSPORT_OR_PROVIDER_ERROR';}
    db.sql.prepare('UPDATE ad_deliveries SET status=?,attempts=attempts+1,last_error=?,request_id=?,checks=0,next_at=?,delivered_at=? WHERE event_id=? AND destination=?').run(status,reason,requestId,Date.now()+(requestId?1800000:Math.min(3600000,60000*2**Math.min(row.attempts,6))),null,row.event_id,row.destination);continue;
   }
   const token=process.env.META_CAPI_ACCESS_TOKEN,api=process.env.META_GRAPH_VERSION;
@@ -71,8 +74,7 @@ async function flush(){
   if(Date.now()-row.created_at>7*86400000){db.sql.prepare("UPDATE ad_deliveries SET status='expired',last_error='PLATFORM_TIME_WINDOW' WHERE event_id=? AND destination=?").run(row.event_id,row.destination);continue;}
   const ctx=data.context||{},user_data={external_id:[crypto.createHash('sha256').update(ctx.externalId).digest('hex')]};
   for(const k of ['fbc','fbp'])if(ctx[k])user_data[k]=ctx[k];if(ctx.userAgent)user_data.client_user_agent=ctx.userAgent;
-  const eventNames={purchase:'Purchase',sign_up:'CompleteRegistration',begin_checkout:'InitiateCheckout',first_chat:'Contact'};
-  const payload={data:[{event_name:eventNames[row.name],event_time:Math.floor(row.created_at/1000),event_id:row.event_id,action_source:'website',event_source_url:'https://azitchat.com/',user_data,custom_data:{...(data.value!==undefined?{value:data.value,currency:'KRW'}:{}),...(data.transaction_id?{order_id:data.transaction_id}:{})}}]};
+  const payload={data:[{event_name:funnel.events[row.name].meta,event_time:Math.floor(row.created_at/1000),event_id:row.event_id,action_source:'website',event_source_url:'https://azitchat.com/',user_data,custom_data:{...(data.value!==undefined?{value:data.value,currency:'KRW'}:{}),...(data.transaction_id?{order_id:data.transaction_id}:{})}}]};
   try{
    const res=await fetch('https://graph.facebook.com/'+api+'/'+cfg.metaPixelId+'/events',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify(payload),signal:AbortSignal.timeout(15000)});
    const body=await res.json();if(!res.ok||body.events_received!==1)throw Error('PROVIDER_REJECTED');
@@ -90,6 +92,19 @@ async function checkGoogleReceipts(){
   }catch{db.sql.prepare("UPDATE ad_deliveries SET checks=checks+1,next_at=?,last_error='DIAGNOSTICS_UNAVAILABLE' WHERE event_id=? AND destination=?").run(Date.now()+3600000,r.event_id,r.destination);}
  }
 }
-function diagnostics(){return {configuration:{...publicConfig(),googleServerCredentials:require('./googleConversionGateway').ready(),metaServerCredentials:Boolean(process.env.META_CAPI_ACCESS_TOKEN),metaGraphVersion:process.env.META_GRAPH_VERSION||null},deliveries:db.sql.prepare('SELECT destination,status,count(*) count FROM ad_deliveries GROUP BY destination,status').all(),paidLiveOrders:db.sql.prepare("SELECT count(*) count FROM payment_orders WHERE json_extract(data,'$.mode')='live' AND json_extract(data,'$.grantId') IS NOT NULL").get().count,purchaseRecords:db.sql.prepare("SELECT count(*) count FROM ad_events WHERE name='purchase'").get().count};}
+function diagnostics(){return {funnel:Object.entries(funnel.events).map(([name,spec])=>({name,meta:spec.meta||null,googleActionId:funnel.google(name,setting)?.actionId||null,googleLabelConfigured:Boolean(funnel.google(name,setting)?.label),primary:name==='purchase'})),events:db.sql.prepare('SELECT name,count(*) count FROM ad_events GROUP BY name').all(),configuration:{...publicConfig(),googleServerCredentials:require('./googleConversionGateway').ready(),metaServerCredentials:Boolean(process.env.META_CAPI_ACCESS_TOKEN),metaGraphVersion:process.env.META_GRAPH_VERSION||null},deliveries:db.sql.prepare('SELECT destination,status,count(*) count FROM ad_deliveries GROUP BY destination,status').all(),paidLiveOrders:db.sql.prepare("SELECT count(*) count FROM payment_orders WHERE json_extract(data,'$.mode')='live' AND json_extract(data,'$.grantId') IS NOT NULL").get().count,purchaseRecords:db.sql.prepare("SELECT count(*) count FROM ad_events WHERE name='purchase'").get().count};}
 function start(){const t=setInterval(()=>flush().catch(()=>{}),30000);t.unref();return()=>clearInterval(t);}
-module.exports={publicConfig,context,updateContext,record,payment,pending,acknowledge,flush,diagnostics,start};
+function clientEvent(user,name,key){
+ if(!funnel.events[name]?.client||typeof key!=='string'||!/^[a-f0-9-]{36}$/.test(key))throw Error('INVALID_AD_EVENT');
+ return record(user.id,name,user.id+':'+key);
+}
+function firstChat(userId){
+ // Called inside the successful message/reply/debit transaction, before append.
+ const previous=db.sql.prepare("SELECT 1 FROM conversation_messages WHERE user_id=? AND json_extract(data,'$.sender')='user' LIMIT 1").get(userId);
+ if(!previous&&!db.sql.prepare("SELECT 1 FROM ad_events WHERE user_id=? AND name='first_chat'").get(userId))record(userId,'first_chat',userId);
+}
+function linkAccount(from,user){
+ const acquisition=context(from);if(acquisition.granted)updateContext(user,acquisition,false);
+ db.sql.prepare('UPDATE ad_events SET user_id=? WHERE user_id=?').run(user.id,from);
+}
+module.exports={clientEvent,firstChat,linkAccount,publicConfig,context,updateContext,record,payment,pending,acknowledge,flush,diagnostics,start};

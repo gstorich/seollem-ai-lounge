@@ -10,6 +10,7 @@ async function req(route,token,body,method=body===undefined?'GET':'POST'){const 
 (async()=>{try{
  await start();sql=new DatabaseSync(env.SQLITE_FILE);
  const {data:guest}=await req('/auth/guest',null,{}),token=guest.token,id=guest.user.id,characterId='chaewon';
+ await req('/advertising/context',token,{granted:true,gclid:'synthetic-local-click'});
  let balance=50;
  const state=async()=> (await req('/account/state',token)).data;
  const chargeCount=()=>sql.prepare("SELECT count(*) n FROM ledger WHERE user_id=? AND reason='chat'").get(id).n;
@@ -17,6 +18,7 @@ async function req(route,token,body,method=body===undefined?'GET':'POST'){const 
  const first=await send('completion-retry','first');assert.equal(first.status,200);assert.equal(first.data.isAiGenerated,true);assert.equal(first.data.partnerReply,'오늘 이야기 즐거웠어요 다음에도 편하게 이야기해요');balance=46.3;
  assert.equal(first.data.heartsRemaining,balance);assert.equal(chargeCount(),1);
  const replay=await send('completion-retry','first');assert.equal(replay.data.replyId,first.data.replyId);assert.equal(chargeCount(),1);
+ assert.equal(sql.prepare("SELECT count(*) n FROM ad_events WHERE name='first_chat' AND user_id=?").get(id).n,1);
  assert.equal((await send('different input','first')).status,409);
  for(const marker of ['age-gate-input','unsafe-writer-test','minor-policy-test']){
   const before=(await state()).user.hearts,previous=sql.prepare('SELECT * FROM conversation_state WHERE user_id=?').all(id);

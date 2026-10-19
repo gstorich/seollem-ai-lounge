@@ -245,6 +245,7 @@ module.exports = {
       if (row.digest !== digest) { sql.exec('COMMIT'); return false; }
       sql.prepare("UPDATE otp_challenges SET status='consumed',digest='' WHERE id=?").run(id);
       const result = module.exports.linkPhone(sessionId, phone);
+      const ads=require('./advertisingService');ads.linkAccount(sessionId,result.user);ads.record(result.user.id,'sign_up',result.user.id);
       sql.exec('COMMIT');
       return result;
     } catch (e) { sql.exec('ROLLBACK'); throw e; }
