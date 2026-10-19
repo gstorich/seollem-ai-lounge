@@ -6,7 +6,8 @@ const { requireAuth } = require('../middleware/auth');
 router.use(requireAuth);
 function snapshot(user) {
   return { success: true, user: { id: user.id, phone: user.phone, hearts: user.hearts,
-    isVipUnlimited: user.isVipUnlimited, phoneBonusClaimed: user.phoneBonusClaimed, heartExpiry: db.getHeartSummary(user.id) },
+    isVipUnlimited: user.isVipUnlimited, phoneBonusClaimed: user.phoneBonusClaimed, heartExpiry: db.getHeartSummary(user.id),
+    isAdult: require('../services/contentAccess').verifiedAdult(user) },
     savedRooms: user.savedRooms || {}, roomCharacters:Object.keys(user.savedRooms||{}).map(id=>characters.publicProfile(characters.getCharacterById(id))).filter(Boolean), metCharIds: user.metCharIds || [], matchFilter: user.matchFilter,
     unlockedMedia: user.unlockedMedia || {}, prevCharId: user.prevCharId || null };
 }

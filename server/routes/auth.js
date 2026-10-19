@@ -33,7 +33,8 @@ router.post('/guest', optionalAuth, (req, res) => {
       phone: user.phone,
       hearts: user.hearts,
       isVipUnlimited: user.isVipUnlimited,
-      phoneBonusClaimed: user.phoneBonusClaimed
+      phoneBonusClaimed: user.phoneBonusClaimed,
+      isAdult: require('../services/contentAccess').verifiedAdult(user)
     }
   });
 });
@@ -54,7 +55,7 @@ function otpDigest(id, phone, code) {
 }
 function publicUser(user) {
   return { id: user.id, phone: user.phone, hearts: user.hearts, isVipUnlimited: user.isVipUnlimited,
-    phoneBonusClaimed: user.phoneBonusClaimed };
+    phoneBonusClaimed: user.phoneBonusClaimed, isAdult: require('../services/contentAccess').verifiedAdult(user) };
 }
 function requireLoggedOutForOtp(req, res, next) {
   if (req.user.phone) return res.status(409).json({

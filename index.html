@@ -3581,15 +3581,55 @@
       scrollToBottom();
     }
 
-    function showContentAccessNotice(error) {
+    function showContentAccessNotice(error, retry, meta = {}) {
       if (!['MINIMUM_AGE_REQUIRED','ADULT_VERIFICATION_REQUIRED','CONTENT_NOT_ALLOWED'].includes(error.code)) return false;
       document.getElementById('generationErrorNotice')?.remove();
       const notice = document.createElement('div');
       notice.id = 'generationErrorNotice';
       notice.setAttribute('role', 'alert');
       if (error.code === 'ADULT_VERIFICATION_REQUIRED') {
+        const char = meta.char || state.currentChar;
+        const userText = meta.userText;
+        const reqId = meta.requestId || state.messages.filter(m => m.sender === 'user').at(-1)?.id;
+        state.adultGatedTurn = { charId: char?.id, userText, requestId: reqId, retry };
         notice.className = 'mx-auto my-4 max-w-[92%] rounded-2xl bg-gradient-to-b from-[#2a2428] to-[#1e1b20] border border-[#ff5376]/50 p-4 text-center text-[#f2e6e8] shadow-xl';
-        notice.innerHTML = `<div class="flex items-center justify-center gap-1.5 font-bold text-[#ff5376] text-[14px] mb-1.5"><span>🔞</span><span>성인 인증이 필요한 대화입니다</span></div><p class="text-[#d8c7cb] text-[12px] leading-relaxed mb-3">${error.message || '더 깊은 대화나 성인 수위로 넘어가려면 성인 인증(만 19세 이상)을 완료해야 합니다.'}</p><a href="/billing" class="inline-flex items-center justify-center px-4 py-2 rounded-xl bg-gradient-to-r from-[#ff4b72] to-[#e02653] text-white font-semibold text-[13px] shadow hover:opacity-95 transition-all">성인 인증 완료하고 대화 계속하기 ↗</a>`;
+        notice.innerHTML = `
+          <div class="flex items-center justify-center gap-1.5 font-bold text-[#ff5376] text-[14px] mb-1.5"><span>🔞</span><span>성인 인증이 필요한 대화입니다</span></div>
+          <p class="text-[#d8c7cb] text-[12px] leading-relaxed mb-3">${error.message || '더 깊은 대화나 성인 수위로 넘어가려면 성인 인증(만 19세 이상)을 완료해야 합니다.'}</p>
+          <div class="flex flex-col items-center gap-2">
+            <button type="button" id="resumeAdultVerifyBtn" class="inline-flex items-center justify-center px-4 py-2.5 rounded-xl bg-gradient-to-r from-[#ff4b72] to-[#e02653] text-white font-semibold text-[13px] shadow hover:opacity-95 transition-all cursor-pointer">성인 인증 확인하고 대화 계속하기 ↻</button>
+            <a href="/verification" target="_blank" rel="noopener" class="text-[11.5px] text-[#a89aa0] underline underline-offset-2 hover:text-[#f2e6e8]">성인인증 안내 보기 ↗</a>
+          </div>
+          <p id="adultVerifyFeedback" class="hidden text-[12px] mt-2.5 leading-relaxed"></p>
+        `;
+        const btn = notice.querySelector('#resumeAdultVerifyBtn');
+        const feedback = notice.querySelector('#adultVerifyFeedback');
+        btn.onclick = async () => {
+          btn.disabled = true;
+          btn.textContent = '인증 상태 확인 중...';
+          feedback.classList.add('hidden');
+          try {
+            const data = await ApiClient.loadState();
+            const isAdult = Boolean(data.user?.isAdult || data.user?.identityVerification?.isAdult);
+            if (isAdult) {
+              notice.remove();
+              state.adultGatedTurn = null;
+              if (retry) retry();
+            } else {
+              btn.disabled = false;
+              btn.textContent = '성인 인증 확인하고 대화 계속하기 ↻';
+              feedback.className = 'text-[12px] mt-2.5 text-[#ff7b94] leading-relaxed';
+              feedback.textContent = '아직 성인 인증(만 19세 이상)이 확인되지 않았습니다. 관리자 승인 또는 본인확인 완료 후 다시 눌러주세요.';
+              feedback.classList.remove('hidden');
+            }
+          } catch (err) {
+            btn.disabled = false;
+            btn.textContent = '성인 인증 확인하고 대화 계속하기 ↻';
+            feedback.className = 'text-[12px] mt-2.5 text-[#ff7b94] leading-relaxed';
+            feedback.textContent = '인증 상태를 확인하지 못했습니다. 잠시 후 다시 시도해주세요.';
+            feedback.classList.remove('hidden');
+          }
+        };
       } else {
         notice.className = 'mx-auto my-4 max-w-[90%] rounded-xl bg-[#e5e1d8] px-4 py-3 text-center text-[12px] text-[#66635d] leading-relaxed';
         const text = document.createElement('p');
@@ -3620,12 +3660,13 @@
         if (!result.isAiGenerated || !result.partnerReply?.trim()) throw new Error('Invalid generated reply');
         state.hearts = state.credits = result.heartsRemaining;
         updateAccountAndCreditUI();
+        state.adultGatedTurn = null;
         return { bubbles: [result.partnerReply], replyId: result.replyId, forceLeave: Boolean(result.roomLeft) };
       } catch (error) {
         if (state.currentChar?.id !== char?.id) return {bubbles:[],failed:true};
         if (typeof error.data?.heartsRemaining === 'number') { state.hearts = state.credits = error.data.heartsRemaining; updateAccountAndCreditUI(); }
         if (error.code === 'INSUFFICIENT_HEARTS') openHeartNeededModal(char.name);
-        else if (!showContentAccessNotice(error)) showGenerationError(() => retryGeneratedReply(char,userText,requestId));
+        else if (!showContentAccessNotice(error, () => retryGeneratedReply(char,userText,requestId), {char, userText, requestId})) showGenerationError(() => retryGeneratedReply(char,userText,requestId));
         return {bubbles:[],failed:true};
       }
     }
@@ -3712,9 +3753,10 @@
       const isUnread = options.unread !== undefined ? options.unread : (sender === 'user');
       const mediaType = options.mediaType || null;
 
+      const msgId = options.id || (skipPush ? null : ('m_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)));
       if (!skipPush) {
         const msgObj = {
-          id: options.id || 'm_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6),
+          id: msgId,
           createdAt: options.createdAt || Date.now(),
           sender,
           text,
@@ -3739,6 +3781,7 @@
       }
 
       const row = document.createElement('div');
+      if (msgId) row.dataset.msgId = msgId;
       if (sender === 'user') {
         row.className = 'flex items-end justify-end gap-2 msg-animate';
         if (mediaType === 'gift') {
@@ -4132,7 +4175,7 @@
       } catch (error) {
         if (state.currentChar?.id === char.id) {
           if (error.code === 'INSUFFICIENT_HEARTS') openHeartNeededModal(char.name);
-          else if (!showContentAccessNotice(error)) showGenerationError(()=>sendGiftToCurrentChar(giftKey,customMsg,requestId));
+          else if (!showContentAccessNotice(error, () => sendGiftToCurrentChar(giftKey,customMsg,requestId), {char, requestId})) showGenerationError(()=>sendGiftToCurrentChar(giftKey,customMsg,requestId));
         }
       } finally { if(state.currentChar?.id===char.id){state.isAiBusy=false;hideTypingIndicator();updateHeaderDefaultStatus();} }
     }
@@ -4148,6 +4191,15 @@
       const text=(rawText || '').trim(), char=state.currentChar;
       if (!text || !char || state.isAiBusy || state.roomLeft) return;
       if (!state.isVipUnlimited && state.hearts < 3.7) { openHeartNeededModal(char.name); return; }
+      if (state.adultGatedTurn && state.adultGatedTurn.charId === char.id) {
+        const failedId = state.adultGatedTurn.requestId;
+        if (failedId) {
+          state.messages = state.messages.filter(m => m.id !== failedId);
+          const el = chatContainer.querySelector(`[data-msg-id="${failedId}"]`);
+          if (el) el.remove();
+        }
+        state.adultGatedTurn = null;
+      }
       document.getElementById('generationErrorNotice')?.remove();
       clearIdleFollowUpTimer();
       const input=document.getElementById('chatInput');

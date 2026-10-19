@@ -28,10 +28,16 @@ module.exports = async function generatedTurn(req, res, {character, message, req
     const storedState = db.getConversationState(id,character.id);
     const agreementSources=db.getConversationSources(id,character.id,(storedState.memory?.agreements||[]).map(note=>note.sourceId));
     const relationship = require('./relationshipContext').buildRelationshipContext(character,[...agreementSources,...oldMessages,...(userMessage?[{sender:'user',text:message}]:[])]);
-    const history = oldMessages.filter(m => ['user','ai'].includes(m.sender) && m.text && m.id !== requestId).map(m=>({id:m.id,role:m.sender==='user'?'user':'assistant',content:m.text,createdAt:m.createdAt}));
+    const history = oldMessages.filter(m => {
+      if (!['user','ai'].includes(m.sender) || !m.text || m.id === requestId) return false;
+      if (m.sender === 'user') {
+        const reqRecord = db.getChatRequest(id, m.id);
+        if (reqRecord && reqRecord.success === false) return false;
+      }
+      return true;
+    }).map(m=>({id:m.id,role:m.sender==='user'?'user':'assistant',content:m.text,createdAt:m.createdAt}));
     const conversation = require('./conversationContext').prepare([...history,{id:requestId,role:'user',content:message,createdAt:Date.now()}],storedState.memory,{replyId:'reply_'+requestId,kind,speechRegister:relationship.speechRegister,bankNotes:db.getConversationNotes(id,character.id),stateHistory:db.getConversationStateHistory(id,character.id)});
     db.transaction(()=>{
-      if (userMessage && kind !== 'gift') db.appendMessages(id,character.id,[{...userMessage,id:requestId,sender:'user',text:message,createdAt:Date.now()}]);
       db.saveChatRequest(id,requestId,{status:'pending',fingerprint,createdAt:Date.now()});
     });
     const result = await llm.generateReply(character,[...history,{role:'user',content:message}],{verifiedAdult:require('./contentAccess').verifiedAdult(user),relationship,conversation,...(kind==='greeting'?{greeting:true}:{})});
@@ -42,7 +48,8 @@ module.exports = async function generatedTurn(req, res, {character, message, req
       const charged = cost > 0 ? db.debit(id,cost,kind==='gift'?'gift:'+userMessage.giftKey:'chat') : db.getUser(id);
       if (!charged) { const error=Error('Insufficient balance after generation');error.code='INSUFFICIENT_HEARTS';throw error; }
       const replyId='reply_'+requestId;
-      const current=db.appendMessages(id,character.id,[...(kind==='gift'?[{...userMessage,id:requestId,sender:'user',text:message,createdAt:Date.now()}]:[]),{id:replyId,sender:'ai',text:result.text,createdAt:Date.now(),time:new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'})}]);
+      const userMsgToAppend = userMessage ? [{...userMessage,id:requestId,sender:'user',text:message,createdAt:Date.now()}] : [];
+      const current=db.appendMessages(id,character.id,[...userMsgToAppend,{id:replyId,sender:'ai',text:result.text,createdAt:Date.now(),time:new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'})}]);
       db.saveConversationState(id,character.id,result.memory,replyId,storedState.revision);
       const value={success:true,partnerReply:result.text,replyId,roomLeft:result.roomLeft,heartsRemaining:current.hearts,costDeducted:charged.isVipUnlimited?0:cost,isAiGenerated:true,contentAudience:require('./contentAccess').verifiedAdult(user)?'adult':'general',fingerprint,...(kind==='gift'?{giftMessageId:requestId}:{})};
       db.saveChatRequest(id,requestId,value);
