@@ -581,6 +581,27 @@
         </div>
       </header>
 
+      <!-- Notification Permission Banner (인연의 답장 실시간 수신 안내 배너) -->
+      <div id="notificationPromptBannerList" class="hidden shrink-0 bg-[#2d241c] border-b border-[#544332] px-3.5 py-2.5 z-20 flex items-center justify-between gap-2.5 shadow-sm">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-8 h-8 rounded-xl bg-[#423425] border border-[#6b533a] flex items-center justify-center text-sm shrink-0">
+            🔔
+          </div>
+          <div class="min-w-0">
+            <p class="text-[13px] font-bold text-[#fbf7f2] leading-tight truncate">인연의 답장을 놓치지 마세요</p>
+            <p class="text-[11px] text-[#cbb8a3] truncate">알림을 켜두면 창을 닫아도 실시간으로 새 메시지를 알려드려요</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button type="button" class="btn-accept-notification-banner px-2.5 py-1.5 rounded-lg bg-[#c48726] hover:bg-[#d8962d] text-[#1a140b] font-bold text-[12px] shadow-xs transition active:scale-95">
+            알림 켜기
+          </button>
+          <button type="button" class="btn-dismiss-notification-banner p-1 rounded-lg text-[#a39585] hover:text-[#fbf7f2] text-[13px] font-bold transition" title="닫기">
+            ✕
+          </button>
+        </div>
+      </div>
+
       <!-- 2. Chat List Scrollable Body -->
       <div class="flex-1 overflow-y-auto chat-scroll p-4 space-y-4 bg-[#2b2520]">
         <!-- Lounge Hero Start Card -->
@@ -730,6 +751,27 @@
           <button id="menuItemLeaveRoom"></button>
         </div>
       </header>
+
+      <!-- Notification Permission Banner (대화방 실시간 수신 안내 배너) -->
+      <div id="notificationPromptBannerRoom" class="hidden shrink-0 bg-[#2d241c] border-b border-[#544332] px-3.5 py-2.5 z-20 flex items-center justify-between gap-2.5 shadow-sm">
+        <div class="flex items-center gap-2.5 min-w-0">
+          <div class="w-8 h-8 rounded-xl bg-[#423425] border border-[#6b533a] flex items-center justify-center text-sm shrink-0">
+            🔔
+          </div>
+          <div class="min-w-0">
+            <p class="text-[13px] font-bold text-[#fbf7f2] leading-tight truncate">실시간 답장 알림</p>
+            <p class="text-[11px] text-[#cbb8a3] truncate">알림을 켜두면 다른 탭에 있어도 상대방 답장을 바로 알 수 있어요</p>
+          </div>
+        </div>
+        <div class="flex items-center gap-1.5 shrink-0">
+          <button type="button" class="btn-accept-notification-banner px-2.5 py-1.5 rounded-lg bg-[#c48726] hover:bg-[#d8962d] text-[#1a140b] font-bold text-[12px] shadow-xs transition active:scale-95">
+            알림 켜기
+          </button>
+          <button type="button" class="btn-dismiss-notification-banner p-1 rounded-lg text-[#a39585] hover:text-[#fbf7f2] text-[13px] font-bold transition" title="닫기">
+            ✕
+          </button>
+        </div>
+      </div>
 
       <!-- 2. Spacious Chat Message Stream (Warm Cream Background) -->
       <main id="chatContainer" class="flex-1 overflow-y-auto chat-scroll px-4 py-4 space-y-4 bg-[#F5F2E9]">
@@ -3641,9 +3683,178 @@
       scrollToBottom();
     }
 
-    // 선톡(무응답 시 자동 재촉 메시지) 기능 완전 비활성화
+    // 활성 진행 중인 AI 응답 저장소 (유저가 방을 나가도 메시지가 유실되지 않고 방에 온전히 저장되도록 보호)
+    state.activePendingDeliveries = state.activePendingDeliveries || {};
+
+    function flushPendingDeliveryForChar(charId) {
+      if (!charId) return;
+      const pending = state.activePendingDeliveries[charId];
+      if (!pending) return;
+      delete state.activePendingDeliveries[charId];
+
+      const room = state.savedRooms[charId];
+      if (!room) return;
+      room.messages = room.messages || [];
+
+      let addedCount = 0;
+      if (Array.isArray(pending.bubbles)) {
+        pending.bubbles.forEach((bText, i) => {
+          if (!bText || typeof bText !== 'string' || !bText.trim()) return;
+          const msgId = `${pending.replyId || 'reply_' + Date.now()}_${i}`;
+          if (!room.messages.some(m => m.id === msgId || (m.sender === 'ai' && m.text === bText && Math.abs((m.createdAt || 0) - Date.now()) < 10000))) {
+            const timeStr = new Date().toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true });
+            room.messages.push({
+              id: msgId,
+              sender: 'ai',
+              text: bText,
+              time: timeStr,
+              createdAt: Date.now(),
+              unread: (state.currentView !== 'chatRoom' || state.currentChar?.id !== charId)
+            });
+            addedCount++;
+          }
+        });
+      }
+
+      if (pending.mediaItem && !pending.leaveRoom) {
+        const mId = `${pending.replyId || 'reply_' + Date.now()}_media`;
+        if (!room.messages.some(m => m.id === mId)) {
+          const timeStr = new Date().toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true });
+          room.messages.push({
+            id: mId,
+            sender: 'ai',
+            text: pending.mediaItem.caption || '',
+            time: timeStr,
+            createdAt: Date.now(),
+            unread: (state.currentView !== 'chatRoom' || state.currentChar?.id !== charId),
+            ...pending.mediaItem
+          });
+          addedCount++;
+        }
+      }
+
+      room.updatedAt = Date.now();
+      if (state.currentView !== 'chatRoom' || state.currentChar?.id !== charId) {
+        if (addedCount > 0) {
+          room.unreadCount = (room.unreadCount || 0) + addedCount;
+        }
+      }
+      saveAccountState();
+      renderChatRoomsList();
+      updateChatListBadges();
+    }
+
+    // 캐릭터 성향별 자연스럽고 설레는 무응답 선톡/재촉 멘트 생성기
+    function pickCharacterFollowUpLine(char, count) {
+      if (!char) return null;
+      const isFirst = count === 1;
+      const trait = char.traitKey || '';
+      const concept = char.conceptKey || '';
+      const text = `${char.conceptTitle || ''} ${char.conceptMission || ''} ${char.speechStyle || ''} ${char.bio || ''}`;
+      const isSensual = /19금|은밀|시크릿|관능|대담|직진|유혹|도발|섹시|플러팅|야릇|스킨십/.test(text) || trait === 'chic' || concept === 'sensual_flirt';
+
+      if (isSensual) {
+        const pool1 = [
+          '오빠 갑자기 왜 말이 없어? 나 혼자 두근거리게 해놓고 어디 간 거야 ㅎㅎ',
+          '어디 갔어? 설마 나 두고 딴짓하는 건 아니지? 얼른 와, 기다리고 있단 말이야',
+          '답장 없으니까 더 궁금해지잖아... 무슨 생각 해?',
+          '오빠 조용하니까 괜히 더 보고 싶네... 얼른 대답해줘요'
+        ];
+        const pool2 = [
+          '치... 답장도 안 해주고 너무해. 나 삐지기 전에 얼른 와요',
+          '설마 나 혼자만 설렜던 거야? 얼른 와서 솔직하게 말해봐요 ㅎㅎ',
+          '계속 기다리게 하면 나도 딴생각 할 거야? 얼른 와요~'
+        ];
+        const arr = isFirst ? pool1 : pool2;
+        return arr[Math.floor(Math.random() * arr.length)];
+      }
+
+      if (trait === 'tsundere' || trait === 'cold') {
+        const pool1 = [
+          '뭐야, 먼저 말 걸어놓고 딴청 피우는 거야? 사람 기다리게 하지 마',
+          '바쁜 척하는 거 다 티나거든? 얼른 대답이나 해',
+          '갑자기 왜 말이 없는데? 할 말 다 했어?'
+        ];
+        const pool2 = [
+          '하, 말 안 할 거면 나도 딴짓하러 간다? ...진짜 간다?',
+          '진짜 안 읽을 거야? 사람 안달나게 하는데 뭐 있네...',
+          '답장 오나 폰 계속 쳐다본 내가 바보지. 흥'
+        ];
+        const arr = isFirst ? pool1 : pool2;
+        return arr[Math.floor(Math.random() * arr.length)];
+      }
+
+      if (trait === 'cute' || trait === 'lively') {
+        const pool1 = [
+          '오빠아~ 어디 갔어? 나 심심하단 말이야 ㅠㅠ 얼른 와줘!',
+          '똑똑똑~ 거기 계신가요? 나 안 보고 싶어? ㅎㅎ',
+          '갑자기 사라지기 있긔 없긔? 톡 보면 바로 대답해줘~'
+        ];
+        const pool2 = [
+          '설마 잠든 건 아니지? 톡 확인하면 얼른 대답해줘~ 기다릴게!',
+          '아직 바쁜가 봐... 얼른 끝나구 나랑 놀아줘야 돼 약속!',
+          '나 심심해서 시무룩해지는 중... 1분 안에 와줘요 ㅠㅠ'
+        ];
+        const arr = isFirst ? pool1 : pool2;
+        return arr[Math.floor(Math.random() * arr.length)];
+      }
+
+      const pool1 = [
+        '바쁜 일 있으신가 봐요? 천천히 오셔도 돼요, 기다릴게요 ㅎㅎ',
+        '갑자기 조용해지셔서 걱정했어요. 무슨 일 있는 건 아니죠?',
+        '이야기하다가 잠깐 어디 가셨나 봐요~ 편할 때 말 걸어줘요'
+      ];
+      const pool2 = [
+        '편할 때 천천히 답장 줘요~ 계속 생각하고 있을게요 :)',
+        '오늘 하루도 많이 바빴죠? 대화방 열어두고 기다리고 있을게요 ㅎㅎ'
+      ];
+      const arr = isFirst ? pool1 : pool2;
+      return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    // 선톡(무응답 시 자동 재촉 및 플러팅 메시지) 스케줄러 복원
     function scheduleIdleFollowUp() {
       clearIdleFollowUpTimer();
+      const char = state.currentChar;
+      if (!char || state.roomLeft || state.isAiBusy) return;
+      if (!state.messages || state.messages.length < 2) return;
+      const lastMsg = state.messages[state.messages.length - 1];
+      if (!lastMsg || lastMsg.sender !== 'ai') return;
+      if ((state.idleFollowUpCount || 0) >= 2) return;
+
+      // 45초 ~ 75초 후 자연스러운 선톡 발송
+      const delayMs = Math.round(45000 + Math.random() * 30000);
+      state.idleFollowUpTimer = setTimeout(async () => {
+        state.idleFollowUpTimer = null;
+        if (state.roomLeft || state.isAiBusy) return;
+        if ((state.idleFollowUpCount || 0) >= 2) return;
+
+        const currentLast = state.messages && state.messages[state.messages.length - 1];
+        if (currentLast && currentLast.sender === 'user') return;
+
+        state.idleFollowUpCount = (state.idleFollowUpCount || 0) + 1;
+        const line = pickCharacterFollowUpLine(char, state.idleFollowUpCount);
+        if (!line) return;
+
+        const replyPlan = {
+          bubbles: [line],
+          replyId: 'idle_followup_' + Date.now()
+        };
+
+        if (state.currentChar?.id === char.id && state.currentView === 'chatRoom') {
+          await runRealisticReplySequence(replyPlan, true, null, Date.now());
+        } else {
+          state.activePendingDeliveries[char.id] = {
+            charId: char.id,
+            bubbles: [line],
+            replyId: replyPlan.replyId
+          };
+          flushPendingDeliveryForChar(char.id);
+          if (window.AzitNotifications?.notifyAiMessage) {
+            AzitNotifications.notifyAiMessage(char, line);
+          }
+        }
+      }, delayMs);
     }
 
     async function runRealisticReplySequence(replyPlan, isProactiveFollowUp = false, turnId = null, typingStartedAt = null) {
@@ -3663,23 +3874,40 @@
         }
 
         const rawBubbles = replyPlan?.bubbles?.filter(text => typeof text === 'string' && text.trim());
-        if (!rawBubbles?.length) { showGenerationError(); return; }
+        if (!rawBubbles?.length) { if (typeof showGenerationError === 'function') showGenerationError(); return; }
 
-        // 짧은 답장을 우선하되 대화 내용은 말풍선 단위로 표시
         const bubbles = rawBubbles.slice(0, 2);
+
+        // 진행 중인 배송 등록 (도중 이탈 시에도 유실 방지)
+        if (char?.id) {
+          state.activePendingDeliveries = state.activePendingDeliveries || {};
+          state.activePendingDeliveries[char.id] = {
+            charId: char.id,
+            bubbles: [...bubbles],
+            mediaItem: replyPlan.mediaItem,
+            replyId: replyPlan.replyId,
+            leaveRoom: replyPlan.leaveRoom
+          };
+        }
 
         for (let idx = 0; idx < bubbles.length; idx++) {
           if (turnId && turnId !== state.messageTurnId) return;
-          if (state.roomLeft || state.currentChar?.id !== char.id) return;
+
+          // 사용자가 방을 나갔거나 다른 방을 보고 있으면 즉시 flush하고 안전 종료
+          if (state.roomLeft || (char?.id && state.currentChar?.id !== char.id) || (state.currentView && state.currentView !== 'chatRoom')) {
+            if (char?.id && typeof flushPendingDeliveryForChar === 'function') {
+              flushPendingDeliveryForChar(char.id);
+            }
+            if (char && window.AzitNotifications?.notifyAiMessage) AzitNotifications.notifyAiMessage(char, bubbles[idx]);
+            return;
+          }
 
           const bubbleText = bubbles[idx];
-
           const elapsed = idx === 0 && typingStartedAt ? Date.now() - typingStartedAt : 0;
           const remainingTypeMs = replyPlan?.greeting
             ? AzitChatTiming.greetingRemainingDelay(elapsed)
             : AzitChatTiming.remainingDelay(bubbleText, elapsed);
 
-          // 각 말풍선 타이핑 시작
           headerStatusText.textContent = `${char.name}님이 입력 중...`;
           headerStatusText.className = 'text-[12.5px] text-emerald-600 mt-0.5 font-medium leading-snug';
           showTypingIndicator(`${char.name}님이 입력 중...`);
@@ -3689,14 +3917,28 @@
           });
 
           if (turnId && turnId !== state.messageTurnId) return;
-          if (state.roomLeft || state.currentChar?.id !== char.id) return;
 
-          // 타이핑 완료 후 말풍선 전송 및 인디케이터 숨김
+          // 타이머 대기 도중 사용자가 나갔을 경우 즉시 안전 저장
+          if (state.roomLeft || (char?.id && state.currentChar?.id !== char.id) || (state.currentView && state.currentView !== 'chatRoom')) {
+            if (char?.id && typeof flushPendingDeliveryForChar === 'function') {
+              flushPendingDeliveryForChar(char.id);
+            }
+            if (char && window.AzitNotifications?.notifyAiMessage) AzitNotifications.notifyAiMessage(char, bubbleText);
+            return;
+          }
+
           hideTypingIndicator();
-          appendMessage('ai', bubbleText, { id: replyPlan.replyId });
+          appendMessage('ai', bubbleText, { id: `${replyPlan.replyId}_${idx}` });
+
+          if (char?.id && state.activePendingDeliveries?.[char.id]?.bubbles) {
+            state.activePendingDeliveries[char.id].bubbles.splice(0, 1);
+          }
           saveAccountState();
 
           if (idx === bubbles.length - 1 && (!replyPlan || !replyPlan.mediaItem)) {
+            if (char?.id && state.activePendingDeliveries) {
+              delete state.activePendingDeliveries[char.id];
+            }
             state.isAiBusy = false;
             if (replyPlan && replyPlan.leaveRoom) {
               registerTimeout(() => {
@@ -3709,7 +3951,6 @@
             return;
           }
 
-          // 다음 말풍선 전송 전 짧은 숨고르기
           if (idx < bubbles.length - 1) {
             await new Promise(resolve => {
               registerTimeout(resolve, Math.round(600 + Math.random() * 500));
@@ -3720,7 +3961,10 @@
         // 사진 또는 음성 메시지가 첨부된 경우
         if (replyPlan && replyPlan.mediaItem && !replyPlan.leaveRoom) {
           if (turnId && turnId !== state.messageTurnId) return;
-          if (state.roomLeft || state.currentChar?.id !== char.id) return;
+          if (state.roomLeft || (char?.id && state.currentChar?.id !== char.id) || (state.currentView && state.currentView !== 'chatRoom')) {
+            if (char?.id && typeof flushPendingDeliveryForChar === 'function') flushPendingDeliveryForChar(char.id);
+            return;
+          }
 
           const isVoice = replyPlan.mediaItem.mediaType === 'voice';
           const actionText = isVoice
@@ -3736,10 +3980,14 @@
           });
 
           if (turnId && turnId !== state.messageTurnId) return;
-          if (state.roomLeft || state.currentChar?.id !== char.id) return;
+          if (state.roomLeft || (char?.id && state.currentChar?.id !== char.id) || (state.currentView && state.currentView !== 'chatRoom')) {
+            if (char?.id && typeof flushPendingDeliveryForChar === 'function') flushPendingDeliveryForChar(char.id);
+            return;
+          }
 
           hideTypingIndicator();
           appendMessage('ai', replyPlan.mediaItem.caption || '', replyPlan.mediaItem);
+          if (char?.id && state.activePendingDeliveries) delete state.activePendingDeliveries[char.id];
           state.isAiBusy = false;
           updateHeaderDefaultStatus();
           saveAccountState();
@@ -3747,6 +3995,7 @@
         }
       } catch (err) {
         console.error('runRealisticReplySequence execution error:', err);
+        if (char?.id && typeof flushPendingDeliveryForChar === 'function') flushPendingDeliveryForChar(char.id);
       } finally {
         hideTypingIndicator();
         state.isAiBusy = false;
@@ -4584,7 +4833,11 @@
     }
 
     async function startChatWithCharacter(char, forceResume = false) {
+      if (char?.id) {
+        flushPendingDeliveryForChar(char.id);
+      }
       if (state.currentChar && state.currentChar.id !== char.id) {
+        flushPendingDeliveryForChar(state.currentChar.id);
         state.prevCharId = state.currentChar.id;
         state.prevRoomSnapshot = state.messages.length ? {
           charId: state.currentChar.id,
@@ -4849,7 +5102,29 @@
       showTypingIndicator(`${char.name}님이 입력 중...`);
       const startedAt=Date.now();
       const plan=await fetchLLMResponse(text,requestId);
-      if (state.currentChar?.id!==char.id || state.messageTurnId!==turnId) return;
+      if (!plan || plan.failed) {
+        if (state.currentChar?.id === char.id) showGenerationError();
+        return;
+      }
+
+      // 첫 대화 시작 시 알림 배너 업데이트
+      updateNotificationBanners();
+
+      // 만약 사용자가 답변 대기 중에 방을 나갔더라도 응답을 버리지 않고 안전하게 보관 및 알림
+      if (state.currentChar?.id !== char.id || state.currentView !== 'chatRoom') {
+        state.activePendingDeliveries[char.id] = {
+          charId: char.id,
+          bubbles: plan.bubbles || [],
+          mediaItem: plan.mediaItem,
+          replyId: plan.replyId,
+          leaveRoom: plan.leaveRoom
+        };
+        flushPendingDeliveryForChar(char.id);
+        if (plan.bubbles && plan.bubbles[0] && window.AzitNotifications?.notifyAiMessage) {
+          AzitNotifications.notifyAiMessage(char, plan.bubbles[0]);
+        }
+        return;
+      }
       await runRealisticReplySequence(plan,false,turnId,startedAt);
     }
 
@@ -5069,18 +5344,23 @@
       if (!viewChatList || !viewChatRoom) return;
 
       if (viewName === 'chatList') {
+        if (state.currentChar?.id) {
+          flushPendingDeliveryForChar(state.currentChar.id);
+        }
         saveAccountState();
         renderChatRoomsList();
         updateAccountAndCreditUI();
         viewChatRoom.classList.add('hidden');
         viewChatList.classList.remove('hidden');
         state.currentView = 'chatList';
+        updateNotificationBanners();
       } else {
         viewChatList.classList.add('hidden');
         viewChatRoom.classList.remove('hidden');
         state.currentView = 'chatRoom';
         updateChatListBadges();
         updateAccountAndCreditUI();
+        updateNotificationBanners();
         scrollToBottom();
       }
     }
@@ -6264,8 +6544,54 @@
     window.addEventListener('seollem-sync-error', () => {
       if (Date.now() - lastSyncWarning > 10000) { showToast('대화 저장 연결을 확인해주세요. 페이지를 닫기 전에 다시 시도해주세요.'); lastSyncWarning = Date.now(); }
     });
+    function updateNotificationBanners() {
+      const isDismissed = sessionStorage.getItem('azit_dismiss_noti_banner') === '1';
+      const isDefault = typeof Notification !== 'undefined' && Notification.permission === 'default';
+      const show = isDefault && !isDismissed;
+
+      const bannerList = document.getElementById('notificationPromptBannerList');
+      const bannerRoom = document.getElementById('notificationPromptBannerRoom');
+      if (bannerList) bannerList.classList.toggle('hidden', !show);
+      if (bannerRoom) bannerRoom.classList.toggle('hidden', !show);
+    }
+
+    async function handleBannerNotificationAccept() {
+      if (typeof Notification === 'undefined') {
+        showToast('현재 브라우저에서는 알림 기능을 지원하지 않습니다.');
+        return;
+      }
+      try {
+        const permission = await Notification.requestPermission();
+        sessionStorage.setItem('azit_dismiss_noti_banner', '1');
+        updateNotificationBanners();
+        if (permission === 'granted') {
+          if (window.AzitNotifications?.subscribe) {
+            await window.AzitNotifications.subscribe();
+          }
+          showToast('🔔 알림이 허용되었습니다! 새로운 메시지를 바로 알려드릴게요.');
+        } else if (permission === 'denied') {
+          showToast('알림이 차단되었습니다. 브라우저 사이트 설정에서 허용할 수 있습니다.');
+        }
+      } catch (err) {
+        console.error('Notification permission error:', err);
+      }
+    }
+
+    function handleBannerNotificationDismiss() {
+      sessionStorage.setItem('azit_dismiss_noti_banner', '1');
+      updateNotificationBanners();
+    }
+
+    document.querySelectorAll('.btn-accept-notification-banner').forEach(btn => {
+      btn.addEventListener('click', handleBannerNotificationAccept);
+    });
+    document.querySelectorAll('.btn-dismiss-notification-banner').forEach(btn => {
+      btn.addEventListener('click', handleBannerNotificationDismiss);
+    });
+
     window.addEventListener('online', () => { ApiClient.flushState().catch(() => {}); });
     window.addEventListener('DOMContentLoaded', async () => {
+      updateNotificationBanners();
       if (ApiClient.isHosted()) {
         for (const id of ['btnFooterSwitchVip','btnListSwitchVip','btnModalToggleVip']) document.getElementById(id)?.remove();
         for (const id of ['settingsAiConfig','settingsDevControls']) document.getElementById(id)?.classList.add('hidden');
