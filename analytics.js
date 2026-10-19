@@ -16,14 +16,27 @@ const choiceKey='azit_analytics_consent';
 function event(name){if(!allowed.has(name)||localStorage.getItem(choiceKey)!=='granted')return;if(ready)window.gtag('event',name,{send_to:measurementId});else if(queue.length<30)queue.push(name);}
 window.AzitAnalytics={event};
 if(location.pathname!=='/'&&location.pathname!=='/index.html')return;
+// Recognize only our published campaign tokens, never arbitrary URL values or click IDs.
+// This preserves manual acquisition reporting while keeping account/message data out of GA.
+function campaignLocation(){
+ const url=new URL(location.origin+'/'),query=new URLSearchParams(location.search||'');
+ const campaigns=new Set(['azit_purchase_kr_m40_70_v1']);
+ const sources={google:'cpc',facebook:'paid_social',instagram:'paid_social'};
+ const contents=new Set(['search_ai','search_character','meta_conversation','meta_character','meta_continue']);
+ const source=query.get('utm_source'),campaign=query.get('utm_campaign'),content=query.get('utm_content');
+ if(!Object.hasOwn(sources,source)||query.get('utm_medium')!==sources[source]||!campaigns.has(campaign)||!contents.has(content))return url.href;
+ for(const key of ['utm_source','utm_medium','utm_campaign','utm_content'])url.searchParams.set(key,query.get(key));
+ return url.href;
+}
 async function enable(){if(ready||localStorage.getItem(choiceKey)!=='granted'||navigator.doNotTrack==='1')return;
  try{const config=await(await fetch('/api/public-config')).json();if(!/^G-[A-Z0-9]{6,20}$/.test(config.gaMeasurementId||''))return;measurementId=config.gaMeasurementId;
  window.dataLayer=window.dataLayer||[];window.gtag=function(){window.dataLayer.push(arguments);};
  window.gtag('consent','default',{analytics_storage:'granted',ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});
  window.gtag('js',new Date());
  let referrer='';try{referrer=new URL(document.referrer).origin;}catch{}
- window.gtag('config',measurementId,{send_page_view:false,allow_google_signals:false,allow_ad_personalization_signals:false,page_location:location.origin+'/',page_referrer:referrer,page_title:'아지트챗',cookie_flags:'SameSite=Lax;Secure',cookie_expires:180*86400,cookie_update:false});
- window.gtag('event','page_view',{page_location:location.origin+'/',page_referrer:referrer,page_title:'아지트챗',send_to:measurementId});
+ const pageLocation=campaignLocation();
+ window.gtag('config',measurementId,{send_page_view:false,allow_google_signals:false,allow_ad_personalization_signals:false,page_location:pageLocation,page_referrer:referrer,page_title:'아지트챗',cookie_flags:'SameSite=Lax;Secure',cookie_expires:180*86400,cookie_update:false});
+ window.gtag('event','page_view',{page_location:pageLocation,page_referrer:referrer,page_title:'아지트챗',send_to:measurementId});
  const script=document.createElement('script');script.async=true;script.src='https://www.googletagmanager.com/gtag/js?id='+measurementId;document.head.appendChild(script);ready=true;queue.splice(0).forEach(event);
  }catch{/* Analytics must never interrupt chat. */}}
 function removeAnalyticsCookies(){for(const raw of document.cookie.split(';')){const name=raw.split('=')[0].trim();if(!/^_ga(?:_|$)/.test(name))continue;document.cookie=name+'=; Max-Age=0; path=/; SameSite=Lax; Secure';const parts=location.hostname.split('.');for(let i=0;i<parts.length-1;i++)document.cookie=name+'=; Max-Age=0; path=/; domain=.'+parts.slice(i).join('.')+'; SameSite=Lax; Secure';}}

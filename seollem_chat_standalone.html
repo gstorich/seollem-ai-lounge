@@ -7,9 +7,13 @@
   <meta name="application-name" content="아지트챗" />
   <meta name="description" content="아지트챗에서 나만의 편안한 대화를 시작하세요. 다양한 AI 캐릭터와 나누는 1:1 실시간 대화." />
   <meta property="og:site_name" content="아지트챗" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png" />
+  <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <meta property="og:image" content="https://azitchat.com/logo-horizontal.png" />
   <link rel="canonical" href="https://azitchat.com/" />
   <meta property="og:url" content="https://azitchat.com/" />
-  <meta property="og:title" content="아지트챗 (AzitChat) - 1:1 실시간 AI 채팅" />
+  <meta property="og:title" content="아지트 대화방 (AzitChat) - 1:1 실시간 AI 채팅" />
   <meta property="og:description" content="나만의 편안한 아지트, AI 캐릭터와 함께하는 1:1 대화." />
   <script src="https://cdn.tailwindcss.com/3.4.17"></script>
   <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -67,10 +71,12 @@
     <section id="viewChatList" class="flex flex-col h-full w-full bg-[#FAF7EE]">
       <!-- 1. Chat List Header -->
       <header class="shrink-0 bg-white border-b border-[#e8e4d8] px-4 py-3 z-30 flex items-center justify-between shadow-[0_1px_2px_rgba(0,0,0,0.03)]">
-        <div class="flex items-center gap-2">
-          <span class="text-2xl">🏡</span>
-          <h1 class="text-[19px] font-black text-[#191919] tracking-tight">아지트 대화방</h1>
-          <span id="listTotalRoomsBadge" class="px-2 py-0.5 rounded-full bg-[#f4efe4] text-[#605a4e] text-[12px] font-bold">0</span>
+        <div class="flex items-center gap-2 min-w-0">
+          <h1 class="flex items-center">
+            <img src="/logo-horizontal.png" alt="아지트 대화방" class="h-8 sm:h-[34px] w-auto object-contain max-w-[170px]" />
+            <span class="sr-only">아지트 대화방</span>
+          </h1>
+          <span id="listTotalRoomsBadge" class="px-2 py-0.5 rounded-full bg-[#f4efe4] text-[#605a4e] text-[12px] font-bold shrink-0">0</span>
         </div>
         <div class="flex items-center gap-2">
           <button id="btnListOpenFilter" type="button" class="relative px-3 py-1.5 rounded-xl bg-[#FAF7EE] hover:bg-[#f2ede0] border border-[#ded8cb] text-[#333333] transition active:scale-95 text-[13.5px] font-bold flex items-center gap-1.5 shadow-xs" title="대화 상대 조건 설정">

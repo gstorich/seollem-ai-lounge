@@ -62,7 +62,7 @@
    try {
      const title = char?.name || '아지트챗';
      const body = (text || '새 메시지가 도착했어요').slice(0, 100);
-     const icon = char?.avatar || '/app-icon.svg';
+     const icon = char?.avatar || '/app-icon.png';
      if (typeof Notification === 'function') {
        const n = new Notification(title, {
          body,

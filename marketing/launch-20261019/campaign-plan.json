@@ -1,0 +1,60 @@
+{
+  "status": "LOCAL_DRAFT_NOT_PUBLISHED",
+  "as_of_kst": "2026-10-20",
+  "goal": "verified_paid_purchase",
+  "requested_audience": {
+    "country": "KR",
+    "gender": "male",
+    "min_age": 40,
+    "max_age": 70
+  },
+  "budget": {
+    "instruction": "lowest platform-accepted daily budget",
+    "amount": null,
+    "currency": "KRW",
+    "reason": "Account and campaign-specific minimum must be checked in UI; no spend authorized or started."
+  },
+  "meta": {
+    "objective": "Sales",
+    "event": "Purchase",
+    "campaigns": 1,
+    "ad_sets": 1,
+    "ads": 3,
+    "account_confirmed": false,
+    "pixel_id": null,
+    "age_upper_bound": "Confirm UI; 65+ may include users over 70. Do not silently expand.",
+    "audience_expansion": "Do not use suggested-only gender/age for a strict audience requirement."
+  },
+  "google": {
+    "type": "Search",
+    "goal": "Purchase",
+    "campaigns": 1,
+    "ad_groups": 2,
+    "account_confirmed": false,
+    "conversion_action": null,
+    "networks": [
+      "Google Search"
+    ],
+    "search_partners": false,
+    "display": false,
+    "age_limitation": "35–44 includes 35–39; 65+ includes 71+. No exact 40–70 targeting. Hold audience configuration pending choice; do not silently substitute.",
+    "unknown_demographics": "exclude for strict male/age requirement",
+    "bidding": "Maximize conversions only after verified purchase tracking; no invented target CPA."
+  },
+  "production_payment_check": {
+    "path": "/api/payment/config",
+    "enabled": false,
+    "mode": "test",
+    "methods": []
+  },
+  "launch_gates": [
+    "Complete new ad account onboarding and terms/billing",
+    "Production payment enabled and approved",
+    "Verified purchase/duplicate/refund tests",
+    "Ads privacy consent and Google/Meta attribution validated",
+    "Dating/companionship policy classification and certification/permission as applicable",
+    "Age-boundary decision",
+    "Minimum budget verified in selected account",
+    "Explicit activation instruction"
+  ]
+}

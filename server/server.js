@@ -97,7 +97,13 @@ for (const [route,file] of [['/admin','admin.html'],['/support','support.html'],
   app.get([route,route+'.html'],(req,res)=>{res.set('Cache-Control','no-store');res.set('Content-Security-Policy',file==='billing.html'?"default-src 'self'; script-src 'self' https://cdn.iamport.kr https://cdn.portone.io; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.iamport.kr https://*.portone.io; frame-src https:; frame-ancestors 'none'; base-uri 'none'; form-action 'self' https:":"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");res.sendFile(path.join(__dirname,'..',file));});
 }
 // Serve frontend SPA from root
-for (const file of ['legal.js', 'commerce.js', 'index.html', 'apiClient.js', 'chatTiming.js', 'analytics.js', 'notifications.js', 'notification-worker.js', 'manifest.webmanifest', 'admin.js', 'adminCharacters.js', 'support.js', 'operations.css', 'policy.css', 'custom_avatars_manifest.json']) {
+for (const file of [
+  'legal.js', 'commerce.js', 'index.html', 'apiClient.js', 'chatTiming.js', 'analytics.js',
+  'notifications.js', 'notification-worker.js', 'manifest.webmanifest', 'admin.js',
+  'adminCharacters.js', 'support.js', 'operations.css', 'policy.css', 'custom_avatars_manifest.json',
+  'logo.png', 'logo-horizontal.png', 'app-icon.png', 'app-icon-192.png', 'app-icon-512.png',
+  'apple-touch-icon.png', 'favicon.png', 'favicon-64.png', 'favicon.ico'
+]) {
   app.get(`/${file}`, (req, res) => res.sendFile(path.join(__dirname, '..', file)));
 }
 
