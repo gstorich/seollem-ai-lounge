@@ -2,6 +2,8 @@ const assert = require('node:assert/strict');
 const path = require('node:path');
 const fs = require('node:fs');
 const crypto = require('node:crypto');
+const os = require('node:os');
+const { spawn } = require('node:child_process');
 
 process.env.DATABASE_FILE = path.join(__dirname, 'tmp-acq.json');
 process.env.SQLITE_FILE = path.join(__dirname, 'tmp-acq.sqlite');
@@ -132,9 +134,63 @@ async function run() {
   assert.equal(usersList.items[0].utmCampaign, 'senior_romance_v1');
 
   console.log('PASS: Acquisition storage, UTM tracking, inheritance upon phone link, statistics aggregation and ops integration verified.');
+
+  // 7. Test Bot Crawler filtering in /api/auth/guest
+  console.log('--- Testing Crawler / Bot Guest Filtering ---');
+  const testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'seollem-bot-test-'));
+  const testPort = '19430';
+  const testSqlite = path.join(testDir, 'bot.sqlite');
+  const botEnv = {
+    ...process.env,
+    NODE_ENV: 'test',
+    HOST: '127.0.0.1',
+    PORT: testPort,
+    DATABASE_FILE: path.join(testDir, 'legacy.json'),
+    SQLITE_FILE: testSqlite,
+    JWT_SECRET: crypto.randomBytes(48).toString('hex')
+  };
+
+  const serverProc = spawn(process.execPath, [path.join(__dirname, '../server.js')], { env: botEnv, stdio: ['ignore', 'pipe', 'pipe'] });
+  try {
+    await new Promise((resolve, reject) => {
+      serverProc.stdout.on('data', d => { if (d.toString().includes('Running on Port')) resolve(); });
+      serverProc.stderr.on('data', d => {});
+      serverProc.on('error', reject);
+      setTimeout(() => reject(new Error('Server start timeout')), 5000);
+    });
+
+    // Request as meta-externalads crawler
+    const res = await fetch(`http://127.0.0.1:${testPort}/api/auth/guest`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'User-Agent': 'meta-externalads/1.1 (+https://developers.facebook.com/docs/sharing/webmasters/crawler)'
+      },
+      body: JSON.stringify({ isTester: false })
+    });
+    const botData = await res.json();
+    assert.equal(res.status, 200);
+    assert.equal(botData.user.id, 'guest_bot_crawler');
+    assert.equal(botData.user.isTester, true);
+
+    // Verify database does not contain any user for the crawler
+    const { DatabaseSync } = require('node:sqlite');
+    const testDb = new DatabaseSync(testSqlite);
+    const botUser = testDb.prepare("SELECT * FROM users WHERE id='guest_bot_crawler'").get();
+    assert.equal(botUser, undefined, 'Bot crawler must not be saved to users table');
+    const totalUsers = testDb.prepare("SELECT count(*) n FROM users").get().n;
+    assert.equal(totalUsers, 0, 'No users should be created for crawler requests');
+    console.log('PASS: Bot crawler filtering verified; zero database mutations for web crawlers.');
+  } finally {
+    serverProc.kill();
+    try { fs.rmSync(testDir, { recursive: true, force: true }); } catch {}
+  }
 }
 
-run().finally(() => {
+run().catch(err => {
+  console.error(err);
+  process.exit(1);
+}).finally(() => {
   for (const f of [process.env.DATABASE_FILE, process.env.SQLITE_FILE, process.env.SQLITE_FILE + '-wal', process.env.SQLITE_FILE + '-shm']) {
     if (fs.existsSync(f)) try { fs.unlinkSync(f); } catch {}
   }

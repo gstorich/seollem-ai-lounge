@@ -40,6 +40,25 @@ router.post('/guest', optionalAuth, (req, res) => {
 
   const restored = Boolean(user);
 
+  const ua = req.headers['user-agent'] || '';
+  const isBot = /(?:googlebot|bingbot|baiduspider|yeti|daumoa|slurp|facebookexternalhit|meta-externalads|mediapartners-google|adsbot-google|twitterbot)/i.test(ua);
+  if (!user && isBot) {
+    return res.json({
+      success: true,
+      token: generateToken({ userId: 'guest_bot_crawler' }),
+      restoredByDevice: false,
+      user: {
+        id: 'guest_bot_crawler',
+        phone: null,
+        hearts: 0,
+        isVipUnlimited: false,
+        phoneBonusClaimed: false,
+        isAdult: false,
+        isTester: true
+      }
+    });
+  }
+
   if (!user) {
     const newId = `guest_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
     let welcomeHearts = config.defaultGuestHearts;

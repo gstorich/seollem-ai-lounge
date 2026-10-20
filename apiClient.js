@@ -187,7 +187,17 @@
       };
     },
     setToken(token) { authToken = token || ''; if (authToken) localStorage.setItem('seollem_auth_token', authToken); else localStorage.removeItem('seollem_auth_token'); },
+    hasSession() {
+      return Boolean(authToken || (typeof localStorage !== 'undefined' && localStorage.getItem('seollem_auth_token')));
+    },
+    async ensureSession() {
+      if (authToken && this.user) return this.user;
+      return this.initGuest();
+    },
     async request(route, method = 'GET', body, options = {}) {
+      if (!authToken && !route.startsWith('/auth/') && !route.startsWith('/health') && route !== '/match/characters') {
+        await this.initGuest();
+      }
       const res = await fetch(`${API_BASE}${route}`, { method, headers: this.getHeaders(),
         ...(body === undefined ? {} : { body: JSON.stringify(body) }), ...options });
       const data = await res.json();
@@ -212,7 +222,24 @@
         const res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(5000) });
         if (!res.ok) return false;
         connected = true;
-        this.user = await this.initGuest();
+        const hasExistingAuth = Boolean(
+          authToken ||
+          (typeof localStorage !== 'undefined' && localStorage.getItem('seollem_auth_token')) ||
+          (typeof document !== 'undefined' && /(?:^|;\s*)azit_session=/.test(document.cookie || ''))
+        );
+        if (hasExistingAuth) {
+          this.user = await this.initGuest();
+        } else {
+          this.user = {
+            id: null,
+            hearts: 50,
+            isVipUnlimited: false,
+            phone: null,
+            phoneBonusClaimed: false,
+            isAdult: false,
+            isTester: false
+          };
+        }
         return true;
       } catch { connected = false; return false; }
     },
@@ -238,6 +265,14 @@
       return data;
     },
     async loadState() {
+      if (!authToken && !this.hasSession()) {
+        return {
+          user: this.user || { id: null, hearts: 50, isVipUnlimited: false, phone: null },
+          savedRooms: {},
+          metCharIds: [],
+          matchFilter: { ages: [], traits: [], regions: [] }
+        };
+      }
       const data = await this.request('/account/state');
       this.user = data.user;
       roomFingerprints = new Map(Object.entries(data.savedRooms || {}).map(([id, room]) => [id, JSON.stringify({ ...room, messages: (room.messages || []).slice(-45) })]));
@@ -259,6 +294,13 @@
     async flushState() {
       clearTimeout(timer);
       if (pending && !paused) {
+        if (!authToken && !this.hasSession()) {
+          const hasActualRooms = Object.values(pending.savedRooms || {}).some(r => (r.messages || []).length > 0);
+          if (!hasActualRooms) {
+            pending = null;
+            return saving;
+          }
+        }
         const body = pending;
         pending = null;
         const token = authToken;
