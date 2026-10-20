@@ -4,10 +4,75 @@ const chatPunctuation = require('./chatPunctuation');
 const conversationContext = require('./conversationContext');
 const contentAccess = require('./contentAccess');
 
+function safeParseJson(raw) {
+  if (!raw || typeof raw !== 'string') return null;
+  const trimmed = raw.trim();
+  try { return JSON.parse(trimmed); } catch (_) {}
+
+  // 1. Markdown code fences stripped: ```json ... ``` or ``` ... ```
+  const codeBlockStripped = trimmed.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+  try { return JSON.parse(codeBlockStripped); } catch (_) {}
+
+  // 2. Extract substring from first '{' to last '}'
+  const start = trimmed.indexOf('{');
+  const end = trimmed.lastIndexOf('}');
+  if (start !== -1 && end > start) {
+    try { return JSON.parse(trimmed.slice(start, end + 1)); } catch (_) {}
+  }
+
+  // 3. Fallback regex for {reply, roomLeft}
+  const replyMatch = trimmed.match(/"reply"\s*:\s*"((?:\\.|[^"\\])*)"/);
+  if (replyMatch) {
+    try {
+      const reply = JSON.parse(`"${replyMatch[1]}"`);
+      const roomLeftMatch = trimmed.match(/"roomLeft"\s*:\s*(true|false)/);
+      const roomLeft = roomLeftMatch ? roomLeftMatch[1] === 'true' : false;
+      return { reply, roomLeft };
+    } catch (_) {}
+  }
+  return null;
+}
+
+function sanitizeReply(reply, character, conversation, relationship) {
+  if (!reply || typeof reply !== 'string') return '';
+  let cleaned = reply;
+  const latest = conversation.recent.at(-1)?.content || '';
+  const addresses = ['누나', '오빠', '언니', '형', '자기', '여보', '선배님'];
+  const allowed = relationship.allowedAddressTerms || [];
+
+  // 1. 허용되지 않은 친밀 호칭 정제 (가족 지칭 제외)
+  for (const term of addresses) {
+    if (allowed.includes(term) || latest.includes(term)) continue;
+    // 호칭 앞에 '우리/제/내'가 붙지 않은 경우 대상 호칭 및 뒤따르는 조사, 쉼표까지 함께 정리
+    const pattern = new RegExp(`(?<!(?:우리|제|내)\\s*)(?:^|[\\s,.!?])${term}(?:는|은|가|이|도|랑|한테|에게|야|아|님|씨)?(?:\\s*,)?(?=[\\s,.!?]|$)`, 'g');
+    cleaned = cleaned.replace(pattern, (match) => {
+      const leading = match.match(/^[\\s.!?]+/)?.[0] || '';
+      return leading;
+    });
+  }
+
+  // 2. 시스템/성인인증/운영정책 금지어 문장 제거
+  if (/성인\s*인증|본인\s*인증|시스템\s*(?:오류|메시지|대화|안내)|운영\s*정책|서비스\s*약관|서버\s*(?:오류|설정)|차단\s*되었|이용\s*제한/.test(cleaned)) {
+    const sentences = cleaned.split(/(?<=[.!?\n])/);
+    const filtered = sentences.filter(s => !/성인\s*인증|본인\s*인증|시스템\s*(?:오류|메시지|대화|안내)|운영\s*정책|서비스\s*약관|서버\s*(?:오류|설정)|차단\s*되었|이용\s*제한/.test(s));
+    cleaned = filtered.join('').trim();
+  }
+
+  // 3. 문두 및 문중의 부자연스러운 기호/공백 정돈
+  cleaned = cleaned
+    .replace(/^[,\s~]+/, '')
+    .replace(/([.!?~])\s*,\s*/g, '$1 ')
+    .replace(/,\s*,+/g, ',')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  return cleaned;
+}
+
 function dialogueFeedback(reply,character,conversation,relationship){
   const latest=conversation.recent.at(-1)?.content||'';
   const addresses=['누나','오빠','언니','형','자기','여보','선배님'];
-  const badAddress=addresses.find(term=>!(relationship.allowedAddressTerms||[]).includes(term)&&!latest.includes(term)&&new RegExp('(?:^|[\\s,.!?])'+term+'(?:[\\s,.!?]|는|가|도|랑|한테|에게)').test(reply)&&!new RegExp('(?:우리|제|내)\\s*'+term).test(reply));
+  const badAddress=addresses.find(term=>!(relationship.allowedAddressTerms||[]).includes(term)&&!latest.includes(term)&&new RegExp('(?:^|[\\s,.!?])'+term+'(?:[\\s,.!?]|는|은|가|이|도|랑|한테|에게|야|아|님|씨)').test(reply)&&!new RegExp('(?:우리|제|내)\\s*'+term).test(reply));
   if(badAddress)return {hard:true,instruction:'사용자에게 확인되지 않은 친밀한 호칭을 썼습니다. 호칭을 전부 생략하고 같은 내용을 이 인물의 말투로 다시 쓰세요. 나이와 성별을 추측하지 않습니다.'};
   if(/성인\s*인증|본인\s*인증|시스템\s*(?:오류|메시지|대화|안내)|운영\s*정책|서비스\s*약관|서버\s*(?:오류|설정)|차단\s*되었|이용\s*제한/.test(reply))return {hard:true,instruction:'캐릭터가 시스템, 성인인증, 운영 정책 관련 안내나 시스템 대화를 직접 발화했습니다. 캐릭터는 시스템 대화를 절대 발화할 수 없습니다. 오직 캐릭터의 세계관과 자연스러운 인물 대사로만 다시 쓰세요.'};
   if(character.creatorDefinition)return null; // Authored styles are not generic presets.
@@ -123,9 +188,12 @@ module.exports = {
     }
     async function check(target){
       try {
-      const raw=await generate([{role:'user',content:JSON.stringify({context:selectedHistory.slice(-6),target})}],contentAccess.prompt,contentAccess.schema,true);
-      let result;try{result=JSON.parse(raw);}catch{throw Error('LLM_INVALID_SAFETY');}
-      contentAccess.enforce(result,adult);
+        const raw=await generate([{role:'user',content:JSON.stringify({context:selectedHistory.slice(-6),target})}],contentAccess.prompt,contentAccess.schema,true);
+        let result = safeParseJson(raw);
+        if(!result) {
+          try{result=JSON.parse(raw);}catch{throw Error('LLM_INVALID_SAFETY');}
+        }
+        contentAccess.enforce(result,adult);
       } catch(error) {error.safetyCheckFailed=true;throw error;}
     }
     if(!['greeting','proactive'].includes(conversation.kind))await check(selectedHistory.at(-1)?.content||'');
@@ -134,11 +202,26 @@ module.exports = {
     for(let attempt=0;attempt<2;attempt++){
       const feedback=dialogue?dialogueFeedback(dialogue.reply,character,conversation,relationship):null;
       const raw=await generate(selectedHistory,systemPrompt+(feedback?'\n[이번 한 번의 교정]\n'+feedback.instruction:''),dialogueSchema);
-      try{dialogue=JSON.parse(raw);}catch{throw Error('LLM_INVALID_TURN_JSON');}
-      if(typeof dialogue?.reply!=='string'||!dialogue.reply.trim()||typeof dialogue.roomLeft!=='boolean')throw Error('LLM_INVALID_TURN');
+      dialogue = safeParseJson(raw);
+      if(!dialogue || typeof dialogue.reply !== 'string' || !dialogue.reply.trim()){
+        if(attempt === 0) continue;
+        throw Error('LLM_INVALID_TURN_JSON');
+      }
+      if(typeof dialogue.roomLeft !== 'boolean') dialogue.roomLeft = false;
       const issue=dialogueFeedback(dialogue.reply,character,conversation,relationship);
       if(!issue)break;
-      if(attempt===1&&issue.hard)throw Error('LLM_ADDRESS_CONTRACT');
+      if(attempt===1){
+        console.warn('[LLM] Address/dialogue issue remained after retry, applying auto-sanitization fallback');
+        const sanitized = sanitizeReply(dialogue.reply, character, conversation, relationship);
+        if (sanitized && sanitized.trim()) {
+          dialogue.reply = sanitized;
+          const remainingIssue = dialogueFeedback(dialogue.reply, character, conversation, relationship);
+          if (!remainingIssue || !remainingIssue.hard) {
+            break;
+          }
+        }
+        if (issue.hard) throw Error('LLM_ADDRESS_CONTRACT');
+      }
     }
     let reply=dialogue.reply;
     await check(reply);
@@ -168,7 +251,12 @@ module.exports = {
       const memorySchema={type:'OBJECT',properties:{memory:conversationContext.getResponseSchema(conversation).properties.memory},required:['memory'],propertyOrdering:['memory']};
       const recordingPrompt=conversationContext.buildPrompt(conversation)+'\n[기억 기록 전용]\n마지막 assistant 메시지는 이미 선택된 실제 답장입니다. 다시 쓰거나 대체 답장을 생성하지 마세요. 해당 답장까지의 사실·감정 변화를 근거 ID에 맞춰 기록합니다. 출력은 {memory} JSON만 쓰며 reply나 roomLeft 필드를 만들지 않습니다. 스타일 예시는 실제 사건이 아닙니다.';
       const recorded=await generate([...selectedHistory,{role:'assistant',content:reply}],recordingPrompt,memorySchema);
-      try{memory=JSON.parse(recorded).memory;}catch{throw Error('LLM_INVALID_MEMORY');}
+      const parsedMem = safeParseJson(recorded);
+      if (parsedMem && parsedMem.memory) {
+        memory = parsedMem.memory;
+      } else {
+        try{memory=JSON.parse(recorded).memory;}catch{throw Error('LLM_INVALID_MEMORY');}
+      }
     }
     const turn=conversationContext.parseTurn(JSON.stringify({reply,roomLeft:dialogue.roomLeft,memory}),conversation);
 

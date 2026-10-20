@@ -87,8 +87,8 @@ async function req(route,token,body,method=body===undefined?'GET':'POST'){const 
  sql.exec('DROP TRIGGER reject_memory');assert.equal((await send('memory storage rollback','memory-storage')).status,200);
  const funded=(await state()).user.hearts;
  const guarded=await send('forbidden-address-test','guarded');assert.equal(guarded.status,200);assert(!guarded.data.partnerReply.includes('누나'));
+ const persistentGuarded=await send('persistent forbidden-address-test','guarded-persistent');assert.equal(persistentGuarded.status,200);assert(!persistentGuarded.data.partnerReply.includes('누나'),'Persistent unsupported address is auto-sanitized so customer experiences no conversational hang');
  const afterGuard=(await state()).user.hearts;
- assert.equal((await send('persistent forbidden-address-test','guarded-persistent')).status,503);assert.equal((await state()).user.hearts,afterGuard,'Persistent unsupported address fails without a charge');
  const giftFail=await req('/chat/gift',token,{characterId,giftKey:'coffee',customMsg:'http-test',messageId:'giftfailure'});assert.equal(giftFail.status,503);assert.equal((await state()).user.hearts,afterGuard);
  const gift=await req('/chat/gift',token,{characterId,giftKey:'coffee',customMsg:'고마워요',messageId:'gift'});assert.equal(gift.status,200);assert.equal(gift.data.isAiGenerated,true);assert.equal(gift.data.costDeducted,300);assert.equal((await req('/chat/gift',token,{characterId,giftKey:'coffee',customMsg:'고마워요',messageId:'gift'})).data.heartsRemaining,gift.data.heartsRemaining);
  const beforeStop=(await state()).user.hearts;
