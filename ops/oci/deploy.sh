@@ -29,6 +29,7 @@ node server/tests/conversations.cjs
 node server/tests/matching-bandit.cjs
 node server/tests/device-account.cjs
 node server/tests/seo.cjs
+node server/tests/acquisition.cjs
 host=haze-oci-a1
 incoming="/tmp/seollem-$release"
 ssh "$host" "test ! -e '$incoming' && mkdir -m 0755 '$incoming'"

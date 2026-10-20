@@ -74,11 +74,107 @@
     }
   }
 
+  function captureAcquisition() {
+    try {
+      const search = window.location.search || '';
+      const params = new URLSearchParams(search);
+      const ref = typeof document !== 'undefined' ? (document.referrer || '') : '';
+      let refHost = '';
+      try {
+        if (ref) refHost = new URL(ref).hostname;
+      } catch {}
+
+      const currentHost = typeof window !== 'undefined' ? (window.location.hostname || '') : '';
+      const isInternal = !refHost || refHost === currentHost || refHost.includes('azitchat.com');
+
+      let source = params.get('utm_source');
+      let medium = params.get('utm_medium');
+      let campaign = params.get('utm_campaign');
+      let content = params.get('utm_content');
+      let term = params.get('utm_term');
+      const fbclid = params.get('fbclid');
+      const gclid = params.get('gclid');
+
+      if (!source) {
+        if (fbclid) {
+          source = 'facebook';
+          medium = medium || 'paid_social';
+        } else if (gclid) {
+          source = 'google';
+          medium = medium || 'cpc';
+        } else if (!isInternal && refHost) {
+          if (/naver\.com$/i.test(refHost)) {
+            source = 'naver';
+            medium = /search/i.test(refHost) ? 'organic' : 'referral';
+          } else if (/google\./i.test(refHost)) {
+            source = 'google';
+            medium = 'organic';
+          } else if (/daum\.net$/i.test(refHost)) {
+            source = 'daum';
+            medium = /search/i.test(refHost) ? 'organic' : 'referral';
+          } else if (/instagram\.com$/i.test(refHost)) {
+            source = 'instagram';
+            medium = 'social';
+          } else if (/facebook\.com$|fb\.me$/i.test(refHost)) {
+            source = 'facebook';
+            medium = 'social';
+          } else if (/youtube\.com$/i.test(refHost)) {
+            source = 'youtube';
+            medium = 'social';
+          } else if (/tiktok\.com$/i.test(refHost)) {
+            source = 'tiktok';
+            medium = 'social';
+          } else if (/threads\.net$/i.test(refHost)) {
+            source = 'threads';
+            medium = 'social';
+          } else if (/twitter\.com$|x\.com$|t\.co$/i.test(refHost)) {
+            source = 'twitter';
+            medium = 'social';
+          } else if (/kakao/i.test(refHost)) {
+            source = 'kakao';
+            medium = 'referral';
+          } else {
+            source = refHost;
+            medium = 'referral';
+          }
+        }
+      }
+
+      const currentAcq = {
+        source: source || 'direct',
+        medium: medium || (source && source !== 'direct' ? 'referral' : 'none'),
+        campaign: campaign || null,
+        content: content || null,
+        term: term || null,
+        fbclid: fbclid || null,
+        gclid: gclid || null,
+        referrer: ref || null,
+        landingPath: (window.location.pathname || '') + (window.location.search || ''),
+        capturedAt: Date.now()
+      };
+
+      let stored = null;
+      try {
+        const storedStr = localStorage.getItem('azit_acquisition');
+        if (storedStr) stored = JSON.parse(storedStr);
+      } catch {}
+
+      if (!stored || (stored.source === 'direct' && currentAcq.source !== 'direct')) {
+        try { localStorage.setItem('azit_acquisition', JSON.stringify(currentAcq)); } catch {}
+        return currentAcq;
+      }
+      return stored;
+    } catch {
+      return { source: 'direct', medium: 'none' };
+    }
+  }
+
   const ApiClient = {
     user: null,
     isHosted: () => hosted,
     isConnected: () => connected,
     getDeviceId: () => getDeviceId(),
+    getAcquisition: () => captureAcquisition(),
     getHeaders() {
       const isTester = (typeof localStorage !== 'undefined' && localStorage.getItem('azit_tester') === '1') ||
         (typeof document !== 'undefined' && /(?:^|;\s*)azit_tester=1/.test(document.cookie || ''));
@@ -128,7 +224,8 @@
         const isTester = (typeof localStorage !== 'undefined' && localStorage.getItem('azit_tester') === '1') ||
           (typeof document !== 'undefined' && /(?:^|;\s*)azit_tester=1/.test(document.cookie || ''));
         const deviceId = getDeviceId();
-        const data=await this.request('/auth/guest','POST',{ isTester, deviceId });
+        const acquisition = captureAcquisition();
+        const data=await this.request('/auth/guest','POST',{ isTester, deviceId, acquisition });
         this.setToken(data.token);this.user=data.user;return data.user;
       };
       guestInit=(navigator.locks?navigator.locks.request('azit-session-bootstrap',initialize):initialize());

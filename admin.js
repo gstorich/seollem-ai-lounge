@@ -34,9 +34,11 @@ async function render(){
   await renderInsights();
  }else if(view==='matching'){
   await renderMatchingInsights();
+ }else if(view==='acquisitions'){
+  await renderAcquisitions();
  }else if(view==='customers'||view==='guests'){
   const d=await api('/customers?q='+encodeURIComponent(query)+'&page='+page+'&kind='+(view==='guests'?'guests':'members')+'&engagement='+engagement);
-  $('content').innerHTML=`<section class="card"><form id="searchForm" class="row"><input id="search" placeholder="휴대폰 번호 또는 고객 ID 검색" aria-label="고객 검색" value="${esc(query)}"><button class="primary">검색</button></form><p class="muted">${view==='guests'?'게스트는 브라우저별 세션이며 실제 사람 수가 아닙니다. 비공개 창·다른 브라우저·저장소 삭제 시 별도 세션이 생길 수 있습니다.':'휴대폰 인증 회원만 표시합니다. 게스트는 별도 메뉴에서 확인하세요.'}</p><select id="engagementFilter" aria-label="대화 활동"><option value="all">전체 활동</option><option value="active" ${engagement==='active'?'selected':''}>대화한 계정</option><option value="unused" ${engagement==='unused'?'selected':''}>사용자 메시지 없음</option></select><div class="table-scroll spaced"><table><thead><tr><th>고객</th><th>구분</th><th>잔액</th><th>사용자 메시지</th><th>가입일</th><th>최근 접속</th><th></th></tr></thead><tbody>${d.items.map(x=>`<tr><td>${esc(x.phone?x.phone.replace(/(\d{3})\d{4}(\d{4})/,'$1-****-$2'):x.id)}</td><td>${x.phone?'인증 회원':'게스트'}${x.isAdult?' <span class="pill active" style="font-size:10px;padding:2px 5px;">19+</span>':''}</td><td>${fmt(x.hearts)} 하트</td><td>${fmt(x.userTurns)}</td><td>${date(x.createdAt)}</td><td>${date(x.lastSeenAt)}</td><td><button data-customer="${esc(x.id)}">관리</button></td></tr>`).join('')}</tbody></table></div>${pager(d.total,30)}</section>`;
+  $('content').innerHTML=`<section class="card"><form id="searchForm" class="row"><input id="search" placeholder="휴대폰 번호 또는 고객 ID 검색" aria-label="고객 검색" value="${esc(query)}"><button class="primary">검색</button></form><p class="muted">${view==='guests'?'게스트는 브라우저별 세션이며 실제 사람 수가 아닙니다. 비공개 창·다른 브라우저·저장소 삭제 시 별도 세션이 생길 수 있습니다.':'휴대폰 인증 회원만 표시합니다. 게스트는 별도 메뉴에서 확인하세요.'}</p><select id="engagementFilter" aria-label="대화 활동"><option value="all">전체 활동</option><option value="active" ${engagement==='active'?'selected':''}>대화한 계정</option><option value="unused" ${engagement==='unused'?'selected':''}>사용자 메시지 없음</option></select><div class="table-scroll spaced"><table><thead><tr><th>고객</th><th>구분</th><th>유입 경로</th><th>잔액</th><th>사용자 메시지</th><th>가입일</th><th>최근 접속</th><th></th></tr></thead><tbody>${d.items.map(x=>`<tr><td>${esc(x.phone?x.phone.replace(/(\d{3})\d{4}(\d{4})/,'$1-****-$2'):x.id)}</td><td>${x.phone?'인증 회원':'게스트'}${x.isAdult?' <span class="pill active" style="font-size:10px;padding:2px 5px;">19+</span>':''}</td><td><span class="pill" style="font-size:11px;padding:2px 6px;">${esc(x.utmSource||'direct')}</span>${x.utmCampaign?'<br><small class="muted">'+esc(x.utmCampaign)+'</small>':''}</td><td>${fmt(x.hearts)} 하트</td><td>${fmt(x.userTurns)}</td><td>${date(x.createdAt)}</td><td>${date(x.lastSeenAt)}</td><td><button data-customer="${esc(x.id)}">관리</button></td></tr>`).join('')}</tbody></table></div>${pager(d.total,30)}</section>`;
   $('engagementFilter').onchange=()=>{engagement=$('engagementFilter').value;page=0;load();};$('searchForm').onsubmit=e=>{e.preventDefault();query=$('search').value.trim();page=0;load();};document.querySelectorAll('[data-customer]').forEach(b=>b.onclick=()=>openCustomer(b.dataset.customer));bindPager();
  }else if(view==='tickets'){
   const d=await api('/tickets?status='+status+'&page='+page);
@@ -53,7 +55,9 @@ async function render(){
   $('content').innerHTML=`<section class="card"><h2>관리자 처리 기록</h2><p class="muted">공용 비밀번호를 사용하는 관리자 작업은 operator로 기록됩니다.</p><div class="table-scroll"><table><thead><tr><th>일시</th><th>작업</th><th>대상</th><th>상세</th></tr></thead><tbody>${d.items.map(x=>`<tr><td>${date(x.created_at)}</td><td>${esc(x.action)}</td><td>${esc(x.target)}</td><td>${esc(JSON.stringify(x.details))}</td></tr>`).join('')}</tbody></table></div>${pager(page*50+d.items.length+(d.items.length===50?1:0),50)}</section>`;bindPager();
  }
 }
-async function openCustomer(id){try{const {customer:c}=await api('/customers/'+encodeURIComponent(id));const chats=await api('/conversations?userId='+encodeURIComponent(id));$('detailTitle').textContent='고객 관리';$('detailError').textContent='';$('detailContent').innerHTML=`<p class="spaced"><strong>${esc(c.phone||c.id)}</strong></p><p>보유 ${fmt(c.hearts)} 하트 · 대화방 ${fmt(c.roomCount)}개 · 메시지 ${fmt(c.messageCount)}개</p><small>가입 ${date(c.createdAt)} · 마지막 저장 ${date(c.updatedAt)}</small><hr class="divider"><h3>성인 인증 관리</h3><div class="row" style="align-items:center;justify-content:space-between;gap:12px;"><div><span class="pill ${c.isAdult?'active':'guest'}">${c.isAdult?'성인 인증 완료 (19+)':'성인 미인증'}</span> <small class="muted">${c.verification?.verifiedAt?('인증일: '+date(c.verification.verifiedAt)+(c.verification.method==='admin_manual'?' (관리자 수동)':' (본인인증)')):'인증 기록 없음'}</small></div><button id="toggleAdultBtn" ${c.isAdult?'':'disabled'} class="${c.isAdult?'':'primary'}">${c.isAdult?'성인 인증 해제':'본인확인 기관 인증 필요'}</button></div><hr class="divider"><h3>대화 내역 (${fmt(chats.total)}개 방)</h3>${conversationTable(chats.items)}${chats.total>30?'<button id="allCustomerChats">이 고객의 모든 대화방 보기</button>':''}<hr class="divider"><h3>하트 보정</h3><p class="muted">새로 지급하는 하트는 지급 시점부터 1년간 유효합니다. 차감 시 먼저 받은 지급분부터 사용합니다.</p><form id="adjustForm"><div class="row"><input id="delta" type="number" step="0.1" min="-10000" max="10000" placeholder="지급 +10 / 차감 -10" aria-label="보정 하트" required><input id="reason" placeholder="처리 사유 (필수)" aria-label="처리 사유" minlength="3" maxlength="500" required></div><button class="primary spaced">보정 내용 확인</button></form><hr class="divider"><h3>내부 메모</h3><form id="noteForm"><textarea id="note" aria-label="고객 내부 메모" placeholder="고객에게 보이지 않는 운영 메모" maxlength="3000" required></textarea><button class="spaced">메모 저장</button></form>${c.notes.map(n=>`<div class="message internal">${esc(n.details.body)}<br><small>${date(n.created_at)}</small></div>`).join('')}<hr class="divider"><h3>하트 획득·만료 내역</h3><p class="muted">각 획득일로부터 1년 유효 · 먼저 받은 하트부터 사용됩니다. 최근 100개 지급분입니다.</p><div class="table-scroll"><table><thead><tr><th>획득</th><th>획득 하트</th><th>잔여</th><th>만료일</th><th>소멸</th></tr></thead><tbody>${(c.heartGrants||[]).map(g=>`<tr><td>${date(g.acquiredAt)}</td><td>${fmt(g.grantedHearts)}</td><td>${fmt(g.remainingHearts)}</td><td>${date(g.expiresAt)}</td><td>${fmt(g.expiredHearts)}</td></tr>`).join('')}</tbody></table></div><hr class="divider"><h3>최근 하트 내역</h3><div class="table-scroll"><table><thead><tr><th>시간</th><th>유형</th><th>변동</th></tr></thead><tbody>${c.ledger.map(x=>`<tr><td>${date(x.created_at)}</td><td>${esc(x.reason)}</td><td>${x.delta>0?'+':''}${fmt(x.delta)}</td></tr>`).join('')}</tbody></table></div>`;if(!$('detail').open)$('detail').showModal();
+async function openCustomer(id){try{const {customer:c}=await api('/customers/'+encodeURIComponent(id));const chats=await api('/conversations?userId='+encodeURIComponent(id));$('detailTitle').textContent='고객 관리';$('detailError').textContent='';
+const acqInfo=c.acquisition?`<hr class="divider"><h3>유입 정보 (UTM)</h3><p><strong>소스 / 매체:</strong> <span class="pill" style="font-size:11px;">${esc(c.acquisition.utm_source||c.acquisition.source||'direct')}</span> / <code>${esc(c.acquisition.utm_medium||c.acquisition.medium||'none')}</code></p>${(c.acquisition.utm_campaign||c.acquisition.campaign)?`<p><strong>캠페인:</strong> <code>${esc(c.acquisition.utm_campaign||c.acquisition.campaign)}</code></p>`:''}${(c.acquisition.utm_content||c.acquisition.content)?`<p><strong>광고 소재:</strong> <code>${esc(c.acquisition.utm_content||c.acquisition.content)}</code></p>`:''}${(c.acquisition.utm_term||c.acquisition.term)?`<p><strong>키워드:</strong> <code>${esc(c.acquisition.utm_term||c.acquisition.term)}</code></p>`:''}${(c.acquisition.referrer||c.acquisition.ref)?`<p class="muted"><strong>리퍼러:</strong> <small style="word-break:break-all;">${esc(c.acquisition.referrer||c.acquisition.ref)}</small></p>`:''}${(c.acquisition.landing_path||c.acquisition.landingPath)?`<p class="muted"><strong>랜딩 경로:</strong> <small style="word-break:break-all;">${esc(c.acquisition.landing_path||c.acquisition.landingPath)}</small></p>`:''}`:'' ;
+$('detailContent').innerHTML=`<p class="spaced"><strong>${esc(c.phone||c.id)}</strong></p><p>보유 ${fmt(c.hearts)} 하트 · 대화방 ${fmt(c.roomCount)}개 · 메시지 ${fmt(c.messageCount)}개</p><small>가입 ${date(c.createdAt)} · 마지막 저장 ${date(c.updatedAt)}</small>${acqInfo}<hr class="divider"><h3>성인 인증 관리</h3><div class="row" style="align-items:center;justify-content:space-between;gap:12px;"><div><span class="pill ${c.isAdult?'active':'guest'}">${c.isAdult?'성인 인증 완료 (19+)':'성인 미인증'}</span> <small class="muted">${c.verification?.verifiedAt?('인증일: '+date(c.verification.verifiedAt)+(c.verification.method==='admin_manual'?' (관리자 수동)':' (본인인증)')):'인증 기록 없음'}</small></div><button id="toggleAdultBtn" ${c.isAdult?'':'disabled'} class="${c.isAdult?'':'primary'}">${c.isAdult?'성인 인증 해제':'본인확인 기관 인증 필요'}</button></div><hr class="divider"><h3>대화 내역 (${fmt(chats.total)}개 방)</h3>${conversationTable(chats.items)}${chats.total>30?'<button id="allCustomerChats">이 고객의 모든 대화방 보기</button>':''}<hr class="divider"><h3>하트 보정</h3><p class="muted">새로 지급하는 하트는 지급 시점부터 1년간 유효합니다. 차감 시 먼저 받은 지급분부터 사용합니다.</p><form id="adjustForm"><div class="row"><input id="delta" type="number" step="0.1" min="-10000" max="10000" placeholder="지급 +10 / 차감 -10" aria-label="보정 하트" required><input id="reason" placeholder="처리 사유 (필수)" aria-label="처리 사유" minlength="3" maxlength="500" required></div><button class="primary spaced">보정 내용 확인</button></form><hr class="divider"><h3>내부 메모</h3><form id="noteForm"><textarea id="note" aria-label="고객 내부 메모" placeholder="고객에게 보이지 않는 운영 메모" maxlength="3000" required></textarea><button class="spaced">메모 저장</button></form>${c.notes.map(n=>`<div class="message internal">${esc(n.details.body)}<br><small>${date(n.created_at)}</small></div>`).join('')}<hr class="divider"><h3>하트 획득·만료 내역</h3><p class="muted">각 획득일로부터 1년 유효 · 먼저 받은 하트부터 사용됩니다. 최근 100개 지급분입니다.</p><div class="table-scroll"><table><thead><tr><th>획득</th><th>획득 하트</th><th>잔여</th><th>만료일</th><th>소멸</th></tr></thead><tbody>${(c.heartGrants||[]).map(g=>`<tr><td>${date(g.acquiredAt)}</td><td>${fmt(g.grantedHearts)}</td><td>${fmt(g.remainingHearts)}</td><td>${date(g.expiresAt)}</td><td>${fmt(g.expiredHearts)}</td></tr>`).join('')}</tbody></table></div><hr class="divider"><h3>최근 하트 내역</h3><div class="table-scroll"><table><thead><tr><th>시간</th><th>유형</th><th>변동</th></tr></thead><tbody>${c.ledger.map(x=>`<tr><td>${date(x.created_at)}</td><td>${esc(x.reason)}</td><td>${x.delta>0?'+':''}${fmt(x.delta)}</td></tr>`).join('')}</tbody></table></div>`;if(!$('detail').open)$('detail').showModal();
  bindConversations();if($('allCustomerChats'))$('allCustomerChats').onclick=()=>{query=id;chatKind='all';view='conversations';page=0;$('detail').close();$('pageTitle').textContent='전체 채팅';load();};
  $('toggleAdultBtn').onclick=async()=>{const nextState=!c.isAdult;if(!window.confirm(nextState?'이 고객에게 성인 인증(19+)을 부여할까요?\n모든 수위의 대화 제약이 해제됩니다.':'이 고객의 성인 인증을 해제할까요?'))return;try{await api('/customers/'+encodeURIComponent(id)+'/adult-verification','POST',{isAdult:nextState,reason:'관리자 화면에서 설정'});await openCustomer(id);load();}catch(e){$('detailError').textContent=e.message;}};
  let adjustment=null;
@@ -182,6 +186,118 @@ async function renderMatchingInsights(){
   $('pageTitle').textContent='전체 채팅';
   load();
  });
+}
+async function renderAcquisitions(){
+  const days=$('days').value;
+  const d=await api('/acquisitions?days='+days);
+  const s=d.summary||{total:0,utmCount:0,directCount:0,engagedCount:0,memberCount:0,engagementRate:0,conversionRate:0};
+  const kpis=[
+    ['전체 유입 계정',s.total,'신규 게스트 세션 + 회원 가입'],
+    ['광고·UTM 유입',s.utmCount,`${s.total?Math.round((s.utmCount/s.total)*1000)/10:0}% · 외부 매체/캠페인 태그`],
+    ['직접·자연 유입',s.directCount,`${s.total?Math.round((s.directCount/s.total)*1000)/10:0}% · 북마크/직접 접속`],
+    ['대화 참여율',s.engagementRate+'%',`1회 이상 발화 (${fmt(s.engagedCount)}명)`],
+    ['회원 전환율',s.conversionRate+'%',`휴대폰 인증 완료 (${fmt(s.memberCount)}명)`]
+  ];
+  const maxDaily=Math.max(1,...(d.daily||[]).map(x=>x.total));
+  $('content').innerHTML=`
+    <div class="grid">${kpis.map(([t,val,sub])=>`<div class="card"><div class="card-title">${t}</div><div class="stat">${typeof val==='number'?fmt(val):esc(val)}</div><small>${sub}</small></div>`).join('')}</div>
+    <div class="split">
+      <section class="card">
+        <h2>📌 유입 소스·매체별 성과 (Source / Medium)</h2>
+        <p class="muted">유입 채널별 유입 수, 실제 대화 참여율, 회원 인증 전환율입니다.</p>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>소스 / 매체</th><th>유입</th><th>대화 참여 (비율)</th><th>회원 전환 (비율)</th></tr>
+            </thead>
+            <tbody>
+              ${(d.sources||[]).map(x=>`<tr><td><strong>${esc(x.source)}</strong><br><small class="muted">${esc(x.medium)}</small></td><td>${fmt(x.total)}</td><td>${fmt(x.engaged)} <small class="muted">(${x.engagementRate}%)</small></td><td>${fmt(x.converted)} <small class="muted">(${x.conversionRate}%)</small></td></tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+        ${(d.sources||[]).length?'':'<p class="empty">해당 기간 유입 기록이 없습니다.</p>'}
+      </section>
+      <section class="card">
+        <h2>🎯 캠페인별 성과 (UTM Campaign)</h2>
+        <p class="muted">광고 집행 캠페인별 유입 및 전환 성과입니다.</p>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>캠페인명</th><th>주요 소스</th><th>유입</th><th>대화 참여</th><th>회원 전환</th></tr>
+            </thead>
+            <tbody>
+              ${(d.campaigns||[]).map(x=>`<tr><td><strong>${esc(x.campaign)}</strong></td><td><span class="pill" style="font-size:11px;">${esc(x.source)}</span></td><td>${fmt(x.total)}</td><td>${fmt(x.engaged)} <small class="muted">(${x.engagementRate}%)</small></td><td>${fmt(x.converted)} <small class="muted">(${x.conversionRate}%)</small></td></tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+        ${(d.campaigns||[]).length?'':'<p class="empty">설정된 캠페인 유입이 없습니다.</p>'}
+      </section>
+    </div>
+    <div class="split">
+      <section class="card">
+        <h2>🖼 광고 소재별 성과 (UTM Content)</h2>
+        <p class="muted">어떤 크리에이티브(이미지/소재)에서 반응이 일어났는지 분석합니다.</p>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>소재명 (Content)</th><th>캠페인 / 소스</th><th>유입</th><th>대화 참여</th><th>회원 전환</th></tr>
+            </thead>
+            <tbody>
+              ${(d.contents||[]).map(x=>`<tr><td><code>${esc(x.content)}</code></td><td>${esc(x.campaign||'-')}<br><small class="muted">${esc(x.source)}</small></td><td>${fmt(x.total)}</td><td>${fmt(x.engaged)} <small class="muted">(${x.engagementRate}%)</small></td><td>${fmt(x.converted)} <small class="muted">(${x.conversionRate}%)</small></td></tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+        ${(d.contents||[]).length?'':'<p class="empty">기록된 광고 소재가 없습니다.</p>'}
+      </section>
+      <section class="card">
+        <h2>🔍 검색 키워드별 성과 (UTM Term)</h2>
+        <p class="muted">검색 광고 및 타겟 키워드 유입 분석입니다.</p>
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr><th>키워드 (Term)</th><th>소스</th><th>유입</th><th>대화 참여</th><th>회원 전환</th></tr>
+            </thead>
+            <tbody>
+              ${(d.terms||[]).map(x=>`<tr><td><strong>${esc(x.term)}</strong></td><td><span class="pill" style="font-size:11px;">${esc(x.source)}</span></td><td>${fmt(x.total)}</td><td>${fmt(x.engaged)} <small class="muted">(${x.engagementRate}%)</small></td><td>${fmt(x.converted)} <small class="muted">(${x.conversionRate}%)</small></td></tr>`).join('')}
+            </tbody>
+          </table>
+        </div>
+        ${(d.terms||[]).length?'':'<p class="empty">기록된 검색 키워드가 없습니다.</p>'}
+      </section>
+    </div>
+    <section class="card spaced">
+      <h2>📈 일별 유입 추이</h2>
+      <div class="bars">
+        ${(d.daily||[]).length?d.daily.map(x=>`<div class="bar" style="height:${Math.max(4,(x.total/maxDaily)*100)}%" title="${esc(x.day)} · 전체 ${x.total}건 (UTM ${x.utm_count}건)"></div>`).join(''):'<p class="muted">기간 내 유입 기록이 없습니다.</p>'}
+      </div>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>날짜</th><th>전체 유입</th><th>광고·UTM</th><th>직접·자연</th><th>대화 참여</th><th>회원 전환</th></tr>
+          </thead>
+          <tbody>
+            ${(d.daily||[]).slice(-14).reverse().map(x=>`<tr><td>${esc(x.day)}</td><td>${fmt(x.total)}</td><td>${fmt(x.utm_count)}</td><td>${fmt(x.direct_count)}</td><td>${fmt(x.engaged)}</td><td>${fmt(x.converted)}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </section>
+    <section class="card spaced">
+      <h2>⏱ 실시간 최근 유입 상세 로그 (최근 50건)</h2>
+      <p class="muted">방문자가 최초 인입되었을 때 기록된 상세 채널, 파라미터, 랜딩 URL입니다. 고객 ID를 누르면 상세 관리로 이동합니다.</p>
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr><th>유입 시각</th><th>고객 ID</th><th>소스 / 매체</th><th>캠페인 / 소재</th><th>검색어</th><th>랜딩 경로 / 리퍼러</th><th>활동</th><th>구분</th></tr>
+          </thead>
+          <tbody>
+            ${(d.recentLogs||[]).map(x=>`<tr><td>${date(x.created_at)}</td><td><button data-customer="${esc(x.user_id)}">${esc(x.phone?x.phone.replace(/(\d{3})\d{4}(\d{4})/,'$1-****-$2'):x.user_id.slice(0,16))}</button></td><td><strong>${esc(x.utm_source)}</strong><br><small class="muted">${esc(x.utm_medium)}</small></td><td>${esc(x.utm_campaign||'-')}${x.utm_content?'<br><small class="muted">'+esc(x.utm_content)+'</small>':''}</td><td>${esc(x.utm_term||'-')}</td><td><small style="word-break:break-all;" title="${esc(x.referrer||x.landing_path)}">${esc(x.landing_path||x.referrer||'-')}</small></td><td>${x.userTurns>0?`<span class="pill active" style="font-size:10px;">대화 ${fmt(x.userTurns)}턴</span>`:'<span class="muted" style="font-size:11px;">대화 없음</span>'}</td><td>${x.phone?'<span class="pill" style="font-size:10px;">회원</span>':'<span class="muted" style="font-size:10px;">게스트</span>'}</td></tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+      ${(d.recentLogs||[]).length?'':'<p class="empty">최근 유입 로그가 없습니다.</p>'}
+    </section>
+  `;
+  document.querySelectorAll('[data-customer]').forEach(b=>b.onclick=()=>openCustomer(b.dataset.customer));
 }
 function markTester(){localStorage.setItem('azit_tester','1');document.cookie='azit_tester=1; path=/; max-age=31536000; SameSite=Lax';}
 $('loginForm').onsubmit=async e=>{e.preventDefault();const b=e.submitter;b.disabled=true;try{await api('/session','POST',{password:$('password').value});markTester();$('password').value='';$('login').hidden=true;$('app').hidden=false;await load();}catch(e){$('loginError').textContent=e.message;}finally{b.disabled=false;}};

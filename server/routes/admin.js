@@ -17,6 +17,7 @@ router.use(requireAdmin);
 router.use('/characters',require('./adminCharacters'));
 router.use('/commerce',require('./adminCommerce'));
 router.get('/funnel',(req,res)=>res.json({success:true,...require('../services/funnelInsights').insights(req.query.days)}));
+router.get('/acquisitions',(req,res)=>{const days=[7,30,90,0].includes(Number(req.query.days))?Number(req.query.days):30;const db=require('../services/dbService');const stats=db.getAcquisitionStats(days);ops.audit(req.admin.id,'acquisition_stats_view','acquisitions',{days});res.json({success:true,...stats});});
 router.get('/advertising',(req,res)=>res.json({success:true,...require('../services/advertisingService').diagnostics()}));
 router.get('/session',(req,res)=>res.json({success:true,operator:'관리자'}));
 router.delete('/session',(req,res)=>{res.clearCookie(cookieName,{httpOnly:true,secure:config.nodeEnv==='production',sameSite:'strict',path:'/'});res.json({success:true});});

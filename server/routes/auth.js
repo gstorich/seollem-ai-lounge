@@ -78,6 +78,25 @@ router.post('/guest', optionalAuth, (req, res) => {
 
   browserSession.save(res,user);
   user = dbService.updateUser(user.id,{lastSeenAt:Date.now()});
+  const incomingAcq = req.body?.acquisition;
+  if (incomingAcq && typeof incomingAcq === 'object') {
+    dbService.saveAcquisition(user.id, incomingAcq, {
+      deviceId,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
+  } else if (!restored && !dbService.getAcquisition(user.id)) {
+    const ref = req.headers['referer'] || req.headers['referrer'] || null;
+    dbService.saveAcquisition(user.id, {
+      source: 'direct',
+      medium: 'none',
+      referrer: ref
+    }, {
+      deviceId,
+      ip: req.ip,
+      userAgent: req.headers['user-agent']
+    });
+  }
   if(!restored && !user.isTester)require('../services/operationsService').track('guest_created',user.id);
   const token = generateToken({ userId: user.id });
   return res.json({
