@@ -124,6 +124,33 @@ global.fetch = async (url, options) => {
         reply: '알겠어, 편하게 대화 나누자.',
         roomLeft: false
       });
+    } else if (lastUserMsg.includes('ungrounded-memory-live-case')) {
+      if (isRecording) {
+        outputText = JSON.stringify({
+          memory: {
+            summary: '정소영 대화 요약',
+            retirements: [],
+            userFacts: [{ text: '근거 없는 유저 사실', sourceId: 'fake-nonexistent-source-id' }],
+            characterFacts: [],
+            sharedEvents: [],
+            openThreads: [],
+            agreements: [],
+            state: {
+              scene: '일상 대화',
+              characterEmotion: '차분함',
+              userEmotion: '호기심',
+              relationship: '알아가는 중',
+              lastBeat: '답변 완료',
+              sourceIds: []
+            }
+          }
+        });
+      } else {
+        outputText = JSON.stringify({
+          reply: '정소영 캐릭터의 정상 답변입니다! 메모리 오류가 나도 이 답변은 살아야 해요.',
+          roomLeft: false
+        });
+      }
     } else if (lastUserMsg.includes('normal-chat-case')) {
       outputText = JSON.stringify({
         reply: '나도 무협 소설 좋아해! 어떤 작품 가장 재밌게 봤어?',
@@ -276,6 +303,13 @@ async function req(route, token, body, method = body === undefined ? 'GET' : 'PO
     assert.equal(revokeOppaRes.status, 200);
     assert(!revokeOppaRes.data.partnerReply.includes('오빠'), '철회된 오빠 호칭은 포함되지 않아야 함');
     console.log(' -> 결과:', revokeOppaRes.data.partnerReply);
+
+    console.log('[Test 11] 정소영 케이스: 라이브 대화 중 LLM_UNGROUNDED_MEMORY 발생 시에도 503 에러 없이 정상 복구');
+    const soyoungRes = await send('ungrounded-memory-live-case: 정소영과 대화 중', 'soyoung-1');
+    assert.equal(soyoungRes.status, 200, '메모리 오류가 나도 대화는 200 성공해야 함');
+    assert.equal(soyoungRes.data.isAiGenerated, true);
+    assert.equal(soyoungRes.data.partnerReply, '정소영 캐릭터의 정상 답변입니다! 메모리 오류가 나도 이 답변은 살아야 해요');
+    console.log(' -> 결과:', soyoungRes.data.partnerReply);
 
     console.log('\nPASS: All LLM edge cases, address auto-sanitization, markdown JSON parsing, system phrase filtering, and fallback resilience verified!');
     await stop();

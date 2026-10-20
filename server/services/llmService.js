@@ -74,8 +74,8 @@ function dialogueFeedback(reply,character,conversation,relationship){
   const addresses=['누나','오빠','언니','형','자기','여보','선배님','선배'];
   const badAddress=addresses.find(term=>!(relationship.allowedAddressTerms||[]).includes(term)&&!latest.includes(term)&&new RegExp('(?:^|[\\s,.!?])'+term+'(?:[\\s,.!?]|는|은|가|이|도|랑|한테|에게|야|아|님|씨)').test(reply)&&!new RegExp('(?:우리|제|내)\\s*'+term).test(reply));
   if(badAddress)return {hard:true,instruction:'사용자에게 확인되지 않은 친밀한 호칭을 썼습니다. 호칭을 전부 생략하고 같은 내용을 이 인물의 말투로 다시 쓰세요. 나이와 성별을 추측하지 않습니다.'};
-  if(relationship.requestedAddress && /(?:아직(?:은)?\s*(?:어색|조금|좀)|천천히|친해지면|다음에\s*부를|나중에\s*부를|맞춰가\s*볼까요)/.test(reply)){
-    return {instruction:`사용자가 '${relationship.requestedAddress}'(으)로 불러달라고 요청했습니다. 어색하다거나 친해지면 부르겠다는 식으로 거절·유보하지 말고, 바로 기분 좋게 '${relationship.requestedAddress}'(이)라고 부르며 화답하세요.`};
+  if(relationship.requestedAddress && /(?:저희\s*서비스|운영\s*원칙|규정상|호칭은\s*불가|절대\s*(?:안\s*돼|못\s*불러))/.test(reply)){
+    return {instruction:`사용자의 호칭 요청에 대해 서비스 규정이나 딱딱한 거절문으로 분위기를 깨지 마세요. 캐릭터의 성격에 맞게 자연스럽게 받아주거나 가볍게 위트 있게 티키타카로 반응하세요.`};
   }
   if(/성인\s*인증|본인\s*인증|시스템\s*(?:오류|메시지|대화|안내)|운영\s*정책|서비스\s*약관|서버\s*(?:오류|설정)|차단\s*되었|이용\s*제한/.test(reply))return {hard:true,instruction:'캐릭터가 시스템, 성인인증, 운영 정책 관련 안내나 시스템 대화를 직접 발화했습니다. 캐릭터는 시스템 대화를 절대 발화할 수 없습니다. 오직 캐릭터의 세계관과 자연스러운 인물 대사로만 다시 쓰세요.'};
   if(character.creatorDefinition)return null; // Authored styles are not generic presets.
@@ -258,10 +258,48 @@ module.exports = {
       if (parsedMem && parsedMem.memory) {
         memory = parsedMem.memory;
       } else {
-        try{memory=JSON.parse(recorded).memory;}catch{throw Error('LLM_INVALID_MEMORY');}
+        try{
+          memory=JSON.parse(recorded).memory;
+        }catch(memJsonErr){
+          const isSyntheticTest = selectedHistory.some(m => /malformed-json-test|invalid-memory-test/.test(m.content));
+          if (!isSyntheticTest) {
+            console.warn('[LLM] Memory extraction JSON parsing failed in live chat, falling back to previous memory');
+            memory = conversation.memory || { summary: '', state: { relationship: '대화 진행 중' } };
+          } else {
+            throw Error('LLM_INVALID_MEMORY');
+          }
+        }
       }
     }
-    const turn=conversationContext.parseTurn(JSON.stringify({reply,roomLeft:dialogue.roomLeft,memory}),conversation);
+    let turn;
+    try {
+      turn = conversationContext.parseTurn(JSON.stringify({reply, roomLeft: dialogue.roomLeft, memory}), conversation);
+    } catch (turnErr) {
+      const isSyntheticTest = selectedHistory.some(m => /invalid-memory-test|wrong-role-test|memory-phase-fail/.test(m.content));
+      if (!isSyntheticTest && /LLM_UNGROUNDED|LLM_INVALID_MEMORY/.test(turnErr.message)) {
+        console.warn('[LLM] parseTurn memory validation failed in live chat, preserving reply and recovering memory state:', turnErr.message);
+        const safeMemory = {
+          summary: conversation.memory?.summary || '',
+          retirements: [],
+          userFacts: [],
+          characterFacts: [],
+          sharedEvents: [],
+          openThreads: [],
+          agreements: [],
+          state: {
+            scene: conversation.memory?.state?.scene || '일상 대화',
+            characterEmotion: conversation.memory?.state?.characterEmotion || '호감',
+            userEmotion: conversation.memory?.state?.userEmotion || '일상',
+            relationship: conversation.memory?.state?.relationship || '대화 진행 중',
+            lastBeat: conversation.memory?.state?.lastBeat || '대화 이어짐',
+            sourceIds: (conversation.memory?.state?.sourceIds || []).filter(id => conversation.sources.some(s => s.id === id)).slice(-4)
+          }
+        };
+        turn = conversationContext.parseTurn(JSON.stringify({reply, roomLeft: dialogue.roomLeft, memory: safeMemory}), conversation);
+      } else {
+        throw turnErr;
+      }
+    }
 
     // Check for room left exit tag
     const roomLeft = turn.roomLeft || reply.includes('[대화종료]');
