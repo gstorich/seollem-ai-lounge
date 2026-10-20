@@ -105,7 +105,7 @@ ${context.kind==='proactive'?`[먼저 연락하는 턴]
 - 아래 배열은 누적 목록 전체를 다시 쓰는 것이 아니라 이번에 새로 추가할 내용만 출력하는 변경분입니다. 없으면 빈 배열을 쓰세요. 빈 배열이어도 기존 기억은 서버에 그대로 남습니다. 이전 항목을 말만 바꿔 반복하지 마세요.
 - 이번 변경분의 근거는 이번 사용자 입력 또는 이번 AI 답변을 우선하세요. recalledMessages에 과거 원문이 별도로 제공되면 아직 저장되지 않은 과거 사실도 보충할 수 있습니다. 기존 기억의 근거 ID를 엉뚱한 새 사실에 재사용하지 마세요.
 - userFacts(최대8개): 새로 직접 밝힌 사용자 사실·취향. characterFacts(최대6개): 새로 밝힌 캐릭터 자신의 취향·정보. sharedEvents(최대8개): 새로 함께 겪은 대화 사건·장난·약속·감정 변화. openThreads(최대4개): 중요한 미해결 약속·쟁점. agreements(최대6개): 새로 합의한 말높임·호칭·이모지 제한 등. 특히 감정이 크게 변한 사건은 무슨 일이 원인이었고 어떻게 풀렸는지 sharedEvents에 남기세요.
-- 각 항목은 {text,sourceId}, text는 240자 이내. sourceId는 제공된 원문 ID나 이전 기억의 해당 근거 ID만 사용하세요. userFacts와 agreements는 사용자 발화만 근거로 쓰세요. characterFacts에 이번 답변의 새 취향을 넣으면 newReplySourceId를 사용하세요. ${context.kind==='greeting'?'인사 생성 지시는 사용자 발화가 아니므로 그 내용으로 사용자 사실·합의를 만들지 마세요.':''}
+- userFacts와 agreements는 반드시 사용자 발화 내용만 근거로 쓰세요. 캐릭터(AI/assistant)가 첫인사나 이전 답장에서 말한 캐릭터 자신의 취향이나 발언(예: 멜로디 선호, 가사 많은 노래 안 들음 등)을 사용자의 사실로 왜곡하여 userFacts에 넣는 행위는 엄격히 금지됩니다. 캐릭터의 취향은 오직 characterFacts에만 기록하세요. characterFacts에 이번 답변의 새 취향을 넣으면 newReplySourceId를 사용하세요. ${context.kind==='greeting'?'인사 생성 지시는 사용자 발화가 아니므로 그 내용으로 사용자 사실·합의를 만들지 마세요.':''}
 - 이번 입력의 정확한 근거 ID는 ${JSON.stringify(context.recent.at(-1)?.id)}, 이번 AI 답변의 정확한 근거 ID는 ${JSON.stringify(context.replyId)}입니다. sourceId에는 실제 ID 값을 넣고 필드 이름을 대신 쓰지 마세요.
 - retirements에는 정정되거나 철회된 기존 항목의 {memoryId,sourceId}를 넣으세요. memoryId는 previousMemory의 항목 id, sourceId는 이번에 정정한 사용자 원문 ID입니다. 주제가 바뀌었다는 이유만으로 사건이나 취향을 없애지 마세요. 사용자 정정 없이 기존 사실·합의를 철회하지 마세요. 해결된 openThreads만 이번 답변을 근거로 닫을 수 있습니다. 약속이 끝났어도 그 사건 자체는 sharedEvents에 남겨두세요.
 - 정정할 때는 옛 항목을 retirements에 넣고 새 사실을 추가하세요. 하나의 원문에 이름과 차 취향이 같이 있어도 차 취향이 바뀌었다고 이름까지 지우지 마세요. 질문·가정·인용·AI가 추측한 신상을 확정 사실로 저장하지 마세요.

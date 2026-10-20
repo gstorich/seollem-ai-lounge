@@ -161,6 +161,18 @@ global.fetch = async (url, options) => {
         reply: '진짜 상대할 가치도 없네. 다신 말 걸지 마.',
         roomLeft: true
       });
+    } else if (lastUserMsg.includes('cliche-evaluation-case')) {
+      if (count === 1) {
+        outputText = JSON.stringify({
+          reply: '오빠가 시끄럽게 해준다고 했으니까 선곡 실력은 좀 기대해봐도 되나?',
+          roomLeft: false
+        });
+      } else {
+        outputText = JSON.stringify({
+          reply: '오빠가 시끄럽게 해준다니 어떤 노래 틀어줄지 궁금하네!',
+          roomLeft: false
+        });
+      }
     } else if (lastUserMsg.includes('gemini-safety-block-case')) {
       return new Response(JSON.stringify({
         candidates: [{
@@ -390,6 +402,13 @@ async function req(route, token, body, method = body === undefined ? 'GET' : 'PO
     assert.equal(exitRes.data.roomLeft, true, 'roomLeft가 true로 반환되어야 함');
     assert(exitRes.data.partnerReply.includes('다신 말 걸지 마') || exitRes.data.partnerReply.includes('상대할 가치도 없네'));
     console.log(' -> 결과:', exitRes.data.partnerReply, '(roomLeft:', exitRes.data.roomLeft, ')');
+
+    console.log('[Test 18] 건방진 채점관식 클리셰("기대해봐도 되나?") 발생 시 자동 교정 검증');
+    const clicheRes = await req('/chat/send', guest2.token, { characterId: 'p_0648', message: 'cliche-evaluation-case: 내가 좋은 노래 틀어줄게', messageId: 'cliche-1' });
+    assert.equal(clicheRes.status, 200);
+    assert(!clicheRes.data.partnerReply.includes('기대해봐도 되나'), '건방진 심사위원식 클리셰는 제거되어야 함');
+    assert(clicheRes.data.partnerReply.includes('궁금하네'), '자연스러운 호기심으로 교정되어야 함');
+    console.log(' -> 결과:', clicheRes.data.partnerReply);
 
     console.log('\nPASS: All LLM edge cases, address auto-sanitization, markdown JSON parsing, system phrase filtering, and fallback resilience verified!');
     await stop();

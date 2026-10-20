@@ -58,7 +58,17 @@ function sanitizeReply(reply, character, conversation, relationship) {
     cleaned = filtered.join('').trim();
   }
 
-  // 3. 문두 및 문중의 부자연스러운 기호/공백 정돈
+  // 3. 건방진 채점관식 클리셰 문장 정제/순화 ("기대해봐도 되나?", "기대할게" 등)
+  cleaned = cleaned
+    .replace(/(?:선곡\s*실력은\s*)?(?:좀\s*)?기대해봐도\s*되나\??/g, '선곡 실력 궁금하네')
+    .replace(/(?:좀\s*)?기대해봐도\s*되나\??/g, '궁금하네')
+    .replace(/(?:한번\s*)?기대해볼게[~ㅋㅎ]*/g, '궁금하다')
+    .replace(/기대할게[~ㅋㅎ]*/g, '기분 좋네')
+    .replace(/기대해도\s*돼\??/g, '궁금해')
+    .replace(/얼마나\s*잘하는지\s*지켜볼게[~ㅋㅎ]*/g, '어떤지 궁금하네')
+    .replace(/(?:어디\s*한번\s*)?기대해\s*볼까\??/g, '궁금해지네');
+
+  // 4. 문두 및 문중의 부자연스러운 기호/공백 정돈
   cleaned = cleaned
     .replace(/^[,\s~]+/, '')
     .replace(/([.!?~])\s*,\s*/g, '$1 ')
@@ -78,6 +88,9 @@ function dialogueFeedback(reply,character,conversation,relationship){
     return {instruction:`사용자의 호칭 요청에 대해 서비스 규정이나 딱딱한 거절문으로 분위기를 깨지 마세요. 캐릭터의 성격에 맞게 자연스럽게 받아주거나 가볍게 위트 있게 티키타카로 반응하세요.`};
   }
   if(/성인\s*인증|본인\s*인증|시스템\s*(?:오류|메시지|대화|안내)|운영\s*정책|서비스\s*약관|서버\s*(?:오류|설정)|차단\s*되었|이용\s*제한/.test(reply))return {hard:true,instruction:'캐릭터가 시스템, 성인인증, 운영 정책 관련 안내나 시스템 대화를 직접 발화했습니다. 캐릭터는 시스템 대화를 절대 발화할 수 없습니다. 오직 캐릭터의 세계관과 자연스러운 인물 대사로만 다시 쓰세요.'};
+  if(/(?:기대(?:해\s*봐도|해도|해\s*볼게|할게|하겠)|얼마나\s*잘하는지\s*지켜볼게|어디\s*한번\s*(?:기대|지켜)|기대\s*이상이어야)/.test(reply)){
+    return {instruction:'상대를 시험하거나 평가하듯 "기대해봐도 되나?", "기대할게", "지켜볼게" 같은 건방진 심사위원식 상투적인 클리셰를 절대 쓰지 마세요. 캐릭터는 면접관이나 상전이 아닙니다. 동등한 대화 상대로서 자연스러운 호기심이나 유쾌한 맞장구로 다시 쓰세요.'};
+  }
   if(character.creatorDefinition)return null; // Authored styles are not generic presets.
   if(/요청하신\s*대로|앞으로는?\s*정중하게|존댓말(?:을|로)\s*(?:사용|대화|말씀).*겠|말투를\s*바꾸겠/.test(reply))return {instruction:'요청을 설명하는 직원용 확인문이 나왔습니다. 설정 변경을 복창하지 말고, 실제로 요청된 말높임으로 한두 마디 대화를 이어가세요. 장난을 중단하되 성격과 취향은 유지합니다. 장황한 사과나 다른 주제를 고르라는 질문도 필요 없습니다.'};
   if(conversation.kind==='greeting'){
@@ -298,7 +311,7 @@ module.exports = {
       };
     } else {
       const memorySchema={type:'OBJECT',properties:{memory:conversationContext.getResponseSchema(conversation).properties.memory},required:['memory'],propertyOrdering:['memory']};
-      const recordingPrompt=conversationContext.buildPrompt(conversation)+'\n[기억 기록 전용]\n마지막 assistant 메시지는 이미 선택된 실제 답장입니다. 다시 쓰거나 대체 답장을 생성하지 마세요. 해당 답장까지의 사실·감정 변화를 근거 ID에 맞춰 기록합니다. 출력은 {memory} JSON만 쓰며 reply나 roomLeft 필드를 만들지 않습니다. 스타일 예시는 실제 사건이 아닙니다.';
+      const recordingPrompt=conversationContext.buildPrompt(conversation)+'\n[기억 기록 전용]\n마지막 assistant 메시지는 이미 선택된 실제 답장입니다. 다시 쓰거나 대체 답장을 생성하지 마세요. 해당 답장까지의 사실·감정 변화를 근거 ID에 맞춰 기록합니다. 특히 AI(assistant)가 언급한 자신의 취향·발언을 userFacts에 왜곡하여 기록하지 마세요. userFacts는 사용자가 직접 밝힌 사실만 기록합니다. 출력은 {memory} JSON만 쓰며 reply나 roomLeft 필드를 만들지 않습니다. 스타일 예시는 실제 사건이 아닙니다.';
       const recorded=await generate([...selectedHistory,{role:'assistant',content:reply}],recordingPrompt,memorySchema);
       const parsedMem = safeParseJson(recorded);
       if (parsedMem && parsedMem.memory) {
