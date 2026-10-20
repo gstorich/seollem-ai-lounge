@@ -3752,6 +3752,7 @@
     }
 
     function clearAllTimers() {
+      if (typeof clearUserDebounce === 'function') clearUserDebounce();
       if (state.pendingReadTimer) {
         clearTimeout(state.pendingReadTimer);
         state.pendingReadTimer = null;
@@ -4203,13 +4204,15 @@
             if (char?.id && state.activePendingDeliveries) {
               delete state.activePendingDeliveries[char.id];
             }
-            state.isAiBusy = false;
+            if (!state.pendingUserMessages || state.pendingUserMessages.length === 0) {
+              state.isAiBusy = false;
+            }
             if (replyPlan && replyPlan.leaveRoom) {
               registerTimeout(() => {
                 handlePartnerLeftRoom();
               }, 300);
             } else {
-              if (isInActiveRoom()) updateHeaderDefaultStatus();
+              if (isInActiveRoom() && (!state.pendingUserMessages || state.pendingUserMessages.length === 0)) updateHeaderDefaultStatus();
               scheduleIdleFollowUp();
             }
             return;
@@ -4253,7 +4256,9 @@
           }
 
           if (char?.id && state.activePendingDeliveries) delete state.activePendingDeliveries[char.id];
-          state.isAiBusy = false;
+          if (!state.pendingUserMessages || state.pendingUserMessages.length === 0) {
+            state.isAiBusy = false;
+          }
           scheduleIdleFollowUp();
         }
       } catch (err) {
@@ -4261,8 +4266,10 @@
         if (char?.id && typeof flushPendingDeliveryForChar === 'function') flushPendingDeliveryForChar(char.id);
       } finally {
         hideTypingIndicator();
-        state.isAiBusy = false;
-        if (state.currentChar?.id === char?.id) updateHeaderDefaultStatus();
+        if (!state.pendingUserMessages || state.pendingUserMessages.length === 0) {
+          state.isAiBusy = false;
+          if (state.currentChar?.id === char?.id) updateHeaderDefaultStatus();
+        }
       }
     }
 
@@ -5083,14 +5090,19 @@
         if (!result.isAiGenerated || !result.partnerReply?.trim()) throw new Error('Invalid generated greeting');
         if (state.currentChar?.id !== char.id || !state.isGreetingPending) return;
         await runRealisticReplySequence({bubbles:[result.partnerReply],replyId:result.replyId,greeting:true},false,null,greetingStartedAt);
+        state.isGreetingPending = false;
+        // 첫인사 전송 직후, 사용자가 첫인사 타이핑 도중 먼저 보낸 대기 메시지가 있다면 씹지 않고 종합 답장 진행!
+        await checkAndProcessPendingUserMessages(char);
       } catch (error) {
         if (state.currentChar?.id === char.id && !showContentAccessNotice(error)) showGenerationError(() => deliverFirstGreeting(char,requestId));
       } finally {
         if (state.currentChar?.id === char.id) {
-          state.isAiBusy = false;
           state.isGreetingPending = false;
-          hideTypingIndicator();
-          updateHeaderDefaultStatus();
+          if (!state.pendingUserMessages || state.pendingUserMessages.length === 0) {
+            state.isAiBusy = false;
+            hideTypingIndicator();
+            updateHeaderDefaultStatus();
+          }
         }
       }
     }
@@ -5334,8 +5346,21 @@
     }
 
     // =========================================================================
-    // 9. SENDING USER MESSAGES (WITH CREDIT CHECK & AUTO-SAVE)
+    // 9. SENDING USER MESSAGES (WITH DEBOUNCE, CREDIT CHECK & AUTO-SAVE)
     // =========================================================================
+    let userDebounceTimer = null;
+    let userDebounceQueue = [];
+    let userDebounceStartTime = 0;
+
+    function clearUserDebounce() {
+      if (userDebounceTimer) {
+        clearTimeout(userDebounceTimer);
+        userDebounceTimer = null;
+      }
+      userDebounceQueue = [];
+      userDebounceStartTime = 0;
+    }
+
     async function sendUserMessage(rawText) {
       const text=(rawText || '').trim(), char=state.currentChar;
       if (!text || !char || state.roomLeft) return;
@@ -5359,15 +5384,35 @@
       saveAccountState();
       markAllUserMessagesRead();
 
-      // [핵심]: 상대가 타이핑 중이거나 응답 생성 중(isAiBusy)일 때 사용자가 끼어들어 여러 개를 보낸 경우
-      // 화면에는 내 말풍선이 즉시 연속으로 쌓이고, 대기 큐에 등록하여 상대방이 전부 읽고 답장하도록 함!
-      if (state.isAiBusy) {
+      // [핵심 1]: 상대가 타이핑 중이거나 응답 생성 중(isAiBusy 또는 isGreetingPending)일 때 사용자가 끼어들어 여러 개를 보낸 경우
+      // 화면에는 내 말풍선이 즉시 연속으로 쌓이고, 대기 큐에 등록하여 상대방이 전부 읽고 종합해서 답장하도록 함!
+      if (state.isAiBusy || state.isGreetingPending) {
         state.pendingUserMessages = state.pendingUserMessages || [];
         state.pendingUserMessages.push({ text, requestId, charId: char.id });
         return;
       }
 
-      await executeUserMessageTurn(text, requestId, char);
+      // [핵심 2]: 사용자가 카톡처럼 연달아 빠르게 메시지를 보낼 때(따닥 입력)
+      // 각 메시지마다 1대1로 일일이 쪼개서 답변하지 않고 종합하여 딱 1회 자연스럽게 응답하도록 인간적 디바운스 버퍼(600ms) 적용!
+      userDebounceQueue.push({ text, requestId, charId: char.id });
+      if (!userDebounceStartTime) userDebounceStartTime = Date.now();
+
+      if (userDebounceTimer) clearTimeout(userDebounceTimer);
+
+      const elapsed = Date.now() - userDebounceStartTime;
+      const waitMs = elapsed > 1200 ? 50 : 600;
+
+      userDebounceTimer = setTimeout(async () => {
+        userDebounceTimer = null;
+        userDebounceStartTime = 0;
+        const queue = [...userDebounceQueue];
+        userDebounceQueue = [];
+        if (queue.length === 0 || state.currentChar?.id !== char.id || state.roomLeft) return;
+
+        const combinedText = queue.map(q => q.text).join('\n');
+        const latestRequestId = queue.at(-1).requestId;
+        await executeUserMessageTurn(combinedText, latestRequestId, char);
+      }, waitMs);
     }
 
     async function executeUserMessageTurn(text, requestId, char) {
@@ -5380,6 +5425,8 @@
       const plan=await fetchLLMResponse(text,requestId);
       if (!plan || plan.failed) {
         state.isAiBusy=false;
+        hideTypingIndicator();
+        updateHeaderDefaultStatus();
         if (state.currentChar?.id === char.id) showGenerationError();
         return;
       }
@@ -5390,18 +5437,22 @@
       // 사용자가 방에 있든 뒤로가기를 눌러 목록에 있든, 예정된 현실적 타이핑 시간 후에 안전하게 배송 및 알림
       await runRealisticReplySequence(plan, false, turnId, startedAt);
 
-      // 이번 턴의 응답 전송이 완료된 후, 사용자가 타이핑 중 끼어들어 보낸 대기 메시지들이 쌓여있다면 연속해서 전부 읽고 답장!
+      // 이번 턴의 응답 전송이 완료된 후, 사용자가 타이핑 중 끼어들어 보낸 대기 메시지들이 쌓여있다면 연속해서 전부 읽고 종합 답장!
       await checkAndProcessPendingUserMessages(char);
     }
 
     async function checkAndProcessPendingUserMessages(char) {
       if (!state.pendingUserMessages || state.pendingUserMessages.length === 0) {
         state.isAiBusy = false;
+        hideTypingIndicator();
+        updateHeaderDefaultStatus();
         return;
       }
       if (state.currentChar?.id !== char?.id || state.roomLeft) {
         state.pendingUserMessages = [];
         state.isAiBusy = false;
+        hideTypingIndicator();
+        updateHeaderDefaultStatus();
         return;
       }
 
@@ -5409,10 +5460,12 @@
       state.pendingUserMessages = state.pendingUserMessages.filter(p => p.charId !== char.id);
       if (pending.length === 0) {
         state.isAiBusy = false;
+        hideTypingIndicator();
+        updateHeaderDefaultStatus();
         return;
       }
 
-      // 사용자가 연달아 보낸 여러 개의 메시지 내용을 종합하여 상대방이 전부 읽고 답장하도록 구성
+      // 사용자가 연달아 보낸 여러 개의 메시지 내용을 종합하여 상대방이 전부 읽고 한꺼번에 답장하도록 구성
       const combinedText = pending.map(p => p.text).join('\n');
       const latestRequestId = pending.at(-1).requestId;
 

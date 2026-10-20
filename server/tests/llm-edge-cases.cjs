@@ -161,6 +161,12 @@ global.fetch = async (url, options) => {
         reply: '어머, 변태야? 대낮부터 어딜 만지려고 해 ㅋㅋㅋ 꿈 깨!',
         roomLeft: false
       });
+    } else if (lastUserMsg.includes('multi-bubble-case')) {
+      assert(prompt.includes('연속 메시지 종합 답변 지침'), '시스템 프롬프트에 연속 메시지 종합 답변 지침이 포함되어야 함');
+      outputText = JSON.stringify({
+        reply: '나 방금 일 끝나고 쉬는 중ㅋㅋ 왜 무슨 일 있어?',
+        roomLeft: false
+      });
     } else if (lastUserMsg.includes('normal-chat-case')) {
       outputText = JSON.stringify({
         reply: '나도 무협 소설 좋아해! 어떤 작품 가장 재밌게 봤어?',
@@ -334,6 +340,14 @@ async function req(route, token, body, method = body === undefined ? 'GET' : 'PO
     assert.equal(touchRes.data.isAiGenerated, true);
     assert(touchRes.data.partnerReply.includes('어딜 만지려고') || touchRes.data.partnerReply.includes('변태'));
     console.log(' -> 결과:', touchRes.data.partnerReply);
+
+    console.log('[Test 14] 다중 연속 메시지 종합 처리: 줄바꿈 연속 메시지 전달 시 단일 턴 종합 답변');
+    const { data: guest2 } = await req('/auth/guest', null, {});
+    const multiRes = await req('/chat/send', guest2.token, { characterId, message: 'multi-bubble-case: 야\n있잖아\n오늘 뭐해?', messageId: 'multi-1' });
+    assert.equal(multiRes.status, 200);
+    assert.equal(multiRes.data.isAiGenerated, true);
+    assert.equal(multiRes.data.partnerReply, '나 방금 일 끝나고 쉬는 중ㅋㅋ 왜 무슨 일 있어?');
+    console.log(' -> 결과:', multiRes.data.partnerReply);
 
     console.log('\nPASS: All LLM edge cases, address auto-sanitization, markdown JSON parsing, system phrase filtering, and fallback resilience verified!');
     await stop();
