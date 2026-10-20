@@ -156,6 +156,11 @@ global.fetch = async (url, options) => {
         reply: '너 지금 누구한테 욕하는 거야? 말버릇 좀 고치지 그래?',
         roomLeft: false
       });
+    } else if (lastUserMsg.includes('extreme-insult-exit-case')) {
+      outputText = JSON.stringify({
+        reply: '진짜 상대할 가치도 없네. 다신 말 걸지 마.',
+        roomLeft: true
+      });
     } else if (lastUserMsg.includes('gemini-safety-block-case')) {
       return new Response(JSON.stringify({
         candidates: [{
@@ -377,6 +382,14 @@ async function req(route, token, body, method = body === undefined ? 'GET' : 'PO
     assert.equal(rateLimitRes.data.isAiGenerated, true);
     assert(rateLimitRes.data.partnerReply.includes('재시도 성공! 정상 답변이야'));
     console.log(' -> 결과:', rateLimitRes.data.partnerReply);
+
+    console.log('[Test 17] 심한 모욕/자극/축출 시 캐릭터가 단호한 한마디와 함께 roomLeft: true로 대화방 퇴장 처리');
+    const exitRes = await req('/chat/send', guest2.token, { characterId: 'subin', message: 'extreme-insult-exit-case: 너 진짜 개짜증나니까 꺼져', messageId: 'exit-1' });
+    assert.equal(exitRes.status, 200, '퇴장 턴이어도 200 정상 반환');
+    assert.equal(exitRes.data.isAiGenerated, true);
+    assert.equal(exitRes.data.roomLeft, true, 'roomLeft가 true로 반환되어야 함');
+    assert(exitRes.data.partnerReply.includes('다신 말 걸지 마') || exitRes.data.partnerReply.includes('상대할 가치도 없네'));
+    console.log(' -> 결과:', exitRes.data.partnerReply, '(roomLeft:', exitRes.data.roomLeft, ')');
 
     console.log('\nPASS: All LLM edge cases, address auto-sanitization, markdown JSON parsing, system phrase filtering, and fallback resilience verified!');
     await stop();

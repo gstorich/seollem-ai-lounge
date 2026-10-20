@@ -4160,7 +4160,7 @@
             bubbles: [...bubbles],
             mediaItem: replyPlan.mediaItem,
             replyId: replyPlan.replyId,
-            leaveRoom: replyPlan.leaveRoom
+            leaveRoom: Boolean(replyPlan.leaveRoom || replyPlan.forceLeave)
           };
         }
 
@@ -4207,7 +4207,7 @@
             if (!state.pendingUserMessages || state.pendingUserMessages.length === 0) {
               state.isAiBusy = false;
             }
-            if (replyPlan && replyPlan.leaveRoom) {
+            if (replyPlan && (replyPlan.leaveRoom || replyPlan.forceLeave)) {
               registerTimeout(() => {
                 handlePartnerLeftRoom();
               }, 300);
@@ -4226,7 +4226,7 @@
         }
 
         // 사진 또는 음성 메시지가 첨부된 경우
-        if (replyPlan && replyPlan.mediaItem && !replyPlan.leaveRoom) {
+        if (replyPlan && replyPlan.mediaItem && !replyPlan.leaveRoom && !replyPlan.forceLeave) {
           if (turnId && turnId !== state.messageTurnId) return;
 
           const isVoice = replyPlan.mediaItem.mediaType === 'voice';
@@ -4300,7 +4300,7 @@
     // =========================================================================
     function analyzeUserIntent(text) {
       const t = text.trim();
-      if (/디질래|뒤질래|죽을래|꺼져|닥쳐|병신|씨발|시발|ㅅㅂ|ㅂㅅ|미친|미쳤|염병|지랄|개새|썅|년아|미친년|못생|돼지|할망구|아줌마|싸가지|재수\s*없|나가\s*뒤져|패버릴|맞을래|쳐맞|꺼지/.test(t)) {
+      if (/디질래|뒤질래|죽을래|꺼져|닥쳐|병신|씨발|시발|ㅅㅂ|ㅂㅅ|미친|미쳤|염병|지랄|개새|썅|년아|미친년|못생|돼지|할망구|아줌마|싸가지|재수\s*없|나가\s*뒤져|패버릴|맞을래|쳐맞|꺼지|약오르지|빡치지|화나지|꼴에|주제에|깝치|나대/.test(t)) {
         return 'rude_hostile';
       }
       if (/미안|죄송|장난이었|농담이었|사과할|잘못했|화 풀|기분 나빴다면/.test(t)) {
@@ -4329,8 +4329,8 @@
     // =========================================================================
     const INSULT_SEVERE_RE = /씨발|시발|ㅅㅂ|ㅆㅂ|병신|ㅂㅅ|썅|좆|느금|니\s*애미|니\s*엄마|엄마\s*(없|죽)|뒤져|죽어\s*버|죽여\s*버|죽어라|미친\s*년|개년|씹년|걸레|창녀|창년/;
     const SEXUAL_CRUDE_RE = /보지|자지|따먹|강간|빨아\s*줘|벌려\s*봐|씹창/;
-    const DIRECTED_RE = /(^|[\s,.!?])(너|니가|네가|넌|니|너는|너한테|너를|당신|그쪽)(?=$|[\s,.!?]|한테|를|가|는|도|야)|이년|이\s*새끼|저년|야[\s,!]|야$|병신아|죽을래|디질래|뒤질래|맞을래|쳐맞|패버릴|꺼져|꺼지|닥쳐|싸가지|아줌마|할망구|못생|돼지|재수\s*없/;
-    const DISMISS_STRICT_RE = /(나가라|나가라고|나가세요|나가줘|나가주세요|나가버려|꺼져|꺼지라고|꺼지세요|사라져|사라지라고|가라고)$|대화\s*(안\s*해|그만|끝)/;
+    const DIRECTED_RE = /(^|[\s,.!?])(너|니가|네가|넌|니|너는|너한테|너를|당신|그쪽)(?=$|[\s,.!?]|한테|를|가|는|도|야)|이년|이\s*새끼|저년|야[\s,!]|야$|병신아|죽을래|디질래|뒤질래|맞을래|쳐맞|패버릴|꺼져|꺼지|닥쳐|싸가지|아줌마|할망구|못생|돼지|재수\s*없|약오르|빡치|화나|깝치|나대/;
+    const DISMISS_STRICT_RE = /(나가라|나가라고|나가세요|나가줘|나가주세요|나가버려|꺼져|꺼지라고|꺼지세요|사라져|사라지라고|가라고|말\s*걸지\s*마|말\s*섞기\s*싫|대화\s*하지\s*마|차단한다)$|대화\s*(안\s*해|그만|끝)/;
     const DISMISS_LOOSE_RE = /(나가|꺼져|가)$|(제발|빨리|언제|좀)\s*(좀\s*)?나가/;
 
     // 사용자 메시지로 감정(분노)·경고·퇴장 여부를 갱신
@@ -4799,7 +4799,7 @@
         state.hearts = state.credits = result.heartsRemaining;
         updateAccountAndCreditUI();
         state.adultGatedTurn = null;
-        return { bubbles: [result.partnerReply], replyId: result.replyId, forceLeave: Boolean(result.roomLeft) };
+        return { bubbles: [result.partnerReply], replyId: result.replyId, forceLeave: Boolean(result.roomLeft), leaveRoom: Boolean(result.roomLeft) };
       } catch (error) {
         if (state.currentChar?.id !== char?.id) return {bubbles:[],failed:true};
         if (typeof error.data?.heartsRemaining === 'number') { state.hearts = state.credits = error.data.heartsRemaining; updateAccountAndCreditUI(); }
@@ -5419,6 +5419,7 @@
       state.messageTurnId=(state.messageTurnId || 0)+1;
       const turnId=state.messageTurnId;
       state.isAiBusy=true;
+      const emo = processEmotion(text);
       headerStatusText.textContent=`${char.name}님이 입력 중...`;
       showTypingIndicator(`${char.name}님이 입력 중...`);
       const startedAt=Date.now();
@@ -5429,6 +5430,10 @@
         updateHeaderDefaultStatus();
         if (state.currentChar?.id === char.id) showGenerationError();
         return;
+      }
+      if (emo && emo.forceLeave) {
+        plan.leaveRoom = true;
+        plan.forceLeave = true;
       }
 
       // 첫 대화 시작 시 알림 배너 업데이트
