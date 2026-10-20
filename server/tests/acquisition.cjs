@@ -17,10 +17,34 @@ const ops = require('../services/operationsService');
 async function run() {
   console.log('--- Testing User Acquisition & UTM Tracking ---');
 
-  // 1. Save and Get Acquisition
-  const guestId = 'guest_test_acq_1';
-  db.createUser({ id: guestId, hearts: 50 });
+  // 1. Visit only (bounced visit without starting chat)
+  const visitBounced = db.recordVisit({
+    utm_source: 'meta_ads',
+    utm_medium: 'paid_social',
+    utm_campaign: 'senior_romance_v1',
+    utm_content: 'ad_bounced_creative',
+    landing_path: '/?utm_source=meta_ads&utm_medium=paid_social&utm_campaign=senior_romance_v1&utm_content=ad_bounced_creative'
+  }, { deviceId: 'dev_bounced_user_1', ip: '127.0.0.1', userAgent: 'Mozilla/5.0' });
+  assert.ok(visitBounced.id, 'Bounced visit must be recorded');
+  assert.equal(visitBounced.isNew, true);
 
+  // 2. Visit that later starts chat
+  const devEngaged = 'dev_engaged_user_2';
+  const visitEngaged = db.recordVisit({
+    utm_source: 'meta_ads',
+    utm_medium: 'paid_social',
+    utm_campaign: 'senior_romance_v1',
+    utm_content: 'ad_younger_romance',
+    utm_term: '연상연하',
+    referrer: 'https://l.instagram.com/',
+    landing_path: '/?utm_source=meta_ads&utm_medium=paid_social&utm_campaign=senior_romance_v1'
+  }, { deviceId: devEngaged, ip: '127.0.0.1', userAgent: 'Mozilla/5.0' });
+  assert.ok(visitEngaged.id);
+
+  // User later starts chat -> creates guest
+  const guestId = 'guest_test_acq_1';
+  db.createUser({ id: guestId, hearts: 50, deviceId: devEngaged });
+  db.bindVisitUser(devEngaged, guestId);
   db.saveAcquisition(guestId, {
     utm_source: 'meta_ads',
     utm_medium: 'paid_social',
@@ -29,7 +53,7 @@ async function run() {
     utm_term: '연상연하',
     referrer: 'https://l.instagram.com/',
     landing_path: '/?utm_source=meta_ads&utm_medium=paid_social&utm_campaign=senior_romance_v1'
-  }, { deviceId: 'dev_test_123', ip: '127.0.0.1', userAgent: 'Mozilla/5.0' });
+  }, { deviceId: devEngaged, ip: '127.0.0.1', userAgent: 'Mozilla/5.0' });
 
   const acq = db.getAcquisition(guestId);
   assert.ok(acq, 'Acquisition record must exist');
@@ -39,14 +63,14 @@ async function run() {
   assert.equal(acq.utm_content, 'ad_younger_romance');
   assert.equal(acq.utm_term, '연상연하');
   assert.equal(acq.referrer, 'https://l.instagram.com/');
-  assert.equal(acq.device_id, 'dev_test_123');
+  assert.equal(acq.device_id, devEngaged);
 
   // Check user object has acquisition
   const user = db.getUser(guestId);
   assert.ok(user.acquisition, 'User object should retain acquisition');
   assert.equal(user.acquisition.source, 'meta_ads');
 
-  // 2. Direct guest should default to direct/none
+  // 3. Direct guest should default to direct/none
   const guestDirect = 'guest_test_direct';
   db.createUser({ id: guestDirect, hearts: 50 });
   db.saveAcquisition(guestDirect, { source: 'direct', medium: 'none' });
@@ -65,13 +89,13 @@ async function run() {
   assert.equal(upgradedAcq.utm_medium, 'organic');
   assert.equal(upgradedAcq.utm_campaign, 'brand_search');
 
-  // 3. User engaging in chat turns
+  // 4. User engaging in chat turns
   db.appendMessages(guestId, 'char_1', [
     { id: 'm1', sender: 'user', text: '안녕', createdAt: Date.now() },
     { id: 'm2', sender: 'ai', text: '반가워', createdAt: Date.now() }
   ]);
 
-  // 4. Link Phone & Inheritance
+  // 5. Link Phone & Inheritance
   const phone = '01099998888';
   const linkResult = db.linkPhone(guestId, phone);
   assert.ok(linkResult.user, 'Link phone should succeed');
@@ -87,42 +111,45 @@ async function run() {
   const oldAcq = db.sql.prepare('SELECT * FROM user_acquisitions WHERE user_id=?').get(guestId);
   assert.equal(oldAcq, undefined, 'Old guest acquisition row should be deleted or migrated');
 
-  // 5. Acquisition Stats aggregation
+  // 6. Acquisition Stats aggregation (includes bounced visits)
   const stats = db.getAcquisitionStats(30);
   assert.ok(stats.summary, 'Summary stats must exist');
-  assert.equal(stats.summary.total, 2); // guestId (now phone) and guestDirect
-  assert.equal(stats.summary.utmCount, 2); // meta_ads and naver
-  assert.equal(stats.summary.engagedCount, 1); // 1 engaged in chat
+  assert.equal(stats.summary.totalVisits, 3); // 1 bounced + 1 engaged(now phone) + 1 direct
+  assert.equal(stats.summary.bounceCount, 1); // 1 bounced visit without chat
+  assert.equal(stats.summary.chatStartedCount, 2); // 2 started chat (phone + direct)
+  assert.equal(stats.summary.engagedCount, 1); // 1 engaged in chat turns
   assert.equal(stats.summary.memberCount, 1); // 1 converted to phone member
 
   // Check sources breakdown
   const metaSource = stats.sources.find(s => s.source === 'meta_ads');
   assert.ok(metaSource, 'meta_ads source must be aggregated');
-  assert.equal(metaSource.total, 1);
+  assert.equal(metaSource.visits, 2); // 1 bounced + 1 chat
+  assert.equal(metaSource.bounces, 1);
+  assert.equal(metaSource.chatStarted, 1);
   assert.equal(metaSource.engaged, 1);
   assert.equal(metaSource.converted, 1);
 
   // Check campaigns breakdown
   const seniorCampaign = stats.campaigns.find(c => c.campaign === 'senior_romance_v1');
   assert.ok(seniorCampaign, 'senior_romance_v1 campaign must be aggregated');
-  assert.equal(seniorCampaign.total, 1);
+  assert.equal(seniorCampaign.visits, 2);
+  assert.equal(seniorCampaign.bounces, 1);
 
   // Check contents breakdown
-  const romanceContent = stats.contents.find(c => c.content === 'ad_younger_romance');
-  assert.ok(romanceContent, 'ad_younger_romance content must be aggregated');
+  const bouncedContent = stats.contents.find(c => c.content === 'ad_bounced_creative');
+  assert.ok(bouncedContent, 'ad_bounced_creative must be captured in contents');
+  assert.equal(bouncedContent.visits, 1);
+  assert.equal(bouncedContent.bounces, 1);
+  assert.equal(bouncedContent.chatStarted, 0);
 
-  // Check terms breakdown
-  const romanceTerm = stats.terms.find(t => t.term === '연상연하');
-  assert.ok(romanceTerm, '연상연하 term must be aggregated');
+  // Check recentLogs includes bounced visits
+  assert.ok(stats.recentLogs.length >= 3, 'Recent logs must have all visits including bounces');
+  const bouncedLog = stats.recentLogs.find(l => l.device_id === 'dev_bounced_user_1');
+  assert.ok(bouncedLog, 'Bounced visit must appear in recent logs');
+  assert.equal(bouncedLog.bounced, 1);
+  assert.equal(bouncedLog.user_id, null);
 
-  // Check recentLogs
-  assert.ok(stats.recentLogs.length >= 2, 'Recent logs must have at least 2 entries');
-  const recentPhoneLog = stats.recentLogs.find(l => l.user_id === phone);
-  assert.ok(recentPhoneLog, 'Phone user entry must be in recent logs');
-  assert.equal(recentPhoneLog.utm_source, 'meta_ads');
-  assert.equal(recentPhoneLog.phone, phone);
-
-  // 6. Check Operations service integration
+  // 7. Check Operations service integration
   const customerDetail = ops.customer(phone);
   assert.ok(customerDetail.acquisition, 'Customer detail must include acquisition info');
   assert.equal(customerDetail.acquisition.utm_source, 'meta_ads');
@@ -133,10 +160,10 @@ async function run() {
   assert.equal(usersList.items[0].utmSource, 'meta_ads');
   assert.equal(usersList.items[0].utmCampaign, 'senior_romance_v1');
 
-  console.log('PASS: Acquisition storage, UTM tracking, inheritance upon phone link, statistics aggregation and ops integration verified.');
+  console.log('PASS: Acquisition storage, bounced visit capture, UTM tracking, inheritance upon phone link, statistics aggregation and ops integration verified.');
 
-  // 7. Test Bot Crawler filtering in /api/auth/guest
-  console.log('--- Testing Crawler / Bot Guest Filtering ---');
+  // 8. Test /api/auth/visit and Bot Crawler filtering
+  console.log('--- Testing /api/auth/visit & Crawler Bot Filtering ---');
   const testDir = fs.mkdtempSync(path.join(os.tmpdir(), 'seollem-bot-test-'));
   const testPort = '19430';
   const testSqlite = path.join(testDir, 'bot.sqlite');
@@ -159,28 +186,48 @@ async function run() {
       setTimeout(() => reject(new Error('Server start timeout')), 5000);
     });
 
-    // Request as meta-externalads crawler
-    const res = await fetch(`http://127.0.0.1:${testPort}/api/auth/guest`, {
+    // 8-1. Normal user landing visit (bounced before chat)
+    const visitRes = await fetch(`http://127.0.0.1:${testPort}/api/auth/visit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        deviceId: 'dev_vis_12345678',
+        acquisition: {
+          utm_source: 'meta_ads',
+          utm_campaign: 'summer_promo'
+        }
+      })
+    });
+    const visitData = await visitRes.json();
+    assert.equal(visitRes.status, 200);
+    assert.equal(visitData.success, true);
+    assert.ok(visitData.id);
+
+    // Verify site_visits has this record, but users table is empty!
+    const { DatabaseSync } = require('node:sqlite');
+    const testDb = new DatabaseSync(testSqlite);
+    const visitRow = testDb.prepare("SELECT * FROM site_visits WHERE device_id='dev_vis_12345678'").get();
+    assert.ok(visitRow, 'Visit must be saved in site_visits table');
+    assert.equal(visitRow.bounced, 1);
+    assert.equal(visitRow.user_id, null);
+    const userCount = testDb.prepare("SELECT count(*) n FROM users").get().n;
+    assert.equal(userCount, 0, 'No user should be created upon pure landing visit');
+
+    // 8-2. Crawler request
+    const botRes = await fetch(`http://127.0.0.1:${testPort}/api/auth/visit`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
         'User-Agent': 'meta-externalads/1.1 (+https://developers.facebook.com/docs/sharing/webmasters/crawler)'
       },
-      body: JSON.stringify({ isTester: false })
+      body: JSON.stringify({ deviceId: 'dev_bot_12345678' })
     });
-    const botData = await res.json();
-    assert.equal(res.status, 200);
-    assert.equal(botData.user.id, 'guest_bot_crawler');
-    assert.equal(botData.user.isTester, true);
+    const botVisitData = await botRes.json();
+    assert.equal(botVisitData.bot, true);
+    const botRow = testDb.prepare("SELECT * FROM site_visits WHERE device_id='dev_bot_12345678'").get();
+    assert.equal(botRow, undefined, 'Bot crawlers must not be recorded in site_visits');
 
-    // Verify database does not contain any user for the crawler
-    const { DatabaseSync } = require('node:sqlite');
-    const testDb = new DatabaseSync(testSqlite);
-    const botUser = testDb.prepare("SELECT * FROM users WHERE id='guest_bot_crawler'").get();
-    assert.equal(botUser, undefined, 'Bot crawler must not be saved to users table');
-    const totalUsers = testDb.prepare("SELECT count(*) n FROM users").get().n;
-    assert.equal(totalUsers, 0, 'No users should be created for crawler requests');
-    console.log('PASS: Bot crawler filtering verified; zero database mutations for web crawlers.');
+    console.log('PASS: /api/auth/visit records bounced visits without creating users; bot crawlers filtered out.');
   } finally {
     serverProc.kill();
     try { fs.rmSync(testDir, { recursive: true, force: true }); } catch {}

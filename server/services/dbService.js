@@ -47,7 +47,29 @@ CREATE TABLE IF NOT EXISTS user_acquisitions (
 );
 CREATE INDEX IF NOT EXISTS user_acq_source ON user_acquisitions(utm_source, created_at);
 CREATE INDEX IF NOT EXISTS user_acq_campaign ON user_acquisitions(utm_campaign, created_at);
-CREATE INDEX IF NOT EXISTS user_acq_time ON user_acquisitions(created_at);`);
+CREATE INDEX IF NOT EXISTS user_acq_time ON user_acquisitions(created_at);
+CREATE TABLE IF NOT EXISTS site_visits (
+  id TEXT PRIMARY KEY,
+  device_id TEXT,
+  user_id TEXT,
+  utm_source TEXT NOT NULL DEFAULT 'direct',
+  utm_medium TEXT NOT NULL DEFAULT 'none',
+  utm_campaign TEXT,
+  utm_content TEXT,
+  utm_term TEXT,
+  fbclid TEXT,
+  gclid TEXT,
+  referrer TEXT,
+  landing_path TEXT,
+  bounced INTEGER NOT NULL DEFAULT 1,
+  ip TEXT,
+  user_agent TEXT,
+  created_at INTEGER NOT NULL
+);
+CREATE INDEX IF NOT EXISTS site_visits_source ON site_visits(utm_source, created_at);
+CREATE INDEX IF NOT EXISTS site_visits_campaign ON site_visits(utm_campaign, created_at);
+CREATE INDEX IF NOT EXISTS site_visits_time ON site_visits(created_at);
+CREATE INDEX IF NOT EXISTS site_visits_device ON site_visits(device_id);`);
 const { createWallet, units } = require('./heartWallet');
 const wallet = createWallet(sql);
 function transaction(fn) {
@@ -199,6 +221,7 @@ module.exports = {
         sql.prepare('UPDATE ledger SET user_id=? WHERE user_id=?').run(user.id, sessionId);
         sql.prepare('UPDATE chat_requests SET user_id=? WHERE user_id=?').run(user.id, sessionId);
         sql.prepare('UPDATE device_profiles SET current_user_id=?, updated_at=? WHERE current_user_id=?').run(user.id, Date.now(), sessionId);
+        sql.prepare('UPDATE site_visits SET user_id=? WHERE user_id=?').run(user.id, sessionId);
         sql.prepare(`INSERT INTO user_acquisitions(user_id,device_id,utm_source,utm_medium,utm_campaign,utm_content,utm_term,fbclid,gclid,referrer,landing_path,ip,user_agent,created_at)
           SELECT ?,device_id,utm_source,utm_medium,utm_campaign,utm_content,utm_term,fbclid,gclid,referrer,landing_path,ip,user_agent,created_at FROM user_acquisitions WHERE user_id=?
           ON CONFLICT(user_id) DO UPDATE SET
@@ -447,161 +470,287 @@ module.exports = {
     if (!userId) return null;
     return sql.prepare('SELECT * FROM user_acquisitions WHERE user_id=?').get(resolveUserId(userId)) || null;
   },
+  recordVisit(acq = {}, extra = {}) {
+    const crypto = require('node:crypto');
+    const now = Date.now();
+    const source = String(acq.source || acq.utm_source || 'direct').trim().slice(0, 100) || 'direct';
+    const medium = String(acq.medium || acq.utm_medium || (source === 'direct' ? 'none' : 'referral')).trim().slice(0, 100) || 'none';
+    const campaign = acq.campaign || acq.utm_campaign ? String(acq.campaign || acq.utm_campaign).trim().slice(0, 150) : null;
+    const content = acq.content || acq.utm_content ? String(acq.content || acq.utm_content).trim().slice(0, 150) : null;
+    const term = acq.term || acq.utm_term ? String(acq.term || acq.utm_term).trim().slice(0, 150) : null;
+    const fbclid = acq.fbclid ? String(acq.fbclid).trim().slice(0, 200) : null;
+    const gclid = acq.gclid ? String(acq.gclid).trim().slice(0, 200) : null;
+    const referrer = acq.referrer ? String(acq.referrer).trim().slice(0, 500) : null;
+    const landingPath = acq.landingPath || acq.landing_path ? String(acq.landingPath || acq.landing_path).trim().slice(0, 500) : null;
+    const deviceId = extra.deviceId || acq.deviceId || null;
+    const ip = extra.ip || null;
+    const userAgent = extra.userAgent || null;
+
+    if (deviceId) {
+      const recent = sql.prepare('SELECT id, utm_source, utm_campaign FROM site_visits WHERE device_id=? AND created_at>? ORDER BY created_at DESC LIMIT 1').get(deviceId, now - 30 * 60000);
+      if (recent && (recent.utm_source === source && (recent.utm_campaign || '') === (campaign || ''))) {
+        return { id: recent.id, isNew: false };
+      }
+    }
+
+    const id = 'vis_' + crypto.randomUUID();
+    sql.prepare(`
+      INSERT INTO site_visits(id, device_id, user_id, utm_source, utm_medium, utm_campaign, utm_content, utm_term, fbclid, gclid, referrer, landing_path, bounced, ip, user_agent, created_at)
+      VALUES(?,?,NULL,?,?,?,?,?,?,?,?,?,1,?,?,?)
+    `).run(id, deviceId, source, medium, campaign, content, term, fbclid, gclid, referrer, landingPath, ip, userAgent, now);
+
+    return { id, isNew: true };
+  },
+  bindVisitUser(deviceId, userId) {
+    if (!deviceId || !userId) return;
+    userId = resolveUserId(userId);
+    sql.prepare(`
+      UPDATE site_visits
+      SET user_id=?, bounced=0
+      WHERE device_id=? AND (user_id IS NULL OR user_id='')
+    `).run(userId, deviceId);
+  },
   getAcquisitionStats(days = 30) {
     try {
       const since = days > 0 ? Date.now() - days * 86400000 : 0;
       const notTester = "coalesce(json_extract(u.data, '$.isTester'), 0) != 1";
 
+      const cte = `
+        WITH combined_visits AS (
+          SELECT
+            id as visit_id,
+            device_id,
+            user_id,
+            utm_source,
+            utm_medium,
+            utm_campaign,
+            utm_content,
+            utm_term,
+            referrer,
+            landing_path,
+            bounced,
+            created_at
+          FROM site_visits
+          UNION ALL
+          SELECT
+            'legacy_' || user_id as visit_id,
+            device_id,
+            user_id,
+            utm_source,
+            utm_medium,
+            utm_campaign,
+            utm_content,
+            utm_term,
+            referrer,
+            landing_path,
+            0 as bounced,
+            created_at
+          FROM user_acquisitions
+          WHERE user_id NOT IN (SELECT coalesce(user_id, '') FROM site_visits WHERE user_id IS NOT NULL)
+        )
+      `;
+
       const summaryRow = sql.prepare(`
+        ${cte}
         SELECT
-          count(a.user_id) as total,
-          count(CASE WHEN a.utm_source != 'direct' THEN 1 END) as utm_count,
-          count(CASE WHEN a.utm_source = 'direct' THEN 1 END) as direct_count,
-          count(CASE WHEN (SELECT 1 FROM conversation_messages m WHERE m.user_id=a.user_id AND json_extract(m.data,'$.sender')='user' LIMIT 1) IS NOT NULL THEN 1 END) as engaged_count,
+          count(*) as total_visits,
+          count(CASE WHEN v.utm_source != 'direct' THEN 1 END) as utm_visits,
+          count(CASE WHEN v.utm_source = 'direct' THEN 1 END) as direct_visits,
+          count(CASE WHEN v.bounced = 1 AND v.user_id IS NULL THEN 1 END) as bounce_count,
+          count(CASE WHEN v.user_id IS NOT NULL THEN 1 END) as chat_started_count,
+          count(CASE WHEN (SELECT 1 FROM conversation_messages m WHERE m.user_id=v.user_id AND json_extract(m.data,'$.sender')='user' LIMIT 1) IS NOT NULL THEN 1 END) as engaged_count,
           count(CASE WHEN u.phone IS NOT NULL THEN 1 END) as member_count
-        FROM user_acquisitions a
-        LEFT JOIN users u ON a.user_id = u.id
-        WHERE a.created_at >= ? AND ${notTester}
+        FROM combined_visits v
+        LEFT JOIN users u ON v.user_id = u.id
+        WHERE v.created_at >= ? AND (u.id IS NULL OR ${notTester})
       `).get(since);
 
-      const total = Number(summaryRow?.total) || 0;
-      const utmCount = Number(summaryRow?.utm_count) || 0;
-      const directCount = Number(summaryRow?.direct_count) || 0;
+      const totalVisits = Number(summaryRow?.total_visits) || 0;
+      const utmVisits = Number(summaryRow?.utm_visits) || 0;
+      const directVisits = Number(summaryRow?.direct_visits) || 0;
+      const bounceCount = Number(summaryRow?.bounce_count) || 0;
+      const chatStartedCount = Number(summaryRow?.chat_started_count) || 0;
       const engagedCount = Number(summaryRow?.engaged_count) || 0;
       const memberCount = Number(summaryRow?.member_count) || 0;
 
       const sources = sql.prepare(`
+        ${cte}
         SELECT
-          a.utm_source as source,
-          a.utm_medium as medium,
-          count(*) as total,
-          count(CASE WHEN (SELECT 1 FROM conversation_messages m WHERE m.user_id=a.user_id AND json_extract(m.data,'$.sender')='user' LIMIT 1) IS NOT NULL THEN 1 END) as engaged,
+          v.utm_source as source,
+          v.utm_medium as medium,
+          count(*) as visits,
+          count(CASE WHEN v.bounced = 1 AND v.user_id IS NULL THEN 1 END) as bounces,
+          count(CASE WHEN v.user_id IS NOT NULL THEN 1 END) as chatStarted,
+          count(CASE WHEN (SELECT 1 FROM conversation_messages m WHERE m.user_id=v.user_id AND json_extract(m.data,'$.sender')='user' LIMIT 1) IS NOT NULL THEN 1 END) as engaged,
           count(CASE WHEN u.phone IS NOT NULL THEN 1 END) as converted
-        FROM user_acquisitions a
-        LEFT JOIN users u ON a.user_id = u.id
-        WHERE a.created_at >= ? AND ${notTester}
-        GROUP BY a.utm_source, a.utm_medium
-        ORDER BY total DESC
+        FROM combined_visits v
+        LEFT JOIN users u ON v.user_id = u.id
+        WHERE v.created_at >= ? AND (u.id IS NULL OR ${notTester})
+        GROUP BY v.utm_source, v.utm_medium
+        ORDER BY visits DESC
       `).all(since);
 
       const campaigns = sql.prepare(`
+        ${cte}
         SELECT
-          coalesce(a.utm_campaign, '(설정 안됨)') as campaign,
-          a.utm_source as source,
-          count(*) as total,
-          count(CASE WHEN (SELECT 1 FROM conversation_messages m WHERE m.user_id=a.user_id AND json_extract(m.data,'$.sender')='user' LIMIT 1) IS NOT NULL THEN 1 END) as engaged,
+          coalesce(v.utm_campaign, '(설정 안됨)') as campaign,
+          v.utm_source as source,
+          count(*) as visits,
+          count(CASE WHEN v.bounced = 1 AND v.user_id IS NULL THEN 1 END) as bounces,
+          count(CASE WHEN v.user_id IS NOT NULL THEN 1 END) as chatStarted,
+          count(CASE WHEN (SELECT 1 FROM conversation_messages m WHERE m.user_id=v.user_id AND json_extract(m.data,'$.sender')='user' LIMIT 1) IS NOT NULL THEN 1 END) as engaged,
           count(CASE WHEN u.phone IS NOT NULL THEN 1 END) as converted
-        FROM user_acquisitions a
-        LEFT JOIN users u ON a.user_id = u.id
-        WHERE a.created_at >= ? AND ${notTester} AND a.utm_campaign IS NOT NULL AND a.utm_campaign != ''
-        GROUP BY a.utm_campaign
-        ORDER BY total DESC
+        FROM combined_visits v
+        LEFT JOIN users u ON v.user_id = u.id
+        WHERE v.created_at >= ? AND (u.id IS NULL OR ${notTester}) AND v.utm_campaign IS NOT NULL AND v.utm_campaign != ''
+        GROUP BY v.utm_campaign
+        ORDER BY visits DESC
       `).all(since);
 
       const contents = sql.prepare(`
+        ${cte}
         SELECT
-          a.utm_content as content,
-          a.utm_campaign as campaign,
-          a.utm_source as source,
-          count(*) as total,
-          count(CASE WHEN (SELECT 1 FROM conversation_messages m WHERE m.user_id=a.user_id AND json_extract(m.data,'$.sender')='user' LIMIT 1) IS NOT NULL THEN 1 END) as engaged,
+          v.utm_content as content,
+          v.utm_campaign as campaign,
+          v.utm_source as source,
+          count(*) as visits,
+          count(CASE WHEN v.bounced = 1 AND v.user_id IS NULL THEN 1 END) as bounces,
+          count(CASE WHEN v.user_id IS NOT NULL THEN 1 END) as chatStarted,
+          count(CASE WHEN (SELECT 1 FROM conversation_messages m WHERE m.user_id=v.user_id AND json_extract(m.data,'$.sender')='user' LIMIT 1) IS NOT NULL THEN 1 END) as engaged,
           count(CASE WHEN u.phone IS NOT NULL THEN 1 END) as converted
-        FROM user_acquisitions a
-        LEFT JOIN users u ON a.user_id = u.id
-        WHERE a.created_at >= ? AND ${notTester} AND a.utm_content IS NOT NULL AND a.utm_content != ''
-        GROUP BY a.utm_content
-        ORDER BY total DESC
+        FROM combined_visits v
+        LEFT JOIN users u ON v.user_id = u.id
+        WHERE v.created_at >= ? AND (u.id IS NULL OR ${notTester}) AND v.utm_content IS NOT NULL AND v.utm_content != ''
+        GROUP BY v.utm_content
+        ORDER BY visits DESC
       `).all(since);
 
       const terms = sql.prepare(`
+        ${cte}
         SELECT
-          a.utm_term as term,
-          a.utm_source as source,
-          count(*) as total,
-          count(CASE WHEN (SELECT 1 FROM conversation_messages m WHERE m.user_id=a.user_id AND json_extract(m.data,'$.sender')='user' LIMIT 1) IS NOT NULL THEN 1 END) as engaged,
+          v.utm_term as term,
+          v.utm_source as source,
+          count(*) as visits,
+          count(CASE WHEN v.bounced = 1 AND v.user_id IS NULL THEN 1 END) as bounces,
+          count(CASE WHEN v.user_id IS NOT NULL THEN 1 END) as chatStarted,
+          count(CASE WHEN (SELECT 1 FROM conversation_messages m WHERE m.user_id=v.user_id AND json_extract(m.data,'$.sender')='user' LIMIT 1) IS NOT NULL THEN 1 END) as engaged,
           count(CASE WHEN u.phone IS NOT NULL THEN 1 END) as converted
-        FROM user_acquisitions a
-        LEFT JOIN users u ON a.user_id = u.id
-        WHERE a.created_at >= ? AND ${notTester} AND a.utm_term IS NOT NULL AND a.utm_term != ''
-        GROUP BY a.utm_term
-        ORDER BY total DESC
+        FROM combined_visits v
+        LEFT JOIN users u ON v.user_id = u.id
+        WHERE v.created_at >= ? AND (u.id IS NULL OR ${notTester}) AND v.utm_term IS NOT NULL AND v.utm_term != ''
+        GROUP BY v.utm_term
+        ORDER BY visits DESC
       `).all(since);
 
       const daily = sql.prepare(`
+        ${cte}
         SELECT
-          date(a.created_at/1000, 'unixepoch', '+9 hours') as day,
-          count(*) as total,
-          count(CASE WHEN a.utm_source != 'direct' THEN 1 END) as utm_count,
-          count(CASE WHEN a.utm_source = 'direct' THEN 1 END) as direct_count,
-          count(CASE WHEN (SELECT 1 FROM conversation_messages m WHERE m.user_id=a.user_id AND json_extract(m.data,'$.sender')='user' LIMIT 1) IS NOT NULL THEN 1 END) as engaged,
+          date(v.created_at/1000, 'unixepoch', '+9 hours') as day,
+          count(*) as total_visits,
+          count(CASE WHEN v.utm_source != 'direct' THEN 1 END) as utm_visits,
+          count(CASE WHEN v.utm_source = 'direct' THEN 1 END) as direct_visits,
+          count(CASE WHEN v.bounced = 1 AND v.user_id IS NULL THEN 1 END) as bounce_count,
+          count(CASE WHEN v.user_id IS NOT NULL THEN 1 END) as chat_started_count,
+          count(CASE WHEN (SELECT 1 FROM conversation_messages m WHERE m.user_id=v.user_id AND json_extract(m.data,'$.sender')='user' LIMIT 1) IS NOT NULL THEN 1 END) as engaged_count,
           count(CASE WHEN u.phone IS NOT NULL THEN 1 END) as converted
-        FROM user_acquisitions a
-        LEFT JOIN users u ON a.user_id = u.id
-        WHERE a.created_at >= ? AND ${notTester}
+        FROM combined_visits v
+        LEFT JOIN users u ON v.user_id = u.id
+        WHERE v.created_at >= ? AND (u.id IS NULL OR ${notTester})
         GROUP BY day
         ORDER BY day ASC
       `).all(since);
 
       const recentLogs = sql.prepare(`
+        ${cte}
         SELECT
-          a.user_id,
-          a.device_id,
-          a.utm_source,
-          a.utm_medium,
-          a.utm_campaign,
-          a.utm_content,
-          a.utm_term,
-          a.referrer,
-          a.landing_path,
-          a.created_at,
+          v.visit_id,
+          v.user_id,
+          v.device_id,
+          v.utm_source,
+          v.utm_medium,
+          v.utm_campaign,
+          v.utm_content,
+          v.utm_term,
+          v.referrer,
+          v.landing_path,
+          v.bounced,
+          v.created_at,
           u.phone,
-          (SELECT count(*) FROM conversation_messages m WHERE m.user_id=a.user_id AND json_extract(m.data,'$.sender')='user') as userTurns
-        FROM user_acquisitions a
-        LEFT JOIN users u ON a.user_id = u.id
-        WHERE a.created_at >= ? AND ${notTester}
-        ORDER BY a.created_at DESC
+          coalesce((SELECT count(*) FROM conversation_messages m WHERE m.user_id=v.user_id AND json_extract(m.data,'$.sender')='user'), 0) as userTurns
+        FROM combined_visits v
+        LEFT JOIN users u ON v.user_id = u.id
+        WHERE v.created_at >= ? AND (u.id IS NULL OR ${notTester})
+        ORDER BY v.created_at DESC
         LIMIT 50
       `).all(since);
+
+      const mapRate = (numerator, denominator) => denominator > 0 ? Math.round((numerator / denominator) * 1000) / 10 : 0;
 
       return {
         days,
         summary: {
-          total,
-          utmCount,
-          directCount,
+          totalVisits,
+          utmVisits,
+          directVisits,
+          bounceCount,
+          bounceRate: mapRate(bounceCount, totalVisits),
+          chatStartedCount,
+          chatStartRate: mapRate(chatStartedCount, totalVisits),
           engagedCount,
+          engagementRate: mapRate(engagedCount, totalVisits),
           memberCount,
-          engagementRate: total > 0 ? Math.round((engagedCount / total) * 1000) / 10 : 0,
-          conversionRate: total > 0 ? Math.round((memberCount / total) * 1000) / 10 : 0
+          conversionRate: mapRate(memberCount, totalVisits),
+          // 하위 호환성 필드
+          total: totalVisits,
+          utmCount: utmVisits,
+          directCount: directVisits
         },
         sources: sources.map(s => ({
           ...s,
-          engagementRate: s.total > 0 ? Math.round((s.engaged / s.total) * 1000) / 10 : 0,
-          conversionRate: s.total > 0 ? Math.round((s.converted / s.total) * 1000) / 10 : 0
+          total: s.visits,
+          bounceRate: mapRate(s.bounces, s.visits),
+          chatStartRate: mapRate(s.chatStarted, s.visits),
+          engagementRate: mapRate(s.engaged, s.visits),
+          conversionRate: mapRate(s.converted, s.visits)
         })),
         campaigns: campaigns.map(c => ({
           ...c,
-          engagementRate: c.total > 0 ? Math.round((c.engaged / c.total) * 1000) / 10 : 0,
-          conversionRate: c.total > 0 ? Math.round((c.converted / c.total) * 1000) / 10 : 0
+          total: c.visits,
+          bounceRate: mapRate(c.bounces, c.visits),
+          chatStartRate: mapRate(c.chatStarted, c.visits),
+          engagementRate: mapRate(c.engaged, c.visits),
+          conversionRate: mapRate(c.converted, c.visits)
         })),
         contents: contents.map(c => ({
           ...c,
-          engagementRate: c.total > 0 ? Math.round((c.engaged / c.total) * 1000) / 10 : 0,
-          conversionRate: c.total > 0 ? Math.round((c.converted / c.total) * 1000) / 10 : 0
+          total: c.visits,
+          bounceRate: mapRate(c.bounces, c.visits),
+          chatStartRate: mapRate(c.chatStarted, c.visits),
+          engagementRate: mapRate(c.engaged, c.visits),
+          conversionRate: mapRate(c.converted, c.visits)
         })),
         terms: terms.map(t => ({
           ...t,
-          engagementRate: t.total > 0 ? Math.round((t.engaged / t.total) * 1000) / 10 : 0,
-          conversionRate: t.total > 0 ? Math.round((t.converted / t.total) * 1000) / 10 : 0
+          total: t.visits,
+          bounceRate: mapRate(t.bounces, t.visits),
+          chatStartRate: mapRate(t.chatStarted, t.visits),
+          engagementRate: mapRate(t.engaged, t.visits),
+          conversionRate: mapRate(t.converted, t.visits)
         })),
-        daily,
+        daily: daily.map(d => ({
+          ...d,
+          total: d.total_visits,
+          utm_count: d.utm_visits,
+          direct_count: d.direct_visits,
+          engaged: d.engaged_count
+        })),
         recentLogs
       };
     } catch (e) {
       console.warn('[db] getAcquisitionStats failed:', e.message);
       return {
         days,
-        summary: { total: 0, utmCount: 0, directCount: 0, engagedCount: 0, memberCount: 0, engagementRate: 0, conversionRate: 0 },
+        summary: { totalVisits: 0, utmVisits: 0, directVisits: 0, bounceCount: 0, bounceRate: 0, chatStartedCount: 0, chatStartRate: 0, engagedCount: 0, engagementRate: 0, memberCount: 0, conversionRate: 0, total: 0, utmCount: 0, directCount: 0 },
         sources: [],
         campaigns: [],
         contents: [],

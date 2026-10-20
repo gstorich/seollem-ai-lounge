@@ -7,6 +7,29 @@ const config = require('../config');
 const browserSession = require('../services/browserSession');
 router.use((req,res,next)=>{res.set('Cache-Control','no-store');next();});
 
+// POST /api/auth/visit - Record traffic/landing visit for funnel analytics (even if bounced immediately)
+router.post('/visit', (req, res) => {
+  const ua = req.headers['user-agent'] || '';
+  const isBot = /(?:googlebot|bingbot|baiduspider|yeti|daumoa|slurp|facebookexternalhit|meta-externalads|mediapartners-google|adsbot-google|twitterbot)/i.test(ua);
+  if (isBot) {
+    return res.json({ success: true, bot: true });
+  }
+
+  const rawDeviceId = req.headers['x-device-id'] || req.body?.deviceId;
+  const deviceId = (typeof rawDeviceId === 'string' && /^dev_[a-zA-Z0-9_-]{8,64}$/.test(rawDeviceId.trim()))
+    ? rawDeviceId.trim()
+    : null;
+
+  const acq = req.body?.acquisition || {};
+  const result = dbService.recordVisit(acq, {
+    deviceId,
+    ip: req.ip,
+    userAgent: ua
+  });
+
+  return res.json({ success: true, ...result });
+});
+
 // POST /api/auth/guest - Issue or restore guest session
 router.post('/guest', optionalAuth, (req, res) => {
   let user = req.user || browserSession.restore(req);
@@ -97,6 +120,9 @@ router.post('/guest', optionalAuth, (req, res) => {
 
   browserSession.save(res,user);
   user = dbService.updateUser(user.id,{lastSeenAt:Date.now()});
+  if (deviceId) {
+    dbService.bindVisitUser(deviceId, user.id);
+  }
   const incomingAcq = req.body?.acquisition;
   if (incomingAcq && typeof incomingAcq === 'object') {
     dbService.saveAcquisition(user.id, incomingAcq, {

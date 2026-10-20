@@ -190,28 +190,29 @@ async function renderMatchingInsights(){
 async function renderAcquisitions(){
   const days=$('days').value;
   const d=await api('/acquisitions?days='+days);
-  const s=d.summary||{total:0,utmCount:0,directCount:0,engagedCount:0,memberCount:0,engagementRate:0,conversionRate:0};
+  const s=d.summary||{totalVisits:0,utmVisits:0,directVisits:0,bounceCount:0,bounceRate:0,chatStartedCount:0,chatStartRate:0,engagedCount:0,engagementRate:0,memberCount:0,conversionRate:0};
+  const totalVisits=s.totalVisits||s.total||0;
   const kpis=[
-    ['전체 유입 계정',s.total,'신규 게스트 세션 + 회원 가입'],
-    ['광고·UTM 유입',s.utmCount,`${s.total?Math.round((s.utmCount/s.total)*1000)/10:0}% · 외부 매체/캠페인 태그`],
-    ['직접·자연 유입',s.directCount,`${s.total?Math.round((s.directCount/s.total)*1000)/10:0}% · 북마크/직접 접속`],
-    ['대화 참여율',s.engagementRate+'%',`1회 이상 발화 (${fmt(s.engagedCount)}명)`],
-    ['회원 전환율',s.conversionRate+'%',`휴대폰 인증 완료 (${fmt(s.memberCount)}명)`]
+    ['전체 유입 (총 방문)',totalVisits,'즉시 이탈자 포함 전체 인입 세션'],
+    ['즉시 이탈 (Bounce)',`${fmt(s.bounceCount||0)} (${s.bounceRate||0}%)`,'대화 시작 없이 나간 방문자'],
+    ['대화방 입장 (세션)',`${fmt(s.chatStartedCount||s.total||0)} (${s.chatStartRate||s.engagementRate||0}%)`,'게스트 세션 생성 및 대화 시작'],
+    ['1회 이상 발화 (참여)',`${fmt(s.engagedCount||0)} (${s.engagementRate||0}%)`,'실제 사용자 메시지 전송 계정'],
+    ['회원 인증 (전환)',`${fmt(s.memberCount||0)} (${s.conversionRate||0}%)`,'휴대폰 인증 완료 정회원']
   ];
-  const maxDaily=Math.max(1,...(d.daily||[]).map(x=>x.total));
+  const maxDaily=Math.max(1,...(d.daily||[]).map(x=>x.total_visits||x.total||0));
   $('content').innerHTML=`
     <div class="grid">${kpis.map(([t,val,sub])=>`<div class="card"><div class="card-title">${t}</div><div class="stat">${typeof val==='number'?fmt(val):esc(val)}</div><small>${sub}</small></div>`).join('')}</div>
     <div class="split">
       <section class="card">
         <h2>📌 유입 소스·매체별 성과 (Source / Medium)</h2>
-        <p class="muted">유입 채널별 유입 수, 실제 대화 참여율, 회원 인증 전환율입니다.</p>
+        <p class="muted">유입 채널별 방문 수, 이탈률, 대화 시작율, 실제 발화율, 회원 전환율입니다.</p>
         <div class="table-scroll">
           <table>
             <thead>
-              <tr><th>소스 / 매체</th><th>유입</th><th>대화 참여 (비율)</th><th>회원 전환 (비율)</th></tr>
+              <tr><th>소스 / 매체</th><th>총 유입</th><th>이탈 (이탈률)</th><th>대화 시작</th><th>1회 이상 발화</th><th>회원 전환</th></tr>
             </thead>
             <tbody>
-              ${(d.sources||[]).map(x=>`<tr><td><strong>${esc(x.source)}</strong><br><small class="muted">${esc(x.medium)}</small></td><td>${fmt(x.total)}</td><td>${fmt(x.engaged)} <small class="muted">(${x.engagementRate}%)</small></td><td>${fmt(x.converted)} <small class="muted">(${x.conversionRate}%)</small></td></tr>`).join('')}
+              ${(d.sources||[]).map(x=>`<tr><td><strong>${esc(x.source)}</strong><br><small class="muted">${esc(x.medium)}</small></td><td>${fmt(x.visits||x.total)}</td><td>${fmt(x.bounces||0)} <small class="muted">(${x.bounceRate||0}%)</small></td><td>${fmt(x.chatStarted||x.engaged)} <small class="muted">(${x.chatStartRate||x.engagementRate}%)</small></td><td>${fmt(x.engaged)} <small class="muted">(${x.engagementRate}%)</small></td><td>${fmt(x.converted)} <small class="muted">(${x.conversionRate}%)</small></td></tr>`).join('')}
             </tbody>
           </table>
         </div>
@@ -219,14 +220,14 @@ async function renderAcquisitions(){
       </section>
       <section class="card">
         <h2>🎯 캠페인별 성과 (UTM Campaign)</h2>
-        <p class="muted">광고 집행 캠페인별 유입 및 전환 성과입니다.</p>
+        <p class="muted">광고 집행 캠페인별 유입 볼륨과 단계별 퍼널 전환 성과입니다.</p>
         <div class="table-scroll">
           <table>
             <thead>
-              <tr><th>캠페인명</th><th>주요 소스</th><th>유입</th><th>대화 참여</th><th>회원 전환</th></tr>
+              <tr><th>캠페인명</th><th>주요 소스</th><th>총 유입</th><th>이탈 (이탈률)</th><th>대화 시작</th><th>회원 전환</th></tr>
             </thead>
             <tbody>
-              ${(d.campaigns||[]).map(x=>`<tr><td><strong>${esc(x.campaign)}</strong></td><td><span class="pill" style="font-size:11px;">${esc(x.source)}</span></td><td>${fmt(x.total)}</td><td>${fmt(x.engaged)} <small class="muted">(${x.engagementRate}%)</small></td><td>${fmt(x.converted)} <small class="muted">(${x.conversionRate}%)</small></td></tr>`).join('')}
+              ${(d.campaigns||[]).map(x=>`<tr><td><strong>${esc(x.campaign)}</strong></td><td><span class="pill" style="font-size:11px;">${esc(x.source)}</span></td><td>${fmt(x.visits||x.total)}</td><td>${fmt(x.bounces||0)} <small class="muted">(${x.bounceRate||0}%)</small></td><td>${fmt(x.chatStarted||x.engaged)} <small class="muted">(${x.chatStartRate||x.engagementRate}%)</small></td><td>${fmt(x.converted)} <small class="muted">(${x.conversionRate}%)</small></td></tr>`).join('')}
             </tbody>
           </table>
         </div>
@@ -236,14 +237,14 @@ async function renderAcquisitions(){
     <div class="split">
       <section class="card">
         <h2>🖼 광고 소재별 성과 (UTM Content)</h2>
-        <p class="muted">어떤 크리에이티브(이미지/소재)에서 반응이 일어났는지 분석합니다.</p>
+        <p class="muted">어떤 크리에이티브(이미지/소재)에서 유입 및 대화 전환이 일어났는지 분석합니다.</p>
         <div class="table-scroll">
           <table>
             <thead>
-              <tr><th>소재명 (Content)</th><th>캠페인 / 소스</th><th>유입</th><th>대화 참여</th><th>회원 전환</th></tr>
+              <tr><th>소재명 (Content)</th><th>캠페인 / 소스</th><th>총 유입</th><th>이탈</th><th>대화 시작</th><th>회원 전환</th></tr>
             </thead>
             <tbody>
-              ${(d.contents||[]).map(x=>`<tr><td><code>${esc(x.content)}</code></td><td>${esc(x.campaign||'-')}<br><small class="muted">${esc(x.source)}</small></td><td>${fmt(x.total)}</td><td>${fmt(x.engaged)} <small class="muted">(${x.engagementRate}%)</small></td><td>${fmt(x.converted)} <small class="muted">(${x.conversionRate}%)</small></td></tr>`).join('')}
+              ${(d.contents||[]).map(x=>`<tr><td><code>${esc(x.content)}</code></td><td>${esc(x.campaign||'-')}<br><small class="muted">${esc(x.source)}</small></td><td>${fmt(x.visits||x.total)}</td><td>${fmt(x.bounces||0)}</td><td>${fmt(x.chatStarted||x.engaged)} <small class="muted">(${x.chatStartRate||x.engagementRate}%)</small></td><td>${fmt(x.converted)} <small class="muted">(${x.conversionRate}%)</small></td></tr>`).join('')}
             </tbody>
           </table>
         </div>
@@ -251,14 +252,14 @@ async function renderAcquisitions(){
       </section>
       <section class="card">
         <h2>🔍 검색 키워드별 성과 (UTM Term)</h2>
-        <p class="muted">검색 광고 및 타겟 키워드 유입 분석입니다.</p>
+        <p class="muted">검색 광고 및 타겟 키워드 유입과 전환 분석입니다.</p>
         <div class="table-scroll">
           <table>
             <thead>
-              <tr><th>키워드 (Term)</th><th>소스</th><th>유입</th><th>대화 참여</th><th>회원 전환</th></tr>
+              <tr><th>키워드 (Term)</th><th>소스</th><th>총 유입</th><th>이탈</th><th>대화 시작</th><th>회원 전환</th></tr>
             </thead>
             <tbody>
-              ${(d.terms||[]).map(x=>`<tr><td><strong>${esc(x.term)}</strong></td><td><span class="pill" style="font-size:11px;">${esc(x.source)}</span></td><td>${fmt(x.total)}</td><td>${fmt(x.engaged)} <small class="muted">(${x.engagementRate}%)</small></td><td>${fmt(x.converted)} <small class="muted">(${x.conversionRate}%)</small></td></tr>`).join('')}
+              ${(d.terms||[]).map(x=>`<tr><td><strong>${esc(x.term)}</strong></td><td><span class="pill" style="font-size:11px;">${esc(x.source)}</span></td><td>${fmt(x.visits||x.total)}</td><td>${fmt(x.bounces||0)}</td><td>${fmt(x.chatStarted||x.engaged)} <small class="muted">(${x.chatStartRate||x.engagementRate}%)</small></td><td>${fmt(x.converted)} <small class="muted">(${x.conversionRate}%)</small></td></tr>`).join('')}
             </tbody>
           </table>
         </div>
@@ -266,31 +267,31 @@ async function renderAcquisitions(){
       </section>
     </div>
     <section class="card spaced">
-      <h2>📈 일별 유입 추이</h2>
+      <h2>📈 일별 유입 및 퍼널 추이</h2>
       <div class="bars">
-        ${(d.daily||[]).length?d.daily.map(x=>`<div class="bar" style="height:${Math.max(4,(x.total/maxDaily)*100)}%" title="${esc(x.day)} · 전체 ${x.total}건 (UTM ${x.utm_count}건)"></div>`).join(''):'<p class="muted">기간 내 유입 기록이 없습니다.</p>'}
+        ${(d.daily||[]).length?d.daily.map(x=>`<div class="bar" style="height:${Math.max(4,((x.total_visits||x.total)/maxDaily)*100)}%" title="${esc(x.day)} · 전체 ${x.total_visits||x.total}건 (이탈 ${x.bounce_count||0}건, 대화시작 ${x.chat_started_count||x.engaged||0}건)"></div>`).join(''):'<p class="muted">기간 내 유입 기록이 없습니다.</p>'}
       </div>
       <div class="table-scroll">
         <table>
           <thead>
-            <tr><th>날짜</th><th>전체 유입</th><th>광고·UTM</th><th>직접·자연</th><th>대화 참여</th><th>회원 전환</th></tr>
+            <tr><th>날짜</th><th>총 유입</th><th>이탈</th><th>대화 시작</th><th>1회 이상 발화</th><th>회원 전환</th></tr>
           </thead>
           <tbody>
-            ${(d.daily||[]).slice(-14).reverse().map(x=>`<tr><td>${esc(x.day)}</td><td>${fmt(x.total)}</td><td>${fmt(x.utm_count)}</td><td>${fmt(x.direct_count)}</td><td>${fmt(x.engaged)}</td><td>${fmt(x.converted)}</td></tr>`).join('')}
+            ${(d.daily||[]).slice(-14).reverse().map(x=>`<tr><td>${esc(x.day)}</td><td>${fmt(x.total_visits||x.total)}</td><td>${fmt(x.bounce_count||0)}</td><td>${fmt(x.chat_started_count||x.engaged)}</td><td>${fmt(x.engaged_count||x.engaged)}</td><td>${fmt(x.converted)}</td></tr>`).join('')}
           </tbody>
         </table>
       </div>
     </section>
     <section class="card spaced">
       <h2>⏱ 실시간 최근 유입 상세 로그 (최근 50건)</h2>
-      <p class="muted">방문자가 최초 인입되었을 때 기록된 상세 채널, 파라미터, 랜딩 URL입니다. 고객 ID를 누르면 상세 관리로 이동합니다.</p>
+      <p class="muted">방문자가 최초 인입되었을 때 기록된 상세 채널, 파라미터, 랜딩 URL입니다. 대화 미진행 이탈자도 모두 실시간 기록됩니다.</p>
       <div class="table-scroll">
         <table>
           <thead>
-            <tr><th>유입 시각</th><th>고객 ID</th><th>소스 / 매체</th><th>캠페인 / 소재</th><th>검색어</th><th>랜딩 경로 / 리퍼러</th><th>활동</th><th>구분</th></tr>
+            <tr><th>유입 시각</th><th>고객 ID</th><th>소스 / 매체</th><th>캠페인 / 소재</th><th>검색어</th><th>랜딩 경로 / 리퍼러</th><th>퍼널 상태</th></tr>
           </thead>
           <tbody>
-            ${(d.recentLogs||[]).map(x=>`<tr><td>${date(x.created_at)}</td><td><button data-customer="${esc(x.user_id)}">${esc(x.phone?x.phone.replace(/(\d{3})\d{4}(\d{4})/,'$1-****-$2'):x.user_id.slice(0,16))}</button></td><td><strong>${esc(x.utm_source)}</strong><br><small class="muted">${esc(x.utm_medium)}</small></td><td>${esc(x.utm_campaign||'-')}${x.utm_content?'<br><small class="muted">'+esc(x.utm_content)+'</small>':''}</td><td>${esc(x.utm_term||'-')}</td><td><small style="word-break:break-all;" title="${esc(x.referrer||x.landing_path)}">${esc(x.landing_path||x.referrer||'-')}</small></td><td>${x.userTurns>0?`<span class="pill active" style="font-size:10px;">대화 ${fmt(x.userTurns)}턴</span>`:'<span class="muted" style="font-size:11px;">대화 없음</span>'}</td><td>${x.phone?'<span class="pill" style="font-size:10px;">회원</span>':'<span class="muted" style="font-size:10px;">게스트</span>'}</td></tr>`).join('')}
+            ${(d.recentLogs||[]).map(x=>`<tr><td>${date(x.created_at)}</td><td>${x.user_id?`<button data-customer="${esc(x.user_id)}">${esc(x.phone?x.phone.replace(/(\d{3})\d{4}(\d{4})/,'$1-****-$2'):x.user_id.slice(0,16))}</button>`:'<span class="muted" style="font-size:11px;">방문자 (미생성)</span>'}</td><td><strong>${esc(x.utm_source)}</strong><br><small class="muted">${esc(x.utm_medium)}</small></td><td>${esc(x.utm_campaign||'-')}${x.utm_content?'<br><small class="muted">'+esc(x.utm_content)+'</small>':''}</td><td>${esc(x.utm_term||'-')}</td><td><small style="word-break:break-all;" title="${esc(x.referrer||x.landing_path)}">${esc(x.landing_path||x.referrer||'-')}</small></td><td>${x.phone?'<span class="pill active" style="font-size:10px;background:#2b8a3e;">회원 인증</span>':x.userTurns>0?`<span class="pill active" style="font-size:10px;">대화 ${fmt(x.userTurns)}턴</span>`:x.user_id?'<span class="pill" style="font-size:10px;background:#1864ab;">대화방 입장</span>':'<span class="pill" style="font-size:10px;background:#444;color:#aaa;">이탈 (대화 미진행)</span>'}</td></tr>`).join('')}
           </tbody>
         </table>
       </div>

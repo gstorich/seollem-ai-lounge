@@ -217,11 +217,24 @@
       }
       return data;
     },
+    async recordVisit() {
+      try {
+        const deviceId = getDeviceId();
+        const acquisition = captureAcquisition();
+        await fetch(`${API_BASE}/auth/visit`, {
+          method: 'POST',
+          headers: this.getHeaders(),
+          body: JSON.stringify({ deviceId, acquisition }),
+          keepalive: true
+        });
+      } catch {}
+    },
     async checkBackendHealth() {
       try {
         const res = await fetch(`${API_BASE}/health`, { signal: AbortSignal.timeout(5000) });
         if (!res.ok) return false;
         connected = true;
+        this.recordVisit().catch(() => {});
         const hasExistingAuth = Boolean(
           authToken ||
           (typeof localStorage !== 'undefined' && localStorage.getItem('seollem_auth_token')) ||
