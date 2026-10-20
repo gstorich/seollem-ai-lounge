@@ -25,6 +25,7 @@ module.exports = {
 
   gaPropertyId: /^\d{5,20}$/.test(process.env.GA_PROPERTY_ID || '') ? process.env.GA_PROPERTY_ID : '',
   adminPasswordHash: process.env.ADMIN_PASSWORD_HASH || '',
+  adminEntryPath: process.env.ADMIN_ENTRY_PATH || '/ops-manage-2026/admin',
   gaMeasurementId: /^G-[A-Z0-9]{6,20}$/.test(process.env.GA_MEASUREMENT_ID || '') ? process.env.GA_MEASUREMENT_ID : '',
 
   // Economy rules

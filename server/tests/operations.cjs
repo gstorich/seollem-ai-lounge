@@ -7,6 +7,13 @@ async function stop(){if(child&&child.exitCode===null){const exit=new Promise(r=
 async function req(route,{method='GET',body,token,cookie,headers={}}={}){const r=await fetch(base+'/api'+route,{method,headers:{'Content-Type':'application/json',Origin:origin,'X-Azit-Admin':'1',...(token?{Authorization:'Bearer '+token}:{}),...(cookie?{Cookie:cookie}:{}),...headers},...(body===undefined?{}:{body:JSON.stringify(body)})});let d;try{d=await r.json();}catch{d={};}return {status:r.status,data:d,cookie:r.headers.get('set-cookie'),cache:r.headers.get('cache-control')};}
 (async()=>{try{
  await start();sql=new DatabaseSync(env.SQLITE_FILE);
+ const legacyAdmin = await fetch(base + '/admin');
+ assert.equal(legacyAdmin.status, 404, 'Legacy /admin must return 404 to deceive scanners');
+ const legacyAdminHtml = await fetch(base + '/admin.html');
+ assert.equal(legacyAdminHtml.status, 404, 'Legacy /admin.html must return 404');
+ const obfuscatedAdmin = await fetch(base + '/ops-manage-2026/admin');
+ assert.equal(obfuscatedAdmin.status, 200, 'Obfuscated 2-depth admin entry route must be accessible');
+ assert.match(await obfuscatedAdmin.text(), /아지트 대화방 운영 관리/);
  const guest=(await req('/auth/guest',{method:'POST',body:{}})).data,other=(await req('/auth/guest',{method:'POST',body:{}})).data;
  const phone='01000000001',user={id:phone,phone,hearts:50,createdAt:Date.now(),updatedAt:Date.now(),savedRooms:{},metCharIds:[]};sql.prepare('INSERT INTO users VALUES(?,?,?)').run(phone,phone,JSON.stringify(user));const memberToken=jwt.sign({userId:phone},secret,{expiresIn:'1h'});
  assert.equal((await req('/admin/overview')).status,401);

@@ -96,7 +96,22 @@ app.get('/api/health', (req, res) => {
   });
 });
 
-for (const [route,file] of [['/admin','admin.html'],['/support','support.html'],['/privacy','privacy.html'],['/terms','terms.html'],['/refund','refund.html'],['/products','products.html'],['/about','about.html'],['/verification','verification.html'],['/billing','billing.html'],['/payment/complete','billing.html'],['/verification/complete','billing.html'],['/privacy-20261018-initial','privacy-20261018-initial.html'],['/safety','safety.html'],['/policies','policies.html'],['/terms-20261019-v1','terms-20261019-v1.html'],['/privacy-20261019-v1','privacy-20261019-v1.html'],['/privacy-20261019-v2','privacy-20261019-v2.html'],['/refund-20261019-v1','refund-20261019-v1.html']]) {
+// Obfuscated 2-depth admin entry route
+const adminEntryRoute = (config.adminEntryPath || '/ops-manage-2026/admin').replace(/\/+$/, '');
+app.get(adminEntryRoute + '.html', (req, res) => res.redirect(301, adminEntryRoute + (req.originalUrl.includes('?') ? req.originalUrl.slice(req.originalUrl.indexOf('?')) : '')));
+app.get(adminEntryRoute, (req, res) => {
+  res.set('Cache-Control', 'no-store');
+  res.set('X-Robots-Tag', 'noindex, nofollow, noarchive');
+  res.set('Content-Security-Policy', "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");
+  res.sendFile(path.join(__dirname, '..', 'admin.html'));
+});
+
+// Explicitly block legacy /admin routes with 404
+app.all(['/admin', '/admin.html'], (req, res) => {
+  res.status(404).set('X-Robots-Tag', 'noindex').type('html').send('<!doctype html><html lang="ko"><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex"><title>페이지를 찾을 수 없습니다 · 아지트챗</title><h1>페이지를 찾을 수 없습니다</h1><p>주소를 확인하거나 <a href="/">아지트챗 홈</a>으로 이동해주세요.</p></html>');
+});
+
+for (const [route,file] of [['/support','support.html'],['/privacy','privacy.html'],['/terms','terms.html'],['/refund','refund.html'],['/products','products.html'],['/about','about.html'],['/verification','verification.html'],['/billing','billing.html'],['/payment/complete','billing.html'],['/verification/complete','billing.html'],['/privacy-20261018-initial','privacy-20261018-initial.html'],['/safety','safety.html'],['/policies','policies.html'],['/terms-20261019-v1','terms-20261019-v1.html'],['/privacy-20261019-v1','privacy-20261019-v1.html'],['/privacy-20261019-v2','privacy-20261019-v2.html'],['/refund-20261019-v1','refund-20261019-v1.html']]) {
   app.get(route+'.html',(req,res)=>res.redirect(301,route+(req.originalUrl.includes('?')?req.originalUrl.slice(req.originalUrl.indexOf('?')):'')));
   app.get(route,(req,res)=>{res.set('Cache-Control','no-store');res.set('Content-Security-Policy',file==='billing.html'?"default-src 'self'; script-src 'self' https://cdn.iamport.kr https://cdn.portone.io https://www.googletagmanager.com https://connect.facebook.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.iamport.kr https://*.portone.io https://www.google-analytics.com https://*.google.com https://*.googleadservices.com https://*.doubleclick.net https://www.facebook.com; frame-src https:; frame-ancestors 'none'; base-uri 'none'; form-action 'self' https:":"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");res.sendFile(path.join(__dirname,'..',file));});
 }
