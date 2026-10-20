@@ -22,6 +22,9 @@ assert.deepEqual(build(male,[user('저는 여자예요'),user('제 나이는 45�
 assert.deepEqual(build(female,[user('저는 45살 남자예요')]).allowedAddressTerms,['오빠']);
 assert.deepEqual(build(male,[user('저는 25살 여자예요')]).allowedAddressTerms,[]);
 assert.deepEqual(build(male,[user('누나라고 불러줘')]).allowedAddressTerms,['누나']);
+assert.deepEqual(build(female,[user('그리고 그쪽이라고 하지말고 오빠라고 불러')]).allowedAddressTerms,['오빠']);
+assert.deepEqual(build(male,[user('형이라고 불러')]).allowedAddressTerms,['형']);
+assert.deepEqual(build(female,[user('선배님이라고 불러주세요')]).allowedAddressTerms,['선배님']);
 assert.equal(build(male,[user('누나라고 불러줘')]).age,null,'An address preference is not an age fact');
 assert.deepEqual(build(male,[user('저는 45살 여자예요'),user('누나라고 부르지 마세요')]).allowedAddressTerms,[]);
 const established=[user('저는 45살 여자예요'),...Array.from({length:25},()=>user('오늘은 그냥 쉬어요'))];

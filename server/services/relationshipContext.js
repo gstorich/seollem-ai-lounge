@@ -8,9 +8,9 @@ function buildRelationshipContext(character,messages=[]){
   const text=String(message.text??message.content??'').trim();
   for(const term of addressTerms){
    const quoted=`["'“‘]?${term}["'”’]?`;
-   if(new RegExp(quoted+'(?:라고|라곤|라|로)?\\s*(?:부르지\\s*마|하지\\s*마|안\\s*불|말고)').test(text)){
+   if(new RegExp(quoted+'(?:이?라고|이?라곤|이?라|으?로)?\\s*(?:부르지\\s*마|하지\\s*마|안\\s*불|말고)').test(text)){
     rejected.add(term);if(requestedAddress===term)requestedAddress=null;
-   }else if(new RegExp(quoted+'(?:라고|라|로)\\s*(?:불러(?:줘|요|도\\s*(?:돼|되|괜찮))|불러주세요|불러도\\s*좋)').test(text)){
+   }else if(new RegExp(quoted+'(?:이?라고|이?라곤|이?라|으?로)?\\s*(?:불러(?:줘|요|라|도\\s*(?:돼|되|괜찮))?|부르면\\s*(?:돼|되|괜찮아|좋겠어|좋아)|불러주세요|불러도\\s*좋(?:아|아요|음)?|해(?:줘|요|라)?|해요)').test(text)){
     rejected.delete(term);requestedAddress=term;
    }
   }
