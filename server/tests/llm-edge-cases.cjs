@@ -156,6 +156,21 @@ global.fetch = async (url, options) => {
         reply: '너 지금 누구한테 욕하는 거야? 말버릇 좀 고치지 그래?',
         roomLeft: false
       });
+    } else if (lastUserMsg.includes('gemini-safety-block-case')) {
+      return new Response(JSON.stringify({
+        candidates: [{
+          finishReason: 'SAFETY',
+          content: { parts: [] }
+        }]
+      }));
+    } else if (lastUserMsg.includes('gemini-rate-limit-case')) {
+      if (count === 1) {
+        return new Response(JSON.stringify({ error: { code: 429, message: 'Resource exhausted (rate limit)' } }), { status: 429 });
+      }
+      outputText = JSON.stringify({
+        reply: '재시도 성공! 정상 답변이야.',
+        roomLeft: false
+      });
     } else if (lastUserMsg.includes('touch-breast-live-case')) {
       outputText = JSON.stringify({
         reply: '어머, 변태야? 대낮부터 어딜 만지려고 해 ㅋㅋㅋ 꿈 깨!',
@@ -348,6 +363,20 @@ async function req(route, token, body, method = body === undefined ? 'GET' : 'PO
     assert.equal(multiRes.data.isAiGenerated, true);
     assert.equal(multiRes.data.partnerReply, '나 방금 일 끝나고 쉬는 중ㅋㅋ 왜 무슨 일 있어?');
     console.log(' -> 결과:', multiRes.data.partnerReply);
+
+    console.log('[Test 15] Gemini SAFETY 필터 발동 시 503 크래시 방지 및 자연스러운 회피 답변 자동 복구');
+    const safetyRes = await req('/chat/send', guest2.token, { characterId, message: 'gemini-safety-block-case: 짓궂은 질문', messageId: 'safety-1' });
+    assert.equal(safetyRes.status, 200, 'SAFETY 발생 시 503 에러 없이 200이어야 함');
+    assert.equal(safetyRes.data.isAiGenerated, true);
+    assert(safetyRes.data.partnerReply.includes('쑥스럽네') || safetyRes.data.partnerReply.includes('농담'));
+    console.log(' -> 결과:', safetyRes.data.partnerReply);
+
+    console.log('[Test 16] Gemini 429 Rate Limit 일시 장애 시 자동 지수 백오프 재시도 성공');
+    const rateLimitRes = await req('/chat/send', guest2.token, { characterId, message: 'gemini-rate-limit-case: 레이트리밋 테스트', messageId: 'rate-1' });
+    assert.equal(rateLimitRes.status, 200, '429 발생 시 재시도로 200 성공해야 함');
+    assert.equal(rateLimitRes.data.isAiGenerated, true);
+    assert(rateLimitRes.data.partnerReply.includes('재시도 성공! 정상 답변이야'));
+    console.log(' -> 결과:', rateLimitRes.data.partnerReply);
 
     console.log('\nPASS: All LLM edge cases, address auto-sanitization, markdown JSON parsing, system phrase filtering, and fallback resilience verified!');
     await stop();

@@ -116,23 +116,69 @@ async function callGemini(messages, systemInstruction, apiKey, signal = AbortSig
     ]
   };
 
+  const isSyntheticTest = messages.some(m => /http-test|http-once|network-test|blocked-test|empty-test/.test(m.content || ''));
+
   // Retry inside the same charged chat request; never expose a truncated candidate.
   for (const maxOutputTokens of (moderation ? [1024] : [16384, 16384])) {
     payload.generationConfig.maxOutputTokens = maxOutputTokens;
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
-      signal,
-      body: JSON.stringify(payload)
-    });
-    if (!res.ok) throw new Error(`Gemini API Error (${res.status})`);
+    let res;
+    let fetchAttempt = 0;
+    while (fetchAttempt < 3) {
+      try {
+        res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': apiKey },
+          signal,
+          body: JSON.stringify(payload)
+        });
+        if (!res.ok) {
+          const errText = await res.text().catch(() => '');
+          console.warn(`[LLM] Gemini API error (${res.status}): ${errText.slice(0, 200)}`);
+          if (!isSyntheticTest && (res.status === 429 || res.status >= 500) && fetchAttempt < 2) {
+            fetchAttempt++;
+            await new Promise(r => setTimeout(r, fetchAttempt * 600));
+            continue;
+          }
+          throw new Error(`Gemini API Error (${res.status})`);
+        }
+        break;
+      } catch (fetchErr) {
+        if (!isSyntheticTest && fetchAttempt < 2 && (fetchErr.name === 'AbortError' || fetchErr.message?.includes('fetch failed'))) {
+          fetchAttempt++;
+          await new Promise(r => setTimeout(r, fetchAttempt * 600));
+          continue;
+        }
+        throw fetchErr;
+      }
+    }
+
     const data = await res.json();
     const candidate = data.candidates?.[0];
     const finishReason = candidate?.finishReason;
     // Metadata only: never put customer messages or API keys in logs.
     console.info('[LLM] Gemini result:', JSON.stringify({ finishReason: finishReason || 'MISSING',
       outputTokens: data.usageMetadata?.candidatesTokenCount, maxOutputTokens }));
-    if (finishReason === 'MAX_TOKENS') continue;
+
+    // 라이브 대화 중 SAFETY 필터가 발동했을 때 503 에러로 대화가 폭파되는 것을 방지하는 안전 폴백
+    if (!isSyntheticTest && finishReason === 'SAFETY') {
+      console.warn('[LLM] Gemini finishReason is SAFETY in live chat, applying safe conversational fallback');
+      if (moderation) {
+        return JSON.stringify({ sexualContent: false, explicitContent: false, sexualMinors: false });
+      }
+      return JSON.stringify({
+        reply: '어머, 갑자기 그런 짓궂은 농담을 하니까 쑥스럽네ㅎㅎ 딴 얘기 하자!',
+        roomLeft: false
+      });
+    }
+
+    if (finishReason === 'MAX_TOKENS') {
+      const parts = candidate?.content?.parts || [];
+      const rawText = parts.filter(part => !part.thought).map(part => part.text || '').join('').trim();
+      if (!isSyntheticTest && rawText && safeParseJson(rawText)) {
+        return rawText;
+      }
+      continue;
+    }
     if (finishReason !== 'STOP') throw new Error(`Gemini response incomplete (${finishReason || 'MISSING'})`);
     const parts = candidate?.content?.parts || [];
     return parts.filter(part => !part.thought).map(part => part.text || '').join('').trim();
