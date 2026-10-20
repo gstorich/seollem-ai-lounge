@@ -16,35 +16,23 @@
     try {
       const parts = [];
       const s = window.screen || {};
-      parts.push(`${s.width||0}x${s.height||0}x${s.colorDepth||0}@${window.devicePixelRatio||1}`);
+      // 1. Screen & Display metrics (Identical across incognito & normal tabs)
+      parts.push(`${s.width||0}x${s.height||0}x${s.availWidth||0}x${s.availHeight||0}x${s.colorDepth||0}@${window.devicePixelRatio||1}`);
       const nav = window.navigator || {};
+      // 2. Stable Hardware & Browser metrics
       parts.push(nav.userAgent || '');
       parts.push(nav.platform || '');
       parts.push(nav.language || '');
       parts.push(nav.languages ? nav.languages.join(',') : '');
       parts.push(String(nav.hardwareConcurrency || 0));
       parts.push(String(nav.deviceMemory || 0));
+      parts.push(String(nav.maxTouchPoints || 0));
+      // 3. Timezone metrics
       try {
         parts.push(Intl.DateTimeFormat().resolvedOptions().timeZone || '');
         parts.push(String(new Date().getTimezoneOffset()));
       } catch {}
-      try {
-        const canvas = document.createElement('canvas');
-        canvas.width = 200;
-        canvas.height = 40;
-        const ctx = canvas.getContext('2d');
-        if (ctx) {
-          ctx.textBaseline = 'alphabetic';
-          ctx.fillStyle = '#f60';
-          ctx.fillRect(10, 5, 80, 20);
-          ctx.fillStyle = '#069';
-          ctx.font = '14px Arial';
-          ctx.fillText('azitchat_dev_fp,987!', 4, 25);
-          ctx.fillStyle = 'rgba(102, 204, 0, 0.7)';
-          ctx.fillText('azitchat_dev_fp,987!', 6, 27);
-          parts.push(canvas.toDataURL());
-        }
-      } catch {}
+      // 4. Stable Hardware WebGL GPU information (Unmasked Vendor & Renderer)
       try {
         const glCanvas = document.createElement('canvas');
         const gl = glCanvas.getContext('webgl') || glCanvas.getContext('experimental-webgl');
@@ -235,24 +223,8 @@
         if (!res.ok) return false;
         connected = true;
         this.recordVisit().catch(() => {});
-        const hasExistingAuth = Boolean(
-          authToken ||
-          (typeof localStorage !== 'undefined' && localStorage.getItem('seollem_auth_token')) ||
-          (typeof document !== 'undefined' && /(?:^|;\s*)azit_session=/.test(document.cookie || ''))
-        );
-        if (hasExistingAuth) {
-          this.user = await this.initGuest();
-        } else {
-          this.user = {
-            id: null,
-            hearts: 50,
-            isVipUnlimited: false,
-            phone: null,
-            phoneBonusClaimed: false,
-            isAdult: false,
-            isTester: false
-          };
-        }
+        // 시크릿 탭이든 일반 탭이든 서버의 기기/세션 상태를 항상 즉시 조회하여 정확한 잔여 하트와 복원 계정을 로드!
+        this.user = await this.initGuest();
         return true;
       } catch { connected = false; return false; }
     },

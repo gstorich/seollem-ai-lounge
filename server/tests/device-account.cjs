@@ -127,6 +127,39 @@ async function request(route, token, body, headers = {}, method = body === undef
     assert.equal(postAuthIncognito.status, 200);
     assert.equal(postAuthIncognito.user.hearts, 0, '이미 웰컴 하트를 소진/인증한 기기에서는 새 게스트에 50하트 미지급 (0하트)');
 
+    // 5. 공인 IP 기준 시크릿 모드 / 디바이스 ID 위조 파밍 차단 검증
+    const pubIp = '203.0.113.88';
+    const devC = 'dev_7777888899990000';
+    const firstC = await request('/auth/guest', null, { deviceId: devC }, { 'X-Device-Id': devC, 'X-Forwarded-For': pubIp });
+    assert.equal(firstC.status, 200);
+    assert.equal(firstC.user.hearts, 50, '신규 IP/기기 최초 50하트');
+
+    // 기기 C에서 대화하여 하트 3.7 소진 (46.3 남음)
+    const sentC = await request('/chat/send', firstC.token, { characterId: 'chaewon', message: '테스트 대화', messageId: 'm_test_dev_c' });
+    assert.equal(sentC.heartsRemaining, 46.3);
+
+    // 기기 C가 디바이스 ID를 변조하여 시크릿 탭에서 다시 50하트를 얻으려 시도
+    const devFake = 'dev_fake_random_99999';
+    const incognitoC = await request('/auth/guest', null, { deviceId: devFake }, { 'X-Device-Id': devFake, 'X-Forwarded-For': pubIp });
+    assert.equal(incognitoC.status, 200);
+    assert.equal(incognitoC.user.id, firstC.user.id, '동일 IP+UA 환경이므로 기존 게스트 계정으로 자동 복원');
+    assert.equal(incognitoC.user.hearts, 46.3, '50하트가 새로 지급되지 않고 소진된 잔여 하트(46.3) 유지 (파밍 차단)');
+
+    // 6. 하트를 모두 소진(0개)한 후 시크릿 모드로 접속 시 0하트 유지 (파밍 원천 차단)
+    const pubIp2 = '203.0.113.99';
+    const devD = 'dev_exhausted_1111';
+    const firstD = await request('/auth/guest', null, { deviceId: devD }, { 'X-Device-Id': devD, 'X-Forwarded-For': pubIp2 });
+    assert.equal(firstD.user.hearts, 50);
+
+    // 하트를 0개로 소진 시뮬레이션
+    sql.prepare("DELETE FROM ledger WHERE user_id=?").run(firstD.user.id);
+    sql.prepare("DELETE FROM heart_grants WHERE user_id=?").run(firstD.user.id);
+
+    // 시크릿 모드로 다시 접속
+    const incognitoD = await request('/auth/guest', null, { deviceId: devD }, { 'X-Device-Id': devD, 'X-Forwarded-For': pubIp2 });
+    assert.equal(incognitoD.status, 200);
+    assert.equal(incognitoD.user.hearts, 0, '하트를 다 쓰고 시크릿 탭으로 들어와도 50하트가 생기지 않고 0하트 유지');
+
     console.log('PASS: Guest accounts bound by device, incognito 50-heart farming blocked successfully');
   } catch (e) {
     console.error(e);

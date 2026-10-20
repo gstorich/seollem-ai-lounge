@@ -49,15 +49,12 @@ router.post('/guest', optionalAuth, (req, res) => {
 
   let restoredByDevice = false;
 
-  // If no active session from token or cookie, attempt to restore guest by device
-  if (!user && deviceId) {
-    const profile = dbService.getDeviceProfile(deviceId);
-    if (profile) {
-      const existingUser = dbService.getUser(profile.current_user_id);
-      if (existingUser && !existingUser.phone) {
-        user = existingUser;
-        restoredByDevice = true;
-      }
+  // 1. If no active session from token or cookie, attempt to restore guest by device or IP+UA
+  if (!user && (deviceId || req.ip)) {
+    const existingGuest = dbService.findExistingGuestByDeviceOrIp(deviceId, req.ip, req.headers['user-agent']);
+    if (existingGuest) {
+      user = existingGuest;
+      restoredByDevice = true;
     }
   }
 
@@ -85,11 +82,9 @@ router.post('/guest', optionalAuth, (req, res) => {
   if (!user) {
     const newId = `guest_${Date.now()}_${crypto.randomBytes(4).toString('hex')}`;
     let welcomeHearts = config.defaultGuestHearts;
-    if (deviceId) {
-      const profile = dbService.getDeviceProfile(deviceId);
-      if (profile && profile.welcome_granted) {
-        welcomeHearts = 0; // Prevent farming 50 welcome hearts on same device
-      }
+    // 기기 ID 또는 동일 IP+UA에서 이미 웰컴 50하트를 소진/파밍한 이력이 있으면 0하트 지급!
+    if (dbService.hasWelcomeGrantedForIpOrDevice(deviceId, req.ip, req.headers['user-agent'])) {
+      welcomeHearts = 0; // 시크릿 탭 50하트 무한 파밍 원천 차단!
     }
 
     user = dbService.createUser({

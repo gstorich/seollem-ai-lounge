@@ -408,6 +408,45 @@ module.exports = {
     if (!deviceId || typeof deviceId !== 'string') return null;
     return sql.prepare('SELECT * FROM device_profiles WHERE device_id=?').get(deviceId) || null;
   },
+  findExistingGuestByDeviceOrIp(deviceId, ip, userAgent) {
+    if (deviceId) {
+      const profile = sql.prepare('SELECT current_user_id FROM device_profiles WHERE device_id=?').get(deviceId);
+      if (profile) {
+        const u = getUser(profile.current_user_id);
+        if (u && !u.phone) return u;
+      }
+    }
+    // 로컬 루프백 테스트가 아닌 실제 외부 IP인 경우 동일 IP+UA로 최근 24시간 내 기존 게스트 조회
+    if (ip && typeof ip === 'string' && ip !== '127.0.0.1' && ip !== '::1') {
+      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+      const row = sql.prepare(`
+        SELECT current_user_id FROM device_profiles
+        WHERE ip=? AND (user_agent=? OR user_agent IS NULL) AND created_at > ?
+        ORDER BY created_at DESC LIMIT 1
+      `).get(ip, userAgent || '', oneDayAgo);
+      if (row) {
+        const u = getUser(row.current_user_id);
+        if (u && !u.phone) return u;
+      }
+    }
+    return null;
+  },
+  hasWelcomeGrantedForIpOrDevice(deviceId, ip, userAgent) {
+    if (deviceId) {
+      const dev = sql.prepare('SELECT welcome_granted FROM device_profiles WHERE device_id=?').get(deviceId);
+      if (dev && dev.welcome_granted) return true;
+    }
+    if (ip && typeof ip === 'string' && ip !== '127.0.0.1' && ip !== '::1') {
+      const oneDayAgo = Date.now() - 24 * 60 * 60 * 1000;
+      const ipMatch = sql.prepare(`
+        SELECT welcome_granted FROM device_profiles
+        WHERE ip=? AND welcome_granted=1 AND created_at > ?
+        LIMIT 1
+      `).get(ip, oneDayAgo);
+      if (ipMatch) return true;
+    }
+    return false;
+  },
   bindDeviceProfile(deviceId, userId, { ip, userAgent, welcomeGranted = 1 } = {}) {
     if (!deviceId || typeof deviceId !== 'string' || !userId) return;
     const now = Date.now();
