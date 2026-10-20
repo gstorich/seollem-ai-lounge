@@ -23,6 +23,14 @@ assert.deepEqual(build(female,[user('저는 45살 남자예요')]).allowedAddres
 assert.deepEqual(build(male,[user('저는 25살 여자예요')]).allowedAddressTerms,[]);
 assert.deepEqual(build(male,[user('누나라고 불러줘')]).allowedAddressTerms,['누나']);
 assert.deepEqual(build(female,[user('그리고 그쪽이라고 하지말고 오빠라고 불러')]).allowedAddressTerms,['오빠']);
+assert.deepEqual(build(female,[user('오빠라 불러봐')]).allowedAddressTerms,['오빠']);
+assert.deepEqual(build(female,[user('자기라고 불러줘')]).allowedAddressTerms,['자기']);
+assert.deepEqual(build(female,[user('호칭은 오빠로 하자')]).allowedAddressTerms,['오빠']);
+assert.deepEqual(build(female,[user('선배라 해줘')]).allowedAddressTerms,['선배']);
+assert.deepEqual(build(female,[user('오빠라고 부르면 돼')]).allowedAddressTerms,['오빠']);
+assert.deepEqual(build(female,[user('오빠라 해줄래?')]).allowedAddressTerms,['오빠']);
+assert.deepEqual(build(female,[user('그쪽 말고 오빠')]).allowedAddressTerms,['오빠']);
+assert.equal(build(female,[user('내 이름은 민수야 민수라고 불러줘')]).name,'민수');
 assert.deepEqual(build(male,[user('형이라고 불러')]).allowedAddressTerms,['형']);
 assert.deepEqual(build(female,[user('선배님이라고 불러주세요')]).allowedAddressTerms,['선배님']);
 assert.equal(build(male,[user('누나라고 불러줘')]).age,null,'An address preference is not an age fact');

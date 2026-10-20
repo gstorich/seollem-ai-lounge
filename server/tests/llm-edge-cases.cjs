@@ -25,6 +25,7 @@ const env = {
 // Custom mock provider injected for this test
 const mockProviderFile = path.join(dir, 'mock-edge.cjs');
 fs.writeFileSync(mockProviderFile, `
+const assert = require('node:assert/strict');
 const original = global.fetch;
 const turnCounters = new Map();
 
@@ -111,6 +112,18 @@ global.fetch = async (url, options) => {
     } else if (lastUserMsg.includes('partial-json-fallback-case')) {
       // 뒤쪽 브래킷이 잘린 불완전 JSON이지만 정규식으로 복구 가능한 시나리오
       outputText = '{"reply": "정규식 폴백으로 복구된 답변이야.", "roomLeft": false';
+    } else if (lastUserMsg.includes('user-requests-oppa-case')) {
+      assert(prompt.includes('"allowedAddressTerms":["오빠"]'), '시스템 프롬프트에 오빠 호칭이 허용되어야 함');
+      outputText = JSON.stringify({
+        reply: '오빠! 앞으로 오빠라고 다정하게 부를게. 오늘 하루는 어땠어?',
+        roomLeft: false
+      });
+    } else if (lastUserMsg.includes('user-revokes-oppa-case')) {
+      assert(prompt.includes('"allowedAddressTerms":[]'), '시스템 프롬프트에서 오빠 호칭이 철회되어야 함');
+      outputText = JSON.stringify({
+        reply: '알겠어, 편하게 대화 나누자.',
+        roomLeft: false
+      });
     } else if (lastUserMsg.includes('normal-chat-case')) {
       outputText = JSON.stringify({
         reply: '나도 무협 소설 좋아해! 어떤 작품 가장 재밌게 봤어?',
@@ -252,11 +265,24 @@ async function req(route, token, body, method = body === undefined ? 'GET' : 'PO
     assert(normalRes.data.partnerReply.includes('무협 소설 좋아해'));
     console.log(' -> 결과:', normalRes.data.partnerReply);
 
+    console.log('[Test 9] 사용자가 "오빠라고 불러" 요청 시 즉시 흔쾌히 "오빠" 호칭 사용 및 수락');
+    const reqOppaRes = await send('user-requests-oppa-case: 그쪽 말고 오빠라고 불러줘', 'req-oppa-1');
+    assert.equal(reqOppaRes.status, 200);
+    assert(reqOppaRes.data.partnerReply.includes('오빠'), '사용자가 요청한 오빠 호칭이 즉시 답변에 반영되어야 함');
+    console.log(' -> 결과:', reqOppaRes.data.partnerReply);
+
+    console.log('[Test 10] 사용자가 "오빠라고 부르지 마" 철회 시 즉시 호칭 배제');
+    const revokeOppaRes = await send('user-revokes-oppa-case: 이제 오빠라고 부르지 마', 'revoke-oppa-1');
+    assert.equal(revokeOppaRes.status, 200);
+    assert(!revokeOppaRes.data.partnerReply.includes('오빠'), '철회된 오빠 호칭은 포함되지 않아야 함');
+    console.log(' -> 결과:', revokeOppaRes.data.partnerReply);
+
     console.log('\nPASS: All LLM edge cases, address auto-sanitization, markdown JSON parsing, system phrase filtering, and fallback resilience verified!');
     await stop();
     process.exit(0);
   } catch (err) {
     console.error('FAILED:', err);
+    console.error('SERVER LOGS:', logs);
     await stop();
     process.exit(1);
   }

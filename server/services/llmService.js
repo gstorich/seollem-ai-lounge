@@ -37,7 +37,7 @@ function sanitizeReply(reply, character, conversation, relationship) {
   if (!reply || typeof reply !== 'string') return '';
   let cleaned = reply;
   const latest = conversation.recent.at(-1)?.content || '';
-  const addresses = ['누나', '오빠', '언니', '형', '자기', '여보', '선배님'];
+  const addresses = ['누나', '오빠', '언니', '형', '자기', '여보', '선배님', '선배'];
   const allowed = relationship.allowedAddressTerms || [];
 
   // 1. 허용되지 않은 친밀 호칭 정제 (가족 지칭 제외)
@@ -71,9 +71,12 @@ function sanitizeReply(reply, character, conversation, relationship) {
 
 function dialogueFeedback(reply,character,conversation,relationship){
   const latest=conversation.recent.at(-1)?.content||'';
-  const addresses=['누나','오빠','언니','형','자기','여보','선배님'];
+  const addresses=['누나','오빠','언니','형','자기','여보','선배님','선배'];
   const badAddress=addresses.find(term=>!(relationship.allowedAddressTerms||[]).includes(term)&&!latest.includes(term)&&new RegExp('(?:^|[\\s,.!?])'+term+'(?:[\\s,.!?]|는|은|가|이|도|랑|한테|에게|야|아|님|씨)').test(reply)&&!new RegExp('(?:우리|제|내)\\s*'+term).test(reply));
   if(badAddress)return {hard:true,instruction:'사용자에게 확인되지 않은 친밀한 호칭을 썼습니다. 호칭을 전부 생략하고 같은 내용을 이 인물의 말투로 다시 쓰세요. 나이와 성별을 추측하지 않습니다.'};
+  if(relationship.requestedAddress && /(?:아직(?:은)?\s*(?:어색|조금|좀)|천천히|친해지면|다음에\s*부를|나중에\s*부를|맞춰가\s*볼까요)/.test(reply)){
+    return {instruction:`사용자가 '${relationship.requestedAddress}'(으)로 불러달라고 요청했습니다. 어색하다거나 친해지면 부르겠다는 식으로 거절·유보하지 말고, 바로 기분 좋게 '${relationship.requestedAddress}'(이)라고 부르며 화답하세요.`};
+  }
   if(/성인\s*인증|본인\s*인증|시스템\s*(?:오류|메시지|대화|안내)|운영\s*정책|서비스\s*약관|서버\s*(?:오류|설정)|차단\s*되었|이용\s*제한/.test(reply))return {hard:true,instruction:'캐릭터가 시스템, 성인인증, 운영 정책 관련 안내나 시스템 대화를 직접 발화했습니다. 캐릭터는 시스템 대화를 절대 발화할 수 없습니다. 오직 캐릭터의 세계관과 자연스러운 인물 대사로만 다시 쓰세요.'};
   if(character.creatorDefinition)return null; // Authored styles are not generic presets.
   if(/요청하신\s*대로|앞으로는?\s*정중하게|존댓말(?:을|로)\s*(?:사용|대화|말씀).*겠|말투를\s*바꾸겠/.test(reply))return {instruction:'요청을 설명하는 직원용 확인문이 나왔습니다. 설정 변경을 복창하지 말고, 실제로 요청된 말높임으로 한두 마디 대화를 이어가세요. 장난을 중단하되 성격과 취향은 유지합니다. 장황한 사과나 다른 주제를 고르라는 질문도 필요 없습니다.'};

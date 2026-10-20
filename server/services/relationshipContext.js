@@ -1,5 +1,5 @@
 // Only explicit user statements establish facts; persona preferences and AI replies do not.
-const addressTerms=['누나','오빠','언니','형','자기','여보','선배님'];
+const addressTerms=['누나','오빠','언니','형','자기','여보','선배님','선배'];
 function buildRelationshipContext(character,messages=[]){
  let age=null,gender=null,name=null,requestedAddress=null,speechRegister=null;
  const rejected=new Set();
@@ -8,9 +8,12 @@ function buildRelationshipContext(character,messages=[]){
   const text=String(message.text??message.content??'').trim();
   for(const term of addressTerms){
    const quoted=`["'“‘]?${term}["'”’]?`;
-   if(new RegExp(quoted+'(?:이?라고|이?라곤|이?라|으?로)?\\s*(?:부르지\\s*마|하지\\s*마|안\\s*불|말고)').test(text)){
+   if(new RegExp(quoted+'(?:이?라고|이?라곤|이?라|으?로)?\\s*(?:부르지\\s*마|하지\\s*마|안\\s*불|쓰지\\s*마|빼고|말고)').test(text)){
     rejected.add(term);if(requestedAddress===term)requestedAddress=null;
-   }else if(new RegExp(quoted+'(?:이?라고|이?라곤|이?라|으?로)?\\s*(?:불러(?:줘|요|라|도\\s*(?:돼|되|괜찮))?|부르면\\s*(?:돼|되|괜찮아|좋겠어|좋아)|불러주세요|불러도\\s*좋(?:아|아요|음)?|해(?:줘|요|라)?|해요)').test(text)){
+   }else if(
+    new RegExp(quoted+'(?:이?라고|이?라곤|이?라|으?로)?\\s*(?:불러(?:줘|요|라|봐|줄래|주라|도\\s*(?:돼|되|괜찮|좋))?|부르면\\s*(?:돼|되|괜찮아|좋겠어|좋아)|불러주세요|해(?:줘|요|라|봐|줄래|주라|도\\s*(?:돼|되|괜찮|좋))?|해요|하면\\s*(?:돼|되|좋겠어|좋아))').test(text) ||
+    new RegExp('(?:호칭(?:은)?|그쪽(?:말고|\\s*말고|이라고\\s*하지\\s*말고)?)\\s*'+quoted).test(text)
+   ){
     rejected.delete(term);requestedAddress=term;
    }
   }
@@ -23,7 +26,8 @@ function buildRelationshipContext(character,messages=[]){
   const value=Number(ageMatch?.[1]||bareAge?.[1]);if(value>=18&&value<=99)age=value;
   const genderMatch=text.match(/(?:^|\s)(?:저는|전|나는|난|\d{2}\s*(?:살|세)(?:이고|이고요|인)?\s*)\s*(여자|여성|남자|남성)(?:예요|에요|야|입니다|이고|이에요|요|[.!\s]|$)/);
   if(genderMatch)gender=['여자','여성'].includes(genderMatch[1])?'female':'male';
-  const nameMatch=text.match(/(?:제|내)\s*이름은\s*([가-힣]{2,5}?)(?:이에요|예요|입니다|이야)/);if(nameMatch)name=nameMatch[1];
+  const nameMatch=text.match(/(?:제|내)\s*이름은\s*([가-힣]{2,5}?)(?:이에요|예요|입니다|이야)|([가-힣]{2,5}?)(?:이?라고|이?라)\s*불러(?:줘|요|라)?/);
+  if(nameMatch)name=nameMatch[1]||nameMatch[2];
  }
  const allowed=[];
  if(requestedAddress)allowed.push(requestedAddress);
