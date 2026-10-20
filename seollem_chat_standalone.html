@@ -4634,12 +4634,13 @@
     }
 
     function showContentAccessNotice(error, retry, meta = {}) {
-      if (!['MINIMUM_AGE_REQUIRED','ADULT_VERIFICATION_REQUIRED','CONTENT_NOT_ALLOWED'].includes(error.code)) return false;
+      const errorCode = error.code || error.error;
+      if (!['MINIMUM_AGE_REQUIRED','ADULT_VERIFICATION_REQUIRED','CONTENT_NOT_ALLOWED'].includes(errorCode)) return false;
       document.getElementById('generationErrorNotice')?.remove();
       const notice = document.createElement('div');
       notice.id = 'generationErrorNotice';
       notice.setAttribute('role', 'alert');
-      if (error.code === 'ADULT_VERIFICATION_REQUIRED') {
+      if (errorCode === 'ADULT_VERIFICATION_REQUIRED') {
         const char = meta.char || state.currentChar;
         const userText = meta.userText;
         const reqId = meta.requestId || state.messages.filter(m => m.sender === 'user').at(-1)?.id;

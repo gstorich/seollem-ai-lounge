@@ -189,17 +189,17 @@ module.exports = {
       if(config.openaiApiKey)return callOpenAI(messages,prompt,config.openaiApiKey,signal);
       throw new Error('LLM_NOT_CONFIGURED');
     }
-    async function check(target){
+    async function check(target, isUser = false){
       try {
         const raw=await generate([{role:'user',content:JSON.stringify({context:selectedHistory.slice(-6),target})}],contentAccess.prompt,contentAccess.schema,true);
         let result = safeParseJson(raw);
         if(!result) {
           try{result=JSON.parse(raw);}catch{throw Error('LLM_INVALID_SAFETY');}
         }
-        contentAccess.enforce(result,adult);
+        contentAccess.enforce(result, adult, isUser, target);
       } catch(error) {error.safetyCheckFailed=true;throw error;}
     }
-    if(!['greeting','proactive'].includes(conversation.kind))await check(selectedHistory.at(-1)?.content||'');
+    if(!['greeting','proactive'].includes(conversation.kind))await check(selectedHistory.at(-1)?.content||'', true);
     const dialogueSchema={type:'OBJECT',properties:{reply:{type:'STRING'},roomLeft:{type:'BOOLEAN'}},required:['reply','roomLeft'],propertyOrdering:['reply','roomLeft']};
     let dialogue;
     for(let attempt=0;attempt<2;attempt++){

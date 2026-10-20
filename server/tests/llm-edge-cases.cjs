@@ -151,6 +151,16 @@ global.fetch = async (url, options) => {
           roomLeft: false
         });
       }
+    } else if (lastUserMsg.includes('curse-word-live-case')) {
+      outputText = JSON.stringify({
+        reply: '너 지금 누구한테 욕하는 거야? 말버릇 좀 고치지 그래?',
+        roomLeft: false
+      });
+    } else if (lastUserMsg.includes('touch-breast-live-case')) {
+      outputText = JSON.stringify({
+        reply: '어머, 변태야? 대낮부터 어딜 만지려고 해 ㅋㅋㅋ 꿈 깨!',
+        roomLeft: false
+      });
     } else if (lastUserMsg.includes('normal-chat-case')) {
       outputText = JSON.stringify({
         reply: '나도 무협 소설 좋아해! 어떤 작품 가장 재밌게 봤어?',
@@ -310,6 +320,20 @@ async function req(route, token, body, method = body === undefined ? 'GET' : 'PO
     assert.equal(soyoungRes.data.isAiGenerated, true);
     assert.equal(soyoungRes.data.partnerReply, '정소영 캐릭터의 정상 답변입니다! 메모리 오류가 나도 이 답변은 살아야 해요');
     console.log(' -> 결과:', soyoungRes.data.partnerReply);
+
+    console.log('[Test 12] 욕설 입력 시 403 차단 없이 캐릭터가 앙칼지게 맞받아치는 정상 대화');
+    const curseRes = await send('curse-word-live-case: 씨발 장난치나', 'curse-1');
+    assert.equal(curseRes.status, 200, '욕설 입력 시 403으로 차단되지 않고 200이어야 함');
+    assert.equal(curseRes.data.isAiGenerated, true);
+    assert(curseRes.data.partnerReply.includes('욕하는 거야') || curseRes.data.partnerReply.includes('말버릇'));
+    console.log(' -> 결과:', curseRes.data.partnerReply);
+
+    console.log('[Test 13] 스킨십 질문(가슴 만져도 되나요?) 입력 시 차단 없이 캐릭터가 자연스럽게 튕기는 정상 대화');
+    const touchRes = await send('touch-breast-live-case: 가슴 만져도 되나요?', 'touch-1');
+    assert.equal(touchRes.status, 200, '스킨십 질문 시 403으로 차단되지 않고 200이어야 함');
+    assert.equal(touchRes.data.isAiGenerated, true);
+    assert(touchRes.data.partnerReply.includes('어딜 만지려고') || touchRes.data.partnerReply.includes('변태'));
+    console.log(' -> 결과:', touchRes.data.partnerReply);
 
     console.log('\nPASS: All LLM edge cases, address auto-sanitization, markdown JSON parsing, system phrase filtering, and fallback resilience verified!');
     await stop();
