@@ -1,5 +1,5 @@
 const db=require('./dbService');
-const version='2026-10-19.2';
+const version='2026-10-20.1';
 const documents={terms:'/terms',privacy:'/privacy',refund:'/refund',safety:'/safety',changes:'/policies'};
 db.sql.exec('CREATE TABLE IF NOT EXISTS legal_acceptance_events(id INTEGER PRIMARY KEY,user_id TEXT NOT NULL,version TEXT NOT NULL,action TEXT NOT NULL,data TEXT NOT NULL,created_at INTEGER NOT NULL)');
 function knownUnder18(user){return user?.identityVerification?.verified===true&&user.identityVerification.isAtLeast18===false;}

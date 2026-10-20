@@ -46,7 +46,7 @@ async function req(route,{method='GET',body,token,cookie,headers={}}={}){const r
  await req('/admin/analytics',{method:'PUT',cookie,body:{measurementId:'G-ABCDEF1234',propertyId:'123456789'}});
  const audits=(await req('/admin/audit',{cookie})).data.items;assert(audits.some(x=>x.action==='heart_adjustment'));assert(!JSON.stringify(audits).includes(password));
  await stop();await start();assert.equal((await req('/admin/tickets/'+ticketId,{cookie})).data.ticket.messages.length,4);assert.equal((await req('/admin/customers/'+phone,{cookie})).data.customer.hearts,60);
- const setAdult=await req('/admin/customers/'+phone+'/adult-verification',{method:'POST',cookie,body:{isAdult:true,reason:'테스트'}});assert.equal(setAdult.status,200);assert.equal(setAdult.data.isAdult,true);assert.equal((await req('/admin/customers/'+phone,{cookie})).data.customer.isAdult,true);
+ const setAdult=await req('/admin/customers/'+phone+'/adult-verification',{method:'POST',cookie,body:{isAdult:true,reason:'test'}});assert.equal(setAdult.status,403);assert.equal(setAdult.data.error,'VERIFIED_IDENTITY_REQUIRED');
  const unsetAdult=await req('/admin/customers/'+phone+'/adult-verification',{method:'POST',cookie,body:{isAdult:false,reason:'해제'}});assert.equal(unsetAdult.status,200);assert.equal(unsetAdult.data.isAdult,false);assert.equal((await req('/admin/customers/'+phone,{cookie})).data.customer.isAdult,false);
  const expired=jwt.sign({role:'admin',version:crypto.createHash('sha256').update(hash).digest('hex')},secret,{audience:'azit-admin',expiresIn:-1});assert.equal((await req('/admin/overview',{cookie:'__Host-azit_admin='+expired})).status,401);
  for(let i=0;i<5;i++)await req('/admin/session',{method:'POST',body:{password:'wrong'}});

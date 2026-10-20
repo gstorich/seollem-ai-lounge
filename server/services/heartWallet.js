@@ -1,13 +1,17 @@
 const crypto = require('node:crypto');
 
-// Two calendar years in Korea time; Feb 29 anniversaries fall on Feb 28.
-function expiresAfterTwoYears(acquiredAt) {
+// Calendar-year expiry in Korea time; preserve all previously stored expiries.
+const ONE_YEAR_POLICY_AT=Date.parse("2026-10-20T00:00:00+09:00");
+function calendarExpiry(acquiredAt,years) {
   const local = new Date(acquiredAt + 9 * 3600000);
-  const year = local.getUTCFullYear() + 2;
+  const year = local.getUTCFullYear() + years;
   const month = local.getUTCMonth();
   const day = Math.min(local.getUTCDate(), new Date(Date.UTC(year, month + 1, 0)).getUTCDate());
   return Date.UTC(year, month, day, local.getUTCHours(), local.getUTCMinutes(), local.getUTCSeconds(), local.getUTCMilliseconds()) - 9 * 3600000;
 }
+function expiresAfterTwoYears(at){return calendarExpiry(at,2);}
+function expiresAfterOneYear(at){return calendarExpiry(at,1);}
+function expiresForAcquisition(at){return calendarExpiry(at,at>=ONE_YEAR_POLICY_AT?1:2);}
 function units(value) {
   const result = Math.round(value * 10);
   if (!Number.isFinite(value) || !Number.isSafeInteger(result) || value < 0 || Math.abs(value * 10 - result) > 1e-6) throw Error('Invalid heart amount');
@@ -27,7 +31,7 @@ function createWallet(sql) {
   function addGrant(id,amount,at,reason,ledgerId,remaining=amount) {
     if(amount<=0)return;
     sql.prepare('INSERT INTO heart_grants(id,user_id,granted_units,remaining_units,acquired_at,expires_at,reason,source_ledger_id) VALUES(?,?,?,?,?,?,?,?)')
-      .run(crypto.randomUUID(),id,amount,remaining,at,expiresAfterTwoYears(at),reason,ledgerId);
+      .run(crypto.randomUUID(),id,amount,remaining,at,expiresForAcquisition(at),reason,ledgerId);
   }
   function initialize(id) {
     if(sql.prepare('SELECT 1 FROM heart_wallets WHERE user_id=?').get(id))return;
@@ -113,7 +117,7 @@ function createWallet(sql) {
     const user=expire(id);if(!user)return null;
     const next=sql.prepare('SELECT expires_at,sum(remaining_units) amount FROM heart_grants WHERE user_id=? AND remaining_units>0 GROUP BY expires_at ORDER BY expires_at LIMIT 1').get(id);
     const soon=sql.prepare('SELECT coalesce(sum(remaining_units),0) n FROM heart_grants WHERE user_id=? AND remaining_units>0 AND expires_at<=?').get(id,Date.now()+30*86400000).n;
-    return {validityYears:2,nextExpiresAt:next?.expires_at||null,nextExpiringHearts:(next?.amount||0)/10,expiringIn30Days:soon/10};
+    return {validityYears:1,policyEffectiveAt:ONE_YEAR_POLICY_AT,nextExpiresAt:next?.expires_at||null,nextExpiringHearts:(next?.amount||0)/10,expiringIn30Days:soon/10};
   }
   function grants(id) {
     expire(id);
@@ -130,4 +134,4 @@ function createWallet(sql) {
   }
   return {expire,expireAll,change,create,transfer,summary,grants,startWorker};
 }
-module.exports={createWallet,expiresAfterTwoYears,units};
+module.exports={createWallet,expiresAfterTwoYears,expiresAfterOneYear,expiresForAcquisition,ONE_YEAR_POLICY_AT,units};

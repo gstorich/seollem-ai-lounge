@@ -1,5 +1,5 @@
 const crypto=require('node:crypto'),db=require('./dbService'),gateway=require('./portoneGateway');
-const {units}=require('./heartWallet'),packages=require('../../products.json');
+const {units,expiresAfterOneYear}=require('./heartWallet'),packages=require('../../products.json');
 db.sql.exec(`CREATE TABLE IF NOT EXISTS payment_orders(id TEXT PRIMARY KEY,user_id TEXT NOT NULL,data TEXT NOT NULL,created_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS payment_receipts(imp_uid TEXT PRIMARY KEY,order_id TEXT UNIQUE NOT NULL);
 CREATE TABLE IF NOT EXISTS payment_refunds(order_id TEXT PRIMARY KEY,data TEXT NOT NULL);`);
@@ -41,7 +41,7 @@ function apply(id,p){return db.transaction(()=>{
  const bound=db.sql.prepare('SELECT order_id FROM payment_receipts WHERE imp_uid=?').get(p.imp_uid);if(bound&&bound.order_id!==id)throw error('PAYMENT_MISMATCH',409);
  if(['paid','cancelled'].includes(p.status)){o.providerPaidAt=p.paid_at*1000;o.paidAt=o.providerPaidAt;}
  if(p.cancel_amount<(o.cancelledAmount||0))throw error('STALE_PAYMENT',409);db.getUser(o.userId);
- if(!o.grantId&&['paid','cancelled'].includes(p.status)&&p.cancel_amount<o.price){db.sql.prepare('INSERT INTO payment_receipts VALUES(?,?)').run(p.imp_uid,id);db.creditHearts(o.userId,o.hearts,'payment:'+id);o.grantId=db.sql.prepare('SELECT id FROM heart_grants WHERE user_id=? AND reason=?').get(o.userId,'payment:'+id).id;o.impUid=p.imp_uid;}
+ if(!o.grantId&&['paid','cancelled'].includes(p.status)&&p.cancel_amount<o.price){db.sql.prepare('INSERT INTO payment_receipts VALUES(?,?)').run(p.imp_uid,id);db.creditHearts(o.userId,o.hearts,'payment:'+id);o.grantId=db.sql.prepare('SELECT id FROM heart_grants WHERE user_id=? AND reason=?').get(o.userId,'payment:'+id).id;db.sql.prepare('UPDATE heart_grants SET expires_at=MIN(expires_at,?) WHERE id=?').run(expiresAfterOneYear(o.paidAt),o.grantId);o.impUid=p.imp_uid;}
  if(!o.grantId){o.status=p.cancel_amount>0?'cancelled_before_credit':p.status;o.cancelledAmount=p.cancel_amount;return save(o);}
  const r=refundRecord(id),g=grant(o);if(r?.status==='pending'&&p.cancel_amount>=r.targetCancelled){r.status='completed';r.completedAt=Date.now();saveRefund(r);}
  const target=Math.ceil(units(o.hearts)*p.cancel_amount/o.price),held=r?.units||0,additional=Math.max(0,target-(o.revokedUnits||0)-held),take=Math.min(g.remaining_units,additional);

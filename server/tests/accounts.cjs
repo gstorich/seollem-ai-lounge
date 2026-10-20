@@ -23,7 +23,7 @@ async function start() {
 async function stop() { if (child && child.exitCode === null) { const exit = new Promise(r=>child.once('exit',r)); child.kill(); await exit; } }
 async function request(route, token, body, method = body === undefined ? 'GET' : 'POST') {
   const res = await fetch(base+route, { method, headers: { 'Content-Type':'application/json', ...(token ? {Authorization:`Bearer ${token}`} : {}) }, ...(body === undefined ? {} : {body:JSON.stringify(body)}) });
-  const data = await res.json(); if(route==='/auth/guest'&&data.token)assert.equal((await request('/legal/accept',data.token,{version:'2026-10-19.2',atLeast18:true,termsAccepted:true,privacyAcknowledged:true,aiNoticeAcknowledged:true})).status,200); return { status:res.status, ...data };
+  const data = await res.json(); if(route==='/auth/guest'&&data.token)assert.equal((await request('/legal/accept',data.token,{version:'2026-10-20.1',atLeast18:true,termsAccepted:true,privacyAcknowledged:true,aiNoticeAcknowledged:true})).status,200); return { status:res.status, ...data };
 }
 const guest = () => request('/auth/guest', null, {});
 const getState = token => request('/account/state', token);

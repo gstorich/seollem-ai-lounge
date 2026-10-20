@@ -71,6 +71,7 @@ router.post('/customers/:id/hearts',(req,res)=>{
 router.post('/customers/:id/adult-verification',(req,res)=>{
  const {isAdult,reason}=req.body;
  if(typeof isAdult!=='boolean')return res.status(400).json({error:'성인 인증 여부(true/false)가 필요합니다.'});
+ if(isAdult)return res.status(403).json({success:false,error:'VERIFIED_IDENTITY_REQUIRED',message:'성인인증은 본인확인 기관의 검증 결과로만 부여할 수 있습니다.'});
  const result=ops.setAdultVerification(req.admin.id,req.params.id,isAdult,String(reason||'').trim().slice(0,500));
  if(!result)return res.sendStatus(404);
  res.json({success:true,...result});

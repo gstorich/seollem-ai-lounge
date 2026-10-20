@@ -69,7 +69,7 @@ async function request(route, token, body, headers = {}, method = body === undef
     await fetch(base + '/legal/accept', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${data.token}` },
-      body: JSON.stringify({ version: '2026-10-19.2', atLeast18: true, termsAccepted: true, privacyAcknowledged: true, aiNoticeAcknowledged: true })
+      body: JSON.stringify({ version: '2026-10-20.1', atLeast18: true, termsAccepted: true, privacyAcknowledged: true, aiNoticeAcknowledged: true })
     });
   }
   return { status: res.status, ...data };

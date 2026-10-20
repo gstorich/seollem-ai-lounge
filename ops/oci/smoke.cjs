@@ -75,7 +75,7 @@ async function post(route, body, token) {
     const guest = await (await post('/api/auth/guest', {})).json();
     assert(guest.token);
     assert.equal((await post('/api/chat/send',{characterId:'chaewon',message:'general',messageId:'before-consent'},guest.token)).status,428);
-    assert.equal((await post('/api/legal/accept',{version:'2026-10-19.2',atLeast18:true,termsAccepted:true,privacyAcknowledged:true,aiNoticeAcknowledged:true},guest.token)).status,200);
+    assert.equal((await post('/api/legal/accept',{version:'2026-10-20.1',atLeast18:true,termsAccepted:true,privacyAcknowledged:true,aiNoticeAcknowledged:true},guest.token)).status,200);
     const restored = await (await post('/api/auth/guest', {}, guest.token)).json();
     assert.equal(restored.user.id, guest.user.id);
     const guessed = await (await post('/api/auth/guest', { guestId: guest.user.id })).json();
