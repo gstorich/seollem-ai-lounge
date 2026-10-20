@@ -3924,7 +3924,8 @@
       if (Array.isArray(pending.bubbles)) {
         pending.bubbles.forEach((bText, i) => {
           if (!bText || typeof bText !== 'string' || !bText.trim()) return;
-          const msgId = `${pending.replyId || 'reply_' + Date.now()}_${i}`;
+          const baseReplyId = pending.replyId || ('reply_' + Date.now());
+          const msgId = (pending.bubbles.length === 1 && i === 0) ? baseReplyId : `${baseReplyId}_${i}`;
           if (!room.messages.some(m => m.id === msgId || (m.sender === 'ai' && m.text === bText && Math.abs((m.createdAt || 0) - Date.now()) < 10000))) {
             const timeStr = new Date().toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true });
             room.messages.push({
@@ -4185,12 +4186,13 @@
 
           if (turnId && turnId !== state.messageTurnId) return;
 
+          const bubbleMsgId = (bubbles.length === 1 && idx === 0) ? replyPlan.replyId : `${replyPlan.replyId}_${idx}`;
           if (isInActiveRoom()) {
             hideTypingIndicator();
-            appendMessage('ai', bubbleText, { id: `${replyPlan.replyId}_${idx}` });
+            appendMessage('ai', bubbleText, { id: bubbleMsgId });
             saveAccountState();
           } else {
-            deliverBubbleToRoom(char, bubbleText, `${replyPlan.replyId}_${idx}`);
+            deliverBubbleToRoom(char, bubbleText, bubbleMsgId);
           }
 
           if (char?.id && state.activePendingDeliveries?.[char.id]?.bubbles) {

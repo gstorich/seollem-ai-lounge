@@ -41,10 +41,20 @@ function rooms({kind='all',days=0,userId='',q='',page=0,characterId=''}={}){
 }
 function transcript(userId,characterId,page=0){
  if(!sql.prepare('SELECT 1 FROM users WHERE id=?').get(userId))return null;
- const total=sql.prepare('SELECT count(*) n FROM conversation_messages WHERE user_id=? AND character_id=?').get(userId,characterId).n;
  const c=catalog.get(characterId);
- return {userId,characterId,characterName:c?.name||characterId,scenario:c?.conceptTitle||'미분류',total,page,
- messages:sql.prepare('SELECT data,created_at FROM conversation_messages WHERE user_id=? AND character_id=? ORDER BY created_at,rowid LIMIT 100 OFFSET ?').all(userId,characterId,page*100).map(row=>({...JSON.parse(row.data),createdAt:row.created_at}))};
+ const rows=sql.prepare('SELECT message_id,data,created_at FROM conversation_messages WHERE user_id=? AND character_id=? ORDER BY created_at,rowid').all(userId,characterId);
+ const deduplicated=[];
+ for(const row of rows){
+  const msg={...JSON.parse(row.data),createdAt:row.created_at,id:row.message_id};
+  const prev=deduplicated[deduplicated.length-1];
+  if(prev && prev.sender==='ai' && msg.sender==='ai' && prev.text===msg.text){
+   continue;
+  }
+  deduplicated.push(msg);
+ }
+ const total=deduplicated.length;
+ const messages=deduplicated.slice(page*100,(page+1)*100);
+ return {userId,characterId,characterName:c?.name||characterId,scenario:c?.conceptTitle||'미분류',total,page,messages};
 }
 function insights(kind='all',days=30){
  const {where,args}=scope(kind,days);

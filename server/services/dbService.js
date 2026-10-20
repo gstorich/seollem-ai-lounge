@@ -84,9 +84,28 @@ function mergeRooms(left = {}, right = {}) {
     const prev = out[id] || {};
     const messages = new Map((prev.messages || []).map(m => [m.id, m]));
     for (const m of room.messages || []) {
+      if (!m || !m.id) continue;
       // A previously saved message is immutable; later snapshots cannot rewrite it.
-      if (!messages.has(m.id)) messages.set(m.id, m);
-      else if (m.unread === false) messages.set(m.id, { ...messages.get(m.id), unread: false });
+      if (messages.has(m.id)) {
+        if (m.unread === false) messages.set(m.id, { ...messages.get(m.id), unread: false });
+        continue;
+      }
+      // Deduplicate replyId vs replyId_0 variant for AI messages
+      if (m.sender === 'ai' && typeof m.text === 'string') {
+        const baseId = m.id.replace(/_\d+$/, '');
+        if (baseId !== m.id && messages.has(baseId)) {
+          const existing = messages.get(baseId);
+          if (existing.sender === 'ai' && existing.text === m.text) continue;
+        }
+        const suffixedId = m.id + '_0';
+        if (messages.has(suffixedId)) {
+          const existing = messages.get(suffixedId);
+          if (existing.sender === 'ai' && existing.text === m.text) {
+            messages.delete(suffixedId);
+          }
+        }
+      }
+      messages.set(m.id, m);
     }
     out[id] = { ...prev, ...room, messages: [...messages.values()].sort((a,b) => (a.createdAt || 0) - (b.createdAt || 0)) };
   }
