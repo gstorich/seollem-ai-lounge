@@ -122,9 +122,11 @@ module.exports = {
       throw new Error('LLM_NOT_CONFIGURED');
     }
     async function check(target){
+      try {
       const raw=await generate([{role:'user',content:JSON.stringify({context:selectedHistory.slice(-6),target})}],contentAccess.prompt,contentAccess.schema,true);
       let result;try{result=JSON.parse(raw);}catch{throw Error('LLM_INVALID_SAFETY');}
       contentAccess.enforce(result,adult);
+      } catch(error) {error.safetyCheckFailed=true;throw error;}
     }
     if(!['greeting','proactive'].includes(conversation.kind))await check(selectedHistory.at(-1)?.content||'');
     const dialogueSchema={type:'OBJECT',properties:{reply:{type:'STRING'},roomLeft:{type:'BOOLEAN'}},required:['reply','roomLeft'],propertyOrdering:['reply','roomLeft']};

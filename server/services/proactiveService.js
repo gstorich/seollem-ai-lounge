@@ -62,6 +62,7 @@ async function processJob(job,now=Date.now()){
      return true;
    });
  }catch(error){
+   require('./safetyMonitoring').record(job.user_id,job.character_id,job.source_id,'proactive',error);
    db.sql.prepare("UPDATE proactive_jobs SET status=CASE WHEN attempts>=3 THEN 'failed' ELSE 'pending' END,due_at=?,lease_until=0 WHERE user_id=? AND character_id=? AND source_id=? AND status='generating'").run(Date.now()+6*HOUR,job.user_id,job.character_id,job.source_id);
    console.warn('[proactive] generation deferred',error.name||'Error');return false;
  }finally{active.delete(job.user_id);}

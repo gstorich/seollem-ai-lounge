@@ -22,10 +22,10 @@ async function req(route,token,body,method=body===undefined?'GET':'POST'){const 
  assert.equal((await send('different input','first')).status,409);
  for(const marker of ['age-gate-input','unsafe-writer-test','minor-policy-test']){
   const before=(await state()).user.hearts,previous=sql.prepare('SELECT * FROM conversation_state WHERE user_id=?').all(id);
-  const denied=await send(marker,marker);assert.equal(denied.status,403,marker);assert.equal(denied.data.error,marker==='minor-policy-test'?'CONTENT_NOT_ALLOWED':'ADULT_VERIFICATION_REQUIRED');assert.equal(denied.data.costDeducted,0);assert.equal(denied.data.partnerReply,undefined);assert.equal((await state()).user.hearts,before);assert.deepEqual(sql.prepare('SELECT * FROM conversation_state WHERE user_id=?').all(id),previous);
+  const denied=await send(marker,marker);const event=sql.prepare('SELECT * FROM safety_events WHERE user_id=? AND request_id=?').get(id,marker);assert.equal(event.age_group,'unknown');assert.equal(event.reason,marker==='minor-policy-test'?'CONTENT_NOT_ALLOWED':'ADULT_VERIFICATION_REQUIRED');assert.equal(Object.hasOwn(event,'text'),false);assert.equal(denied.status,403,marker);assert.equal(denied.data.error,marker==='minor-policy-test'?'CONTENT_NOT_ALLOWED':'ADULT_VERIFICATION_REQUIRED');assert.equal(denied.data.costDeducted,0);assert.equal(denied.data.partnerReply,undefined);assert.equal((await state()).user.hearts,before);assert.deepEqual(sql.prepare('SELECT * FROM conversation_state WHERE user_id=?').all(id),previous);
   assert.equal(sql.prepare('SELECT count(*) n FROM conversation_messages WHERE user_id=? AND message_id=?').get(id,'reply_'+marker).n,0);
  }
- for(const marker of ['safety-network-test','invalid-safety-test']){const denied=await send(marker,marker);assert.equal(denied.status,503);assert.equal(denied.data.costDeducted,0);assert.equal(denied.data.partnerReply,undefined);}
+ for(const marker of ['safety-network-test','invalid-safety-test']){const denied=await send(marker,marker);const event=sql.prepare('SELECT * FROM safety_events WHERE user_id=? AND request_id=?').get(id,marker);assert.equal(event.age_group,'unknown');assert.equal(event.reason,marker==='invalid-safety-test'?'LLM_INVALID_SAFETY':'SAFETY_CHECK_UNAVAILABLE');assert.equal(Object.hasOwn(event,'text'),false);assert.equal(denied.status,503);assert.equal(denied.data.costDeducted,0);assert.equal(denied.data.partnerReply,undefined);}
  // Client claims cannot alter trusted age verification.
  await req('/account/state',token,{identityVerification:{verified:true,isAdult:true,verifiedAt:Date.now()},isAdult:true},'PUT');
  assert.equal((await send('age-gate-input','client-age-claim')).status,403);
@@ -59,8 +59,8 @@ async function req(route,token,body,method=body===undefined?'GET':'POST'){const 
  const guestRooms=(await req('/account/state',token)).data.savedRooms;
  assert(!((guestRooms[characterId]?.messages||[]).some(m=>m.id==='explicit-guest')),'Failed unverified message must not be persisted in savedRooms');
  assert.equal((await req('/chat/send',token,{characterId,message:'ordinary-topic',messageId:'after-blocked-turn'})).status,200,'Subsequent message succeeds cleanly');
- db.updateUser(adultUser.id,{identityVerification:{verified:true,isAdult:false,isAtLeast18:true,verifiedAt:Date.now()}});
- assert.equal((await req('/chat/send',adultToken,{characterId,message:'age-gate-input',messageId:'known-minor'})).status,403,'Known minors remain in general mode');
+ db.updateUser(adultUser.id,{identityVerification:{verified:true,method:'portone_danal',verificationId:'identity_11111111-1111-4111-8111-111111111111',isAdult:false,isAtLeast18:true,verifiedAt:Date.now()}});
+ assert.equal((await req('/chat/send',adultToken,{characterId,message:'age-gate-input',messageId:'known-minor'})).status,403,'Known minors remain in general mode');assert.equal(sql.prepare('SELECT age_group FROM safety_events WHERE user_id=? AND request_id=?').get(adultUser.id,'known-minor').age_group,'under19');
  assert.equal((await req('/chat/send',adultToken,{characterId,message:'age-gate-input',messageId:'adult-general'})).status,403,'An adult response cannot be replayed after age access changes');
  assert.equal((await req('/chat/send',adultToken,{characterId,message:'ordinary-topic',messageId:'minor-general'})).status,200,'Known minors can continue general chat');
  const memoryReply=await send('remember-test','remember');assert.equal(memoryReply.status,200);

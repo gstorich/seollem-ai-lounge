@@ -17,11 +17,12 @@ async function req(route,{method='GET',body,token,cookie,headers={}}={}){const r
  const guest=(await req('/auth/guest',{method:'POST',body:{}})).data,other=(await req('/auth/guest',{method:'POST',body:{}})).data;
  const phone='01000000001',user={id:phone,phone,hearts:50,createdAt:Date.now(),updatedAt:Date.now(),savedRooms:{},metCharIds:[]};sql.prepare('INSERT INTO users VALUES(?,?,?)').run(phone,phone,JSON.stringify(user));const memberToken=jwt.sign({userId:phone},secret,{expiresIn:'1h'});
  assert.equal((await req('/admin/overview')).status,401);
- assert.equal((await req('/admin/funnel')).status,401);
+ assert.equal((await req('/admin/funnel')).status,401);assert.equal((await req('/admin/safety-monitoring')).status,401);
  assert.equal((await req('/admin/overview',{token:memberToken})).status,401,'Customer JWT cannot access admin');
  assert.equal((await req('/admin/session',{method:'POST',body:{password:'wrong'}})).status,401);
  const login=await req('/admin/session',{method:'POST',body:{password}});assert.equal(login.status,200);assert.match(login.cookie,/HttpOnly/);assert.match(login.cookie,/Secure/);assert.match(login.cookie,/SameSite=Strict/);assert.match(login.cookie,/__Host-azit_admin=/);const cookie=login.cookie.split(';')[0];
  assert.equal((await req('/admin/overview',{cookie})).status,200);
+ const monitor=await req('/admin/safety-monitoring',{cookie});assert.equal(monitor.status,200);assert.equal(monitor.cache,'no-store');assert.equal(monitor.data.total,0);sql.prepare('INSERT INTO safety_events(user_id,character_id,request_id,kind,reason,age_group,created_at) VALUES(?,?,?,?,?,?,?)').run(phone,'test','test','chat','ADULT_VERIFICATION_REQUIRED','unknown',Date.now());assert.equal((await req('/admin/safety-monitoring',{cookie})).data.items[0].reason,'ADULT_VERIFICATION_REQUIRED');sql.prepare('UPDATE safety_events SET created_at=?').run(Date.now()-31*86400000);assert.equal((await req('/admin/safety-monitoring',{cookie})).data.total,0);assert.equal(sql.prepare('SELECT count(*) n FROM safety_events').get().n,0);
  const funnel=await req('/admin/funnel?days=7',{cookie});assert.equal(funnel.status,200);assert.equal(funnel.data.daily.length,7);assert.equal(funnel.cache,'no-store');
  assert.equal((await req('/admin/overview',{cookie})).cache,'no-store');
  assert.equal((await req('/admin/analytics',{method:'PUT',cookie,body:{measurementId:'G-ABCDEF1234'},headers:{Origin:'https://evil.example'}})).status,403);

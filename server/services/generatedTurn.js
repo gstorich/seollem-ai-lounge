@@ -63,6 +63,7 @@ module.exports = async function generatedTurn(req, res, {character, message, req
     });
     return res.json(response);
   } catch (error) {
+    require('./safetyMonitoring').record(id,character.id,requestId,kind,error);
     const accessBlocked=error.accessBlocked===true;
     const status=accessBlocked?403:error.code==='INSUFFICIENT_HEARTS'?402:503;
     const errorCode=/^(LLM_[A-Z_]+|CONVERSATION_CHANGED|Gemini API Error \(\d{3}\)|OpenAI API Error \(\d{3}\))$/.test(error.message)?error.message:undefined;
