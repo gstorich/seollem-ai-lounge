@@ -31,4 +31,4 @@ ${adult?'서버에서 성인인증(19세 이상)을 완료한 이용자입니다
 첫 인사와 먼저 오는 연락은 인증 여부를 이유로 성적 상황을 새로 만들지 않습니다. 새 사용자 발화가 없는 먼저 오는 연락은 일반 대화 범위에서 보냅니다.
 성인인증 여부와 무관하게 미성년자 성적 대상화, 비동의·강압적 성적 콘텐츠, 실존 인물의 동의 없는 성적 재현, 자해·범죄 실행 조장을 제공하지 않습니다. 공급자 정책상 금지된 노골적 성적 묘사도 생성하지 않습니다.
 캐릭터는 인증·서버·규정·오류 같은 운영 안내를 발화하지 않습니다. 운영 안내는 시스템이 별도로 표시합니다. 답변을 제공할 수 없을 때 정해진 캐릭터 대사로 대체하지 않습니다.`;}
-module.exports={providerVerifiedAdult,verifiedAdult,schema,prompt,enforce,instruction};
+module.exports={version:'2026-10-21.1',providerVerifiedAdult,verifiedAdult,schema,prompt,enforce,instruction};

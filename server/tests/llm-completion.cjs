@@ -51,6 +51,9 @@ async function req(route,token,body,method=body===undefined?'GET':'POST'){const 
  assert.equal((await req('/chat/send',token,{characterId:male.id,message:'address-test 오늘 산책했어요',messageId:'address'})).status,200);
  assert.equal((await req('/chat/send',token,{characterId:male.id,message:'누나라고 부르지 마세요 address-test',messageId:'revoked'})).status,200);
  Object.assign(process.env,env);const db=require('../services/dbService');db.creditHearts(id,1000,'test_credit');
+ const legacyReplay={...first.data};delete legacyReplay.contentPolicyVersion;db.saveChatRequest(id,'first',legacyReplay);
+ const beforeLegacy=db.getUser(id).hearts;const stale=await send('completion-retry','first');assert.equal(stale.status,409);assert.equal(stale.data.error,'REPLY_POLICY_CHANGED');assert.equal(stale.data.partnerReply,undefined);assert.equal(db.getUser(id).hearts,beforeLegacy,'Old policy cache cannot bypass current checks or debit again');
+ db.saveChatRequest(id,'first',first.data);
  const adultUser=db.createUser({id:'01000001999',phone:'01000001999',hearts:50,createdAt:Date.now(),identityVerification:{verified:true,method:'portone_danal',mode:'live',verificationId:'identity_11111111-1111-4111-8111-111111111111',isAdult:true,verifiedAt:Date.now()}});
  const adultToken=require('../middleware/auth').generateToken({userId:adultUser.id});require('../services/legalService').accept(adultUser.id,{version:'2026-10-20.1',atLeast18:true,termsAccepted:true,privacyAcknowledged:true,aiNoticeAcknowledged:true});
  assert.equal((await req('/chat/send',adultToken,{characterId,message:'age-gate-input',messageId:'adult-general'})).status,200,'A verified adult may pass the non-explicit adult access gate');

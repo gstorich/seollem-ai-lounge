@@ -13,6 +13,7 @@ module.exports = async function generatedTurn(req, res, {character, message, req
   const previous = db.getChatRequest(id, requestId);
   if (previous?.fingerprint && previous.fingerprint !== fingerprint) return res.status(409).json({success:false,error:'REQUEST_CONFLICT',message:'다른 메시지에 사용한 요청입니다.'});
   if (previous?.success) {
+    if(previous.contentPolicyVersion!==require('./contentAccess').version)return res.status(409).json({success:false,error:'REPLY_POLICY_CHANGED',message:'대화 제공 기준이 변경되었습니다. 새 메시지로 다시 시도해주세요. 하트는 차감되지 않았습니다.',costDeducted:0,heartsRemaining:db.getUser(id).hearts});
     if(previous.contentAudience!=='general'&&!require('./contentAccess').verifiedAdult(db.getUser(id)))return res.status(403).json({success:false,error:'ADULT_VERIFICATION_REQUIRED',message:'성인인증 상태를 확인해주세요. 인증 전에는 일반 대화만 가능합니다.',costDeducted:0,heartsRemaining:db.getUser(id).hearts});
     if (!previous.isAiGenerated) return res.status(503).json({success:false,error:'AI_GENERATION_FAILED',message:FAILURE,costDeducted:0,heartsRemaining:db.getUser(id).hearts});
     return res.json({...previous,heartsRemaining:db.getUser(id).hearts});
@@ -85,6 +86,7 @@ module.exports = async function generatedTurn(req, res, {character, message, req
       const current=db.appendMessages(id,character.id,[...userMsgToAppend,{id:replyId,sender:'ai',text:result.text,createdAt:Date.now(),time:new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'})}]);
       db.saveConversationState(id,character.id,result.memory,replyId,storedState.revision);
       const value={success:true,partnerReply:result.text,replyId,roomLeft:result.roomLeft,heartsRemaining:current.hearts,costDeducted:charged.isVipUnlimited?0:cost,isAiGenerated:true,contentAudience:require('./contentAccess').verifiedAdult(user)?'adult':'general',fingerprint,...(kind==='gift'?{giftMessageId:requestId}:{})};
+      value.contentPolicyVersion=require('./contentAccess').version;
       db.saveChatRequest(id,requestId,value);
       if(kind==='chat'&&!result.roomLeft) require('./proactiveService').schedule(id,character.id);
       return value;
