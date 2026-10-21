@@ -3383,7 +3383,7 @@
       if (state.messages.length > 50) {
         const overflow = state.messages.slice(0, state.messages.length - 40);
         const userLines = overflow
-          .filter(m => m.sender === 'user')
+          .filter(m => m.sender === 'user' && !m.failed && !m.isFailed)
           .map(m => m.text.slice(0, 45))
           .slice(-5);
         if (userLines.length > 0) {
@@ -4625,7 +4625,11 @@
       };
     }
 
-    function showGenerationError(retry, message) {
+    function showGenerationError(retry, message, requestId) {
+      const reqId = requestId || state.messages.filter(m => m.sender === 'user').at(-1)?.id;
+      if (reqId && typeof markUserMessageFailed === 'function') {
+        markUserMessageFailed(reqId, message || '전송 실패');
+      }
       document.getElementById('generationErrorNotice')?.remove();
       const notice = document.createElement('div');
       notice.id = 'generationErrorNotice';
@@ -4637,7 +4641,7 @@
       if (retry) {
         const button = document.createElement('button');
         button.type = 'button'; button.textContent = '다시 시도';
-        button.className = 'mt-2 underline underline-offset-2 font-semibold';
+        button.className = 'mt-2 underline underline-offset-2 font-semibold text-amber-700 cursor-pointer';
         button.onclick = () => { notice.remove(); retry(); };
         notice.appendChild(button);
       }
@@ -4648,6 +4652,10 @@
     function showContentAccessNotice(error, retry, meta = {}) {
       const errorCode = error.code || error.error;
       if (!['MINIMUM_AGE_REQUIRED','ADULT_VERIFICATION_REQUIRED','CONTENT_NOT_ALLOWED'].includes(errorCode)) return false;
+      const reqId = meta.requestId || (typeof state !== 'undefined' && state.messages ? state.messages.filter(m => m.sender === 'user').at(-1)?.id : null);
+      if (reqId && typeof markUserMessageFailed === 'function') {
+        markUserMessageFailed(reqId, error.message || (errorCode === 'ADULT_VERIFICATION_REQUIRED' ? '성인인증 필요' : '전송 불가'));
+      }
       document.getElementById('generationErrorNotice')?.remove();
       const notice = document.createElement('div');
       notice.id = 'generationErrorNotice';
@@ -4655,7 +4663,6 @@
       if (errorCode === 'ADULT_VERIFICATION_REQUIRED') {
         const char = meta.char || state.currentChar;
         const userText = meta.userText;
-        const reqId = meta.requestId || state.messages.filter(m => m.sender === 'user').at(-1)?.id;
         state.adultGatedTurn = { charId: char?.id, userText, requestId: reqId, retry };
         notice.className = 'mx-auto my-4 max-w-[92%] rounded-2xl bg-gradient-to-b from-[#2a2428] to-[#1e1b20] border border-[#ff5376]/50 p-4 text-center text-[#f2e6e8] shadow-xl';
         notice.innerHTML = `
@@ -4675,18 +4682,18 @@
 
         const onSuccess = () => {
           notice.remove();
+          const prevReqId = state.adultGatedTurn?.requestId;
           state.adultGatedTurn = null;
+          if (prevReqId && typeof markUserMessageSucceeded === 'function') {
+            markUserMessageSucceeded(prevReqId);
+          }
           if (retry) retry();
         };
 
         cancelBtn.onclick = () => {
           notice.remove();
-          if (state.adultGatedTurn?.requestId) {
-            const failedId = state.adultGatedTurn.requestId;
-            state.messages = state.messages.filter(m => m.id !== failedId);
-            const el = chatContainer.querySelector(`[data-msg-id="${failedId}"]`);
-            if (el) el.remove();
-            saveAccountState();
+          if (state.adultGatedTurn?.requestId && typeof markUserMessageFailed === 'function') {
+            markUserMessageFailed(state.adultGatedTurn.requestId, '성인인증 필요 (전송되지 않음)');
           }
           state.adultGatedTurn = null;
         };
@@ -4804,11 +4811,17 @@
         state.hearts = state.credits = result.heartsRemaining;
         updateAccountAndCreditUI();
         state.adultGatedTurn = null;
+        if (requestId && typeof markUserMessageSucceeded === 'function') {
+          markUserMessageSucceeded(requestId);
+        }
         const bubbles = (window.AzitChatTiming?.splitIntoRealisticBubbles
           ? window.AzitChatTiming.splitIntoRealisticBubbles(result.partnerReply)
           : [result.partnerReply]);
         return { bubbles, replyId: result.replyId, forceLeave: Boolean(result.roomLeft), leaveRoom: Boolean(result.roomLeft) };
       } catch (error) {
+        if (requestId && typeof markUserMessageFailed === 'function') {
+          markUserMessageFailed(requestId, error.message || '전송 실패');
+        }
         if (state.currentChar?.id !== char?.id) return {bubbles:[],failed:true};
         if ((error.status === 409 || error.code === 'GENERATION_PENDING') && retryCount < 3) {
           await new Promise(r => registerTimeout(r, 700));
@@ -4818,7 +4831,7 @@
         }
         if (typeof error.data?.heartsRemaining === 'number') { state.hearts = state.credits = error.data.heartsRemaining; updateAccountAndCreditUI(); }
         if (error.code === 'INSUFFICIENT_HEARTS') openHeartNeededModal(char.name);
-        else if (!showContentAccessNotice(error, () => retryGeneratedReply(char,userText,requestId), {char, userText, requestId})) showGenerationError(() => retryGeneratedReply(char,userText,requestId));
+        else if (!showContentAccessNotice(error, () => retryGeneratedReply(char,userText,requestId), {char, userText, requestId})) showGenerationError(() => retryGeneratedReply(char,userText,requestId), error.message, requestId);
         return {bubbles:[],failed:true};
       }
     }
@@ -4899,11 +4912,63 @@
       scrollToBottom(false);
     }
 
+    function markUserMessageFailed(msgId, reason) {
+      if (!msgId) return;
+      const msg = state.messages.find(m => m.id === msgId);
+      if (msg) {
+        msg.failed = true;
+        msg.unread = false;
+        msg.failReason = reason || '전송 실패';
+      }
+      const row = chatContainer.querySelector(`[data-msg-id="${msgId}"]`);
+      if (row) {
+        row.classList.add('msg-failed');
+        const badgeCol = row.querySelector('.flex.flex-col.items-end');
+        if (badgeCol) {
+          const unreadBadge = badgeCol.querySelector('.unread-one-badge');
+          if (unreadBadge) unreadBadge.remove();
+          let failTag = badgeCol.querySelector('.failed-tag');
+          if (!failTag) {
+            failTag = document.createElement('span');
+            failTag.className = 'failed-tag inline-flex items-center gap-0.5 text-[10.5px] font-bold text-rose-500 bg-rose-500/10 border border-rose-500/30 px-1.5 py-0.5 rounded-full mb-1';
+            failTag.innerHTML = '<svg class="w-2.5 h-2.5 text-rose-500 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>전송 실패';
+            badgeCol.prepend(failTag);
+          }
+        }
+        const bubble = row.querySelector('.max-w-\\[82\\%\\], .max-w-\\[85\\%\\]');
+        if (bubble) {
+          bubble.classList.add('border-2', 'border-rose-500/80');
+        }
+      }
+      saveAccountState();
+    }
+
+    function markUserMessageSucceeded(msgId) {
+      if (!msgId) return;
+      const msg = state.messages.find(m => m.id === msgId);
+      if (msg) {
+        msg.failed = false;
+        msg.failReason = null;
+      }
+      const row = chatContainer.querySelector(`[data-msg-id="${msgId}"]`);
+      if (row) {
+        row.classList.remove('msg-failed');
+        const failTag = row.querySelector('.failed-tag');
+        if (failTag) failTag.remove();
+        const bubble = row.querySelector('.max-w-\\[82\\%\\], .max-w-\\[85\\%\\]');
+        if (bubble) {
+          bubble.classList.remove('border-2', 'border-rose-500/80');
+        }
+      }
+      saveAccountState();
+    }
+
     function appendMessage(sender, text, options = {}) {
       const timeStr = options.time || getFormatTime();
       const skipPush = Boolean(options.skipPush);
       const isUnread = options.unread !== undefined ? options.unread : (sender === 'user');
       const mediaType = options.mediaType || null;
+      const isFailed = Boolean(options.failed || options.isFailed);
 
       const msgId = options.id || (skipPush ? null : ('m_' + Date.now() + '_' + Math.random().toString(36).slice(2, 6)));
       if (!skipPush) {
@@ -4913,7 +4978,9 @@
           sender,
           text,
           time: timeStr,
-          unread: isUnread,
+          unread: isFailed ? false : isUnread,
+          failed: isFailed,
+          failReason: options.failReason || null,
           mediaType,
           mediaId: options.mediaId || null,
           photoUrl: options.photoUrl || null,
@@ -4935,14 +5002,16 @@
       const row = document.createElement('div');
       if (msgId) row.dataset.msgId = msgId;
       if (sender === 'user') {
-        row.className = 'flex items-end justify-end gap-2 msg-animate';
+        row.className = `flex items-end justify-end gap-2 msg-animate ${isFailed ? 'msg-failed' : ''}`;
         if (mediaType === 'gift') {
           row.innerHTML = `
             <div class="flex flex-col items-end leading-none mb-1 shrink-0">
-              ${isUnread ? '<span class="unread-one-badge text-[11px] font-bold text-amber-500 mb-1">1</span>' : ''}
+              ${isFailed
+                ? '<span class="failed-tag inline-flex items-center gap-0.5 text-[10.5px] font-bold text-rose-500 bg-rose-500/10 border border-rose-500/30 px-1.5 py-0.5 rounded-full mb-1"><svg class="w-2.5 h-2.5 text-rose-500 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>전송 실패</span>'
+                : (isUnread ? '<span class="unread-one-badge text-[11px] font-bold text-amber-500 mb-1">1</span>' : '')}
               <span class="text-[11px] text-[#8b95a1]">${timeStr}</span>
             </div>
-            <div class="max-w-[85%] bg-white border border-[#e2e5e9] text-[#191f28] rounded-2xl rounded-tr-sm overflow-hidden shadow-sm">
+            <div class="max-w-[85%] bg-white border ${isFailed ? 'border-2 border-rose-500/80 shadow-rose-900/20' : 'border-[#e2e5e9]'} text-[#191f28] rounded-2xl rounded-tr-sm overflow-hidden shadow-sm">
               <!-- Kakao Yellow Gift Header -->
               <div class="bg-[#423526] border-b border-[#5e4a35] px-3.5 py-2 flex items-center justify-between text-[#f0be64] font-extrabold text-[12px]">
                 <div class="flex items-center gap-1.5">
@@ -4986,10 +5055,12 @@
         } else {
           row.innerHTML = `
             <div class="flex flex-col items-end leading-none mb-1 shrink-0">
-              ${isUnread ? '<span class="unread-one-badge text-[11.5px] font-bold text-amber-600 mb-1">1</span>' : ''}
+              ${isFailed
+                ? '<span class="failed-tag inline-flex items-center gap-0.5 text-[10.5px] font-bold text-rose-500 bg-rose-500/10 border border-rose-500/30 px-1.5 py-0.5 rounded-full mb-1"><svg class="w-2.5 h-2.5 text-rose-500 shrink-0" fill="currentColor" viewBox="0 0 20 20"><path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd"></path></svg>전송 실패</span>'
+                : (isUnread ? '<span class="unread-one-badge text-[11.5px] font-bold text-amber-600 mb-1">1</span>' : '')}
               <span class="text-[11.5px] text-[#888888]">${timeStr}</span>
             </div>
-            <div class="max-w-[82%] bg-[#c48726] border border-[#e5a93c]/50 text-[#1a140b] font-medium rounded-2xl rounded-tr-xs px-4 py-2.5 text-[16.5px] leading-relaxed shadow-xs break-words select-text">
+            <div class="max-w-[82%] ${isFailed ? 'bg-[#c48726]/85 border-2 border-rose-500/80 shadow-rose-900/20' : 'bg-[#c48726] border border-[#e5a93c]/50'} text-[#1a140b] font-medium rounded-2xl rounded-tr-xs px-4 py-2.5 text-[16.5px] leading-relaxed shadow-xs break-words select-text">
               ${escapeHtml(text)}
             </div>
           `;
@@ -5451,10 +5522,8 @@
       if (!state.isVipUnlimited && state.hearts < 3.7) { openHeartNeededModal(char.name); return; }
       if (state.adultGatedTurn && state.adultGatedTurn.charId === char.id) {
         const failedId = state.adultGatedTurn.requestId;
-        if (failedId) {
-          state.messages = state.messages.filter(m => m.id !== failedId);
-          const el = chatContainer.querySelector(`[data-msg-id="${failedId}"]`);
-          if (el) el.remove();
+        if (failedId && typeof markUserMessageFailed === 'function') {
+          markUserMessageFailed(failedId, '성인인증 필요');
         }
         state.adultGatedTurn = null;
       }

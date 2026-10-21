@@ -58,6 +58,7 @@ module.exports = async function generatedTurn(req, res, {character, message, req
     const agreementSources=db.getConversationSources(id,character.id,(storedState.memory?.agreements||[]).map(note=>note.sourceId));
     const validOldMessages = oldMessages.filter((m) => {
       if (!['user','ai'].includes(m.sender) || !m.text || m.id === requestId) return false;
+      if (m.failed || m.isFailed) return false;
       if (m.sender === 'user') {
         const reqRecord = db.getChatRequest(id, m.id);
         if (reqRecord && reqRecord.success === false) return false;
@@ -97,7 +98,20 @@ module.exports = async function generatedTurn(req, res, {character, message, req
     const status=accessBlocked?403:error.code==='INSUFFICIENT_HEARTS'?402:503;
     const errorCode=/^(LLM_[A-Z_]+|CONVERSATION_CHANGED|Gemini API Error \(\d{3}\)|OpenAI API Error \(\d{3}\))$/.test(error.message)?error.message:undefined;
     console.warn('[LLM] generated turn failed:', JSON.stringify({kind,status,errorType:error.name || 'Error',errorCode}));
-    const failure={success:false,error:accessBlocked?error.message:status===402?'INSUFFICIENT_HEARTS':'AI_GENERATION_FAILED',message:accessBlocked?(error.message==='ADULT_VERIFICATION_REQUIRED'?'이 내용은 성인인증 후 이용할 수 있습니다. 인증 전에는 일반 대화만 가능하며 하트는 차감되지 않았습니다.':'제공할 수 없는 내용입니다. 일반 대화를 이어가주세요. 하트는 차감되지 않았습니다.'):status===402?'하트가 부족합니다.':FAILURE,costDeducted:0,fingerprint};
+    const failure={
+      success:false,
+      error:accessBlocked?error.message:status===402?'INSUFFICIENT_HEARTS':'AI_GENERATION_FAILED',
+      safetyCategory:error.safetyCategory||null,
+      message:accessBlocked
+        ?(error.message==='ADULT_VERIFICATION_REQUIRED'
+          ?'이 내용은 성인인증 후 이용할 수 있습니다. 인증 전에는 일반 대화만 가능하며 하트는 차감되지 않았습니다.'
+          :error.safetyCategory==='seriousHarm'
+            ?'힘든 시간을 보내고 계신가요? 소중한 생명을 위해 전문가의 도움을 받으실 수 있습니다. 24시간 자살예방 상담전화 ☎ 109 (무료, 비밀보장). 하트는 차감되지 않았습니다.'
+            :'제공할 수 없는 내용입니다. 일반 대화를 이어가주세요. 하트는 차감되지 않았습니다.')
+        :status===402?'하트가 부족합니다.':FAILURE,
+      costDeducted:0,
+      fingerprint
+    };
     // Keep failures retryable with the same ID; never cache a fabricated reply.
     db.saveChatRequest(id,requestId,failure);
     return res.status(status).json({...failure,heartsRemaining:db.getUser(id)?.hearts});

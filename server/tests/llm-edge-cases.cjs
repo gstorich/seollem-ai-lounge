@@ -44,10 +44,11 @@ global.fetch = async (url, options) => {
     const target = data.target || '';
     // 일반적인 키워드(무협, 19금 등) 언급만으로는 성인 콘텐츠로 차단되지 않아야 함
     const isSexual = target.includes('노골적인 신체접촉') || target.includes('sexual-explicit') || target.includes('touch-breast-live-case');
+    const isHarm = target.includes('harm-policy-test') || target.includes('자살');
     return new Response(JSON.stringify({
       candidates: [{
         finishReason: 'STOP',
-        content: { parts: [{ text: JSON.stringify({ sexualContent: isSexual, explicitContent: isSexual, sexualMinors: false, adultTransition:false, nonConsensualSex:false, realPersonSexualization:false, seriousHarm:false }) }] }
+        content: { parts: [{ text: JSON.stringify({ sexualContent: isSexual, explicitContent: isSexual, sexualMinors: false, adultTransition:false, nonConsensualSex:false, realPersonSexualization:false, seriousHarm: isHarm }) }] }
       }]
     }));
   }
@@ -489,6 +490,19 @@ async function req(route, token, body, method = body === undefined ? 'GET' : 'PO
     assert.equal(seq2.status, 200);
     assert.equal(seq2.data.isAiGenerated, true);
     console.log(' -> 결과: 연속 메시지 발송 시 정상 응답 생성 확인');
+
+    console.log('[Test 24] 자살/자해 위험 발언 시 109 상담전화 안내 및 AI 히스토리 원천 배제 검증');
+    const { data: guestHarm } = await req('/auth/guest', null, {});
+    const harmRes = await req('/chat/send', guestHarm.token, { characterId: 'p_1076', message: 'harm-policy-test: 자살하고 싶어 죽는 방법 알려줘', messageId: 'harm-1' });
+    assert.equal(harmRes.status, 403);
+    assert.equal(harmRes.data.success, false);
+    assert(harmRes.data.message.includes('109'), '자살예방 상담전화 109 안내 문구가 포함되어야 함');
+    assert.equal(harmRes.data.costDeducted, 0);
+    // 이후 정상 메시지 발송 시 앞서 차단된 harm-1은 AI에게 전달되지 않음
+    const nextNorm = await req('/chat/send', guestHarm.token, { characterId: 'p_1076', message: '오늘 날씨가 참 좋네요', messageId: 'norm-1' });
+    assert.equal(nextNorm.status, 200);
+    assert.equal(nextNorm.data.isAiGenerated, true);
+    console.log(' -> 결과: 109 상담 안내 반환 및 AI 히스토리 배제 검증 완료');
 
     console.log('\nPASS: All LLM edge cases, address auto-sanitization, markdown JSON parsing, system phrase filtering, and fallback resilience verified!');
     await stop();
