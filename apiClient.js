@@ -335,9 +335,9 @@
       this.user = data.user;
       return data;
     },
-    async sendMessage(characterId, message, chatHistory, affection, messageId) {
+    async sendMessage(characterId, message, chatHistory, affection, messageId, messages) {
       await this.flushState();
-      return this.request('/chat/send', 'POST', { characterId, message, chatHistory, affection, messageId });
+      return this.request('/chat/send', 'POST', { characterId, message, chatHistory, affection, messageId, ...(messages?{messages}:{}) });
     },
     async getMatchEligibility() { return this.request('/match/eligibility'); },
     async requestMatch(filters, characterId) { return this.request('/match/request', 'POST', { filters, characterId }); },

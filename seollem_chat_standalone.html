@@ -1564,7 +1564,7 @@
 
   <script src="/legal.js"></script>
   <script src="messageDelivery.js?v=20261022-dedup"></script>
-  <script src="apiClient.js"></script>
+  <script src="apiClient.js?v=20261022-batch"></script>
   <script src="chatTiming.js"></script>
   <script src="notifications.js" defer></script>
   <script>
@@ -4712,48 +4712,48 @@
       return true;
     }
 
-    async function retryGeneratedReply(char, text, requestId) {
+    async function retryGeneratedReply(char, text, requestId, messageBatch) {
       if (state.currentChar?.id !== char.id || state.isAiBusy) return;
       state.isAiBusy = true;
       const turnId = state.messageTurnId;
       showTypingIndicator(`${char.name}님이 입력 중...`);
-      const plan = await fetchLLMResponse(text, requestId);
+      const plan = await fetchLLMResponse(text, requestId, 0, messageBatch);
       if (state.currentChar?.id !== char.id) return;
       await runRealisticReplySequence(plan, false, turnId);
     }
 
-    async function fetchLLMResponse(userText, requestId, retryCount = 0) {
+    async function fetchLLMResponse(userText, requestId, retryCount = 0, messageBatch) {
       const char = state.currentChar;
       requestId = requestId || state.messages.filter(m => m.sender === 'user').at(-1)?.id;
       try {
         if (!char || !window.ApiClient?.isConnected()) throw new Error('API unavailable');
-        const result = await ApiClient.sendMessage(char.id, userText, [], state.affection, requestId);
+        const result = await ApiClient.sendMessage(char.id, userText, [], state.affection, requestId, messageBatch?.map(item=>({id:item.requestId,text:item.text})));
         if (!result.isAiGenerated || !result.partnerReply?.trim()) throw new Error('Invalid generated reply');
         rememberConfirmedReply(char,result);
         state.hearts = state.credits = result.heartsRemaining;
         updateAccountAndCreditUI();
         state.adultGatedTurn = null;
         if (requestId && typeof markUserMessageSucceeded === 'function') {
-          markUserMessageSucceeded(requestId);
+          for(const id of messageBatch?.map(item=>item.requestId)||[requestId])markUserMessageSucceeded(id);
         }
         const bubbles = result.replyBubbles || (window.AzitChatTiming?.splitIntoRealisticBubbles
           ? window.AzitChatTiming.splitIntoRealisticBubbles(result.partnerReply)
           : [result.partnerReply]);
         return { characterId:char.id, fullText:result.partnerReply, bubbles, replyId: result.replyId, forceLeave: Boolean(result.roomLeft), leaveRoom: Boolean(result.roomLeft) };
       } catch (error) {
+        // A server-side greeting/proactive request can still own the account lock.
+        // Pending is a queue state, not a failed customer message.
+        if(error.code==='GENERATION_PENDING'&&retryCount<20){
+          await new Promise(resolve=>setTimeout(resolve,500));
+          if(state.currentChar?.id===char?.id)return fetchLLMResponse(userText,requestId,retryCount+1,messageBatch);
+        }
         if (requestId && typeof markUserMessageFailed === 'function') {
-          markUserMessageFailed(requestId, error.message || '전송 실패');
+          for(const id of messageBatch?.map(item=>item.requestId)||[requestId])markUserMessageFailed(id,error.message || '전송 실패');
         }
         if (state.currentChar?.id !== char?.id) return {bubbles:[],failed:true};
-        if ((error.status === 409 || error.code === 'GENERATION_PENDING') && retryCount < 3) {
-          await new Promise(r => registerTimeout(r, 700));
-          if (state.currentChar?.id === char?.id) {
-            return fetchLLMResponse(userText, requestId, retryCount + 1);
-          }
-        }
         if (typeof error.data?.heartsRemaining === 'number') { state.hearts = state.credits = error.data.heartsRemaining; updateAccountAndCreditUI(); }
         if (error.code === 'INSUFFICIENT_HEARTS') openHeartNeededModal(char.name);
-        else if (!showContentAccessNotice(error, () => retryGeneratedReply(char,userText,requestId), {char, userText, requestId})) showGenerationError(() => retryGeneratedReply(char,userText,requestId), error.message, requestId);
+        else if (!showContentAccessNotice(error, () => retryGeneratedReply(char,userText,requestId,messageBatch), {char, userText, requestId})) showGenerationError(() => retryGeneratedReply(char,userText,requestId,messageBatch), error.message, requestId);
         return {bubbles:[],failed:true};
       }
     }
@@ -4924,6 +4924,7 @@
         const msgObj = {
           id: msgId,
           createdAt: options.createdAt || Date.now(),
+          awaitingReply: Boolean(options.awaitingReply),
           sender,
           text,
           time: timeStr,
@@ -5479,69 +5480,54 @@
     // =========================================================================
     // 9. SENDING USER MESSAGES (WITH DEBOUNCE, CREDIT CHECK & AUTO-SAVE)
     // =========================================================================
-    let userDebounceTimer = null;
-    let userDebounceQueue = [];
-    let userDebounceStartTime = 0;
-
+    let userTurnInFlight = false;
     let pendingDebounceTimer = null;
     let pendingDebounceStartTime = 0;
+    let pendingLastMessageAt = 0;
 
     function clearUserDebounce() {
-      if (userDebounceTimer) {
-        clearTimeout(userDebounceTimer);
-        userDebounceTimer = null;
-      }
-      userDebounceQueue = [];
-      userDebounceStartTime = 0;
-      if (pendingDebounceTimer) {
-        clearTimeout(pendingDebounceTimer);
-        pendingDebounceTimer = null;
-      }
-      pendingDebounceStartTime = 0;
+      if (pendingDebounceTimer) clearTimeout(pendingDebounceTimer);
+      pendingDebounceTimer = null;
+      pendingDebounceStartTime = pendingLastMessageAt = 0;
+      state.pendingUserMessages = [];
     }
 
     function schedulePendingUserMessages(char) {
       if (pendingDebounceTimer) clearTimeout(pendingDebounceTimer);
-      if (!pendingDebounceStartTime) pendingDebounceStartTime = Date.now();
-      const elapsed = Date.now() - pendingDebounceStartTime;
-      const waitMs = elapsed > 2500 ? 50 : 1000;
-
-      pendingDebounceTimer = setTimeout(async () => {
-        pendingDebounceTimer = null;
-        pendingDebounceStartTime = 0;
-        await processPendingUserMessagesNow(char);
-      }, waitMs);
+      pendingLastMessageAt = Date.now();
+      if (!pendingDebounceStartTime) pendingDebounceStartTime = pendingLastMessageAt;
+      pendingDebounceTimer = setTimeout(() => processPendingUserMessagesNow(char), 1000);
     }
 
     async function processPendingUserMessagesNow(char) {
-      if (!state.pendingUserMessages || state.pendingUserMessages.length === 0) {
-        state.isAiBusy = false;
-        hideTypingIndicator();
-        updateHeaderDefaultStatus();
+      pendingDebounceTimer = null;
+      if (!char || state.currentChar?.id !== char.id || state.roomLeft) return;
+      const queued=(state.pendingUserMessages||[]).filter(p=>p.charId===char.id);
+      if (!queued.length) return;
+      // A new message never starts another request while a reply is being generated
+      // or displayed. Keep accepting input and drain the accumulated batch afterward.
+      const quietWait=Math.min(1000-(Date.now()-pendingLastMessageAt),3500-(Date.now()-pendingDebounceStartTime));
+      if (userTurnInFlight || state.isAiBusy || state.isGreetingPending || quietWait>0) {
+        pendingDebounceTimer=setTimeout(()=>processPendingUserMessagesNow(char),quietWait>0?Math.min(quietWait,200):200);
         return;
       }
-      if (state.currentChar?.id !== char?.id || state.roomLeft) {
-        state.pendingUserMessages = [];
-        state.isAiBusy = false;
-        hideTypingIndicator();
-        updateHeaderDefaultStatus();
-        return;
+      const batch=[];let length=0;
+      for(const item of queued){
+        if(batch.length>=20 || (batch.length && length+1+item.text.length>2000))break;
+        batch.push(item);length+=item.text.length+(batch.length>1?1:0);
       }
-
-      const pending = state.pendingUserMessages.filter(p => p.charId === char.id);
-      state.pendingUserMessages = state.pendingUserMessages.filter(p => p.charId !== char.id);
-      if (pending.length === 0) {
-        state.isAiBusy = false;
-        hideTypingIndicator();
-        updateHeaderDefaultStatus();
-        return;
+      const ids=new Set(batch.map(item=>item.requestId));
+      state.pendingUserMessages=state.pendingUserMessages.filter(item=>!ids.has(item.requestId));
+      if(!state.pendingUserMessages.length)pendingDebounceStartTime=pendingLastMessageAt=0;
+      userTurnInFlight=true;
+      try{
+        await executeUserMessageTurn(batch.map(item=>item.text).join('\n'),batch.at(-1).requestId,char,batch);
+      }finally{
+        userTurnInFlight=false;
+        if(pendingDebounceTimer)clearTimeout(pendingDebounceTimer);
+        pendingDebounceTimer=null;
+        if(state.pendingUserMessages?.length)await processPendingUserMessagesNow(state.currentChar);
       }
-
-      // 사용자가 연달아 보낸 여러 개의 메시지 내용을 종합하여 상대방이 전부 읽고 한꺼번에 답장하도록 구성
-      const combinedText = pending.map(p => p.text.trim()).filter(Boolean).join('\n');
-      const latestRequestId = pending.at(-1).requestId;
-
-      await executeUserMessageTurn(combinedText, latestRequestId, char);
     }
 
     async function sendUserMessage(rawText) {
@@ -5550,67 +5536,23 @@
       if (!state.isVipUnlimited && state.hearts < 3.7) { openHeartNeededModal(char.name); return; }
       if (state.adultGatedTurn && state.adultGatedTurn.charId === char.id) {
         const failedId = state.adultGatedTurn.requestId;
-        if (failedId && typeof markUserMessageFailed === 'function') {
-          markUserMessageFailed(failedId, '성인인증 필요');
-        }
+        if (failedId && typeof markUserMessageFailed === 'function') markUserMessageFailed(failedId, '성인인증 필요');
         state.adultGatedTurn = null;
       }
       document.getElementById('generationErrorNotice')?.remove();
       clearIdleFollowUpTimer();
       const input=document.getElementById('chatInput');
       input.value=''; input.style.height='auto';
-      appendMessage('user',text);
+      appendMessage('user',text,{awaitingReply:true});
       const requestId=state.messages.at(-1).id;
       state.turnCount+=1;
       saveAccountState();
-      markAllUserMessagesRead();
-
-      // [핵심 1]: 상대가 타이핑 중이거나 응답 생성 중(isAiBusy 또는 isGreetingPending)일 때 사용자가 끼어들어 여러 개를 보낸 경우
-      // 이전 턴의 구시대 단독 답변 출력을 즉시 취소(인터럽트)하고, 대기 큐에 모아 단 1회의 최신 종합 답변으로 전환!
-      if (state.isAiBusy || state.isGreetingPending) {
-        // 1) 이전 진행 중이던 타이핑/배송 시퀀스를 즉시 무효화 (messageTurnId 증가로 runRealisticReplySequence 중단됨)
-        state.messageTurnId = (state.messageTurnId || 0) + 1;
-        if (char.id && state.activePendingDeliveries) {
-          delete state.activePendingDeliveries[char.id];
-        }
-
-        // 2) 대기열에 새 메시지 추가
-        state.pendingUserMessages = state.pendingUserMessages || [];
-        state.pendingUserMessages.push({ text, requestId, charId: char.id });
-
-        // 3) 상대방 입력 중 상태 유지
-        headerStatusText.textContent = `${char.name}님이 입력 중...`;
-        showTypingIndicator(`${char.name}님이 입력 중...`);
-
-        // 4) 사용자가 끼어들면서도 2~3개 연달아 칠 수 있으므로 디바운스 대기 후 단 1회 종합 실행
-        schedulePendingUserMessages(char);
-        return;
-      }
-
-      // [핵심 2]: 사용자가 카톡처럼 연달아 빠르게 메시지를 보낼 때(따닥 입력, 1.2초 내 연속 입력)
-      // 각 메시지마다 1대1로 일일이 쪼개서 답변하지 않고 종합하여 딱 1회 자연스럽게 응답하도록 인간적 디바운스 버퍼(1200ms) 적용!
-      userDebounceQueue.push({ text, requestId, charId: char.id });
-      if (!userDebounceStartTime) userDebounceStartTime = Date.now();
-
-      if (userDebounceTimer) clearTimeout(userDebounceTimer);
-
-      const elapsed = Date.now() - userDebounceStartTime;
-      const waitMs = elapsed > 2500 ? 50 : 1200;
-
-      userDebounceTimer = setTimeout(async () => {
-        userDebounceTimer = null;
-        userDebounceStartTime = 0;
-        const queue = [...userDebounceQueue];
-        userDebounceQueue = [];
-        if (queue.length === 0 || state.currentChar?.id !== char.id || state.roomLeft) return;
-
-        const combinedText = queue.map(q => q.text).join('\n');
-        const latestRequestId = queue.at(-1).requestId;
-        await executeUserMessageTurn(combinedText, latestRequestId, char);
-      }, waitMs);
+      state.pendingUserMessages=state.pendingUserMessages||[];
+      state.pendingUserMessages.push({text,requestId,charId:char.id});
+      schedulePendingUserMessages(char);
     }
 
-    async function executeUserMessageTurn(text, requestId, char) {
+    async function executeUserMessageTurn(text, requestId, char, messageBatch) {
       state.messageTurnId=(state.messageTurnId || 0)+1;
       const turnId=state.messageTurnId;
       state.isAiBusy=true;
@@ -5618,7 +5560,7 @@
       headerStatusText.textContent=`${char.name}님이 입력 중...`;
       showTypingIndicator(`${char.name}님이 입력 중...`);
       const startedAt=Date.now();
-      const plan=await fetchLLMResponse(text,requestId);
+      const plan=await fetchLLMResponse(text,requestId,0,messageBatch);
 
       // fetchLLMResponse 도중 사용자가 끼어들어 새 턴이 스케줄된 경우(turnId 불일치), 이 구시대 답변은 화면에 출력하지 않고 조용히 폐기
       if (turnId !== state.messageTurnId || state.currentChar?.id !== char.id) {
@@ -5656,14 +5598,10 @@
         return;
       }
 
-      // 대기열에 아직 처리되지 않은 메시지가 남아있다면 최신 메시지들을 종합하여 후속 처리, 없으면 정상 종료
-      if (state.pendingUserMessages && state.pendingUserMessages.length > 0) {
-        await processPendingUserMessagesNow(char);
-      } else {
-        state.isAiBusy = false;
-        hideTypingIndicator();
-        updateHeaderDefaultStatus();
-      }
+      // The single queue worker drains any messages typed during this reply.
+      state.isAiBusy = false;
+      hideTypingIndicator();
+      updateHeaderDefaultStatus();
     }
 
     function updateFilterModalUI() {

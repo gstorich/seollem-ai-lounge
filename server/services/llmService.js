@@ -261,7 +261,7 @@ module.exports = {
     const selectedHistory = conversation.recent.map(m=>({role:m.role,content:m.content}));
     const signal = AbortSignal.timeout(45000);
     async function generate(messages,prompt,schema,moderation=false){
-      if(config.geminiApiKey)return callGemini(messages,prompt,config.geminiApiKey,signal,schema,moderation,adult,conversation.kind==='gift'&&!moderation&&schema?.properties?.reply?.type==='ARRAY'?'MINIMAL':'LOW');
+      if(config.geminiApiKey)return callGemini(messages,prompt,config.geminiApiKey,signal,schema,moderation,adult,!moderation&&schema?.properties?.reply?'MINIMAL':'LOW');
       if(config.openaiApiKey)return callOpenAI(messages,prompt,config.openaiApiKey,signal);
       throw new Error('LLM_NOT_CONFIGURED');
     }
@@ -311,10 +311,10 @@ module.exports = {
       }
     }
     let reply=dialogue.reply;
-    const giftOutputCheck=conversation.kind==='gift'?check(reply):null;
+    const outputCheck=check(reply);
     // The memory call can run alongside output validation, but nothing is
     // published or charged until both finish and safety succeeds.
-    if(giftOutputCheck)giftOutputCheck.catch(()=>{});else await check(reply);
+    outputCheck.catch(()=>{});
     // Acting and record keeping are different tasks. The writer never sees the
     // lengthy extraction protocol, and the recorder cannot rewrite the dialogue.
     let memory;
@@ -370,7 +370,7 @@ module.exports = {
         memory = conversation.memory || { summary: '', state: { relationship: '대화 진행 중' } };
       }
     }
-    if(giftOutputCheck)await giftOutputCheck;
+    await outputCheck;
     let turn;
     try {
       turn = conversationContext.parseTurn(JSON.stringify({reply, roomLeft: dialogue.roomLeft, memory}), conversation);

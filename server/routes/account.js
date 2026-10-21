@@ -43,6 +43,7 @@ function sanitizeRooms(rooms, existingRooms = {}) {
       for (const key of msgStrings) if (typeof message[key] === 'string') msg[key] = message[key].slice(0,key === 'text' ? 8000 : 2000);
       for (const key of ['photoUrl','giftImage']) if (msg[key] && !/^(avatars|gifts)\/[a-zA-Z0-9_.-]+$/.test(msg[key])) delete msg[key];
       msg.createdAt = Number.isFinite(message.createdAt) ? Math.min(Date.now(), Math.max(0, message.createdAt)) : Number((message.id.match(/^m_(\d{13})_/) || [])[1]) || Date.now();
+      msg.awaitingReply = message.sender === 'user' && Boolean(message.awaitingReply);
       msg.isSecret = Boolean(message.isSecret);
       msg.unread = Boolean(message.unread);
       msg.cost = Number.isFinite(message.cost) ? Math.max(0,message.cost) : 0;

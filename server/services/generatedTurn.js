@@ -7,11 +7,23 @@ const FAILURE = '문제가 발생했습니다. 잠시 후에 다시 시도해주
 
 // A pending request records intent, never a charge. Reply + debit + replay result
 // commit together only after an actual provider response has been validated.
-module.exports = async function generatedTurn(req, res, {character, message, requestId, kind, cost, userMessage, followUp, gift}) {
+module.exports = async function generatedTurn(req, res, {character, message, requestId, kind, cost, userMessage, followUp, gift, userMessages}) {
   const id = req.user.id;
-  const fingerprint = crypto.createHash('sha256').update(JSON.stringify({kind,characterId:character.id,message})).digest('hex');
-  const previous = db.getChatRequest(id, requestId);
+  let previous = db.getChatRequest(id, requestId);
+  // Restored system notices retry from the last visible user message. Recover
+  // the original batch IDs without copying conversation bodies into receipts.
+  if(kind==='chat'&&!userMessages&&previous?.batchMessageIds&&previous.characterId===character.id){
+    const sources=await db.getConversationSources(id,character.id,previous.batchMessageIds);
+    const byId=new Map(sources.map(m=>[m.id,m]));
+    const recovered=previous.batchMessageIds.map(key=>byId.get(key));
+    if(recovered.every(m=>m?.sender==='user'&&typeof m.text==='string')&&recovered.at(-1).text===message){
+      userMessages=recovered.map(m=>({id:m.id,text:m.text}));message=userMessages.map(m=>m.text).join('\n');
+    }
+  }
+  const batchMetadata=userMessages?{batchMessageIds:userMessages.map(m=>m.id),characterId:character.id}:{};
+  const fingerprint = crypto.createHash('sha256').update(JSON.stringify({kind,characterId:character.id,message,...(userMessages?{userMessages}:{})})).digest('hex');
   if (previous?.fingerprint && previous.fingerprint !== fingerprint) return res.status(409).json({success:false,error:'REQUEST_CONFLICT',message:'다른 메시지에 사용한 요청입니다.'});
+  if(previous?.batchRequestId)previous=db.getChatRequest(id,previous.batchRequestId);
   if (previous?.success) {
     if(previous.contentPolicyVersion!==require('./contentAccess').version)return res.status(409).json({success:false,error:'REPLY_POLICY_CHANGED',message:'대화 제공 기준이 변경되었습니다. 새 메시지로 다시 시도해주세요. 하트는 차감되지 않았습니다.',costDeducted:0,heartsRemaining:db.getUser(id).hearts});
     if(previous.contentAudience!=='general'&&!require('./contentAccess').verifiedAdult(db.getUser(id)))return res.status(403).json({success:false,error:'ADULT_VERIFICATION_REQUIRED',message:'성인인증 상태를 확인해주세요. 인증 전에는 일반 대화만 가능합니다.',costDeducted:0,heartsRemaining:db.getUser(id).hearts});
@@ -28,6 +40,8 @@ module.exports = async function generatedTurn(req, res, {character, message, req
     }
     return res.json({...previous,heartsRemaining:db.getUser(id).hearts});
   }
+  // A client cannot attach an already answered message to a new charged batch.
+  if(userMessages?.some(m=>m.id!==requestId&&db.getChatRequest(id,m.id)?.success))return res.status(409).json({success:false,error:'REQUEST_CONFLICT',message:'이미 답변한 메시지가 포함되어 있습니다.',costDeducted:0});
   if (active.has(id)) {
     // 합성 동시성 테스트(concurrent)가 아닌 실제 라이브 요청인 경우, 이전 턴(메모리 추출/응답 생성)의 마무리를 최대 2.5초간 대기
     const isSyntheticConcurrentTest = requestId === 'concurrent' || (typeof message === 'string' && message.includes('slow-test'));
@@ -71,12 +85,14 @@ module.exports = async function generatedTurn(req, res, {character, message, req
     const agreementSources=await db.getConversationSources(id,character.id,(storedState.memory?.agreements||[]).map(note=>note.sourceId));
     // 대화가 수천~수만 개로 늘어나도 성능 저하가 없도록 최근 120개 윈도우에서 안전하게 필터링
     const candidateMessages = oldMessages.length > 120 ? oldMessages.slice(-120) : oldMessages;
+    const batchIds=new Set(userMessages?.map(m=>m.id)||[requestId]);
     const validOldMessages = candidateMessages.filter((m) => {
-      if (!['user','ai'].includes(m.sender) || !m.text || m.id === requestId) return false;
+      if (!['user','ai'].includes(m.sender) || !m.text || batchIds.has(m.id)) return false;
       if (m.failed || m.isFailed) return false;
       if (m.sender === 'user') {
         const reqRecord = db.getChatRequest(id, m.id);
         if (reqRecord && reqRecord.success === false) return false;
+        if(m.awaitingReply&&!reqRecord?.success)return false;
       }
       return true;
     });
@@ -85,7 +101,7 @@ module.exports = async function generatedTurn(req, res, {character, message, req
     const conversation = require('./conversationContext').prepare([...history,{id:requestId,role:'user',content:message,createdAt:Date.now()}],storedState.memory,{replyId:'reply_'+requestId,kind,speechRegister:relationship.speechRegister,bankNotes:db.getConversationNotes(id,character.id),stateHistory:db.getConversationStateHistory(id,character.id)});
     conversation.wellbeing=require('./wellbeingService').context(id,character.id);
     db.transaction(()=>{
-      db.saveChatRequest(id,requestId,{status:'pending',fingerprint,createdAt:Date.now()});
+      db.saveChatRequest(id,requestId,{status:'pending',fingerprint,...batchMetadata,createdAt:Date.now()});
     });
     const result = await llm.generateReply(character,[...history,{role:'user',content:message}],{verifiedAdult:require('./contentAccess').verifiedAdult(user),relationship,conversation,gift,...(kind==='greeting'?{greeting:true}:{})});
     if (!result.isAiGenerated || !result.text?.trim()) throw Error('Invalid generated reply');
@@ -109,14 +125,15 @@ module.exports = async function generatedTurn(req, res, {character, message, req
       const charged = cost > 0 ? db.debit(id,cost,kind==='gift'?'gift:'+userMessage.giftKey:'chat') : db.getUser(id);
       if (!charged) { const error=Error('Insufficient balance after generation');error.code='INSUFFICIENT_HEARTS';throw error; }
       const replyId='reply_'+requestId,replyCreatedAt=Date.now();
-      const userMsgToAppend = userMessage ? [{...userMessage,id:requestId,sender:'user',text:message,createdAt:replyCreatedAt-1}] : [];
+      const userMsgToAppend = userMessage ? (userMessages||[{id:requestId,text:message}]).map((m,index,list)=>({...userMessage,...m,sender:'user',createdAt:replyCreatedAt-list.length+index,awaitingReply:false})) : [];
       if(kind==='chat')require('./advertisingService').firstChat(id);
       const current=db.appendMessages(id,character.id,[...userMsgToAppend,{id:replyId,sender:'ai',text:result.text,createdAt:replyCreatedAt,...(result.replyBubbles?{bubbles:result.replyBubbles,giftReaction:true}:{}),...(followUp?{followUpType:'idle',proactive:true}:{}),time:new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'})}]);
       db.saveConversationState(id,character.id,result.memory,replyId,storedState.revision);
-      const value={success:true,partnerReply:result.text,replyId,replyCreatedAt,...(result.replyBubbles?{replyBubbles:result.replyBubbles}:{}),roomLeft:result.roomLeft,heartsRemaining:current.hearts,costDeducted:charged.isVipUnlimited?0:cost,isAiGenerated:true,contentAudience:require('./contentAccess').verifiedAdult(user)?'adult':'general',fingerprint,...(kind==='gift'?{giftMessageId:requestId}:{})};
+      const value={success:true,...batchMetadata,partnerReply:result.text,replyId,replyCreatedAt,...(result.replyBubbles?{replyBubbles:result.replyBubbles}:{}),roomLeft:result.roomLeft,heartsRemaining:current.hearts,costDeducted:charged.isVipUnlimited?0:cost,isAiGenerated:true,contentAudience:require('./contentAccess').verifiedAdult(user)?'adult':'general',fingerprint,...(kind==='gift'?{giftMessageId:requestId}:{})};
       if(result.roomLeft)value.systemMessages=[require('./roomLifecycle').close(id,character,replyId,replyCreatedAt)];
       value.contentPolicyVersion=require('./contentAccess').version;
       db.saveChatRequest(id,requestId,value);
+      for(const m of userMessages||[])if(m.id!==requestId)db.saveChatRequest(id,m.id,{success:true,status:'batched',batchRequestId:requestId,fingerprint:crypto.createHash('sha256').update(JSON.stringify({kind,characterId:character.id,message:m.text})).digest('hex')});
       if(kind==='chat'&&!result.roomLeft) require('./proactiveService').schedule(id,character.id);
       return value;
     });
@@ -129,6 +146,7 @@ module.exports = async function generatedTurn(req, res, {character, message, req
     console.warn('[LLM] generated turn failed:', JSON.stringify({kind,status,errorType:error.name || 'Error',errorCode}));
     const failure={
       success:false,
+      ...batchMetadata,
       error:accessBlocked?error.message:status===402?'INSUFFICIENT_HEARTS':'AI_GENERATION_FAILED',
       safetyCategory:error.safetyCategory||null,
       message:accessBlocked

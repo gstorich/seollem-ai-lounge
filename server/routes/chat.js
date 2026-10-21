@@ -19,7 +19,13 @@ router.post('/send',async(req,res)=>{
   const {message,chatHistory=[]}=req.body;
   if(typeof message!=='string'||!message.trim()||message.length>2000||!Array.isArray(chatHistory)||chatHistory.length>12||chatHistory.some(m=>!m||!['user','assistant'].includes(m.role)||typeof m.content!=='string'||m.content.length>2000)) return res.status(400).json({success:false,error:'메시지 내용을 확인해주세요. (최대 2,000자)'});
   const value=characterAndId(req,res);if(!value)return;
-  return generatedTurn(req,res,{...value,message:message.trim(),kind:'chat',cost:config.heartsPerMessage,userMessage:{}});
+  let userMessages;
+  if(req.body.messages!==undefined){
+    const batch=req.body.messages;
+    if(!Array.isArray(batch)||!batch.length||batch.length>20||batch.some(m=>!m||typeof m.id!=='string'||!/^[a-zA-Z0-9_-]{1,100}$/.test(m.id)||typeof m.text!=='string'||!m.text.trim())||new Set(batch.map(m=>m.id)).size!==batch.length||batch.at(-1).id!==value.requestId||batch.map(m=>m.text.trim()).join('\n')!==message.trim())return res.status(400).json({success:false,error:'메시지 묶음을 확인해주세요.'});
+    userMessages=batch.map(m=>({id:m.id,text:m.text.trim()}));
+  }
+  return generatedTurn(req,res,{...value,message:message.trim(),kind:'chat',cost:config.heartsPerMessage,userMessage:{},userMessages});
 });
 router.post('/greeting',async(req,res)=>{
   const value=characterAndId(req,res);if(!value)return;
