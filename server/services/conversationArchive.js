@@ -123,7 +123,7 @@ async function compactBatch(limit = 500, now = Date.now()) {
           if (old) {
             const value = JSON.parse(old.data);
             if (value.success && value.replyId === row.message_id && value.partnerReply === message.text) {
-              delete value.partnerReply;
+              delete value.partnerReply;delete value.replyBubbles;
               value.archivedReply = { characterId: row.character_id, messageId: row.message_id };
               saveReceipt.run(JSON.stringify(value), row.user_id, requestId, old.data);
             }

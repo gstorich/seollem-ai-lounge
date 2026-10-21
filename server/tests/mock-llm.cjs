@@ -50,6 +50,8 @@ global.fetch=async(url,options)=>{
   for(const key of ['userFacts','characterFacts','sharedEvents','openThreads','agreements'])if(!text.includes('remember-test')&&!text.includes('invalid-memory-test')&&!text.includes('wrong-role-test'))memory[key]=[];
   memory.retirements=[];
   if(recording&&text.includes('memory-phase-fail'))throw Error('Synthetic memory extraction failure');
-  const output=text.includes('malformed-json-test')?'not json':JSON.stringify(recording?{memory}:{reply:answer,roomLeft:text.includes('room-left-test')});
+  const giftArray=p.generationConfig.responseSchema.properties.reply?.type==='ARRAY';
+  const giftReply=prompt.includes('이번 말높임은 편한 반말')?['어 이걸 진짜 보냈네','아까 하던 얘기까지 기억했구나ㅋㅋ','나 지금 완전 신났어','진짜 고마워']:['어 이걸 진짜 보내셨어요','아까 하던 얘기까지 기억해주셨네요ㅋㅋ','저 지금 완전 신났어요','진짜 고마워요'];
+  const output=text.includes('malformed-json-test')?'not json':JSON.stringify(recording?{memory}:{reply:giftArray?giftReply:answer,roomLeft:text.includes('room-left-test')});
   return new Response(JSON.stringify({candidates:[{finishReason:finish,content:{parts:text.includes('empty-test')?[]:[{thought:true,text:'private internal reasoning'},{text:finish==='STOP'?output:'incomplete fragment'}]}}]}));
 };

@@ -39,4 +39,8 @@ const established=[user('저는 45살 여자예요'),...Array.from({length:25},(
 assert.deepEqual(build(male,established).allowedAddressTerms,['누나'],'Server room history retains facts outside recent model context');
 const service=require('../services/characterService');
 for(const gender of ['male','female']){const c=service.getAllCharacters().find(c=>c.gender===gender);const prompt=service.buildSystemPrompt(service.getCharacterById(c.id));assert(prompt.includes('allowedAddressTerms'));assert(prompt.includes('과거 AI 답변'));assert(prompt.includes('나이·성별부터 캐묻지'));}
+assert.equal(build(male,[{sender:'ai',text:'야근 끝났어?ㅋㅋㅋ'},user('네 고마워요'),{sender:'user',mediaType:'gift',text:'선물을 보냈습니다.'}]).speechRegister,'casual','A polite customer or gift caption cannot reset actual character speech');
+assert.equal(build(male,[{sender:'ai',text:'오늘도 고생하셨어요ㅎㅎ'},user('야 이거 받아')]).speechRegister,'polite');
+assert.equal(build(male,[{sender:'ai',text:'알겠어'},user('존댓말로 해주세요')]).speechRegister,'polite','An explicit new request overrides the previous AI register');
+assert.equal(build(male,[{sender:'ai',id:'reply_chat',text:'야근 끝났어ㅋㅋ'},{sender:'ai',id:'reply_gift_old',text:'정말 고마워요'}]).speechRegister,'casual','An old gift reaction cannot override the established normal conversation register');
 console.log('PASS: unknown age/gender use neutral address, persona and AI claims ignored, explicit self-disclosure/preference respected, correction/revocation, quotes/hypotheticals excluded and older room context retained');

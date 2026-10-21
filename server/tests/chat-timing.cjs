@@ -63,6 +63,11 @@ assert.deepEqual(timing.splitIntoRealisticBubbles('헐 진짜 대박이다!\n나
   await threeBubbles;
   assert.equal(messages.length,3,'Three natural bubbles supported');
   assert.equal(messages[2].text,'셋째 핵심 내용','Third bubble content must be delivered intact without truncation');
+  messages=[];timers=[];
+  const gift=context.runRealisticReplySequence({gift:true,bubbles:['어 뭐야','아까 커피 얘기 기억했어?','나 지금 신났어ㅋㅋ','진짜 고마워'],replyId:'gift-fast'},false,7);
+  const giftDelays=[];
+  while(timers.length){const timer=timers.shift();giftDelays.push(timer.delay);timer.fn();await new Promise(r=>setImmediate(r));}
+  await gift;assert.equal(messages.length,4,'Gift preserves all four AI-authored bubbles');assert.equal(giftDelays[0],0);assert(giftDelays.every(ms=>ms<=190));assert(giftDelays.reduce((a,b)=>a+b,0)<=660,'Four gift bubbles arrive in a rapid burst without ordinary typing padding');
   messages=[];timers=[];const stale=context.runRealisticReplySequence({bubbles:[short]},false,7);state.messageTurnId=8;timers.shift().fn();await stale;assert.equal(messages.length,0,'Stale delayed reply must not appear in another turn');
  }
  console.log('PASS: length-based typing, long replies wait even after slow generation, no early display, no text truncation, stale turn cancellation and frontend syntax');

@@ -38,6 +38,6 @@ router.post('/gift',async(req,res)=>{
   const gift=typeof giftKey==='string'&&Object.hasOwn(require('../services/gifts.json'),giftKey)?require('../services/gifts.json')[giftKey]:null;
   if(!gift||typeof customMsg!=='string'||customMsg.length>500)return res.status(400).json({success:false,error:'선물 정보를 확인해주세요.'});
   const message=gift.name+' 선물을 보냈습니다.'+(customMsg?' 메시지 카드: '+customMsg:'');
-  return generatedTurn(req,res,{...value,message,kind:'gift',cost:gift.cost,userMessage:{giftKey,mediaType:'gift',giftName:gift.name,giftImage:gift.image}});
+  return generatedTurn(req,res,{...value,message,kind:'gift',gift:{key:gift.key,name:gift.name,hasCustomMessage:Boolean(customMsg.trim())},cost:gift.cost,userMessage:{giftKey,mediaType:'gift',giftName:gift.name,giftImage:gift.image}});
 });
 module.exports=router;

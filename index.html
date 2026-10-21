@@ -3843,7 +3843,7 @@
     function rememberConfirmedReply(char,result) {
       if(!char?.id||!result?.replyId||!result.partnerReply)return;
       const room=state.savedRooms[char.id]||{charId:char.id,messages:[]};
-      room.messages=AzitMessageDelivery.merge(room.messages,[{id:result.replyId,sender:'ai',text:result.partnerReply,createdAt:result.replyCreatedAt||result.systemMessages?.[0]?.createdAt-1||Date.now(),unread:true}],result.systemMessages);
+      room.messages=AzitMessageDelivery.merge(room.messages,[{id:result.replyId,sender:'ai',text:result.partnerReply,...(result.replyBubbles?{bubbles:result.replyBubbles,giftReaction:true}:{}),createdAt:result.replyCreatedAt||result.systemMessages?.[0]?.createdAt-1||Date.now(),unread:true}],result.systemMessages);
       if(result.roomLeft){room.roomLeft=true;room.partnerLeftAt=result.systemMessages?.[0]?.createdAt||Date.now();room.partnerLeftReplyId=result.replyId;}
       room.updatedAt=Date.now();room.unreadCount=room.messages.filter(m=>m.sender==='ai'&&m.unread).length;state.savedRooms[char.id]=room;
       saveAccountState();renderChatRoomsList();updateChatListBadges();
@@ -3959,9 +3959,8 @@
         if (!rawBubbles?.length) { if (typeof showGenerationError === 'function') showGenerationError(); return; }
 
         // 1~3개의 자연스러운 말풍선 호흡 지원 (4개 이상인 경우에만 3번째 버블에 결합하여 유실 방지)
-        const bubbles = rawBubbles.length > 3
-          ? [rawBubbles[0], rawBubbles[1], rawBubbles.slice(2).join(' ')]
-          : [...rawBubbles];
+        const maxBubbles=replyPlan?.gift?4:3;
+        const bubbles=rawBubbles.length>maxBubbles?[...rawBubbles.slice(0,maxBubbles-1),rawBubbles.slice(maxBubbles-1).join(' ')]:[...rawBubbles];
 
         // 진행 중인 배송 등록 (도중 이탈 시에도 유실 방지)
         if (char?.id) {
@@ -3983,7 +3982,7 @@
 
           const bubbleText = bubbles[idx];
           const elapsed = idx === 0 && typingStartedAt ? Date.now() - typingStartedAt : 0;
-          const remainingTypeMs = replyPlan?.greeting
+          const remainingTypeMs = replyPlan?.gift ? AzitChatTiming.giftBubbleDelay(idx) : replyPlan?.greeting
             ? AzitChatTiming.greetingRemainingDelay(elapsed)
             : (idx === 0
                 ? (bubbles.length > 1
@@ -4047,7 +4046,7 @@
               showTypingIndicator(`${char.name}님이 입력 중...`);
             }
             await new Promise(resolve => {
-              registerTimeout(resolve, Math.round(200 + Math.random() * 80));
+              registerTimeout(resolve, replyPlan?.gift?30:Math.round(200 + Math.random() * 80));
             });
           }
         }
@@ -4668,7 +4667,7 @@
         if (requestId && typeof markUserMessageSucceeded === 'function') {
           markUserMessageSucceeded(requestId);
         }
-        const bubbles = (window.AzitChatTiming?.splitIntoRealisticBubbles
+        const bubbles = result.replyBubbles || (window.AzitChatTiming?.splitIntoRealisticBubbles
           ? window.AzitChatTiming.splitIntoRealisticBubbles(result.partnerReply)
           : [result.partnerReply]);
         return { characterId:char.id, fullText:result.partnerReply, bubbles, replyId: result.replyId, forceLeave: Boolean(result.roomLeft), leaveRoom: Boolean(result.roomLeft) };
@@ -4837,6 +4836,7 @@
         if(options.insertBeforeNode)chatContainer.insertBefore(row,options.insertBeforeNode);else chatContainer.appendChild(row);
         if(!options.noScroll)scrollToBottom();return;
       }
+      if(sender==='ai'&&options.skipPush&&Array.isArray(options.bubbles)&&options.bubbles.length>1){options.bubbles.forEach((bubble,index)=>appendMessage('ai',bubble,{...options,bubbles:null,id:options.id+'_'+index}));return;}
       const timeStr = options.time || getFormatTime();
       const skipPush = Boolean(options.skipPush);
       const isUnread = options.unread !== undefined ? options.unread : (sender === 'user');
@@ -4891,7 +4891,7 @@
                   <span class="text-[14px]">🎁</span>
                   <span>모바일 교환권 (기프티콘)</span>
                 </div>
-                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-black/10 text-[#191919]">선물완료</span>
+                <span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-black/10 text-[#191919]">${options.pendingGift?'전송 중…':'선물완료'}</span>
               </div>
 
               <!-- Product Info Body -->
@@ -5315,6 +5315,8 @@
       if (!state.isVipUnlimited && state.hearts < gift.cost) { openHeartNeededModal(char.name); return; }
       state.isAiBusy = true;
       document.getElementById('giftModal').classList.add('hidden');
+      const pendingId='pending_'+requestId;
+      appendMessage('user','선물을 보내는 중…',{id:pendingId,skipPush:true,mediaType:'gift',giftEmoji:gift.emoji,giftName:gift.name,giftImage:gift.image,giftBrand:gift.brand,pendingGift:true,unread:false});
       showTypingIndicator(`${char.name}님이 입력 중...`);
       try {
         if (!window.ApiClient?.isConnected()) throw new Error('API unavailable');
@@ -5324,15 +5326,17 @@
         state.hearts = state.credits = result.heartsRemaining;
         updateAccountAndCreditUI();
         if (state.currentChar?.id !== char.id) return;
-        if (!state.messages.some(m=>m.id===result.giftMessageId)) appendMessage('user', `${gift.emoji} ${gift.name} 선물을 보냈습니다.`, {id:result.giftMessageId,mediaType:'gift',giftEmoji:gift.emoji,giftName:gift.name,giftImage:gift.image,giftBrand:gift.brand});
+        chatContainer.querySelector(`[data-msg-id="${pendingId}"]`)?.remove();
+        if (!state.messages.some(m=>m.id===result.giftMessageId)) appendMessage('user', `${gift.emoji} ${gift.name} 선물을 보냈습니다.`, {id:result.giftMessageId,createdAt:(result.replyCreatedAt||Date.now())-1,mediaType:'gift',giftEmoji:gift.emoji,giftName:gift.name,giftImage:gift.image,giftBrand:gift.brand});
         saveAccountState();
-        const bubbles = (window.AzitChatTiming?.splitIntoRealisticBubbles
+        const bubbles = result.replyBubbles || (window.AzitChatTiming?.splitIntoRealisticBubbles
           ? window.AzitChatTiming.splitIntoRealisticBubbles(result.partnerReply)
           : [result.partnerReply]);
-        await runRealisticReplySequence({bubbles,replyId:result.replyId});
+        await runRealisticReplySequence({bubbles,replyId:result.replyId,characterId:char.id,gift:true,fullText:result.partnerReply,leaveRoom:Boolean(result.roomLeft)});
       } catch (error) {
         if (state.currentChar?.id === char.id) {
           if ((error.status === 409 || error.code === 'GENERATION_PENDING') && retryCount < 3) {
+            state.isAiBusy=false;chatContainer.querySelector(`[data-msg-id="${pendingId}"]`)?.remove();
             await new Promise(r => registerTimeout(r, 700));
             if (state.currentChar?.id === char.id) {
               return sendGiftToCurrentChar(giftKey, customMsg, requestId, retryCount + 1);
@@ -5341,7 +5345,7 @@
           if (error.code === 'INSUFFICIENT_HEARTS') openHeartNeededModal(char.name);
           else if (!showContentAccessNotice(error, () => sendGiftToCurrentChar(giftKey,customMsg,requestId), {char, requestId})) showGenerationError(()=>sendGiftToCurrentChar(giftKey,customMsg,requestId));
         }
-      } finally { if(state.currentChar?.id===char.id){state.isAiBusy=false;hideTypingIndicator();updateHeaderDefaultStatus();} }
+      } finally { chatContainer.querySelector(`[data-msg-id="${pendingId}"]`)?.remove();if(state.currentChar?.id===char.id){state.isAiBusy=false;hideTypingIndicator();updateHeaderDefaultStatus();} }
     }
 
     function triggerSavedRoomsTimeGreetings() {

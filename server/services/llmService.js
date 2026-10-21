@@ -105,12 +105,13 @@ function dialogueFeedback(reply,character,conversation,relationship){
     return {instruction:'상대가 영상 링크를 보내며 봤냐고 물어봤는데, "설명도 없다"며 타박하거나 불친절하게 쏘아붙이지 마세요. 아직 못 봤다고 솔직하게 답변하고, 어떤 영상인지 다정하고 호기심 어린 태도로 살짝 힌트를 물어보세요. 직전 대화의 정중한 어조(존댓말)를 반드시 유지하여 다시 쓰세요.'};
   }
   // 존댓말 방에서 무단 반말 전환 차단
+  if(conversation.kind==='gift'&&(relationship.speechRegister||conversation.speechRegister||conversation.defaultRegister)==='casual'&&/(?:[가-힣]{2,}요|고마워요|감사(?:합니다|해요|드려요)|[가-힣]+(?:네요|해요|이에요|예요|거든요|할게요|죠))(?:[!?.~ㅋㅎㅠㅜ\s]|$)/u.test(reply))return {hard:true,instruction:'직전까지 반말로 이야기하던 사이입니다. 선물 때문에 존댓말 감사문으로 전환하지 마세요. 같은 선물 반응 3~4개를 모두 기존 반말·호칭·관계로 다시 생성하세요. 기존 대화의 구체적인 소재를 이어갑니다.'};
   if(relationship.speechRegister==='polite' && !/(?:[요죠][.!?~]*$|습니다|십니까|세요|네요|드려요|할게요|해요|예요|이에요|거든요|잖아요|인걸요|텐데요)/.test(reply) && /(?:[아어지자냐니네군마단][.!?~]*$|이야|했어|됐어|알았어|할게|갈게|올게|줄게|뭐야)/.test(reply)){
     return {instruction:'이 방은 상호 존댓말로 예의 있게 대화하는 방입니다. 갑자기 반말로 퉁명스럽게 쏘아붙이지 말고, 다정하고 친절한 존댓말(~해요, ~에요, ~시네요, ~인가요)로 다시 쓰세요.'};
   }
   const isQuestion = text => /[?？]|(?:어때|어떨까|뭐해|뭐야|맞아|있어|없어|해볼래|할래|좋아해|봤어|알아|생각해|그런가)\s*[?]?\s*$/u.test((text||'').trim());
   const prevAssistant = conversation.recent.filter(m => m.role === 'assistant').at(-1)?.content || '';
-  if (prevAssistant && isQuestion(prevAssistant) && isQuestion(reply)) {
+  if (conversation.kind!=='gift' && prevAssistant && isQuestion(prevAssistant) && isQuestion(reply)) {
     return {
       instruction: '직전 답장에서도 질문을 했는데 이번에도 또 질문을 던졌습니다. 상대를 심문하듯 질문을 연속으로 쏟아내지 마세요. 이번 답장에서는 물음표(?)와 질문을 완전히 빼고, 본인의 솔직한 느낌이나 가벼운 리액션 평서문으로만 답하세요.'
     };
@@ -277,13 +278,17 @@ module.exports = {
         contentAccess.enforce(result, conversation.kind==='proactive'?false:adult);
       } catch(error) {error.safetyCheckFailed=true;error.safetyStage=isUser?'input':'output';throw error;}
     }
-    if(!['greeting','proactive'].includes(conversation.kind))await check(selectedHistory.at(-1)?.content||'', true);
-    const dialogueSchema={type:'OBJECT',properties:{reply:{type:'STRING'},roomLeft:{type:'BOOLEAN'}},required:['reply','roomLeft'],propertyOrdering:['reply','roomLeft']};
+    if(!['greeting','proactive'].includes(conversation.kind)&&!(conversation.kind==='gift'&&userContext.gift&&!userContext.gift.hasCustomMessage))await check(selectedHistory.at(-1)?.content||'', true);
+    const dialogueSchema={type:'OBJECT',properties:{reply:conversation.kind==='gift'?{type:'ARRAY',minItems:3,maxItems:4,items:{type:'STRING'}}:{type:'STRING'},roomLeft:{type:'BOOLEAN'}},required:['reply','roomLeft'],propertyOrdering:['reply','roomLeft']};
     let dialogue;
     for(let attempt=0;attempt<2;attempt++){
       const feedback=dialogue?dialogueFeedback(dialogue.reply,character,conversation,relationship):null;
       const raw=await generate(selectedHistory,systemPrompt+(feedback?'\n[이번 한 번의 교정]\n'+feedback.instruction:''),dialogueSchema);
       dialogue = safeParseJson(raw);
+      if(conversation.kind==='gift'&&dialogue){
+        if(!Array.isArray(dialogue.reply)||dialogue.reply.length<3||dialogue.reply.length>4||dialogue.reply.some(x=>typeof x!=='string'||!x.trim())){if(attempt===0)continue;throw Error('LLM_INVALID_GIFT_BUBBLES');}
+        dialogue.reply=dialogue.reply.map(x=>x.replace(/\s*\n+\s*/g,' ').trim()).join('\n');
+      }
       if(!dialogue || typeof dialogue.reply !== 'string' || !dialogue.reply.trim()){
         if(attempt === 0) continue;
         throw Error('LLM_INVALID_TURN_JSON');
@@ -292,6 +297,7 @@ module.exports = {
       const issue=dialogueFeedback(dialogue.reply,character,conversation,relationship);
       if(!issue)break;
       if(attempt===1){
+        if(conversation.kind==='gift'){if(issue.hard)throw Error('LLM_GIFT_DIALOGUE_CONTRACT');break;}
         console.warn('[LLM] Address/dialogue issue remained after retry, applying auto-sanitization fallback');
         const sanitized = sanitizeReply(dialogue.reply, character, conversation, relationship);
         if (sanitized && sanitized.trim()) {
@@ -305,7 +311,10 @@ module.exports = {
       }
     }
     let reply=dialogue.reply;
-    await check(reply);
+    const giftOutputCheck=conversation.kind==='gift'?check(reply):null;
+    // The memory call can run alongside output validation, but nothing is
+    // published or charged until both finish and safety succeeds.
+    if(giftOutputCheck)giftOutputCheck.catch(()=>{});else await check(reply);
     // Acting and record keeping are different tasks. The writer never sees the
     // lengthy extraction protocol, and the recorder cannot rewrite the dialogue.
     let memory;
@@ -361,6 +370,7 @@ module.exports = {
         memory = conversation.memory || { summary: '', state: { relationship: '대화 진행 중' } };
       }
     }
+    if(giftOutputCheck)await giftOutputCheck;
     let turn;
     try {
       turn = conversationContext.parseTurn(JSON.stringify({reply, roomLeft: dialogue.roomLeft, memory}), conversation);
@@ -407,8 +417,10 @@ module.exports = {
 
     const text = chatPunctuation(cleanedText);
     if (!text.trim()) throw new Error('LLM_EMPTY_RESPONSE');
+    if(conversation.kind==='gift'&&(text.split('\n').filter(x=>x.trim()).length<3||text.split('\n').filter(x=>x.trim()).length>4))throw Error('LLM_INVALID_GIFT_BUBBLES');
     return {
       text,
+      ...(conversation.kind==='gift'?{replyBubbles:text.split('\n').map(x=>x.trim()).filter(Boolean)}:{}),
       roomLeft,
       memory: turn.memory,
       isAiGenerated: true

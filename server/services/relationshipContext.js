@@ -35,25 +35,20 @@ function buildRelationshipContext(character,messages=[]){
   const term=character.gender==='male'?(gender==='female'?'누나':'형'):(gender==='male'?'오빠':'언니');
   if(!rejected.has(term)&&!allowed.includes(term))allowed.push(term);
  }
- // 명시적 말높임 요청이 없는 경우: 기존 대화 흐름에서 확립된 존댓말/반말의 자연스러운 연속성(관성) 감지
- if(!speechRegister&&messages.length>=2){
-  let politeScore=0;
-  let casualScore=0;
-  for(const m of messages.slice(-10)){
-   const content=String(m.text??m.content??'').trim();
-   if(!content||content.length<2)continue;
-   if(/^https?:\/\//i.test(content))continue;
-   if(/(?:[요죠][.!?~]*$|습니다|십니까|세요|네요|드려요|할게요|해요|예요|이에요|거든요|잖아요|인걸요|텐데요)/.test(content)){
-    politeScore++;
-   }else if(/(?:[아어지자냐니네군마단][.!?~]*$|이야|했어|됐어|알았어|할게|갈게|올게|줄게)/.test(content)){
-    casualScore++;
-   }
-  }
-  if(politeScore>=2&&politeScore>=casualScore){
-   speechRegister='polite';
-  }else if(casualScore>=3&&casualScore>politeScore*2){
-   speechRegister='casual';
-  }
+ // A gift caption, a system notice or the user's polite wording cannot reset
+ // the character's established register. Recent actual AI speech comes first.
+ if(!speechRegister){
+  const actual=messages.filter(m=>['ai','assistant'].includes(m.sender||m.role));
+  const anchors=actual.filter(m=>!m.giftReaction&&!/^reply_gift_/.test(m.id||''));
+  const recent=(anchors.length?anchors:actual).slice(-6);
+  const registers=recent.map(m=>{
+   const text=String(m.text??m.content??'').trim().replace(/[ㅋㅎㅠㅜ.!?~…\s\p{Extended_Pictographic}\uFE0F]+$/gu,'');
+   if(/(?:요|죠|습니다|습니까|세요)$/.test(text))return 'polite';
+   if(/(?:고마워|미쳤다|뭐야|이야|했어|됐어|알았어|할게|줄게|거든|거야|잖아|[아어지자냐니네군다야음임돼])$/.test(text))return 'casual';
+   return null;
+  }).filter(Boolean);
+  const latest=registers.at(-1);
+  if(latest)speechRegister=latest;
  }
  return {age,gender,name,requestedAddress,speechRegister,allowedAddressTerms:allowed.filter(term=>!rejected.has(term)),rejectedAddressTerms:[...rejected]};
 }

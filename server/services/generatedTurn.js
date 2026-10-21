@@ -7,7 +7,7 @@ const FAILURE = '문제가 발생했습니다. 잠시 후에 다시 시도해주
 
 // A pending request records intent, never a charge. Reply + debit + replay result
 // commit together only after an actual provider response has been validated.
-module.exports = async function generatedTurn(req, res, {character, message, requestId, kind, cost, userMessage, followUp}) {
+module.exports = async function generatedTurn(req, res, {character, message, requestId, kind, cost, userMessage, followUp, gift}) {
   const id = req.user.id;
   const fingerprint = crypto.createHash('sha256').update(JSON.stringify({kind,characterId:character.id,message})).digest('hex');
   const previous = db.getChatRequest(id, requestId);
@@ -23,7 +23,7 @@ module.exports = async function generatedTurn(req, res, {character, message, req
         if(!row)throw Error('REPLAY_NOT_FOUND');
         const [reply]=await require('./conversationArchive').hydrateRows([row]);
         const {archivedReply,...receipt}=previous;
-        return res.json({...receipt,partnerReply:reply.text,heartsRemaining:db.getUser(id).hearts});
+        return res.json({...receipt,partnerReply:reply.text,...(reply.bubbles?{replyBubbles:reply.bubbles}:{}),heartsRemaining:db.getUser(id).hearts});
       }catch{return res.status(503).json({success:false,error:'HISTORY_UNAVAILABLE',message:FAILURE,costDeducted:0,heartsRemaining:db.getUser(id).hearts});}
     }
     return res.json({...previous,heartsRemaining:db.getUser(id).hearts});
@@ -87,7 +87,7 @@ module.exports = async function generatedTurn(req, res, {character, message, req
     db.transaction(()=>{
       db.saveChatRequest(id,requestId,{status:'pending',fingerprint,createdAt:Date.now()});
     });
-    const result = await llm.generateReply(character,[...history,{role:'user',content:message}],{verifiedAdult:require('./contentAccess').verifiedAdult(user),relationship,conversation,...(kind==='greeting'?{greeting:true}:{})});
+    const result = await llm.generateReply(character,[...history,{role:'user',content:message}],{verifiedAdult:require('./contentAccess').verifiedAdult(user),relationship,conversation,gift,...(kind==='greeting'?{greeting:true}:{})});
     if (!result.isAiGenerated || !result.text?.trim()) throw Error('Invalid generated reply');
 
     // [보안/안전 1]: 전화번호 사칭 마스킹 (010 등 번호 노출 차단)
@@ -109,11 +109,11 @@ module.exports = async function generatedTurn(req, res, {character, message, req
       const charged = cost > 0 ? db.debit(id,cost,kind==='gift'?'gift:'+userMessage.giftKey:'chat') : db.getUser(id);
       if (!charged) { const error=Error('Insufficient balance after generation');error.code='INSUFFICIENT_HEARTS';throw error; }
       const replyId='reply_'+requestId,replyCreatedAt=Date.now();
-      const userMsgToAppend = userMessage ? [{...userMessage,id:requestId,sender:'user',text:message,createdAt:replyCreatedAt}] : [];
+      const userMsgToAppend = userMessage ? [{...userMessage,id:requestId,sender:'user',text:message,createdAt:replyCreatedAt-1}] : [];
       if(kind==='chat')require('./advertisingService').firstChat(id);
-      const current=db.appendMessages(id,character.id,[...userMsgToAppend,{id:replyId,sender:'ai',text:result.text,createdAt:replyCreatedAt,...(followUp?{followUpType:'idle',proactive:true}:{}),time:new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'})}]);
+      const current=db.appendMessages(id,character.id,[...userMsgToAppend,{id:replyId,sender:'ai',text:result.text,createdAt:replyCreatedAt,...(result.replyBubbles?{bubbles:result.replyBubbles,giftReaction:true}:{}),...(followUp?{followUpType:'idle',proactive:true}:{}),time:new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'})}]);
       db.saveConversationState(id,character.id,result.memory,replyId,storedState.revision);
-      const value={success:true,partnerReply:result.text,replyId,replyCreatedAt,roomLeft:result.roomLeft,heartsRemaining:current.hearts,costDeducted:charged.isVipUnlimited?0:cost,isAiGenerated:true,contentAudience:require('./contentAccess').verifiedAdult(user)?'adult':'general',fingerprint,...(kind==='gift'?{giftMessageId:requestId}:{})};
+      const value={success:true,partnerReply:result.text,replyId,replyCreatedAt,...(result.replyBubbles?{replyBubbles:result.replyBubbles}:{}),roomLeft:result.roomLeft,heartsRemaining:current.hearts,costDeducted:charged.isVipUnlimited?0:cost,isAiGenerated:true,contentAudience:require('./contentAccess').verifiedAdult(user)?'adult':'general',fingerprint,...(kind==='gift'?{giftMessageId:requestId}:{})};
       if(result.roomLeft)value.systemMessages=[require('./roomLifecycle').close(id,character,replyId,replyCreatedAt)];
       value.contentPolicyVersion=require('./contentAccess').version;
       db.saveChatRequest(id,requestId,value);

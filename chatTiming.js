@@ -86,7 +86,8 @@
 
     return [raw];
   }
-  const api={typingDuration,remainingDelay,greetingRemainingDelay,subsequentBubbleDelay,splitIntoRealisticBubbles};
+  function giftBubbleDelay(index,random=Math.random){return index===0?0:Math.round(90+random()*100);}
+  const api={giftBubbleDelay,typingDuration,remainingDelay,greetingRemainingDelay,subsequentBubbleDelay,splitIntoRealisticBubbles};
   if(typeof module==='object'&&module.exports)module.exports=api;
   else root.AzitChatTiming=api;
 })(typeof window==='object'?window:this);

@@ -65,16 +65,16 @@ store.configured=()=>true;store.putVerified=async(key,bytes)=>{if(failPut)throw 
  db.appendMessages('other-user','recent-room',recent);await archive.archiveBatch();assert.equal(await archive.compactBatch(),0);
  // Large reply receipts cannot retain a second unlimited copy of old replies.
  const oldAt=Date.now()-9*86400000;
- const oldReply={id:'reply_old-request',sender:'ai',text:'original old AI response',createdAt:oldAt};
+ const oldReply={id:'reply_old-request',sender:'ai',text:'original old AI response',bubbles:['original','old AI response','more'],createdAt:oldAt};
  db.appendMessages('other-user','cold-room',[oldReply,...Array.from({length:120},(_,i)=>({id:'after-'+i,sender:'user',text:'later turn',createdAt:oldAt+i+1}))]);
  const fingerprint=crypto.createHash('sha256').update(JSON.stringify({kind:'chat',characterId:'cold-room',message:'old-input'})).digest('hex');
- db.saveChatRequest('other-user','old-request',{success:true,isAiGenerated:true,partnerReply:oldReply.text,replyId:oldReply.id,contentPolicyVersion:require('../services/contentAccess').version,contentAudience:'general',fingerprint,costDeducted:3.7});
+ db.saveChatRequest('other-user','old-request',{success:true,isAiGenerated:true,partnerReply:oldReply.text,replyBubbles:oldReply.bubbles,replyId:oldReply.id,contentPolicyVersion:require('../services/contentAccess').version,contentAudience:'general',fingerprint,costDeducted:3.7});
  await archive.archiveBatch();assert.equal(await archive.compactBatch(),1);
- assert.equal(db.getChatRequest('other-user','old-request').partnerReply,undefined);
+ assert.equal(db.getChatRequest('other-user','old-request').partnerReply,undefined);assert.equal(db.getChatRequest('other-user','old-request').replyBubbles,undefined);
  const hearts=db.getUser('other-user').hearts;let replay;
  const response={status(n){this.code=n;return this;},json(value){replay=value;return value;}};
  await require('../services/generatedTurn')({user:{id:'other-user'}},response,{character:{id:'cold-room'},message:'old-input',requestId:'old-request',kind:'chat',cost:3.7});
- assert.equal(replay.partnerReply,oldReply.text);assert.equal(db.getUser('other-user').hearts,hearts,'Cold replay cannot charge again');
+ assert.equal(replay.partnerReply,oldReply.text);assert.deepEqual(replay.replyBubbles,oldReply.bubbles);assert.equal(db.getUser('other-user').hearts,hearts,'Cold replay cannot charge again');
  const coldSystem={id:'cold-system-notice',sender:'system',systemKind:'generation_error',requestId:'cold-request',text:'문제가 발생했습니다. 잠시 후에 다시 시도해주세요.',createdAt:oldAt};
  db.appendMessages('other-user','cold-system',[coldSystem,...Array.from({length:120},(_,i)=>({id:'system-later-'+i,sender:'user',text:'later',createdAt:oldAt+i+1}))]);
  await archive.archiveBatch();assert.equal(await archive.compactBatch(),1);
