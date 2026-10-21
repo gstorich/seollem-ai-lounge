@@ -1,17 +1,25 @@
 (function(root){
   'use strict';
   function typingDuration(text,random=Math.random){
-    const content=String(text||'');
+    const content=String(text||'').trim();
     const characters=Array.from(content.replace(/\s/g,'')).length;
     const pauses=(content.match(/[,.!?。…\n]/g)||[]).length*50;
-    // 경쾌하고 빠른 메신저 타속 (글자당 45~65ms, 기본 400ms, 최소 600ms, 최대 10000ms)
+    // 말짧은 간결형("ㅎㅇ", "안녕", "뭐해", "ㅇㅇ" 등 3자 이하 초단문)은 초고속 메신저 타속 (180~350ms)
+    if (characters <= 3) {
+      const base = 160 + characters * 35 + (random() * 50);
+      return Math.round(Math.min(350, Math.max(180, base)));
+    }
+    // 일반 문장 (글자당 45~65ms, 기본 400ms, 최소 600ms, 최대 10000ms)
     return Math.round(Math.min(10000,Math.max(600,400+characters*(45+random()*20)+pauses)));
   }
   function remainingDelay(text,elapsed=0,random=Math.random){
     const target=typingDuration(text,random);
-    // 생성에 이미 소요된 시간(elapsed)을 적극 반영하여 단문/장문 불문 일률적인 멍때림 제거.
-    // 긴 메시지라도 생성 완료 후 최대 1800ms를 초과하여 질질 끌지 않도록 상한 제한.
-    const minPadding=Math.min(1800,Math.max(300,Math.round(target*0.2)));
+    const content=String(text||'').trim();
+    const characters=Array.from(content.replace(/\s/g,'')).length;
+    // 3자 이하 초단문은 최소 대기 패딩 120ms로 번개같이 툭 발송
+    const minPadding = characters <= 3
+      ? 120
+      : Math.min(1800,Math.max(300,Math.round(target*0.2)));
     return Math.round(Math.max(minPadding,target-Math.max(0,elapsed)));
   }
   // 첫인사(그리팅)는 대화방 진입 시 준비되는 즉시 바로 노출
@@ -20,9 +28,9 @@
   }
   // 연속되는 두 번째 이후 말풍선의 자연스러운 카톡식 호흡 (이미 발화 중이므로 350~750ms의 경쾌한 타속)
   function subsequentBubbleDelay(text,random=Math.random){
-    const content=String(text||'');
+    const content=String(text||'').trim();
     const characters=Array.from(content.replace(/\s/g,'')).length;
-    return Math.round(Math.min(800,Math.max(350,300+characters*(10+random()*8))));
+    return Math.round(Math.min(800,Math.max(350,320+characters*(10+random()*8))));
   }
   // 실제 카카오톡처럼 1~2개의 자연스럽고 온전한 말풍선 호흡으로 분할 (텍스트 유실 방지)
   function splitIntoRealisticBubbles(text, options = {}) {

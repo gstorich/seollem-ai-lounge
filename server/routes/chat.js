@@ -23,7 +23,7 @@ router.post('/send',async(req,res)=>{
 });
 router.post('/greeting',async(req,res)=>{
   const value=characterAndId(req,res);if(!value)return;
-  return generatedTurn(req,res,{...value,message:'새 대화가 연결되었습니다. 상대는 아직 아무 말도 하지 않은 낯선 사람입니다. 이 캐릭터의 고유 성향과 첫마디 연출에 따라 지금 보내고 싶은 짧은 첫 메시지를 쓰세요. 정중한 인사부터 할 필요는 없습니다. 사용자 신상·외모·이전 관계를 지어내지 마세요.',kind:'greeting',cost:0});
+  return generatedTurn(req,res,{...value,message:'새 대화가 연결되었습니다. 상대는 아직 아무 말도 하지 않은 낯선 사람입니다. 이 캐릭터의 고유 성향과 첫마디 연출에 따라 지금 보내고 싶은 짧은 첫 메시지를 쓰세요. 정중한 인사부터 할 필요는 없습니다. 반말 캐릭터는 처음부터 편하게 안녕, ㅎㅇ, 뭐해 등으로 짧게 말을 트세요. 사용자 신상·외모·이전 관계를 지어내지 마세요.',kind:'greeting',cost:0});
 });
 router.post('/gift',async(req,res)=>{
   const value=characterAndId(req,res);if(!value)return;
