@@ -90,6 +90,7 @@ function archiveRooms(user) {
 }
 function putUser(user) {
   archiveRooms(user);
+  user.savedRooms=Object.fromEntries(Object.entries(user.savedRooms||{}).map(([id,room])=>[id,{...room,messages:(room.messages||[]).slice(-120)}]));
   user.updatedAt = Date.now();
   sql.prepare('INSERT INTO users(id,phone,data) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET phone=excluded.phone,data=excluded.data')
     .run(user.id, user.phone || null, JSON.stringify(user));

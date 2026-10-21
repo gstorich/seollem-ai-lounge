@@ -1,8 +1,8 @@
 [Unit]
-Description=Daily SalonChat account backup
+Description=Six-hourly AzitChat database backup
 [Timer]
-OnCalendar=*-*-* 03:30:00 Asia/Seoul
+OnCalendar=*-*-* 03,09,15,21:30:00 Asia/Seoul
 Persistent=true
-RandomizedDelaySec=20m
+RandomizedDelaySec=5m
 [Install]
 WantedBy=timers.target

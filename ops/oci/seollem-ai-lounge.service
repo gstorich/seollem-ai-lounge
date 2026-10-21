@@ -9,6 +9,7 @@ User=seollem
 Group=seollem
 WorkingDirectory=/opt/seollem-ai-lounge/current/server
 EnvironmentFile=/etc/seollem-ai-lounge/app.env
+EnvironmentFile=-/etc/seollem-ai-lounge/storage.env
 ExecStart=/usr/bin/node server.js
 Restart=on-failure
 RestartSec=5

@@ -1,0 +1,19 @@
+[Unit]
+Description=Encrypt and verify AzitChat conversation archives in R2
+After=network-online.target
+[Service]
+Type=oneshot
+User=seollem
+Group=seollem
+WorkingDirectory=/opt/seollem-ai-lounge/current/server
+EnvironmentFile=/etc/seollem-ai-lounge/app.env
+EnvironmentFile=/etc/seollem-ai-lounge/storage.env
+ExecStart=/usr/bin/node /opt/seollem-ai-lounge/current/server/scripts/archive-conversations.cjs
+UMask=0077
+Nice=15
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/seollem-ai-lounge
+NoNewPrivileges=true
+MemoryMax=512M

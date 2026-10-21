@@ -1,0 +1,8 @@
+[Unit]
+Description=Archive new AzitChat messages every five minutes
+[Timer]
+OnBootSec=2m
+OnUnitInactiveSec=5m
+Persistent=true
+[Install]
+WantedBy=timers.target

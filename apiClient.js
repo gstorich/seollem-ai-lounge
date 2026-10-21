@@ -261,6 +261,7 @@
       guestInit=(navigator.locks?navigator.locks.request('azit-session-bootstrap',initialize):initialize());
       try{return await guestInit;}finally{guestInit=null;}
     },
+    async loadRoomMessages(characterId,before='') { return this.request('/account/rooms/'+encodeURIComponent(characterId)+'/messages'+(before?'?before='+encodeURIComponent(before):'')); },
     async getHeartWallet() { return this.request('/account/hearts'); },
     async loadCharacters(){
       const data=await this.request('/match/characters'+(catalogVersion?'?version='+encodeURIComponent(catalogVersion):''));

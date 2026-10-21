@@ -1,0 +1,18 @@
+const db=require('./dbService'),storage=require('./objectStorage');
+function initialize(){db.sql.exec(`CREATE TABLE IF NOT EXISTS archive_message_refs(user_id TEXT NOT NULL,character_id TEXT NOT NULL,message_id TEXT NOT NULL,object_key TEXT NOT NULL,entry_index INTEGER NOT NULL,PRIMARY KEY(user_id,character_id,message_id));CREATE TABLE IF NOT EXISTS archive_objects(object_key TEXT PRIMARY KEY,sha256 TEXT NOT NULL,message_count INTEGER NOT NULL,verified_at INTEGER NOT NULL);CREATE INDEX IF NOT EXISTS conversation_room_page ON conversation_messages(user_id,character_id,created_at,message_id);`);}
+async function archiveBatch(limit=500){initialize();if(!storage.configured())throw Error('R2_NOT_CONFIGURED');const rows=db.sql.prepare(`SELECT m.* FROM conversation_messages m WHERE NOT EXISTS(SELECT 1 FROM archive_message_refs a WHERE a.user_id=m.user_id AND a.character_id=m.character_id AND a.message_id=m.message_id) ORDER BY m.rowid LIMIT ?`).all(limit);if(!rows.length)return 0;const groups=new Map();for(const r of rows){const k=JSON.stringify([r.user_id,r.character_id]);if(!groups.has(k))groups.set(k,[]);groups.get(k).push(r);}
+ for(const group of groups.values()){const plain=Buffer.from(JSON.stringify({version:1,messages:group})),digest=storage.hash(plain),room=storage.hash(JSON.stringify([group[0].user_id,group[0].character_id]));const key=storage.settings().prefix+'/conversations/'+room+'/'+digest+'.azr';const result=await storage.putVerified(key,plain);
+ db.transaction(()=>{db.sql.prepare('INSERT OR IGNORE INTO archive_objects VALUES(?,?,?,?)').run(key,result.sha256,group.length,Date.now());const insert=db.sql.prepare('INSERT OR IGNORE INTO archive_message_refs VALUES(?,?,?,?,?)');group.forEach((r,i)=>insert.run(r.user_id,r.character_id,r.message_id,key,i));});}
+ return rows.length;
+}
+async function page(userId,characterId,{before,limit=40}={}){initialize();userId=db.resolveUserId(userId);limit=Math.max(1,Math.min(100,Number(limit)||40));let cursor;
+ if(before){try{cursor=JSON.parse(Buffer.from(before,'base64url').toString());if(!Array.isArray(cursor)||cursor.length!==2||!Number.isFinite(cursor[0])||typeof cursor[1]!=='string')throw Error();}catch{throw Object.assign(Error('INVALID_CURSOR'),{status:400});}}
+ const rows=db.sql.prepare(`SELECT m.*,a.object_key,a.entry_index FROM conversation_messages m LEFT JOIN archive_message_refs a ON a.user_id=m.user_id AND a.character_id=m.character_id AND a.message_id=m.message_id WHERE m.user_id=? AND m.character_id=? ${cursor?'AND (m.created_at<? OR (m.created_at=? AND m.message_id<?))':''} ORDER BY m.created_at DESC,m.message_id DESC LIMIT ?`).all(userId,characterId,...(cursor?[cursor[0],cursor[0],cursor[1]]:[]),limit+1);
+ const selected=rows.slice(0,limit),objects=new Map();
+ // R2 is used for archived records. A verified local operational copy remains
+ // available during transient object-store outages; reads never return blanks.
+ for(const key of new Set(selected.map(r=>r.object_key).filter(Boolean))){try{objects.set(key,JSON.parse((await storage.get(key)).toString()).messages);}catch{console.warn('[archive] object read unavailable; using operational copy');}}
+ const messages=selected.map(r=>{const archived=objects.get(r.object_key)?.[r.entry_index];const valid=archived&&archived.message_id===r.message_id&&archived.character_id===r.character_id;return {...JSON.parse(valid?archived.data:r.data),id:r.message_id,createdAt:r.created_at};}).reverse();const oldest=selected.at(-1);
+ return {messages,hasMore:rows.length>limit,nextCursor:rows.length>limit&&oldest?Buffer.from(JSON.stringify([oldest.created_at,oldest.message_id])).toString('base64url'):null};
+}
+module.exports={initialize,archiveBatch,page};

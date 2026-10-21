@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Consistent SQLite backup including WAL, with 14-day retention."""
-import sqlite3, os
+import sqlite3, os, subprocess, json
 from pathlib import Path
 from datetime import datetime, timezone, timedelta
 root=Path('/var/backups/seollem-ai-lounge')
@@ -14,7 +14,16 @@ if source.exists():
         src.backup(dst)
         if dst.execute('pragma integrity_check').fetchone()[0]!='ok':
             raise RuntimeError('Backup integrity check failed')
-    cutoff=datetime.now(timezone.utc)-timedelta(days=14)
+    # Upload only a coherent snapshot, then verify that every encrypted part
+    # can be downloaded and decoded before considering this a successful backup.
+    envfile=Path('/etc/seollem-ai-lounge/storage.env')
+    if envfile.exists():
+        script=Path(__file__).resolve().parents[2]/'server/scripts/backup-store.cjs'
+        result=subprocess.run(['/usr/bin/node',str(script),'upload',str(target)],check=True,capture_output=True,text=True)
+        record=json.loads(result.stdout.strip().splitlines()[-1])
+        (root/'last-remote-success.json').write_text(json.dumps({'at':datetime.now(timezone.utc).isoformat(),'object':record['key'],'bytes':record['bytes']}))
+        print('Encrypted R2 backup read-back verified')
+    cutoff=datetime.now(timezone.utc)-timedelta(days=3)
     for item in root.glob('seollem-*.sqlite'):
         if datetime.fromtimestamp(item.stat().st_mtime,timezone.utc)<cutoff:
             item.unlink()

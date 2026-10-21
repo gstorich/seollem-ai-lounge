@@ -4066,9 +4066,9 @@
         const rawBubbles = replyPlan?.bubbles?.filter(text => typeof text === 'string' && text.trim());
         if (!rawBubbles?.length) { if (typeof showGenerationError === 'function') showGenerationError(); return; }
 
-        // 텍스트 유실 방지: 3개 이상으로 분할된 경우 뒷부분을 버리지 않고 마지막 버블에 온전히 결합
-        const bubbles = rawBubbles.length > 2
-          ? [rawBubbles[0], rawBubbles.slice(1).join(' ')]
+        // 1~3개의 자연스러운 말풍선 호흡 지원 (4개 이상인 경우에만 3번째 버블에 결합하여 유실 방지)
+        const bubbles = rawBubbles.length > 3
+          ? [rawBubbles[0], rawBubbles[1], rawBubbles.slice(2).join(' ')]
           : [...rawBubbles];
 
         // 진행 중인 배송 등록 (도중 이탈 시에도 유실 방지)

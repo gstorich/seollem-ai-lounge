@@ -32,31 +32,34 @@
     const characters=Array.from(content.replace(/\s/g,'')).length;
     return Math.round(Math.min(800,Math.max(380,360+characters*(12+random()*10))));
   }
-  // 실제 카카오톡처럼 1~2개의 자연스럽고 온전한 말풍선 호흡으로 분할 (텍스트 유실 방지)
+  // 실제 카카오톡처럼 1~3개의 자연스럽고 온전한 말풍선 호흡으로 분할 (상황에 따라 1개, 2개, 3개 가변)
   function splitIntoRealisticBubbles(text, options = {}) {
     const raw = String(text || '').trim();
     if (!raw) return [];
+    // 20자 이하의 단문이나 단일 호흡은 쪼개지 않고 1개로 깔끔하게 전송
     if (raw.length <= 20) return [raw];
 
-    // 1. 줄바꿈 분할 (단, 너무 짧은 조각은 합쳐서 문맥 보존)
+    // 1. 줄바꿈 분할 (최대 3개까지 자연스러운 호흡으로 허용)
     if (raw.includes('\n')) {
       const lines = raw.split(/\r?\n+/).map(s => s.trim()).filter(Boolean);
       if (lines.length > 1) {
         const result = [];
         for (const line of lines) {
-          if (result.length > 0 && (result[result.length - 1].length < 10 || line.length < 5)) {
+          if (result.length > 0 && (result[result.length - 1].length < 8 || line.length < 4)) {
+            result[result.length - 1] += ' ' + line;
+          } else if (result.length >= 3) {
             result[result.length - 1] += ' ' + line;
           } else {
             result.push(line);
           }
         }
         if (result.length > 1) {
-          return result.length > 2 ? [result[0], result.slice(1).join(' ')] : result;
+          return result;
         }
       }
     }
 
-    // 2. 명확한 종결 구두점(. ! ?) 뒤 공백 기준 분할
+    // 2. 명확한 종결 구두점(. ! ?) 뒤 공백 기준 분할 (상황에 따라 1~3개)
     // 말줄임표(...) 중간이나 감탄사 직후는 호흡이므로 자르지 않고, 온전한 단일 구두점 뒤에서만 분할
     const punctSplits = raw.split(/(?<=(?<!\.)[.!?~](?!\.))\s+/).map(s => s.trim()).filter(Boolean);
     if (punctSplits.length >= 2) {
@@ -64,7 +67,7 @@
       for (const piece of punctSplits) {
         if (result.length === 0) {
           result.push(piece);
-        } else if (result.length < 2 && result[result.length - 1].length >= 9 && piece.length >= 6) {
+        } else if (result.length < 3 && result[result.length - 1].length >= 8 && piece.length >= 5) {
           result.push(piece);
         } else {
           result[result.length - 1] += ' ' + piece;

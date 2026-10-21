@@ -8,13 +8,14 @@ function snapshot(user) {
   return { success: true, user: { id: user.id, phone: user.phone, hearts: user.hearts,
     isVipUnlimited: user.isVipUnlimited, phoneBonusClaimed: user.phoneBonusClaimed, heartExpiry: db.getHeartSummary(user.id),
     isAdult: require('../services/contentAccess').verifiedAdult(user) },
-    savedRooms: user.savedRooms || {}, roomCharacters:Object.keys(user.savedRooms||{}).map(id=>characters.publicProfile(characters.getCharacterById(id))).filter(Boolean), metCharIds: user.metCharIds || [], matchFilter: user.matchFilter,
+    savedRooms: Object.fromEntries(Object.entries(user.savedRooms||{}).map(([id,room])=>[id,{...room,messages:(room.messages||[]).slice(-40)}])), roomCharacters:Object.keys(user.savedRooms||{}).map(id=>characters.publicProfile(characters.getCharacterById(id))).filter(Boolean), metCharIds: user.metCharIds || [], matchFilter: user.matchFilter,
     unlockedMedia: user.unlockedMedia || {}, prevCharId: user.prevCharId || null };
 }
 router.get('/hearts', (req,res) => {
   res.set('Cache-Control','no-store');
   res.json({success:true,hearts:db.getUser(req.user.id).hearts,summary:db.getHeartSummary(req.user.id),grants:db.getHeartGrants(req.user.id)});
 });
+router.get('/rooms/:id/messages',async(req,res)=>{res.set('Cache-Control','no-store');try{const result=await require('../services/conversationArchive').page(req.user.id,req.params.id,{before:req.query.before,limit:40});res.json({success:true,...result});}catch(e){res.status(e.status||503).json({success:false,error:e.status===400?'잘못된 조회 위치입니다.':'이전 대화를 불러오지 못했습니다. 다시 시도해주세요.'});}});
 router.get('/state', (req, res) => res.json(snapshot(db.getUser(req.user.id))));
 const roomStrings = ['memorySummary', 'lastGreetingSlot'];
 const roomNumbers = ['firstMetAt', 'photosSentCount', 'unreadCount', 'affection', 'turnCount', 'rudeStrikes', 'anger', 'updatedAt'];

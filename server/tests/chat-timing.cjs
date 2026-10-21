@@ -18,6 +18,7 @@ assert.deepEqual(timing.splitIntoRealisticBubbles('응 그래'), ['응 그래'],
 assert.deepEqual(timing.splitIntoRealisticBubbles('오늘 날씨 너무 좋다! 우리 이따 한강 갈래?'), ['오늘 날씨 너무 좋다!', '우리 이따 한강 갈래?'], 'Punctuated sentences split into 2 natural bubbles');
 assert.deepEqual(timing.splitIntoRealisticBubbles('첫 번째 말풍선입니다\n두 번째 말풍선이에요'), ['첫 번째 말풍선입니다', '두 번째 말풍선이에요'], 'Newline split into natural bubbles');
 assert.equal(timing.splitIntoRealisticBubbles('더 이상 너 같은 사람 상대하는 거 시간 낭비라는 거 확실히 알았어 다신 보지 말자').length, 2, 'Long Korean sentence without punctuation splits into 2 bubbles');
+assert.deepEqual(timing.splitIntoRealisticBubbles('헐 진짜 대박이다!\n나 그거 완전 좋아하는데\n이번 주말에 꼭 같이 가자!'), ['헐 진짜 대박이다!', '나 그거 완전 좋아하는데', '이번 주말에 꼭 같이 가자!'], 'Three sentences with newlines split into 3 natural bubbles');
 (async()=>{
  for(const file of ['index.html','seollem_chat_standalone.html']){
   const html=fs.readFileSync(path.resolve(__dirname,'../..',file),'utf8');
@@ -52,12 +53,16 @@ assert.equal(timing.splitIntoRealisticBubbles('더 이상 너 같은 사람 상�
   const threeBubbles=context.runRealisticReplySequence({bubbles:['첫째','둘째','셋째 핵심 내용'],replyId:'three'},false,7,Date.now()-5000);
   timers.shift().fn(); // 1번
   await new Promise(r=>setImmediate(r));
-  timers.shift().fn(); // breath
+  timers.shift().fn(); // breath 1
   await new Promise(r=>setImmediate(r));
-  timers.shift().fn(); // 2번 (셋째가 합쳐져서 나옴)
+  timers.shift().fn(); // 2번
+  await new Promise(r=>setImmediate(r));
+  timers.shift().fn(); // breath 2
+  await new Promise(r=>setImmediate(r));
+  timers.shift().fn(); // 3번
   await threeBubbles;
-  assert.equal(messages.length,2);
-  assert.equal(messages[1].text,'둘째 셋째 핵심 내용','Third bubble content must merge instead of being truncated');
+  assert.equal(messages.length,3,'Three natural bubbles supported');
+  assert.equal(messages[2].text,'셋째 핵심 내용','Third bubble content must be delivered intact without truncation');
   messages=[];timers=[];const stale=context.runRealisticReplySequence({bubbles:[short]},false,7);state.messageTurnId=8;timers.shift().fn();await stale;assert.equal(messages.length,0,'Stale delayed reply must not appear in another turn');
  }
  console.log('PASS: length-based typing, long replies wait even after slow generation, no early display, no text truncation, stale turn cancellation and frontend syntax');
