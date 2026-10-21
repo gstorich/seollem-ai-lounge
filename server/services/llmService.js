@@ -394,10 +394,16 @@ module.exports = {
     // Check for room left exit tag
     const roomLeft = turn.roomLeft || reply.includes('[대화종료]');
     // [핵심]: 부자연스러운 이력서형 괄호 표기(예: '(식품영양학과)', '(디자인과)' 등) 원천 제거
-    const cleanedText = reply
+    let cleanedText = reply
       .replace(/\[대화종료\]/g, '')
       .replace(/\s*\([^)]*(학과|전공|직업|일|업무|회사)[^)]*\)/g, '')
       .trim();
+
+    // [보안/안전]: 전화번호 사칭 및 노출 원천 차단 (010, 02 등 연락처 패턴 안전 마스킹)
+    const phonePattern = /(?:01[016789]|02|0[3-6][1-5])[-.\s]?\d{3,4}[-.\s]?\d{4}/g;
+    if (phonePattern.test(cleanedText)) {
+      cleanedText = cleanedText.replace(phonePattern, '(개인 연락처 비공개)');
+    }
 
     const text = chatPunctuation(cleanedText);
     if (!text.trim()) throw new Error('LLM_EMPTY_RESPONSE');

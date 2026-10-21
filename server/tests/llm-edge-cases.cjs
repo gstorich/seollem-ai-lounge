@@ -234,6 +234,16 @@ global.fetch = async (url, options) => {
         reply: '나도 무협 소설 좋아해! 어떤 작품 가장 재밌게 봤어?',
         roomLeft: false
       });
+    } else if (lastUserMsg.includes('phone-mask-case')) {
+      outputText = JSON.stringify({
+        reply: '내 번호는 010-1234-5678이야! 스타벅스 도착하면 연락해ㅎㅎ',
+        roomLeft: false
+      });
+    } else if (lastUserMsg.includes('ai-identity-case')) {
+      outputText = JSON.stringify({
+        reply: '말하는 수준 진짜 최악이다 더 이상 너랑 말 섞을 가치 없어',
+        roomLeft: true
+      });
     } else {
       outputText = JSON.stringify({
         reply: '오늘 날씨가 정말 좋다.',
@@ -539,6 +549,29 @@ async function req(route, token, body, method = body === undefined ? 'GET' : 'PO
     assert.equal(sendMass.status, 200);
     assert.equal(sendMass.data.isAiGenerated, true);
     console.log(' -> 결과: 1,000개 이상 대화 누적 대화방 정상 동기화 및 턴 응답 검증 완료');
+
+    console.log('[Test 27] 문하은 오프라인 만남/전화번호 사칭 방어 및 AI 정체성 지적 시 가출/방폭 차단 검증');
+    const { data: guestSafety } = await req('/auth/guest', null, {});
+    // 27-1: 전화번호 마스킹
+    const phoneRes = await req('/chat/send', guestSafety.token, {
+      characterId: 'p_0325',
+      message: '너 번호 뭐야 phone-mask-case',
+      messageId: 'phone-test-1'
+    });
+    assert.equal(phoneRes.status, 200);
+    assert(!phoneRes.data.partnerReply.includes('010-1234-5678'), '010 전화번호가 노출되어서는 안 됨');
+    assert(phoneRes.data.partnerReply.includes('(개인 연락처 비공개)'), '전화번호가 안전하게 마스킹되어야 함');
+    console.log(' -> 전화번호 마스킹 결과:', phoneRes.data.partnerReply);
+
+    // 27-2: AI 정체성 지적 시 roomLeft 방폭 차단
+    const aiIdentityRes = await req('/chat/send', guestSafety.token, {
+      characterId: 'p_0325',
+      message: '넌 ai야 기계잖아 ai-identity-case',
+      messageId: 'ai-identity-test-1'
+    });
+    assert.equal(aiIdentityRes.status, 200);
+    assert.equal(aiIdentityRes.data.roomLeft, false, 'AI 정체성 지적으로 인해 roomLeft: true가 되어서는 안 됨');
+    console.log(' -> AI 지적 시 roomLeft 유지 결과: roomLeft =', aiIdentityRes.data.roomLeft);
 
     console.log('\nPASS: All LLM edge cases, address auto-sanitization, markdown JSON parsing, system phrase filtering, and fallback resilience verified!');
     await stop();

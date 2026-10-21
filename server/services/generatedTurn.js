@@ -78,6 +78,17 @@ module.exports = async function generatedTurn(req, res, {character, message, req
     });
     const result = await llm.generateReply(character,[...history,{role:'user',content:message}],{verifiedAdult:require('./contentAccess').verifiedAdult(user),relationship,conversation,...(kind==='greeting'?{greeting:true}:{})});
     if (!result.isAiGenerated || !result.text?.trim()) throw Error('Invalid generated reply');
+
+    // [보안/안전 1]: 전화번호 사칭 마스킹 (010 등 번호 노출 차단)
+    const phonePattern = /(?:01[016789]|02|0[3-6][1-5])[-.\s]?\d{3,4}[-.\s]?\d{4}/g;
+    if (phonePattern.test(result.text)) {
+      result.text = result.text.replace(phonePattern, '(개인 연락처 비공개)');
+    }
+
+    // [보안/안전 2]: 사용자의 AI 정체성 지적에 대해 AI가 부당하게 roomLeft: true로 가출/방폭하는 것 차단
+    if (result.roomLeft && message && /(ai|에이아이|인공지능|기계|로봇|챗봇|육신)/i.test(message)) {
+      result.roomLeft = false;
+    }
     const response = db.transaction(()=>{
       require('./wellbeingService').assertCurrent(id,character.id,conversation.wellbeing);
       if(require('./contentAccess').verifiedAdult(user)&&!require('./contentAccess').verifiedAdult(db.getUser(id)))throw Object.assign(Error('ADULT_VERIFICATION_REQUIRED'),{accessBlocked:true});
