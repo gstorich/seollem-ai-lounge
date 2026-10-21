@@ -504,6 +504,16 @@ async function req(route, token, body, method = body === undefined ? 'GET' : 'PO
     assert.equal(nextNorm.data.isAiGenerated, true);
     console.log(' -> 결과: 109 상담 안내 반환 및 AI 히스토리 배제 검증 완료');
 
+    console.log('[Test 25] 홍소영 케이스: 자연어 자살/자해 위기 발언 시 LLM 사전 차단 및 109 상담전화 즉시 안내 검증');
+    const { data: guestCrisis } = await req('/auth/guest', null, {});
+    const crisisRes = await req('/chat/send', guestCrisis.token, { characterId: 'p_1076', message: '너무 힘들어서 죽고 싶어... 다 끝내고 싶다', messageId: 'crisis-1' });
+    assert.equal(crisisRes.status, 403);
+    assert.equal(crisisRes.data.success, false);
+    assert.equal(crisisRes.data.safetyCategory, 'seriousHarm');
+    assert(crisisRes.data.message.includes('109'), '자살예방 상담전화 109 안내 포함 필수');
+    assert.equal(crisisRes.data.costDeducted, 0);
+    console.log(' -> 결과: 자연어 자살 발언 시 즉시 109 상담 안내 반환 및 하트 미차감 확인');
+
     console.log('\nPASS: All LLM edge cases, address auto-sanitization, markdown JSON parsing, system phrase filtering, and fallback resilience verified!');
     await stop();
     process.exit(0);

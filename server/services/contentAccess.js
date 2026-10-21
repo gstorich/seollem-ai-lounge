@@ -31,4 +31,13 @@ ${adult?'서버에서 성인인증(19세 이상)을 완료한 이용자입니다
 첫 인사와 먼저 오는 연락은 인증 여부를 이유로 성적 상황을 새로 만들지 않습니다. 새 사용자 발화가 없는 먼저 오는 연락은 일반 대화 범위에서 보냅니다.
 성인인증 여부와 무관하게 미성년자 성적 대상화, 비동의·강압적 성적 콘텐츠, 실존 인물의 동의 없는 성적 재현, 자해·범죄 실행 조장을 제공하지 않습니다. 공급자 정책상 금지된 노골적 성적 묘사도 생성하지 않습니다.
 캐릭터는 인증·서버·규정·오류 같은 운영 안내를 발화하지 않습니다. 운영 안내는 시스템이 별도로 표시합니다. 답변을 제공할 수 없을 때 정해진 캐릭터 대사로 대체하지 않습니다.`;}
-module.exports={version:'2026-10-21.1',providerVerifiedAdult,verifiedAdult,schema,prompt,enforce,instruction};
+function isCrisisMessage(text){
+  if(typeof text!=='string'||!text.trim())return false;
+  const normalized=text.replace(/[\s\-_.,!?~]/g,'');
+  if(/자살|자해|극단적선택|죽고싶|죽을래|살기싫|목숨끊|세상떠나|손목긋|뛰어내릴|목매/.test(normalized)){
+    return true;
+  }
+  const patterns=[/자살/,/자해/,/극단적\s*선택/,/죽고\s*싶/,/죽고싶/,/죽을\s*거\s*야/,/죽을래/,/살기\s*싫/,/살기싫/,/목숨\s*(?:을\s*)?끊/,/세상(?:을\s*)?떠나/,/손목(?:을\s*)?긋/,/뛰어\s*내릴/,/목(?:을\s*)?매/];
+  return patterns.some(p=>p.test(text));
+}
+module.exports={version:'2026-10-21.1',providerVerifiedAdult,verifiedAdult,schema,prompt,enforce,instruction,isCrisisMessage};

@@ -16,5 +16,6 @@ vm.createContext(context);vm.runInContext(source,context);
  const resumed=lastNotice;await resumed.querySelector('#resumeAdultVerifyBtn').onclick();assert.equal(retries,1,'Checking an existing identity also cannot auto-resend');
  enabled=false;context.showContentAccessNotice({code:'ADULT_VERIFICATION_REQUIRED'},()=>retries++);
  await lastNotice.querySelector('#startAdultVerifyBtn').onclick();assert.equal(posted,1,'Disabled identity service cannot manufacture verification');assert.equal(retries,1);
+ assert(context.showContentAccessNotice({code:'CONTENT_NOT_ALLOWED',safetyCategory:'seriousHarm',message:'24시간 자살예방 상담전화 ☎ 109'}));
  console.log('PASS content access UI: centered system notice, explicit post-verification retry and no client tester bypass');
 })().catch(e=>{console.error(e);process.exitCode=1;});

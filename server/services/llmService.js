@@ -266,6 +266,9 @@ module.exports = {
     }
     async function check(target, isUser = false){
       try {
+        if (isUser && typeof contentAccess.isCrisisMessage === 'function' && contentAccess.isCrisisMessage(target)) {
+          throw Object.assign(Error('CONTENT_NOT_ALLOWED'), { accessBlocked: true, safetyCategory: 'seriousHarm' });
+        }
         const raw=await generate([{role:'user',content:JSON.stringify({context:selectedHistory.slice(-12),serverMemory:{summary:conversation.memory?.summary||'',state:conversation.memory?.state||{}},target})}],contentAccess.prompt,contentAccess.schema,true);
         let result = safeParseJson(raw);
         if(!result) {

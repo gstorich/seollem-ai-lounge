@@ -4570,10 +4570,13 @@
 
     function showContentAccessNotice(error, retry, meta = {}) {
       const errorCode = error.code || error.error;
-      if (!['MINIMUM_AGE_REQUIRED','ADULT_VERIFICATION_REQUIRED','CONTENT_NOT_ALLOWED'].includes(errorCode)) return false;
+      const safetyCategory = error.safetyCategory || error.data?.safetyCategory;
+      const isSeriousHarm = safetyCategory === 'seriousHarm' || (typeof error.message === 'string' && error.message.includes('109'));
+      if (!['MINIMUM_AGE_REQUIRED','ADULT_VERIFICATION_REQUIRED','CONTENT_NOT_ALLOWED'].includes(errorCode) && !isSeriousHarm) return false;
       const reqId = meta.requestId || (typeof state !== 'undefined' && state.messages ? state.messages.filter(m => m.sender === 'user').at(-1)?.id : null);
       if (reqId && typeof markUserMessageFailed === 'function') {
-        markUserMessageFailed(reqId, error.message || (errorCode === 'ADULT_VERIFICATION_REQUIRED' ? '성인인증 필요' : '전송 불가'));
+        const failLabel = isSeriousHarm ? '위기상담 안내 (전송되지 않음)' : (errorCode === 'ADULT_VERIFICATION_REQUIRED' ? '성인인증 필요' : '전송 불가');
+        markUserMessageFailed(reqId, failLabel);
       }
       document.getElementById('generationErrorNotice')?.remove();
       const notice = document.createElement('div');
@@ -4699,6 +4702,31 @@
             feedback.classList.remove('hidden');
           }
         };
+      } else if (isSeriousHarm) {
+        notice.className = 'mx-auto my-4 max-w-[92%] rounded-2xl bg-gradient-to-b from-[#252830] to-[#1a1c23] border border-emerald-500/40 p-4 text-center text-[#e8eaed] shadow-xl';
+        notice.innerHTML = `
+          <div class="flex items-center justify-center gap-1.5 font-bold text-emerald-400 text-[14px] mb-2">
+            <span>💚</span><span>소중한 당신, 혼자 힘들어하지 마세요</span>
+          </div>
+          <p class="text-[#c4c7d0] text-[12.5px] leading-relaxed mb-3">
+            힘든 마음을 털어놓고 기댈 수 있는 전문가들이 24시간 함께하고 있습니다.<br>
+            언제든 편안하게 무료로 도움을 받으실 수 있습니다.
+          </p>
+          <div class="flex flex-col gap-2 w-full max-w-xs mx-auto mb-3">
+            <a href="tel:109" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-[13.5px] shadow transition-all cursor-pointer no-underline">
+              <span>☎ 24시간 자살예방 상담전화 109</span>
+            </a>
+            <div class="grid grid-cols-2 gap-1.5 text-[11px] text-[#a0a5b5]">
+              <div class="bg-white/5 py-1.5 px-2 rounded-lg border border-white/5">
+                정신건강 <a href="tel:1577-0199" class="text-emerald-300 font-semibold underline">1577-0199</a>
+              </div>
+              <div class="bg-white/5 py-1.5 px-2 rounded-lg border border-white/5">
+                생명의전화 <a href="tel:1588-9191" class="text-emerald-300 font-semibold underline">1588-9191</a>
+              </div>
+            </div>
+          </div>
+          <p class="text-[11px] text-[#8e93a6]">비밀이 보장되며 통화료는 무료입니다 · 하트는 차감되지 않았습니다.</p>
+        `;
       } else {
         notice.className = 'mx-auto my-4 max-w-[90%] rounded-xl bg-[#e5e1d8] px-4 py-3 text-center text-[12px] text-[#66635d] leading-relaxed';
         const text = document.createElement('p');
