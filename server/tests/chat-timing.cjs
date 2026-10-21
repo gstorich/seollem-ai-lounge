@@ -26,7 +26,7 @@ assert.deepEqual(timing.splitIntoRealisticBubbles('헐 진짜 대박이다!\n나
   const start=html.indexOf('    async function runRealisticReplySequence('),end=html.indexOf('    // 매 턴마다',start);
   let timers=[],messages=[];
   const state={currentChar:{name:'테스트'},roomLeft:false,messageTurnId:7};
-  const context=vm.createContext({AzitChatTiming:timing,state,Date,Math,console,headerStatusText:{},clearIdleFollowUpTimer(){},markAllUserMessagesRead(){},showTypingIndicator(){},hideTypingIndicator(){},saveAccountState(){},updateHeaderDefaultStatus(){},scheduleIdleFollowUp(){},appendMessage(sender,text){messages.push({sender,text});},registerTimeout(fn,delay){timers.push({fn,delay});}});
+  const context=vm.createContext({document:{visibilityState:'hidden'},AzitChatTiming:timing,state,Date,Math,console,headerStatusText:{},clearIdleFollowUpTimer(){},markAllUserMessagesRead(){},showTypingIndicator(){},hideTypingIndicator(){},saveAccountState(){},updateHeaderDefaultStatus(){},scheduleIdleFollowUp(){},appendMessage(sender,text){messages.push({sender,text});},registerTimeout(fn,delay){timers.push({fn,delay});}});
   vm.runInContext(html.slice(start,end),context);
   const pending=context.runRealisticReplySequence({bubbles:[long],replyId:'test_reply'},false,7,Date.now()-60000);
   assert.equal(messages.length,0,'Reply must stay hidden while typing');assert.equal(timers.length,1);assert(timers[0].delay>=1000&&timers[0].delay<=2000);

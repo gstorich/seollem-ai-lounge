@@ -16,6 +16,7 @@ router.get('/hearts', (req,res) => {
   res.json({success:true,hearts:db.getUser(req.user.id).hearts,summary:db.getHeartSummary(req.user.id),grants:db.getHeartGrants(req.user.id)});
 });
 router.get('/rooms/:id/messages',async(req,res)=>{res.set('Cache-Control','no-store');try{const result=await require('../services/conversationArchive').page(req.user.id,req.params.id,{before:req.query.before,limit:40});res.json({success:true,...result});}catch(e){res.status(e.status||503).json({success:false,error:e.status===400?'잘못된 조회 위치입니다.':'이전 대화를 불러오지 못했습니다. 다시 시도해주세요.'});}});
+router.get('/sync',(req,res)=>{res.set('Cache-Control','no-store');const user=db.getUser(req.user.id),revision=db.sql.prepare('SELECT version FROM account_message_versions WHERE user_id=?').get(user.id)?.version||0,syncVersion=String(user.updatedAt)+':'+revision;if(req.query.after===syncVersion)return res.json({success:true,unchanged:true,syncVersion});res.json({...snapshot(user),syncVersion});});
 router.get('/state', (req, res) => res.json(snapshot(db.getUser(req.user.id))));
 const roomStrings = ['memorySummary', 'lastGreetingSlot'];
 const roomNumbers = ['firstMetAt', 'photosSentCount', 'unreadCount', 'affection', 'turnCount', 'rudeStrikes', 'anger', 'updatedAt'];

@@ -1493,6 +1493,7 @@
   </div>
 
   <script src="/legal.js"></script>
+  <script src="messageDelivery.js"></script>
   <script src="apiClient.js"></script>
   <script src="chatTiming.js"></script>
   <script src="notifications.js" defer></script>
@@ -3370,12 +3371,12 @@
           const prevSaved = state.savedRooms[state.currentChar.id] || {};
           state.savedRooms[state.currentChar.id] = {
             charId: state.currentChar.id,
-            messages: state.messages.slice(-300),
+            messages: AzitMessageDelivery.merge(prevSaved.messages,state.messages).slice(-300),
             userFacts: (state.userFacts || []).slice(-25),
             memorySummary: state.memorySummary || '',
             firstMetAt: state.firstMetAt || prevSaved.firstMetAt || Date.now(),
             photosSentCount: state.photosSentCount || 0,
-            unreadCount: state.currentView==='chatRoom'?0:state.messages.filter(m=>m.sender==='ai'&&m.unread).length,
+            unreadCount: AzitMessageDelivery.merge(prevSaved.messages,state.messages).filter(m=>m.sender==='ai'&&m.unread).length,
             lastGreetingSlot: prevSaved.lastGreetingSlot || '',
             affection: state.affection,
             turnCount: state.turnCount,
@@ -3839,63 +3840,18 @@
     // 활성 진행 중인 AI 응답 저장소 (유저가 방을 나가도 메시지가 유실되지 않고 방에 온전히 저장되도록 보호)
     state.activePendingDeliveries = state.activePendingDeliveries || {};
 
+    function rememberConfirmedReply(char,result) {
+      if(!char?.id||!result?.replyId||!result.partnerReply)return;
+      const room=state.savedRooms[char.id]||{charId:char.id,messages:[]};
+      room.messages=AzitMessageDelivery.merge(room.messages,[{id:result.replyId,sender:'ai',text:result.partnerReply,createdAt:Date.now(),unread:true}]);
+      room.updatedAt=Date.now();room.unreadCount=room.messages.filter(m=>m.sender==='ai'&&m.unread).length;state.savedRooms[char.id]=room;
+      saveAccountState();renderChatRoomsList();updateChatListBadges();
+    }
     function flushPendingDeliveryForChar(charId) {
-      if (!charId) return;
-      const pending = state.activePendingDeliveries[charId];
-      if (!pending) return;
+      const pending=state.activePendingDeliveries?.[charId];if(!pending)return;
       delete state.activePendingDeliveries[charId];
-
-      const room = state.savedRooms[charId];
-      if (!room) return;
-      room.messages = room.messages || [];
-
-      let addedCount = 0;
-      if (Array.isArray(pending.bubbles)) {
-        pending.bubbles.forEach((bText, i) => {
-          if (!bText || typeof bText !== 'string' || !bText.trim()) return;
-          const baseReplyId = pending.replyId || ('reply_' + Date.now());
-          const msgId = (pending.bubbles.length === 1 && i === 0) ? baseReplyId : `${baseReplyId}_${i}`;
-          if (!room.messages.some(m => m.id === msgId || (m.sender === 'ai' && m.text === bText && Math.abs((m.createdAt || 0) - Date.now()) < 10000))) {
-            const timeStr = new Date().toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true });
-            room.messages.push({
-              id: msgId,
-              sender: 'ai',
-              text: bText,
-              time: timeStr,
-              createdAt: Date.now(),
-              unread: (state.currentView !== 'chatRoom' || state.currentChar?.id !== charId)
-            });
-            addedCount++;
-          }
-        });
-      }
-
-      if (pending.mediaItem && !pending.leaveRoom) {
-        const mId = `${pending.replyId || 'reply_' + Date.now()}_media`;
-        if (!room.messages.some(m => m.id === mId)) {
-          const timeStr = new Date().toLocaleTimeString('ko-KR', { hour: 'numeric', minute: '2-digit', hour12: true });
-          room.messages.push({
-            id: mId,
-            sender: 'ai',
-            text: pending.mediaItem.caption || '',
-            time: timeStr,
-            createdAt: Date.now(),
-            unread: (state.currentView !== 'chatRoom' || state.currentChar?.id !== charId),
-            ...pending.mediaItem
-          });
-          addedCount++;
-        }
-      }
-
-      room.updatedAt = Date.now();
-      if (state.currentView !== 'chatRoom' || state.currentChar?.id !== charId) {
-        if (addedCount > 0) {
-          room.unreadCount = (room.unreadCount || 0) + addedCount;
-        }
-      }
-      saveAccountState();
-      renderChatRoomsList();
-      updateChatListBadges();
+      const char=CHARACTERS.find(c=>c.id===charId)||{id:charId};
+      rememberConfirmedReply(char,{replyId:pending.replyId,partnerReply:pending.fullText||(pending.bubbles||[]).join(' ')});
     }
 
     // 창에서 벗어났을 때도 예정된 시간에 맞춰 방에 메시지를 저장하고 알림을 울리는 백그라운드 배송기
@@ -3935,6 +3891,7 @@
       }
 
       if (added) {
+        if(state.currentChar?.id===char.id)state.messages=AzitMessageDelivery.merge(state.messages,room.messages);
         room.unreadCount = (room.unreadCount || 0) + 1;
         room.updatedAt = Date.now();
         saveAccountState();
@@ -3969,6 +3926,7 @@
           const result=await ApiClient.idleFollowUp(char.id,snapshot.userMessageId,snapshot.lastReplyId);
           if(result.skipped)return;
           if(!result.isAiGenerated||!result.partnerReply?.trim())throw Error('Invalid generated follow-up');
+          rememberConfirmedReply(char,result);
           if(state.currentChar?.id!==char.id||state.roomLeft||state.messageTurnId!==turnId||idleFollowUpState().userMessageId!==snapshot.userMessageId)return;
           await runRealisticReplySequence({bubbles:[result.partnerReply],replyId:result.replyId},true,turnId,startedAt);
         }catch(error){
@@ -3982,6 +3940,7 @@
     async function runRealisticReplySequence(replyPlan, isProactiveFollowUp = false, turnId = null, typingStartedAt = null) {
       const char = state.currentChar;
       try {
+        if(replyPlan?.characterId&&replyPlan.characterId!==char?.id)return;
         if (!char || state.roomLeft || (turnId && turnId !== state.messageTurnId)) {
           hideTypingIndicator();
           return;
@@ -4008,6 +3967,7 @@
           state.activePendingDeliveries = state.activePendingDeliveries || {};
           state.activePendingDeliveries[char.id] = {
             charId: char.id,
+            fullText:replyPlan.fullText||rawBubbles.join(' '),
             bubbles: [...bubbles],
             mediaItem: replyPlan.mediaItem,
             replyId: replyPlan.replyId,
@@ -4062,6 +4022,7 @@
             if (char?.id && state.activePendingDeliveries) {
               delete state.activePendingDeliveries[char.id];
             }
+            if(isInActiveRoom()&&document.visibilityState==='visible'){const room=state.savedRooms?.[char?.id];if(room){room.messages=room.messages.map(m=>m.id===replyPlan.replyId?{...m,unread:false}:m);saveAccountState();}}
             if (replyPlan && (replyPlan.leaveRoom || replyPlan.forceLeave)) {
               state.pendingUserMessages = [];
               clearUserDebounce();
@@ -4693,6 +4654,7 @@
         if (!char || !window.ApiClient?.isConnected()) throw new Error('API unavailable');
         const result = await ApiClient.sendMessage(char.id, userText, [], state.affection, requestId);
         if (!result.isAiGenerated || !result.partnerReply?.trim()) throw new Error('Invalid generated reply');
+        rememberConfirmedReply(char,result);
         state.hearts = state.credits = result.heartsRemaining;
         updateAccountAndCreditUI();
         state.adultGatedTurn = null;
@@ -4702,7 +4664,7 @@
         const bubbles = (window.AzitChatTiming?.splitIntoRealisticBubbles
           ? window.AzitChatTiming.splitIntoRealisticBubbles(result.partnerReply)
           : [result.partnerReply]);
-        return { bubbles, replyId: result.replyId, forceLeave: Boolean(result.roomLeft), leaveRoom: Boolean(result.roomLeft) };
+        return { characterId:char.id, fullText:result.partnerReply, bubbles, replyId: result.replyId, forceLeave: Boolean(result.roomLeft), leaveRoom: Boolean(result.roomLeft) };
       } catch (error) {
         if (requestId && typeof markUserMessageFailed === 'function') {
           markUserMessageFailed(requestId, error.message || '전송 실패');
@@ -5065,6 +5027,7 @@
         if (!window.ApiClient?.isConnected()) throw new Error('API unavailable');
         const result = await ApiClient.sendGreeting(char.id, requestId);
         if (!result.isAiGenerated || !result.partnerReply?.trim()) throw new Error('Invalid generated greeting');
+        rememberConfirmedReply(char,result);
         if (state.currentChar?.id !== char.id || !state.isGreetingPending) return;
         await runRealisticReplySequence({bubbles:[result.partnerReply],replyId:result.replyId,greeting:true},false,null,greetingStartedAt);
         state.isGreetingPending = false;
@@ -5328,6 +5291,7 @@
         if (!window.ApiClient?.isConnected()) throw new Error('API unavailable');
         const result = await ApiClient.sendGift(char.id,gift.key,customMsg,requestId);
         if (!result.isAiGenerated || !result.partnerReply?.trim()) throw new Error('Invalid generated gift reply');
+        rememberConfirmedReply(char,result);
         state.hearts = state.credits = result.heartsRemaining;
         updateAccountAndCreditUI();
         if (state.currentChar?.id !== char.id) return;
@@ -5500,7 +5464,7 @@
       const plan=await fetchLLMResponse(text,requestId);
 
       // fetchLLMResponse 도중 사용자가 끼어들어 새 턴이 스케줄된 경우(turnId 불일치), 이 구시대 답변은 화면에 출력하지 않고 조용히 폐기
-      if (turnId !== state.messageTurnId) {
+      if (turnId !== state.messageTurnId || state.currentChar?.id !== char.id) {
         return;
       }
 
@@ -5522,7 +5486,7 @@
       await runRealisticReplySequence(plan, false, turnId, startedAt);
 
       // 도중에 사용자가 새 메시지를 보내서 턴이 취소되었거나 바뀐 경우
-      if (turnId !== state.messageTurnId) {
+      if (turnId !== state.messageTurnId || state.currentChar?.id !== char.id) {
         return;
       }
 
@@ -6937,7 +6901,40 @@
       if(state.currentChar){const updated=merged.get(state.currentChar.id);if(updated){Object.assign(state.currentChar,updated);applyCharacterToHeader();}}
     }
     window.addEventListener('azit-character-catalog',event=>installPublishedCharacters(event.detail||[]));
+    let conversationSyncAfter=0,conversationSyncBusy=false;
+    async function syncServerConversations(){
+      if(!serverStateReady||conversationSyncBusy||!window.ApiClient?.isConnected()||document.visibilityState!=='visible')return;
+      conversationSyncBusy=true;const accountId=ApiClient.user?.id;
+      try{
+        const data=await ApiClient.loadConversationUpdates(conversationSyncAfter);
+        if(ApiClient.user?.id!==accountId)return;
+        conversationSyncAfter=data.syncVersion||conversationSyncAfter;if(data.unchanged)return;
+        for(const c of data.roomCharacters||[]){const existing=CHARACTERS.find(x=>x.id===c.id);if(existing)Object.assign(existing,c);else CHARACTERS.push(c);}
+        for(const [id,incoming] of Object.entries(data.savedRooms||{})){
+          const local=state.savedRooms[id]||{charId:id,messages:[]};
+          state.savedRooms[id]={...local,...incoming,messages:AzitMessageDelivery.merge(local.messages,incoming.messages)};
+          if(state.currentChar?.id===id&&!state.isAiBusy&&!state.isGreetingPending&&!state.roomLeft){
+            const previous=state.messages,known=new Set(previous.map(m=>m.id)),clean=t=>String(t||'').replace(/\s/g,'');
+            const covered=m=>m.sender==='ai'&&previous.filter(p=>p.sender==='ai'&&p.id?.startsWith(m.id+'_')).map(p=>clean(p.text)).join('')===clean(m.text);
+            const unseen=(incoming.messages||[]).filter(m=>!known.has(m.id)&&!covered(m));
+            for(const m of unseen)if(m.sender==='ai')m.unread=state.currentView!=='chatRoom';
+            state.messages=AzitMessageDelivery.merge(previous,unseen);
+            const open=state.currentView==='chatRoom',atBottom=chatContainer.scrollHeight-chatContainer.scrollTop-chatContainer.clientHeight<120;
+            for(const m of unseen){if(m.sender==='ai'){m.unread=!open;for(const row of chatContainer.querySelectorAll('[data-msg-id]'))if(row.dataset.msgId.startsWith(m.id+'_'))row.remove();}if(open)appendMessage(m.sender,m.text,{...m,skipPush:true,noScroll:!atBottom});}
+            if(open)state.savedRooms[id].messages=state.savedRooms[id].messages.map(m=>({...m,unread:false}));
+          }
+          state.savedRooms[id].unreadCount=state.savedRooms[id].messages.filter(m=>m.sender==='ai'&&m.unread).length;
+        }
+        if(typeof data.user?.hearts==='number')state.hearts=state.credits=data.user.hearts;
+        saveAccountState();renderChatRoomsList();updateChatListBadges();
+      }catch{}finally{conversationSyncBusy=false;}
+    }
+    window.addEventListener('focus',()=>syncServerConversations());
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncServerConversations();});
+    setInterval(syncServerConversations,5000);
+
     function applyServerAccount(data) {
+      conversationSyncAfter=0;
       window.AzitWellbeing?.resetAccount();
       clearAllTimers();
       state.currentChar = null;
@@ -6989,7 +6986,10 @@
       if(changed){saveAccountState();renderChatRoomsList();}
     });
     async function openContactRoom(id){
-      if(!serverStateReady||state.isAiBusy||!state.savedRooms[id])return;
+      if(!serverStateReady)return;
+      await syncServerConversations();
+      if(!state.savedRooms[id])return;
+      if(state.currentChar?.id===id){showView('chatRoom');return;}
       const character=CHARACTERS.find(c=>c.id===id);
       if(character){await startChatWithCharacter(character,true);showView('chatRoom');}
     }

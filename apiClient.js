@@ -268,6 +268,7 @@
       if(!data.unchanged){catalogVersion=data.version||'';window.dispatchEvent(new CustomEvent('azit-character-catalog',{detail:data.characters}));}
       return data;
     },
+    async loadConversationUpdates(after=0) { return this.request('/account/sync?after='+encodeURIComponent(after)); },
     async loadState() {
       if (!authToken && !this.hasSession()) {
         return {

@@ -7,6 +7,7 @@ fs.mkdirSync(path.dirname(sqliteFile), { recursive: true, mode: 0o700 });
 const sql = new DatabaseSync(sqliteFile);
 sql.exec(`PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000;
 CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, phone TEXT UNIQUE, data TEXT NOT NULL);
+CREATE TABLE IF NOT EXISTS account_message_versions(user_id TEXT PRIMARY KEY,version INTEGER NOT NULL DEFAULT 0);
 CREATE TABLE IF NOT EXISTS orders (id TEXT PRIMARY KEY, data TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS aliases (old_id TEXT PRIMARY KEY, new_id TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS otp_challenges (
@@ -85,7 +86,8 @@ function archiveRooms(user) {
   const insert=sql.prepare('INSERT OR IGNORE INTO conversation_messages VALUES(?,?,?,?,?)');
   for(const [characterId,room] of Object.entries(user.savedRooms||{}))for(const message of room.messages||[]){
     if(!message.id || !['user','ai'].includes(message.sender))continue;
-    insert.run(user.id,characterId,String(message.id),JSON.stringify(message),Number.isFinite(message.createdAt)?message.createdAt:(room.firstMetAt||user.createdAt||0));
+    const result=insert.run(user.id,characterId,String(message.id),JSON.stringify(message),Number.isFinite(message.createdAt)?message.createdAt:(room.firstMetAt||user.createdAt||0));
+    if(result.changes)sql.prepare('INSERT INTO account_message_versions VALUES(?,1) ON CONFLICT(user_id) DO UPDATE SET version=version+1').run(user.id);
   }
 }
 function putUser(user) {

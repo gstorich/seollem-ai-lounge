@@ -32,6 +32,7 @@ async function post(route, body, token) {
     }
     assert(ready, logs);
     assert.match(await (await fetch(base + '/')).text(), /apiClient.js/);
+    assert.equal((await fetch(base+'/messageDelivery.js')).status,200,'Durable reply helper must be served');
     const catalog = require('../../products.json');
     const packages = (await (await fetch(base + '/api/payment/packages')).json()).packages;
     for (const [route, title] of [['terms','이용약관'],['privacy','개인정보처리방침'],['refund','환불 정책'],['products','하트 상품 안내'],['about','서비스 소개'],['verification','본인확인 안내']]) {
