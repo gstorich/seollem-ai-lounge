@@ -26,13 +26,15 @@ function publicOrder(o){db.getUser(o.userId);const g=grant(o),r=refundRecord(o.i
 function create(user,pkgKey){
  if(!gateway.ready('payment'))throw error('PAYMENT_NOT_READY',503);if(!user.phone)throw error('PHONE_VERIFICATION_REQUIRED',403);
  const pkg=packages.find(p=>p.id===pkgKey);if(!pkg)throw error('INVALID_PACKAGE');const id='azit_'+crypto.randomBytes(16).toString('hex'),createdAt=Date.now();
- const o={id,userId:user.id,name:pkg.name,price:pkg.price,hearts:pkg.hearts,status:'pending',createdAt,pkgKey,adContext:require('./advertisingService').context(user.id),termsVersion:require('./legalService').version,refundPolicyVersion:'unused-7d-v1',checkoutConfirmedAt:createdAt,mode:gateway.settings.mode,pgId:gateway.settings.pgId,channelKey:gateway.settings.channelKey,nonce:crypto.randomBytes(24).toString('hex'),cancelledAmount:0};
+ const o={apiVersion:gateway.settings.provider==='inicis'?2:1,storeId:gateway.settings.storeId,id,userId:user.id,name:pkg.name,price:pkg.price,hearts:pkg.hearts,status:'pending',createdAt,pkgKey,adContext:require('./advertisingService').context(user.id),termsVersion:require('./legalService').version,refundPolicyVersion:'unused-7d-v1',checkoutConfirmedAt:createdAt,mode:gateway.settings.mode,pgId:gateway.settings.pgId,channelKey:gateway.settings.channelKey,nonce:crypto.randomBytes(24).toString('hex'),cancelledAmount:0};
  db.transaction(()=>{db.sql.prepare('INSERT INTO payment_orders VALUES(?,?,?,?)').run(id,user.id,JSON.stringify(o),createdAt);if(o.mode==='live')require('./advertisingService').record(user.id,'begin_checkout',id,{value:o.price,currency:'KRW'},createdAt,o.adContext);});
+ if(o.apiVersion===2)return {order:publicOrder(o),request:{storeId:o.storeId,channelKey:o.channelKey,paymentId:id,orderName:o.name,totalAmount:o.price,currency:'CURRENCY_KRW',payMethod:'CARD',customer:{phoneNumber:user.phone},customData:{azitOrder:o.nonce},redirectUrl:gateway.settings.origin+'/payment/complete?orderId='+id,noticeUrls:[gateway.settings.origin+'/api/payment/webhook']}};
  return {order:publicOrder(o),userCode:gateway.settings.userCode,request:{channelKey:o.channelKey,pay_method:'card',merchant_uid:id,name:o.name,amount:o.price,currency:'KRW',buyer_tel:user.phone,custom_data:{azitOrder:o.nonce},m_redirect_url:gateway.settings.origin+'/payment/complete?orderId='+id,notice_url:gateway.settings.origin+'/api/payment/webhook'}};
 }
 function validate(o,p){
+ if(o.apiVersion===2&&(p.store_id!==o.storeId||p.channel_key!==o.channelKey||p.channel_type!==(o.mode==='live'?'LIVE':'TEST')||p.api_version!=='V2'))throw error('PAYMENT_MISMATCH',409);
  let custom=p.custom_data;try{if(typeof custom==='string')custom=JSON.parse(custom);}catch{custom=null;}
- if(p.merchant_uid!==o.id||p.amount!==o.price||p.name!==o.name||p.currency!=='KRW'||p.pay_method!=='card'||p.pg_provider!=='danal_tpay'||p.pg_id!==o.pgId||custom?.azitOrder!==o.nonce||!/^imp_[a-zA-Z0-9_]+$/.test(p.imp_uid||'')||!Number.isInteger(p.cancel_amount)||p.cancel_amount<0||p.cancel_amount>o.price||!['paid','cancelled','failed','ready'].includes(p.status))throw error('PAYMENT_MISMATCH',409);
+ if(p.merchant_uid!==o.id||p.amount!==o.price||p.name!==o.name||p.currency!=='KRW'||p.pay_method!=='card'||p.pg_provider!==(o.apiVersion===2?'inicis_v2':'danal_tpay')||p.pg_id!==o.pgId||custom?.azitOrder!==o.nonce||!/^imp_[a-zA-Z0-9_]+$/.test(p.imp_uid||'')||!Number.isInteger(p.cancel_amount)||p.cancel_amount<0||p.cancel_amount>o.price||!['paid','cancelled','failed','ready'].includes(p.status))throw error('PAYMENT_MISMATCH',409);
  if(o.impUid&&o.impUid!==p.imp_uid)throw error('PAYMENT_MISMATCH',409);
  if(['paid','cancelled'].includes(p.status)&&(!Number.isSafeInteger(p.paid_at)||p.paid_at<=0||p.paid_at*1000>Date.now()+300000||o.providerPaidAt&&o.providerPaidAt!==p.paid_at*1000))throw error('PAYMENT_MISMATCH',409);
 }
@@ -48,19 +50,19 @@ function apply(id,p){return db.transaction(()=>{
  if(take){db.sql.prepare('UPDATE heart_grants SET remaining_units=remaining_units-?,removed_units=removed_units+? WHERE id=?').run(take,take,g.id);db.sql.prepare('INSERT INTO ledger(user_id,delta,reason,created_at) VALUES(?,?,?,?)').run(o.userId,-take,'payment_cancel:'+id,Date.now());}
  o.revokedUnits=(o.revokedUnits||0)+take;if(additional>take)o.reviewRequired=true;o.cancelledAmount=p.cancel_amount;o.status=p.cancel_amount===o.price?'refunded':p.cancel_amount>0?'partially_refunded':'paid';db.getUser(o.userId);save(o);require('./advertisingService').payment(o,previousCancelled);return o;
 });}
-async function reconcile(id,imp){if(!gateway.ready('payment'))throw error('PAYMENT_NOT_READY',503);return locked(id,async()=>{const o=get(id);if(!o)throw error('ORDER_NOT_FOUND',404);const p=imp?await gateway.payment(imp):o.impUid?await gateway.payment(o.impUid):await gateway.find(id);return apply(id,p);});}
+async function reconcile(id,imp){if(!gateway.ready('payment'))throw error('PAYMENT_NOT_READY',503);return locked(id,async()=>{const o=get(id);if(!o)throw error('ORDER_NOT_FOUND',404);const p=imp?await gateway.payment(imp,o):o.impUid?await gateway.payment(o.impUid,o):await gateway.find(id,o);return apply(id,p);});}
 async function refund(id,userId){
  if(!gateway.ready('payment'))throw error('PAYMENT_NOT_READY',503);
  return locked(id,async()=>{
   let o=get(id);if(!o||o.userId!==userId)throw error('ORDER_NOT_FOUND',404);if(!o.impUid)throw error('PAYMENT_NOT_PAID',409);
-  let p=await gateway.payment(o.impUid);o=apply(id,p);const existing=refundRecord(id);if(existing?.status==='pending')throw error('REFUND_CHECK_PENDING',409);if(existing?.status==='completed')return publicOrder(o);
+  let p=await gateway.payment(o.impUid,o);o=apply(id,p);const existing=refundRecord(id);if(existing?.status==='pending')throw error('REFUND_CHECK_PENDING',409);if(existing?.status==='completed')return publicOrder(o);
   const held=db.transaction(()=>{db.getUser(userId);const g=grant(o),eligibility=refundEligibility(o,g);if(eligibility.refundableAmount===0)throw error(eligibility.refundIneligibleReason,409);const amount=eligibility.refundableAmount;
    const r={orderId:id,units:g.remaining_units,amount,targetCancelled:p.cancel_amount+amount,status:'pending',createdAt:Date.now()};db.sql.prepare('UPDATE heart_grants SET removed_units=removed_units+remaining_units,remaining_units=0 WHERE id=?').run(g.id);db.sql.prepare('INSERT INTO ledger(user_id,delta,reason,created_at) VALUES(?,?,?,?)').run(userId,-r.units,'refund_hold:'+id,Date.now());saveRefund(r);db.getUser(userId);return r;});
   // Timeouts keep a durable hold; never automatically retry a money movement.
   let accepted=false;
-  try{await gateway.cancel(o.impUid,held.amount,o.price-p.cancel_amount);accepted=true;p=await gateway.payment(o.impUid);o=apply(id,p);}catch(e){
+  try{await gateway.cancel(o.impUid,held.amount,o.price-p.cancel_amount,o);accepted=true;p=await gateway.payment(o.impUid,o);o=apply(id,p);}catch(e){
    if(!accepted&&e.definitive){
-    let latest;try{latest=await gateway.payment(o.impUid);validate(o,latest);}catch{throw error('REFUND_CHECK_PENDING',503);}
+    let latest;try{latest=await gateway.payment(o.impUid,o);validate(o,latest);}catch{throw error('REFUND_CHECK_PENDING',503);}
     if(latest.cancel_amount>=held.targetCancelled){o=apply(id,latest);return publicOrder(o);}
     db.transaction(()=>{const g=grant(o),r=refundRecord(id);if(r.status!=='pending')return;db.sql.prepare('UPDATE heart_grants SET remaining_units=remaining_units+?,removed_units=removed_units-? WHERE id=?').run(r.units,r.units,g.id);db.sql.prepare('INSERT INTO ledger(user_id,delta,reason,created_at) VALUES(?,?,?,?)').run(userId,r.units,'refund_rejected:'+id,Date.now());r.status='rejected';r.units=0;saveRefund(r);apply(id,latest);});
     throw error('REFUND_REJECTED',503);

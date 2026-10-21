@@ -51,7 +51,7 @@ async function req(route,token,body,method=body===undefined?'GET':'POST'){const 
  assert.equal((await req('/chat/send',token,{characterId:male.id,message:'address-test 오늘 산책했어요',messageId:'address'})).status,200);
  assert.equal((await req('/chat/send',token,{characterId:male.id,message:'누나라고 부르지 마세요 address-test',messageId:'revoked'})).status,200);
  Object.assign(process.env,env);const db=require('../services/dbService');db.creditHearts(id,1000,'test_credit');
- const adultUser=db.createUser({id:'01000001999',phone:'01000001999',hearts:50,createdAt:Date.now(),identityVerification:{verified:true,method:'portone_danal',verificationId:'identity_11111111-1111-4111-8111-111111111111',isAdult:true,verifiedAt:Date.now()}});
+ const adultUser=db.createUser({id:'01000001999',phone:'01000001999',hearts:50,createdAt:Date.now(),identityVerification:{verified:true,method:'portone_danal',mode:'live',verificationId:'identity_11111111-1111-4111-8111-111111111111',isAdult:true,verifiedAt:Date.now()}});
  const adultToken=require('../middleware/auth').generateToken({userId:adultUser.id});require('../services/legalService').accept(adultUser.id,{version:'2026-10-20.1',atLeast18:true,termsAccepted:true,privacyAcknowledged:true,aiNoticeAcknowledged:true});
  assert.equal((await req('/chat/send',adultToken,{characterId,message:'age-gate-input',messageId:'adult-general'})).status,200,'A verified adult may pass the non-explicit adult access gate');
  assert.equal((await req('/chat/send',adultToken,{characterId,message:'explicit-policy-test',messageId:'explicit'})).status,200,'Identity verification allows explicit content for adults');
@@ -59,7 +59,7 @@ async function req(route,token,body,method=body===undefined?'GET':'POST'){const 
  const guestRooms=(await req('/account/state',token)).data.savedRooms;
  assert(!((guestRooms[characterId]?.messages||[]).some(m=>m.id==='explicit-guest')),'Failed unverified message must not be persisted in savedRooms');
  assert.equal((await req('/chat/send',token,{characterId,message:'ordinary-topic',messageId:'after-blocked-turn'})).status,200,'Subsequent message succeeds cleanly');
- db.updateUser(adultUser.id,{identityVerification:{verified:true,method:'portone_danal',verificationId:'identity_11111111-1111-4111-8111-111111111111',isAdult:false,isAtLeast18:true,verifiedAt:Date.now()}});
+ db.updateUser(adultUser.id,{identityVerification:{verified:true,method:'portone_danal',mode:'live',verificationId:'identity_11111111-1111-4111-8111-111111111111',isAdult:false,isAtLeast18:true,verifiedAt:Date.now()}});
  assert.equal((await req('/chat/send',adultToken,{characterId,message:'age-gate-input',messageId:'known-minor'})).status,403,'Known minors remain in general mode');assert.equal(sql.prepare('SELECT age_group FROM safety_events WHERE user_id=? AND request_id=?').get(adultUser.id,'known-minor').age_group,'under19');
  assert.equal((await req('/chat/send',adultToken,{characterId,message:'age-gate-input',messageId:'adult-general'})).status,403,'An adult response cannot be replayed after age access changes');
  assert.equal((await req('/chat/send',adultToken,{characterId,message:'ordinary-topic',messageId:'minor-general'})).status,200,'Known minors can continue general chat');

@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'azit-ads-'));
-Object.assign(process.env,{NODE_ENV:'test',DATABASE_FILE:path.join(dir,'old.json'),SQLITE_FILE:path.join(dir,'db.sqlite'),PORTONE_MODE:'test',PORTONE_PAYMENT_ENABLED:'true',PORTONE_V1_USER_CODE:'imp_test',PORTONE_PAYMENT_CHANNEL_KEY:'test',PORTONE_DANAL_PG_ID:'test',PORTONE_V1_API_KEY:'test',PORTONE_V1_API_SECRET:'test'});
+Object.assign(process.env,{NODE_ENV:'test',DATABASE_FILE:path.join(dir,'old.json'),SQLITE_FILE:path.join(dir,'db.sqlite'),PORTONE_MODE:'test',PORTONE_PAYMENT_PROVIDER:'danal',PORTONE_IDENTITY_PROVIDER:'DANAL',PORTONE_PAYMENT_ENABLED:'true',PORTONE_V1_USER_CODE:'imp_test',PORTONE_PAYMENT_CHANNEL_KEY:'test',PORTONE_DANAL_PG_ID:'test',PORTONE_V1_API_KEY:'test',PORTONE_V1_API_SECRET:'test'});
 const db=require('../services/dbService'),ads=require('../services/advertisingService'),pay=require('../services/paymentService'),gateway=require('../services/portoneGateway');
 function user(id,tester=false){db.createUser({id,phone:id,hearts:0,isTester:tester,createdAt:Date.now()});return db.getUser(id);}
 const u=user('01000001111'),v=user('01000002222');

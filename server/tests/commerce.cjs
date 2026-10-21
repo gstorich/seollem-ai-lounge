@@ -1,6 +1,6 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),path=require('node:path'),os=require('node:os');
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'azit-commerce-'));
-Object.assign(process.env,{NODE_ENV:'test',DATABASE_FILE:path.join(dir,'old.json'),SQLITE_FILE:path.join(dir,'test.sqlite'),PORTONE_MODE:'test',PORTONE_PAYMENT_ENABLED:'true',PORTONE_IDENTITY_ENABLED:'true',PORTONE_V1_USER_CODE:'imp_test',PORTONE_PAYMENT_CHANNEL_KEY:'channel_test',PORTONE_DANAL_PG_ID:'test-mid',PORTONE_V1_API_KEY:'test-key',PORTONE_V1_API_SECRET:'test-secret',PORTONE_STORE_ID:'store_test',PORTONE_IDENTITY_CHANNEL_KEY:'identity_channel_test',PORTONE_V2_API_SECRET:'test-secret'});
+Object.assign(process.env,{NODE_ENV:'test',DATABASE_FILE:path.join(dir,'old.json'),SQLITE_FILE:path.join(dir,'test.sqlite'),PORTONE_MODE:'test',PORTONE_PAYMENT_PROVIDER:'danal',PORTONE_IDENTITY_PROVIDER:'DANAL',PORTONE_PAYMENT_ENABLED:'true',PORTONE_IDENTITY_ENABLED:'true',PORTONE_V1_USER_CODE:'imp_test',PORTONE_PAYMENT_CHANNEL_KEY:'channel_test',PORTONE_DANAL_PG_ID:'test-mid',PORTONE_V1_API_KEY:'test-key',PORTONE_V1_API_SECRET:'test-secret',PORTONE_STORE_ID:'store_test',PORTONE_IDENTITY_CHANNEL_KEY:'identity_channel_test',PORTONE_V2_API_SECRET:'test-secret'});
 const db=require('../services/dbService'),gateway=require('../services/portoneGateway'),payments=require('../services/paymentService'),identity=require('../services/identityService');
 const vendor={...gateway};
 const cases=new Map();let cancelCalls=0,mode='success',identityResult,server;
@@ -59,6 +59,7 @@ gateway.identity=async()=>structuredClone(identityResult);
  const ownOrders=JSON.parse((await http('/api/payment/orders')).body).orders;assert(ownOrders.every(o=>payments.get(o.id).userId===u.id));assert(!JSON.stringify(ownOrders).includes(payments.get(id).nonce));
  assert.equal((await http('/api/payment/webhook','POST',{merchant_uid:id,imp_uid:p.imp_uid},'')).status,200);assert.equal(db.getUser(u.id).hearts,2499.9);
  const usedRefund=await http('/api/payment/orders/'+id+'/refund','POST',{});assert.equal(usedRefund.status,409);assert.equal(JSON.parse(usedRefund.body).error,'REFUND_PURCHASE_USED');
+ assert.equal((await http('/billing.css')).status,200);
  for(const page of ['/billing','/payment/complete','/verification/complete']){const r=await http(page);assert.equal(r.status,200);assert(r.body.includes('/commerce.js'));}
  await new Promise(r=>server.close(r));server=null;
  const {execFileSync}=require('node:child_process');const persisted=JSON.parse(execFileSync(process.execPath,['-e',`const d=require('./server/services/dbService');const p=require('./server/services/paymentService');process.stdout.write(JSON.stringify({order:p.get(process.argv[1]).status,held:JSON.parse(d.sql.prepare('SELECT data FROM payment_refunds WHERE order_id=?').get(process.argv[2]).data).status}));`,fullId,id3],{cwd:path.resolve(__dirname,'../..'),env:process.env,encoding:'utf8'}));assert.equal(persisted.order,'refunded');assert.equal(persisted.held,'pending');

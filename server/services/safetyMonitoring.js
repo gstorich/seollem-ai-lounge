@@ -2,7 +2,7 @@ const db=require('./dbService'),{verifiedAdult}=require('./contentAccess');
 const sql=db.sql,retention=30*86400000;
 sql.exec(`CREATE TABLE IF NOT EXISTS safety_events(id INTEGER PRIMARY KEY,user_id TEXT NOT NULL,character_id TEXT NOT NULL,request_id TEXT NOT NULL,kind TEXT NOT NULL,reason TEXT NOT NULL,age_group TEXT NOT NULL,created_at INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS safety_events_time ON safety_events(created_at);`);
-function ageGroup(user){const v=user?.identityVerification;return verifiedAdult(user)?'adult':user?.phone&&v?.method==='portone_danal'&&v.verified===true&&Number.isSafeInteger(v.verifiedAt)&&v.verifiedAt>0&&v.verifiedAt<=Date.now()&&/^identity_[a-f0-9-]{36}$/.test(v.verificationId||'')&&v.isAdult===false?'under19':'unknown';}
+function ageGroup(user){const v=user?.identityVerification;return verifiedAdult(user)?'adult':user?.phone&&['portone_danal','portone_inicis'].includes(v?.method)&&v.verified===true&&Number.isSafeInteger(v.verifiedAt)&&v.verifiedAt>0&&v.verifiedAt<=Date.now()&&/^identity_[a-f0-9-]{36}$/.test(v.verificationId||'')&&v.isAdult===false?'under19':'unknown';}
 function prune(){sql.prepare('DELETE FROM safety_events WHERE created_at<?').run(Date.now()-retention);}
 function record(userId,characterId,requestId,kind,error){
  const known=['ADULT_VERIFICATION_REQUIRED','CONTENT_NOT_ALLOWED','LLM_INVALID_SAFETY'];

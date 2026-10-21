@@ -129,7 +129,7 @@ app.get('/sitemap.xml', (req, res) => {
 for (const file of [
   'legal.js', 'commerce.js', 'advertising.js', 'apiClient.js', 'chatTiming.js', 'analytics.js',
   'notifications.js', 'notification-worker.js', 'manifest.webmanifest', 'admin.js',
-  'adminCharacters.js', 'adminFunnel.js', 'support.js', 'operations.css', 'policy.css', 'custom_avatars_manifest.json',
+  'adminCharacters.js', 'adminFunnel.js', 'support.js', 'billing.css', 'operations.css', 'policy.css', 'custom_avatars_manifest.json',
   'logo.png', 'logo-horizontal.png', 'app-icon.png', 'app-icon-192.png', 'app-icon-512.png',
   'apple-touch-icon.png', 'favicon.png', 'favicon-64.png', 'favicon.ico',
   'robots.txt', 'sitemap.xml'
