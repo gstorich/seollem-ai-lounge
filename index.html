@@ -5055,7 +5055,7 @@
         await runRealisticReplySequence({bubbles:[result.partnerReply],replyId:result.replyId,greeting:true},false,null,greetingStartedAt);
         state.isGreetingPending = false;
         // 첫인사 전송 직후, 사용자가 첫인사 타이핑 도중 먼저 보낸 대기 메시지가 있다면 씹지 않고 종합 답장 진행!
-        await checkAndProcessPendingUserMessages(char);
+        await processPendingUserMessagesNow(char);
       } catch (error) {
         if (state.currentChar?.id !== char.id) return;
         // 이전 방의 생성이 마무리 중인 경우(409 GENERATION_PENDING), 사용자에게 에러 노출 없이 700ms 후 자동 무음 재시도
