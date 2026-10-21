@@ -7,7 +7,7 @@ const HOUR=3600000,DAY=24*HOUR;
 const catalog=require('../services/characterService').getAllCharacters(),character=catalog.find(c=>service.selected(c.id));
 const selected=catalog.filter(c=>service.selected(c.id));assert(selected.length/catalog.length>.02&&selected.length/catalog.length<.08);
 const charId=character.id;
-function room(id,at=now-20*HOUR){
+function room(id,at=now-185*DAY){
  db.createUser({id,hearts:0});require('../services/legalService').accept(id,{version:'2026-10-20.1',atLeast18:true,termsAccepted:true,privacyAcknowledged:true,aiNoticeAcknowledged:true});
  db.appendMessages(id,charId,Array.from({length:8},(_,i)=>({id:id+'_'+i,sender:i%2?'ai':'user',text:i%2?'말해준 발표 기억할게':'발표 끝나면 이야기할게',createdAt:at+i})));
  assert(service.schedule(id,charId,at));
@@ -21,11 +21,23 @@ llm.generateReply=async(character,history,{conversation})=>{
 };
 (async()=>{try{
  assert(service.quiet(Date.UTC(2026,9,20,13)));assert(service.quiet(Date.UTC(2026,9,20,0)));assert(!service.quiet(now));
- const job=room('one');assert(job.due_at>=now-14*HOUR&&job.due_at<=now-2*HOUR);
+ const job=room('one');assert(job.due_at>=now-183*DAY&&job.due_at<=now-5*DAY+1000);assert.equal(job.source_id,'one_6');
  assert(await service.processJob(job));assert.equal(db.getUser('one').hearts,0,'Free even with zero hearts');
  const messages=db.getUser('one').savedRooms[charId].messages;assert.equal(messages.length,9);assert(messages.at(-1).proactive);assert(messages.at(-1).unread);assert.equal(messages.filter(m=>m.sender==='user').length,4,'No fake user prompt persisted');
  assert.equal(db.getConversationState('one',charId).revision,1);assert.equal(store.inbox('one').length,1);assert.equal(store.inbox('other').length,0);
  assert.equal(await service.processJob(job),false,'No repeated contact without user reply');assert.equal(calls,1);
+ const sampled=selected.map(c=>service.delayFor('sample',c.id,'sample')/DAY);
+ assert(Math.min(...sampled)<5&&Math.max(...sampled)>120,'Character delays span days to months');
+ for(const c of selected){const [min,max]=service.profile(c.id),delay=service.delayFor('sample',c.id,'sample')/DAY;assert(delay>=min&&delay<=max);assert.equal(service.delayFor('sample',c.id,'sample'),service.delayFor('sample',c.id,'sample'));}
+ assert.equal(service.schedule('one',charId),false,'No new cycle after sent contact without a user reply');
+ const early=room('early',now-DAY);assert(early.due_at>now);const previousDue=early.due_at;
+ assert.equal(await service.processJob(early),false,'Cannot generate before assigned day');
+ service.schedule('early',charId,now+HOUR);assert.equal(db.sql.prepare('SELECT due_at FROM proactive_jobs WHERE user_id=?').get('early').due_at,previousDue,'Opening/backfill cannot move due date');
+ const withIdle=room('with-idle');db.appendMessages('with-idle',charId,[{id:'reply_idle_synthetic',sender:'ai',text:'earlier reminder',createdAt:now-HOUR,proactive:true,followUpType:'idle'}]);
+ assert(await service.processJob(withIdle),'Short reminders do not cancel days-later contact');
+ db.appendMessages('one',charId,[{id:'one_new_user',sender:'user',text:'다시 이야기해요',createdAt:now+1},{id:'one_new_answer',sender:'ai',text:'다시 만났네요',createdAt:now+2}]);
+ assert(service.schedule('one',charId));const rearmed=db.sql.prepare('SELECT * FROM proactive_jobs WHERE user_id=?').get('one');assert.equal(rearmed.source_id,'one_new_user');assert(rearmed.due_at>now);
+ const legacy=room('legacy',now-DAY);db.sql.prepare("UPDATE proactive_jobs SET source_id='legacy_7',due_at=? WHERE user_id='legacy'").run(now-1);service.schedule('legacy',charId);const migrated=db.sql.prepare("SELECT * FROM proactive_jobs WHERE user_id='legacy'").get();assert.equal(migrated.source_id,'legacy_6');assert.equal(migrated.due_at,legacy.due_at,'Old hourly pending jobs are replanned from original user date');
  const live=room('online');store.seen('online',now);assert(!await service.processJob(live));
  const disabled=room('disabled');store.setEnabled('disabled',false);assert(!await service.processJob(disabled));
  const removed=room('removed');db.transaction(()=>{db.updateUser('removed',{savedRooms:{}});db.resetConversationState('removed',charId);});assert(!await service.processJob(removed));
@@ -48,5 +60,5 @@ llm.generateReply=async(character,history,{conversation})=>{
  assert.equal(db.sql.prepare('SELECT count(*) n FROM push_subscriptions WHERE user_id=?').get('01000000011').n,2);assert.equal(db.sql.prepare('SELECT count(*) n FROM proactive_jobs WHERE user_id=?').get('one').n,0);
  const context=ctx.prepare([{id:'server-instruction',role:'user',content:'synthetic instruction'}],null,{kind:'proactive',replyId:'test_reply'});
  const schema=ctx.getResponseSchema(context);assert.equal(schema.properties.memory.properties.userFacts.maxItems,0,'Server instruction cannot establish user facts');
- console.log('PASS: sparse 5% contacts, quiet hours, offline/cooldown limits, free API-only message+memory atomics, no fake user utterance, failure/disable/room-delete rollback, private push payload, SSRF rejection, expired subscriptions, per-device retries, phone merge');
+ console.log('PASS: sparse contacts with character-specific 2–180 day timing, user-turn anchoring, legacy replanning, no rearm without reply, idle compatibility, quiet hours, offline/cooldown limits, free API-only message+memory atomics, no fake user utterance, failure/disable/room-delete rollback, private push payload, SSRF rejection, expired subscriptions, per-device retries, phone merge');
 }finally{Date.now=originalNow;db.sql.close();fs.rmSync(dir,{recursive:true,force:true});}})().catch(e=>{console.error(e);process.exitCode=1;});
