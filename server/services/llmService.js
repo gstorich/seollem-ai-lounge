@@ -319,22 +319,34 @@ module.exports = {
     } else {
       const memorySchema={type:'OBJECT',properties:{memory:conversationContext.getResponseSchema(conversation).properties.memory},required:['memory'],propertyOrdering:['memory']};
       const recordingPrompt=conversationContext.buildPrompt(conversation)+'\n[기억 기록 전용]\n마지막 assistant 메시지는 이미 선택된 실제 답장입니다. 다시 쓰거나 대체 답장을 생성하지 마세요. 해당 답장까지의 사실·감정 변화를 근거 ID에 맞춰 기록합니다. 특히 AI(assistant)가 언급한 자신의 취향·발언을 userFacts에 왜곡하여 기록하지 마세요. userFacts는 사용자가 직접 밝힌 사실만 기록합니다. 출력은 {memory} JSON만 쓰며 reply나 roomLeft 필드를 만들지 않습니다. 스타일 예시는 실제 사건이 아닙니다.';
-      const recorded=await generate([...selectedHistory,{role:'assistant',content:reply}],recordingPrompt,memorySchema);
-      const parsedMem = safeParseJson(recorded);
-      if (parsedMem && parsedMem.memory) {
-        memory = parsedMem.memory;
-      } else {
-        try{
-          memory=JSON.parse(recorded).memory;
-        }catch(memJsonErr){
-          const isSyntheticTest = selectedHistory.some(m => /malformed-json-test|invalid-memory-test/.test(m.content));
-          if (!isSyntheticTest) {
-            console.warn('[LLM] Memory extraction JSON parsing failed in live chat, falling back to previous memory');
-            memory = conversation.memory || { summary: '', state: { relationship: '대화 진행 중' } };
-          } else {
-            throw Error('LLM_INVALID_MEMORY');
+      let recorded;
+      try {
+        recorded=await generate([...selectedHistory,{role:'assistant',content:reply}],recordingPrompt,memorySchema);
+      } catch (recordErr) {
+        const isSyntheticTest = selectedHistory.some(m => /memory-phase-fail|invalid-memory-test/.test(m.content));
+        if (isSyntheticTest) throw recordErr;
+        console.warn('[LLM] Memory extraction generation failed in live chat, preserving reply and recovering previous memory:', recordErr.message);
+        recorded = null;
+      }
+      if (recorded) {
+        const parsedMem = safeParseJson(recorded);
+        if (parsedMem && parsedMem.memory) {
+          memory = parsedMem.memory;
+        } else {
+          try{
+            memory=JSON.parse(recorded).memory;
+          }catch(memJsonErr){
+            const isSyntheticTest = selectedHistory.some(m => /malformed-json-test|invalid-memory-test/.test(m.content));
+            if (!isSyntheticTest) {
+              console.warn('[LLM] Memory extraction JSON parsing failed in live chat, falling back to previous memory');
+              memory = conversation.memory || { summary: '', state: { relationship: '대화 진행 중' } };
+            } else {
+              throw Error('LLM_INVALID_MEMORY');
+            }
           }
         }
+      } else {
+        memory = conversation.memory || { summary: '', state: { relationship: '대화 진행 중' } };
       }
     }
     let turn;

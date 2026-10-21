@@ -5262,7 +5262,7 @@
     // =========================================================================
     // 8. DIVERSE, CONCEPT-AWARE & ANTI-REPETITIVE GIFT REACTION ENGINE
     // =========================================================================
-    async function sendGiftToCurrentChar(giftKey, customMsg = '', requestId = 'gift_' + crypto.randomUUID()) {
+    async function sendGiftToCurrentChar(giftKey, customMsg = '', requestId = 'gift_' + crypto.randomUUID(), retryCount = 0) {
       const char = state.currentChar, gift = GIFT_CATALOG[giftKey];
       if (!char || !gift || state.roomLeft || state.isAiBusy) return;
       if (!state.isVipUnlimited && state.hearts < gift.cost) { openHeartNeededModal(char.name); return; }
@@ -5278,9 +5278,18 @@
         if (state.currentChar?.id !== char.id) return;
         if (!state.messages.some(m=>m.id===result.giftMessageId)) appendMessage('user', `${gift.emoji} ${gift.name} 선물을 보냈습니다.`, {id:result.giftMessageId,mediaType:'gift',giftEmoji:gift.emoji,giftName:gift.name,giftImage:gift.image,giftBrand:gift.brand});
         saveAccountState();
-        await runRealisticReplySequence({bubbles:[result.partnerReply],replyId:result.replyId});
+        const bubbles = (window.AzitChatTiming?.splitIntoRealisticBubbles
+          ? window.AzitChatTiming.splitIntoRealisticBubbles(result.partnerReply)
+          : [result.partnerReply]);
+        await runRealisticReplySequence({bubbles,replyId:result.replyId});
       } catch (error) {
         if (state.currentChar?.id === char.id) {
+          if ((error.status === 409 || error.code === 'GENERATION_PENDING') && retryCount < 3) {
+            await new Promise(r => registerTimeout(r, 700));
+            if (state.currentChar?.id === char.id) {
+              return sendGiftToCurrentChar(giftKey, customMsg, requestId, retryCount + 1);
+            }
+          }
           if (error.code === 'INSUFFICIENT_HEARTS') openHeartNeededModal(char.name);
           else if (!showContentAccessNotice(error, () => sendGiftToCurrentChar(giftKey,customMsg,requestId), {char, requestId})) showGenerationError(()=>sendGiftToCurrentChar(giftKey,customMsg,requestId));
         }
@@ -5374,7 +5383,6 @@
         state.isAiBusy=false;
         hideTypingIndicator();
         updateHeaderDefaultStatus();
-        if (state.currentChar?.id === char.id) showGenerationError();
         return;
       }
       if (emo && emo.forceLeave) {

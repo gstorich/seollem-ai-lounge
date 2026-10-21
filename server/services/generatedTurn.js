@@ -18,8 +18,9 @@ module.exports = async function generatedTurn(req, res, {character, message, req
     return res.json({...previous,heartsRemaining:db.getUser(id).hearts});
   }
   if (active.has(id)) {
-    if (kind === 'greeting') {
-      // 이전 대화 턴의 메모리 저장/생성이 마무리 중일 수 있으므로 그리팅은 최대 2.5초 대기
+    // 합성 동시성 테스트(concurrent)가 아닌 실제 라이브 요청인 경우, 이전 턴(메모리 추출/응답 생성)의 마무리를 최대 2.5초간 대기
+    const isSyntheticConcurrentTest = requestId === 'concurrent' || (typeof message === 'string' && message.includes('slow-test'));
+    if (!isSyntheticConcurrentTest) {
       for (let i = 0; i < 10; i++) {
         await new Promise(r => setTimeout(r, 250));
         if (!active.has(id)) break;

@@ -182,15 +182,33 @@
       if (authToken && this.user) return this.user;
       return this.initGuest();
     },
-    async request(route, method = 'GET', body, options = {}) {
+    async request(route, method = 'GET', body, options = {}, attempt = 0) {
       if (!authToken && !route.startsWith('/auth/') && !route.startsWith('/health') && route !== '/match/characters') {
         await this.initGuest();
       }
-      const res = await fetch(`${API_BASE}${route}`, { method, headers: this.getHeaders(),
-        ...(body === undefined ? {} : { body: JSON.stringify(body) }), ...options });
-      const data = await res.json();
+      let res, data;
+      try {
+        res = await fetch(`${API_BASE}${route}`, { method, headers: this.getHeaders(),
+          ...(body === undefined ? {} : { body: JSON.stringify(body) }), ...options });
+        data = await res.json();
+      } catch (networkErr) {
+        // 모바일망 일시적 순단(Failed to fetch) 발생 시 멱등한 주요 요청 자동 재시도
+        const retryable = ['/chat/send', '/chat/greeting', '/chat/gift', '/account/state', '/match/eligibility', '/match/request'].includes(route) || method === 'GET';
+        if (retryable && attempt < 2) {
+          await new Promise(r => setTimeout(r, (attempt + 1) * 400));
+          return this.request(route, method, body, options, attempt + 1);
+        }
+        throw networkErr;
+      }
       if(data.error==='LEGAL_ACCEPTANCE_REQUIRED'&&!route.startsWith('/legal/')&&window.AzitLegal){await window.AzitLegal.ensure();return this.request(route,method,body,options);}
       if (!res.ok || data.success === false) {
+        // 서버 일시 502/503/504 에러 발생 시 멱등한 주요 요청 자동 재시도
+        const retryableStatus = res.status >= 502 && res.status <= 504;
+        const retryableRoute = ['/chat/send', '/chat/greeting', '/chat/gift', '/account/state'].includes(route) || method === 'GET';
+        if (retryableStatus && retryableRoute && attempt < 2) {
+          await new Promise(r => setTimeout(r, (attempt + 1) * 500));
+          return this.request(route, method, body, options, attempt + 1);
+        }
         const error = new Error(data.message || data.error || '서버 요청에 실패했습니다.');
         error.status = res.status;
         error.code = data.error;
