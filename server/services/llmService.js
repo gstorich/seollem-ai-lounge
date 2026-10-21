@@ -261,7 +261,7 @@ module.exports = {
     const selectedHistory = conversation.recent.map(m=>({role:m.role,content:m.content}));
     const signal = AbortSignal.timeout(45000);
     async function generate(messages,prompt,schema,moderation=false){
-      if(config.geminiApiKey)return callGemini(messages,prompt,config.geminiApiKey,signal,schema,moderation,adult,!moderation&&schema?.properties?.reply?'MINIMAL':'LOW');
+      if(config.geminiApiKey)return callGemini(messages,prompt,config.geminiApiKey,signal,schema,moderation,adult,!moderation&&(schema?.properties?.reply||schema?.properties?.memory)?'MINIMAL':'LOW');
       if(config.openaiApiKey)return callOpenAI(messages,prompt,config.openaiApiKey,signal);
       throw new Error('LLM_NOT_CONFIGURED');
     }
