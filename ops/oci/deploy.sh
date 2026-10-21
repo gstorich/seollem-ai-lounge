@@ -9,6 +9,7 @@ node server/tests/idle-followup.cjs
 node server/tests/wellbeing.cjs
 node server/tests/wellbeing-api.cjs
 node server/tests/accounts.cjs
+node server/tests/storage-archive.cjs
 node server/tests/operations.cjs
 node server/tests/analytics.cjs
 node server/tests/advertising.cjs
@@ -70,7 +71,7 @@ fi
 mv "$incoming" "$release"
 chown -R seollem:seollem "$release"
 runuser -u seollem -- sh -c 'cd "$1/server" && npm ci --omit=dev --cache /var/lib/seollem-ai-lounge/npm-cache' sh "$release"
-runuser -u seollem -- sh -c 'cd "$1" && node server/tests/accounts.cjs && node server/tests/operations.cjs && node server/tests/analytics.cjs && node server/tests/advertising.cjs && node server/tests/funnel-insights.cjs && node server/tests/ad-funnel.cjs && node server/tests/ad-browser.cjs && node server/tests/matching.cjs && node server/tests/inicis.cjs && node server/tests/commerce.cjs && node server/tests/commerce-events.cjs && node server/tests/adult-test-access.cjs && node server/tests/content-access.cjs && node server/tests/content-access-ui.cjs && node server/tests/legal.cjs && node server/tests/heart-expiry.cjs && node server/tests/llm-completion.cjs && node server/tests/chat-timing.cjs && node server/tests/chat-voice.cjs && node server/tests/character-behavior.cjs && node server/tests/character-studio.cjs && node server/tests/conversation-context.cjs && node server/tests/proactive.cjs && node server/tests/notifications.cjs && node server/tests/address-context.cjs && node server/tests/conversations.cjs && node server/tests/matching-bandit.cjs && node server/tests/seo.cjs && node server/tests/device-account.cjs && node server/tests/acquisition.cjs && node server/tests/llm-edge-cases.cjs' sh "$release"
+runuser -u seollem -- sh -c 'cd "$1" && node server/tests/accounts.cjs && node server/tests/storage-archive.cjs && node server/tests/operations.cjs && node server/tests/analytics.cjs && node server/tests/advertising.cjs && node server/tests/funnel-insights.cjs && node server/tests/ad-funnel.cjs && node server/tests/ad-browser.cjs && node server/tests/matching.cjs && node server/tests/inicis.cjs && node server/tests/commerce.cjs && node server/tests/commerce-events.cjs && node server/tests/adult-test-access.cjs && node server/tests/content-access.cjs && node server/tests/content-access-ui.cjs && node server/tests/legal.cjs && node server/tests/heart-expiry.cjs && node server/tests/llm-completion.cjs && node server/tests/chat-timing.cjs && node server/tests/chat-voice.cjs && node server/tests/character-behavior.cjs && node server/tests/character-studio.cjs && node server/tests/conversation-context.cjs && node server/tests/proactive.cjs && node server/tests/notifications.cjs && node server/tests/address-context.cjs && node server/tests/conversations.cjs && node server/tests/matching-bandit.cjs && node server/tests/seo.cjs && node server/tests/device-account.cjs && node server/tests/acquisition.cjs && node server/tests/llm-edge-cases.cjs' sh "$release"
 install -d -m 0700 /var/backups/seollem-ai-lounge
 if [ -f /var/lib/seollem-ai-lounge/seollem.json ]; then
   cp -n /var/lib/seollem-ai-lounge/seollem.json /var/backups/seollem-ai-lounge/pre-sqlite.json
@@ -146,6 +147,12 @@ if [ -f /etc/letsencrypt/live/azitchat.com/fullchain.pem ]; then
 fi
 systemctl reload nginx
 curl -fsS https://seollem.158.180.93.165.nip.io/api/health
+if [ -f /etc/seollem-ai-lounge/storage.env ]; then
+  install -m 0644 "$release/ops/oci/seollem-archive.service" /etc/systemd/system/seollem-archive.service
+  install -m 0644 "$release/ops/oci/seollem-archive.timer" /etc/systemd/system/seollem-archive.timer
+  systemctl daemon-reload
+  systemctl enable --now seollem-archive.timer
+fi
 systemctl enable --now seollem-backup.timer
 systemctl start seollem-backup.service
 trap - ERR

@@ -8,11 +8,11 @@ async function archiveBatch(limit=500){initialize();if(!storage.configured())thr
 async function page(userId,characterId,{before,limit=40}={}){initialize();userId=db.resolveUserId(userId);limit=Math.max(1,Math.min(100,Number(limit)||40));let cursor;
  if(before){try{cursor=JSON.parse(Buffer.from(before,'base64url').toString());if(!Array.isArray(cursor)||cursor.length!==2||!Number.isFinite(cursor[0])||typeof cursor[1]!=='string')throw Error();}catch{throw Object.assign(Error('INVALID_CURSOR'),{status:400});}}
  const rows=db.sql.prepare(`SELECT m.*,a.object_key,a.entry_index FROM conversation_messages m LEFT JOIN archive_message_refs a ON a.user_id=m.user_id AND a.character_id=m.character_id AND a.message_id=m.message_id WHERE m.user_id=? AND m.character_id=? ${cursor?'AND (m.created_at<? OR (m.created_at=? AND m.message_id<?))':''} ORDER BY m.created_at DESC,m.message_id DESC LIMIT ?`).all(userId,characterId,...(cursor?[cursor[0],cursor[0],cursor[1]]:[]),limit+1);
- const selected=rows.slice(0,limit),objects=new Map();
+ const selected=rows.slice(0,limit),objects=new Map(),hot=new Set((db.getUser(userId)?.savedRooms?.[characterId]?.messages||[]).map(m=>m.id));
  // R2 is used for archived records. A verified local operational copy remains
  // available during transient object-store outages; reads never return blanks.
- for(const key of new Set(selected.map(r=>r.object_key).filter(Boolean))){try{objects.set(key,JSON.parse((await storage.get(key)).toString()).messages);}catch{console.warn('[archive] object read unavailable; using operational copy');}}
- const messages=selected.map(r=>{const archived=objects.get(r.object_key)?.[r.entry_index];const valid=archived&&archived.message_id===r.message_id&&archived.character_id===r.character_id;return {...JSON.parse(valid?archived.data:r.data),id:r.message_id,createdAt:r.created_at};}).reverse();const oldest=selected.at(-1);
+ for(const key of new Set(selected.filter(r=>!hot.has(r.message_id)).map(r=>r.object_key).filter(Boolean))){try{const bytes=await storage.get(key),expected=db.sql.prepare('SELECT sha256 FROM archive_objects WHERE object_key=?').get(key);if(!expected||storage.hash(bytes)!==expected.sha256)throw Error('ARCHIVE_CHECKSUM');objects.set(key,JSON.parse(bytes.toString()).messages);}catch{console.warn('[archive] object read unavailable; using operational copy');}}
+ const messages=selected.map(r=>{const archived=objects.get(r.object_key)?.[r.entry_index];const valid=archived&&archived.user_id===r.user_id&&archived.message_id===r.message_id&&archived.character_id===r.character_id;return {...JSON.parse(valid?archived.data:r.data),id:r.message_id,createdAt:r.created_at};}).reverse();const oldest=selected.at(-1);
  return {messages,hasMore:rows.length>limit,nextCursor:rows.length>limit&&oldest?Buffer.from(JSON.stringify([oldest.created_at,oldest.message_id])).toString('base64url'):null};
 }
 module.exports={initialize,archiveBatch,page};

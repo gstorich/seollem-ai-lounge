@@ -14,7 +14,7 @@ async function request(method,key,body=Buffer.alloc(0),query={}){
  const canonical=[method,uri,qs,names.map(k=>k+':'+headers[k]+'\n').join(''),names.join(';'),digest].join('\n');
  const hmac=(key,data)=>crypto.createHmac('sha256',key).update(data).digest();let sign=hmac('AWS4'+c.secret,day);for(const part of ['auto','s3','aws4_request'])sign=hmac(sign,part);
  headers.Authorization='AWS4-HMAC-SHA256 Credential='+c.access+'/'+scope+', SignedHeaders='+names.join(';')+', Signature='+hmac(sign,'AWS4-HMAC-SHA256\n'+date+'\n'+scope+'\n'+hash(canonical)).toString('hex');
- const res=await fetch(endpoint.origin+uri+(qs?'?'+qs:''),{method,headers,...(['PUT','POST'].includes(method)?{body}:{}),signal:AbortSignal.timeout(60000)});
+ const res=await fetch(endpoint.origin+uri+(qs?'?'+qs:''),{method,headers,...(['PUT','POST'].includes(method)?{body}:{}),signal:AbortSignal.timeout(method==='PUT'?60000:10000)});
  if(!res.ok)throw Error('R2_HTTP_'+res.status);return Buffer.from(await res.arrayBuffer());
 }
 async function putVerified(key,plain){const encrypted=pack(plain);await request('PUT',key,encrypted);const restored=unpack(await request('GET',key));if(hash(restored)!==hash(plain))throw Error('R2_VERIFY_FAILED');return {sha256:hash(plain),bytes:encrypted.length};}

@@ -5093,79 +5093,27 @@
       }
     }
 
-    function renderRoomMessagesWithPagination() {
-      chatContainer.innerHTML = '';
-      applyCharacterToHeader();
-      renderMatchNotice(true);
-
-      const total = state.messages.length;
-      const PAGE_SIZE = 40;
-      let startIndex = Math.max(0, total - PAGE_SIZE);
-
-      const loadOlderContainer = document.createElement('div');
-      loadOlderContainer.id = 'loadOlderMessagesContainer';
-      loadOlderContainer.className = 'w-full text-center py-2';
-      chatContainer.appendChild(loadOlderContainer);
-
-      function updateOlderButton() {
-        if (startIndex <= 0) {
-          loadOlderContainer.innerHTML = `
-            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/40 text-[11px] text-[#7a6e60] font-medium border border-black/5 shadow-2xs">
-              <span>🌱</span><span>${escapeHtml(state.currentChar?.name || '상대방')}님과 나눈 첫 대화입니다</span>
-            </div>
-          `;
-          return;
-        }
-        const remaining = startIndex;
-        loadOlderContainer.innerHTML = `
-          <button type="button" id="btnLoadOlderMsgs" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/80 hover:bg-white text-[12px] font-semibold text-[#5a4e40] border border-[#d6cfc2] shadow-2xs transition-all cursor-pointer">
-            <span>⬆️ 이전 대화 ${remaining > PAGE_SIZE ? PAGE_SIZE + '개' : remaining + '개'} 더보기 (남은 대화: ${remaining}개)</span>
-          </button>
-        `;
-        const btn = loadOlderContainer.querySelector('#btnLoadOlderMsgs');
-        if (btn) {
-          btn.onclick = () => loadNextOlderPage();
-        }
+    async function renderRoomMessagesWithPagination() {
+      const charId=state.currentChar?.id,shown=new Set();let cursor=null,hasMore=true,loading=false,initialized=false;
+      chatContainer.innerHTML='';applyCharacterToHeader();renderMatchNotice(true);
+      const older=document.createElement('div');older.id='loadOlderMessagesContainer';older.className='w-full text-center py-2';chatContainer.appendChild(older);
+      const sameRoom=()=>state.currentChar?.id===charId&&!state.roomLeft;
+      function button(failed=false){older.replaceChildren();const b=document.createElement('button');b.type='button';b.className='px-3 py-2 text-sm underline';b.disabled=loading;b.textContent=loading?'이전 대화 불러오는 중…':failed?'불러오지 못했습니다 · 다시 시도':hasMore?'이전 대화 더보기':'첫 대화입니다';b.onclick=()=>loadOlder();if(!hasMore)b.disabled=true;older.appendChild(b);}
+      function draw(m,ref){if(shown.has(m.id))return;shown.add(m.id);appendMessage(m.sender,m.text,{...m,unread:false,skipPush:true,insertBeforeNode:ref,noScroll:true});}
+      for(const m of state.messages.slice(-40))draw(m,null);scrollToBottom();
+      async function loadOlder(){
+        if(loading||!hasMore||!sameRoom())return;loading=true;button();
+        try{
+          const data=await ApiClient.loadRoomMessages(charId,initialized?cursor:'');if(!sameRoom())return;
+          const oldHeight=chatContainer.scrollHeight,oldTop=chatContainer.scrollTop,ref=older.nextSibling;
+          const known=new Map(state.messages.map(m=>[m.id,m]));for(const m of data.messages){if(!known.has(m.id))known.set(m.id,m);draw(m,ref);}
+          state.messages=[...known.values()].sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+          cursor=data.nextCursor;hasMore=Boolean(data.hasMore);const first=!initialized;initialized=true;loading=false;button();
+          if(first)scrollToBottom();else chatContainer.scrollTop=oldTop+(chatContainer.scrollHeight-oldHeight);
+        }catch(error){if(sameRoom()){loading=false;button(true);}}
       }
-
-      function loadNextOlderPage() {
-        if (startIndex <= 0) return;
-        const nextStart = Math.max(0, startIndex - PAGE_SIZE);
-        const batch = state.messages.slice(nextStart, startIndex);
-        startIndex = nextStart;
-
-        const prevScrollHeight = chatContainer.scrollHeight;
-        const prevScrollTop = chatContainer.scrollTop;
-
-        const refNode = loadOlderContainer.nextSibling;
-        batch.forEach(m => {
-          appendMessage(m.sender, m.text, {
-            ...m,
-            unread: false,
-            skipPush: true,
-            insertBeforeNode: refNode,
-            noScroll: true
-          });
-        });
-
-        updateOlderButton();
-        const newScrollHeight = chatContainer.scrollHeight;
-        chatContainer.scrollTop = prevScrollTop + (newScrollHeight - prevScrollHeight);
-      }
-
-      const initialBatch = state.messages.slice(startIndex);
-      initialBatch.forEach(m => {
-        appendMessage(m.sender, m.text, { ...m, unread: false, skipPush: true, noScroll: true });
-      });
-
-      updateOlderButton();
-      scrollToBottom();
-
-      chatContainer.onscroll = () => {
-        if (chatContainer.scrollTop < 50 && startIndex > 0) {
-          loadNextOlderPage();
-        }
-      };
+      chatContainer.onscroll=()=>{if(initialized&&chatContainer.scrollTop<50)loadOlder();};
+      await loadOlder();
     }
 
     async function startChatWithCharacter(char, forceResume = false) {
@@ -5217,7 +5165,7 @@
         state.bookmarked = true;
         existingRoom.unreadCount = 0;
         state.messages = existingRoom.messages.map(m => ({ ...m, unread: false }));
-        renderRoomMessagesWithPagination();
+        await renderRoomMessagesWithPagination();
         saveAccountState();
         scheduleIdleFollowUp();
         return;
