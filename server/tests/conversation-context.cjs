@@ -28,11 +28,11 @@ assert.throws(()=>context.parseTurn(JSON.stringify({memory:invalid,reply:'잘못
 const greeting=context.prepare([{id:'greet',role:'user',content:'서버 인사 생성 지시'}],null,{kind:'greeting'});
 invalid.userFacts[0].sourceId='greet';
 assert.throws(()=>context.parseTurn(JSON.stringify({memory:invalid,reply:'안녕하세요',roomLeft:false}),greeting),/UNGROUNDED/);
-try{
+(async()=>{try{
  db.createUser({id:'guest-memory'});db.createUser({id:'other-memory'});
  db.appendMessages('guest-memory','chaewon',[{id:'old-user',sender:'user',text:'보리차',createdAt:1}]);
- assert.equal(db.getConversationSources('guest-memory','chaewon',['old-user'])[0].sender,'user');
- assert.equal(db.getConversationSources('other-memory','chaewon',['old-user']).length,0);
+ assert.equal((await db.getConversationSources('guest-memory','chaewon',['old-user']))[0].sender,'user');
+ assert.equal((await db.getConversationSources('other-memory','chaewon',['old-user'])).length,0);
  db.transaction(()=>db.saveConversationState('guest-memory','chaewon',result.memory,'first-reply',0));
  assert.equal(db.getConversationNotes('guest-memory','chaewon').length,2);
  assert.equal(db.getConversationStateHistory('guest-memory','chaewon').length,1);
@@ -54,3 +54,5 @@ try{
  db.resetConversationState('01000000008','chaewon');assert.equal(db.getConversationState('01000000008','chaewon').memory,null);
  console.log('PASS: budgeted intact recent history, older source retrieval, grounded memory roles, greeting exclusion, account/room isolation, atomic revisions, phone transfer and reset');
 }finally{fs.rmSync(dir,{recursive:true,force:true});}
+
+})().catch(e=>{console.error(e);process.exitCode=1;});

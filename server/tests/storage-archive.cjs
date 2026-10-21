@@ -11,7 +11,7 @@ store.configured=()=>true;store.putVerified=async(key,bytes)=>{if(failPut)throw 
  db.appendMessages('storage-user','chaewon',messages);assert.equal(db.getUser('storage-user').savedRooms.chaewon.messages.length,120,'Operational account JSON stays bounded');assert.equal(db.sql.prepare('SELECT count(*) n FROM conversation_messages').get().n,10005,'Full transcript is preserved before compaction');
  failPut=true;await assert.rejects(archive.archiveBatch());assert.equal(db.sql.prepare('SELECT count(*) n FROM archive_message_refs').get().n,0,'Failed upload cannot mark records archived');failPut=false;
  let archived=0;for(;;){const n=await archive.archiveBatch();archived+=n;if(n<500)break;}assert.equal(archived,10005);assert.equal(await archive.archiveBatch(),0,'Idempotent backfill');assert(![...objects.keys()].some(k=>k.includes('storage-user')));
- const seen=new Set();let cursor,more=true;while(more){const page=await archive.page('storage-user','chaewon',{before:cursor});assert(page.messages.length<=40);for(const m of page.messages){assert(!seen.has(m.id));seen.add(m.id);}cursor=page.nextCursor;more=page.hasMore;}assert.equal(seen.size,10005,'Every message remains reachable with tied timestamps');assert(reads>0,'History actually reads archived R2 objects');assert.equal((await archive.page('other-user','chaewon')).messages.length,0,'Account isolation');await assert.rejects(archive.page('storage-user','chaewon',{before:'invalid'}),e=>e.status===400);
+ const seen=new Set();let cursor,more=true;while(more){const page=await archive.page('storage-user','chaewon',{before:cursor});assert(page.messages.length<=40);for(const m of page.messages){assert(!seen.has(m.id));seen.add(m.id);}cursor=page.nextCursor;more=page.hasMore;}assert.equal(seen.size,10005,'Every message remains reachable with tied timestamps');await archive.hydrateRows([db.sql.prepare('SELECT * FROM conversation_messages LIMIT 1').get()],{preferArchive:true});assert(reads>0,'Verified archive objects can be read back');assert.equal((await archive.page('other-user','chaewon')).messages.length,0,'Account isolation');await assert.rejects(archive.page('storage-user','chaewon',{before:'invalid'}),e=>e.status===400);
  const first=await archive.page('storage-user','chaewon');const saved=new Map(objects);objects.clear();const fallback=await archive.page('storage-user','chaewon');assert.deepEqual(fallback,first,'Object outage uses the operational copy without losing history');for(const [k,v]of saved)objects.set(k,v);
  // Legacy room objects and new multi-account batches coexist without cross-room leaks.
  const legacyRow={user_id:'storage-user',character_id:'legacy-room',message_id:'legacy-msg',created_at:1700000020000,data:JSON.stringify({id:'legacy-msg',sender:'ai',text:'legacy preserved',createdAt:1700000020000})};
@@ -32,6 +32,51 @@ store.configured=()=>true;store.putVerified=async(key,bytes)=>{if(failPut)throw 
  for(let i=0;i<100;i++){const owner=i%2?'batch-user':'batch-other',other=i%2?'batch-other':'batch-user';const result=await archive.page(owner,'room-'+i);assert.equal(result.messages.length,1);assert.equal(result.messages[0].text,'private room '+i);assert.equal((await archive.page(other,'room-'+i)).messages.length,0);}
  assert.equal((await archive.page('storage-user','legacy-room')).messages[0].text,'legacy preserved');
  assert.equal(await archive.archiveBatch(),0,'Shared batches are idempotent');
+ const conversations=require('../services/conversationService');
+ const beforeStats=conversations.insights('all',0);
+ const bytesBefore=db.sql.prepare('SELECT sum(length(data)) n FROM conversation_messages').get().n;
+ const intactObjects=new Map(objects);objects.clear();
+ await assert.rejects(archive.compactBatch(10000),/VERIFY_FAILED/);
+ assert.equal(db.sql.prepare("SELECT count(*) n FROM conversation_messages WHERE json_extract(data,'$.archiveCold')=1").get().n,0,'Unavailable R2 must never discard local originals');
+ for(const [k,v]of intactObjects)objects.set(k,v);
+ assert.equal(await archive.compactBatch(10000),9885,'Keep each room’s newest 120 even when all records are old');
+ assert.equal(await archive.compactBatch(10000),0,'Compaction is idempotent');
+ const bytesAfter=db.sql.prepare('SELECT sum(length(data)) n FROM conversation_messages').get().n;assert(bytesAfter<bytesBefore);
+ assert.equal(db.sql.prepare("SELECT count(*) n FROM conversation_messages WHERE user_id='storage-user' AND character_id='chaewon' AND json_extract(data,'$.text') IS NOT NULL").get().n,120);
+ assert.deepEqual(conversations.insights('all',0),beforeStats,'Counts, topics and flows survive body removal');
+ const allCold=new Set();let coldCursor;
+ for(;;){const result=await archive.page('storage-user','chaewon',{before:coldCursor,limit:100});for(const msg of result.messages){assert.equal(msg.text,'개인 대화 '+Number(msg.id.slice(4)));assert(!allCold.has(msg.id));allCold.add(msg.id);}if(!result.hasMore)break;coldCursor=result.nextCursor;}
+ assert.equal(allCold.size,10005,'All 10,005 records remain reachable after local body removal');
+ assert.equal((await conversations.transcript('storage-user','chaewon',0)).messages[0].text,'개인 대화 0');
+ assert.equal((await conversations.rooms({q:'개인 대화 0'})).total,1,'Admin search still matches cold bodies');
+ assert.equal((await conversations.rooms({q:'개인 대화 0',characterId:'chaewon',userId:'storage-user'})).total,1);
+ assert.equal((await db.getConversationSources('storage-user','chaewon',['msg_000000']))[0].text,'개인 대화 0','Grounded memory retrieves the old original from R2');
+ const ref=db.sql.prepare("SELECT object_key FROM archive_message_refs WHERE user_id='storage-user' AND message_id='msg_000000'").get();
+ const packed=objects.get(ref.object_key);objects.delete(ref.object_key);
+ await assert.rejects(conversations.transcript('storage-user','chaewon',0),e=>e.status===503,'Cold history must fail honestly rather than return empty or fabricated messages');
+ assert.equal((await archive.page('storage-user','chaewon')).messages.length,40,'Recent messages remain available during R2 outage');
+ objects.set(ref.object_key,packed);
+ db.linkPhone('storage-user','01000000088');
+ assert.equal(db.sql.prepare("SELECT count(*) n FROM archive_message_refs WHERE user_id='storage-user'").get().n,0);
+ assert.equal((await conversations.transcript('01000000088','chaewon',0)).messages[0].text,'개인 대화 0','Cold archive ownership follows a verified phone merge');
+ assert.equal((await archive.page('other-user','chaewon')).messages.length,0);
+ // Recent but high-volume rooms retain their seven-day working window.
+ const recent=Array.from({length:150},(_,i)=>({id:'recent-'+i,sender:i%2?'ai':'user',text:'recent text',createdAt:Date.now()-1000+i}));
+ db.appendMessages('other-user','recent-room',recent);await archive.archiveBatch();assert.equal(await archive.compactBatch(),0);
+ // Large reply receipts cannot retain a second unlimited copy of old replies.
+ const oldAt=Date.now()-9*86400000;
+ const oldReply={id:'reply_old-request',sender:'ai',text:'original old AI response',createdAt:oldAt};
+ db.appendMessages('other-user','cold-room',[oldReply,...Array.from({length:120},(_,i)=>({id:'after-'+i,sender:'user',text:'later turn',createdAt:oldAt+i+1}))]);
+ const fingerprint=crypto.createHash('sha256').update(JSON.stringify({kind:'chat',characterId:'cold-room',message:'old-input'})).digest('hex');
+ db.saveChatRequest('other-user','old-request',{success:true,isAiGenerated:true,partnerReply:oldReply.text,replyId:oldReply.id,contentPolicyVersion:require('../services/contentAccess').version,contentAudience:'general',fingerprint,costDeducted:3.7});
+ await archive.archiveBatch();assert.equal(await archive.compactBatch(),1);
+ assert.equal(db.getChatRequest('other-user','old-request').partnerReply,undefined);
+ const hearts=db.getUser('other-user').hearts;let replay;
+ const response={status(n){this.code=n;return this;},json(value){replay=value;return value;}};
+ await require('../services/generatedTurn')({user:{id:'other-user'}},response,{character:{id:'cold-room'},message:'old-input',requestId:'old-request',kind:'chat',cost:3.7});
+ assert.equal(replay.partnerReply,oldReply.text);assert.equal(db.getUser('other-user').hearts,hearts,'Cold replay cannot charge again');
+ const reclaimed=require('../scripts/reclaim-database.cjs').reclaim(process.env.SQLITE_FILE);assert(reclaimed.verified);const reopened=new (require('node:sqlite').DatabaseSync)(process.env.SQLITE_FILE);assert.equal(reopened.prepare('PRAGMA auto_vacuum').get().auto_vacuum,2);reopened.close();assert.equal((await conversations.transcript('01000000088','chaewon',0)).messages[0].text,'개인 대화 0');
+ console.log('PASS: verified cold-body removal, seven-day/120-message retention, complete R2 history/admin search/analytics/memory, honest outage errors, phone merge, compact replay without repeat charge');
  const source=path.join(dir,'snapshot.bin'),target=path.join(dir,'restored.bin'),bytes=crypto.randomBytes(9*1024*1024);fs.writeFileSync(source,bytes);const uploaded=await backup.upload(source);assert.equal(uploaded.parts,2);await backup.restore(uploaded.key,target);assert.deepEqual(fs.readFileSync(target),bytes,'Multi-part backup restores exactly');
  console.log('PASS: authenticated encryption/tamper rejection, opaque keys, verified and retryable R2 archiving, bounded account state, complete 10,005-message cursor history, cross-account isolation, outage fallback, multipart encrypted backup restoration');
 }finally{db.sql.close();fs.rmSync(dir,{recursive:true,force:true});}})().catch(e=>{console.error(e);process.exitCode=1;});

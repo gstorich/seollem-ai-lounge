@@ -17,6 +17,15 @@ module.exports = async function generatedTurn(req, res, {character, message, req
     if(previous.contentAudience!=='general'&&!require('./contentAccess').verifiedAdult(db.getUser(id)))return res.status(403).json({success:false,error:'ADULT_VERIFICATION_REQUIRED',message:'성인인증 상태를 확인해주세요. 인증 전에는 일반 대화만 가능합니다.',costDeducted:0,heartsRemaining:db.getUser(id).hearts});
     if(previous.skipped)return res.json({...previous,heartsRemaining:db.getUser(id).hearts});
     if (!previous.isAiGenerated) return res.status(503).json({success:false,error:'AI_GENERATION_FAILED',message:FAILURE,costDeducted:0,heartsRemaining:db.getUser(id).hearts});
+    if(previous.archivedReply){
+      try{
+        const row=db.sql.prepare('SELECT * FROM conversation_messages WHERE user_id=? AND character_id=? AND message_id=?').get(db.resolveUserId(id),previous.archivedReply.characterId,previous.archivedReply.messageId);
+        if(!row)throw Error('REPLAY_NOT_FOUND');
+        const [reply]=await require('./conversationArchive').hydrateRows([row]);
+        const {archivedReply,...receipt}=previous;
+        return res.json({...receipt,partnerReply:reply.text,heartsRemaining:db.getUser(id).hearts});
+      }catch{return res.status(503).json({success:false,error:'HISTORY_UNAVAILABLE',message:FAILURE,costDeducted:0,heartsRemaining:db.getUser(id).hearts});}
+    }
     return res.json({...previous,heartsRemaining:db.getUser(id).hearts});
   }
   if (active.has(id)) {
@@ -57,7 +66,7 @@ module.exports = async function generatedTurn(req, res, {character, message, req
       }
     }
     const storedState = db.getConversationState(id,character.id);
-    const agreementSources=db.getConversationSources(id,character.id,(storedState.memory?.agreements||[]).map(note=>note.sourceId));
+    const agreementSources=await db.getConversationSources(id,character.id,(storedState.memory?.agreements||[]).map(note=>note.sourceId));
     // 대화가 수천~수만 개로 늘어나도 성능 저하가 없도록 최근 120개 윈도우에서 안전하게 필터링
     const candidateMessages = oldMessages.length > 120 ? oldMessages.slice(-120) : oldMessages;
     const validOldMessages = candidateMessages.filter((m) => {

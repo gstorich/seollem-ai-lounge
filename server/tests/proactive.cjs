@@ -27,7 +27,7 @@ llm.generateReply=async(character,history,{conversation})=>{
  const job=room('one');assert(job.due_at>=now-183*DAY&&job.due_at<=now-5*DAY+1000);assert.equal(job.source_id,'one_18');
  assert(await service.processJob(job));assert.equal(db.getUser('one').hearts,0,'Free even with zero hearts');
  const messages=db.getUser('one').savedRooms[charId].messages;assert.equal(messages.length,21);assert(messages.at(-1).proactive);assert(messages.at(-1).unread);assert.equal(messages.filter(m=>m.sender==='user').length,10,'No fake user prompt persisted');
- assert.equal(db.getConversationState('one',charId).revision,1);assert.equal(store.inbox('one').length,1);assert.equal(store.inbox('other').length,0);
+ assert.equal(db.getConversationState('one',charId).revision,1);assert.equal((await store.inbox('one')).length,1);assert.equal((await store.inbox('other')).length,0);
  assert.equal(await service.processJob(job),false,'No repeated contact without user reply');assert.equal(calls,1);
  const sampled=selected.map(c=>service.delayFor('sample',c.id,'sample')/DAY);
  assert(Math.min(...sampled)<5&&Math.max(...sampled)>120,'Character delays span days to months');
@@ -47,11 +47,11 @@ llm.generateReply=async(character,history,{conversation})=>{
  const removed=room('removed');db.transaction(()=>{db.updateUser('removed',{savedRooms:{}});db.resetConversationState('removed',charId);});assert(!await service.processJob(removed));
  const concurrent=room('concurrent');require('../services/generationLock').add('concurrent');assert(!await service.processJob(concurrent));require('../services/generationLock').clear();
  const success=llm.generateReply;
- const failed=room('failed');llm.generateReply=async()=>{throw Error('synthetic provider failure');};assert(!await service.processJob(failed));assert.equal(db.getUser('failed').savedRooms[charId].messages.length,20);assert.equal(db.getConversationState('failed',charId).revision,0);assert.equal(store.inbox('failed').length,0);
+ const failed=room('failed');llm.generateReply=async()=>{throw Error('synthetic provider failure');};assert(!await service.processJob(failed));assert.equal(db.getUser('failed').savedRooms[charId].messages.length,20);assert.equal(db.getConversationState('failed',charId).revision,0);assert.equal((await store.inbox('failed')).length,0);
  llm.generateReply=success;
  const changed=room('changed');llm.generateReply=async(...args)=>{const value=await success(...args);store.setEnabled('changed',false);return value;};assert(!await service.processJob(changed));assert.equal(db.getUser('changed').savedRooms[charId].messages.length,20);
  llm.generateReply=success;
- const rollback=room('rollback');db.sql.exec("CREATE TRIGGER reject_memory BEFORE INSERT ON conversation_state WHEN NEW.user_id='rollback' BEGIN SELECT RAISE(ABORT,'test'); END");assert(!await service.processJob(rollback));assert.equal(store.inbox('rollback').length,0);assert.equal(db.getUser('rollback').savedRooms[charId].messages.length,20);db.sql.exec('DROP TRIGGER reject_memory');
+ const rollback=room('rollback');db.sql.exec("CREATE TRIGGER reject_memory BEFORE INSERT ON conversation_state WHEN NEW.user_id='rollback' BEGIN SELECT RAISE(ABORT,'test'); END");assert(!await service.processJob(rollback));assert.equal((await store.inbox('rollback')).length,0);assert.equal(db.getUser('rollback').savedRooms[charId].messages.length,20);db.sql.exec('DROP TRIGGER reject_memory');
  const ec=crypto.createECDH('prime256v1');ec.generateKeys();
  const subscription={endpoint:'https://fcm.googleapis.com/fcm/send/synthetic',keys:{auth:crypto.randomBytes(16).toString('base64url'),p256dh:ec.getPublicKey().toString('base64url')}};
  assert(push.validSubscription(subscription));for(const endpoint of ['http://fcm.googleapis.com/a','https://127.0.0.1/a','https://fcm.googleapis.com.attacker.test/a','https://fcm.googleapis.com:8443/a','https://user@fcm.googleapis.com/a'])assert(!push.validSubscription({...subscription,endpoint}));

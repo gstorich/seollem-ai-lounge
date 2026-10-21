@@ -66,7 +66,7 @@ async function processJob(job,now=Date.now()){
    const user=db.getUser(job.user_id),character=characters.getCharacterById(job.character_id);
    if(!character)throw Error('CHARACTER_MISSING');
    const room=user.savedRooms[job.character_id],stored=db.getConversationState(user.id,character.id);
-   const agreementSources=db.getConversationSources(user.id,character.id,(stored.memory?.agreements||[]).map(n=>n.sourceId));
+   const agreementSources=await db.getConversationSources(user.id,character.id,(stored.memory?.agreements||[]).map(n=>n.sourceId));
    const relationship=require('./relationshipContext').buildRelationshipContext(character,[...agreementSources,...room.messages]);
    const history=room.messages.filter(m=>['user','ai'].includes(m.sender)&&m.text).map(m=>({id:m.id,role:m.sender==='user'?'user':'assistant',content:m.text,createdAt:m.createdAt}));
    const requestId='contact_'+crypto.randomUUID(),replyId='reply_'+requestId;

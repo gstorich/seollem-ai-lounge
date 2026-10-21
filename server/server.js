@@ -154,7 +154,7 @@ app.use('/api/*', (req, res) => {
 // Global Error Handler
 app.use((err, req, res, next) => {
   console.error('[UNHANDLED SERVER ERROR]', err);
-  res.status(500).json({
+  res.status(err.status===503?503:500).json({
     success: false,
     error: '서버 내부 오류가 발생했습니다. 잠시 후 다시 시도해주세요.',
     details: config.nodeEnv === 'development' ? err.message : undefined

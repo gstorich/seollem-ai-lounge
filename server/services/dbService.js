@@ -22,6 +22,8 @@ CREATE TABLE IF NOT EXISTS chat_requests (user_id TEXT NOT NULL, request_id TEXT
  data TEXT NOT NULL, PRIMARY KEY(user_id,request_id));
 CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS conversation_messages(user_id TEXT NOT NULL,character_id TEXT NOT NULL,message_id TEXT NOT NULL,data TEXT NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(user_id,character_id,message_id));
+CREATE TABLE IF NOT EXISTS archive_message_refs(user_id TEXT NOT NULL,character_id TEXT NOT NULL,message_id TEXT NOT NULL,object_key TEXT NOT NULL,entry_index INTEGER NOT NULL,PRIMARY KEY(user_id,character_id,message_id));
+CREATE TABLE IF NOT EXISTS archive_objects(object_key TEXT PRIMARY KEY,sha256 TEXT NOT NULL,message_count INTEGER NOT NULL,verified_at INTEGER NOT NULL);
 CREATE TABLE IF NOT EXISTS conversation_state(user_id TEXT NOT NULL,character_id TEXT NOT NULL,data TEXT,last_reply_id TEXT,revision INTEGER NOT NULL DEFAULT 0,updated_at INTEGER NOT NULL,PRIMARY KEY(user_id,character_id));
 CREATE TABLE IF NOT EXISTS conversation_memory_items(user_id TEXT NOT NULL,character_id TEXT NOT NULL,note_id TEXT NOT NULL,kind TEXT NOT NULL,data TEXT NOT NULL,active INTEGER NOT NULL DEFAULT 1,retired_source_id TEXT,created_at INTEGER NOT NULL,PRIMARY KEY(user_id,character_id,note_id));
 CREATE TABLE IF NOT EXISTS conversation_state_events(user_id TEXT NOT NULL,character_id TEXT NOT NULL,reply_id TEXT NOT NULL,data TEXT NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(user_id,character_id,reply_id));
@@ -208,6 +210,8 @@ module.exports = {
         sql.prepare('INSERT OR REPLACE INTO aliases VALUES(?,?)').run(sessionId, user.id);
         sql.prepare('INSERT OR IGNORE INTO conversation_messages SELECT ?,character_id,message_id,data,created_at FROM conversation_messages WHERE user_id=?').run(user.id,sessionId);
         sql.prepare('DELETE FROM conversation_messages WHERE user_id=?').run(sessionId);
+        sql.prepare('INSERT OR IGNORE INTO archive_message_refs SELECT ?,character_id,message_id,object_key,entry_index FROM archive_message_refs WHERE user_id=?').run(user.id,sessionId);
+        sql.prepare('DELETE FROM archive_message_refs WHERE user_id=?').run(sessionId);
         sql.prepare(`INSERT INTO conversation_state SELECT ?,character_id,data,last_reply_id,revision+1,updated_at FROM conversation_state WHERE user_id=?
           ON CONFLICT(user_id,character_id) DO UPDATE SET
           data=CASE WHEN excluded.updated_at>conversation_state.updated_at THEN excluded.data ELSE conversation_state.data END,
@@ -287,8 +291,9 @@ module.exports = {
   getConversationNotes(id,characterId) {
     return sql.prepare('SELECT kind,data FROM conversation_memory_items WHERE user_id=? AND character_id=? AND active=1 ORDER BY created_at DESC LIMIT 1000').all(resolveUserId(id),characterId).map(row=>({...JSON.parse(row.data),kind:row.kind}));
   },
-  getConversationSources(id,characterId,sourceIds) {
-    return [...new Set(sourceIds)].slice(0,100).map(sourceId=>sql.prepare('SELECT data FROM conversation_messages WHERE user_id=? AND character_id=? AND message_id=?').get(resolveUserId(id),characterId,sourceId)).filter(Boolean).map(row=>JSON.parse(row.data)).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+  async getConversationSources(id,characterId,sourceIds) {
+    const rows=[...new Set(sourceIds)].slice(0,100).map(sourceId=>sql.prepare('SELECT * FROM conversation_messages WHERE user_id=? AND character_id=? AND message_id=?').get(resolveUserId(id),characterId,sourceId)).filter(Boolean);
+    return (await require('./conversationArchive').hydrateRows(rows)).sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
   },
   getConversationStateHistory(id,characterId) {
     return sql.prepare('SELECT reply_id,data,created_at FROM conversation_state_events WHERE user_id=? AND character_id=? ORDER BY created_at DESC LIMIT 200').all(resolveUserId(id),characterId).map(row=>({replyId:row.reply_id,...JSON.parse(row.data),createdAt:new Date(row.created_at).toISOString()}));

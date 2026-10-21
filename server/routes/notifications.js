@@ -16,8 +16,8 @@ router.post('/unsubscribe',(req,res)=>{
  else if(typeof req.body.endpoint==='string')db.sql.prepare('DELETE FROM push_subscriptions WHERE user_id=? AND endpoint=?').run(req.user.id,req.body.endpoint);
  res.json({success:true});
 });
-router.get('/inbox',(req,res)=>{
+router.get('/inbox',async(req,res,next)=>{try{
  if(req.query.visible==='1')store.seen(req.user.id,Date.now());
- res.json({success:true,items:store.inbox(req.user.id)});
-});
+ res.json({success:true,items:await store.inbox(req.user.id)});
+}catch(e){next(e);}});
 module.exports=router;

@@ -28,5 +28,9 @@ module.exports={
    sql.prepare('DELETE FROM proactive_jobs WHERE user_id IN (?,?)').run(from,to);
    sql.prepare('UPDATE proactive_deliveries SET user_id=? WHERE user_id=?').run(to,from);
  },
- inbox(id){return sql.prepare(`SELECT d.id,d.character_id,m.data FROM proactive_deliveries d JOIN conversation_messages m ON m.user_id=d.user_id AND m.character_id=d.character_id AND m.message_id=d.message_id WHERE d.user_id=? AND d.push_status!='cancelled' ORDER BY d.id DESC LIMIT 50`).all(id).reverse().map(r=>({id:r.id,characterId:r.character_id,message:JSON.parse(r.data)}));}
+ async inbox(id){
+   const rows=sql.prepare(`SELECT m.*,d.id delivery_id FROM proactive_deliveries d JOIN conversation_messages m ON m.user_id=d.user_id AND m.character_id=d.character_id AND m.message_id=d.message_id WHERE d.user_id=? AND d.push_status!='cancelled' ORDER BY d.id DESC LIMIT 50`).all(id).reverse();
+   const messages=await require('./conversationArchive').hydrateRows(rows);
+   return rows.map((r,i)=>({id:r.delivery_id,characterId:r.character_id,message:messages[i]}));
+ }
 };

@@ -29,11 +29,11 @@ router.get('/customers/:id',(req,res)=>{const customer=ops.customer(req.params.i
 const conversations=require('../services/conversationService');
 const chatKind=req=>['members','guests'].includes(req.query.kind)?req.query.kind:'all';
 const chatDays=req=>[7,30,90].includes(Number(req.query.days))?Number(req.query.days):0;
-router.get('/conversations',(req,res)=>{const result=conversations.rooms({kind:chatKind(req),days:chatDays(req),q:String(req.query.q||'').slice(0,100),userId:String(req.query.userId||'').slice(0,100),characterId:String(req.query.characterId||'').slice(0,100),page:page(req)});ops.audit(req.admin.id,'conversation_list',chatKind(req),{page:page(req),filtered:Boolean(req.query.q||req.query.userId||req.query.characterId)});res.json({success:true,...result});});
-router.get('/conversations/:userId/:characterId',(req,res)=>{
- const conversation=conversations.transcript(req.params.userId,req.params.characterId,req.query.latest==='1'?null:page(req));if(!conversation)return res.sendStatus(404);
+router.get('/conversations',async(req,res,next)=>{try{const result=await conversations.rooms({kind:chatKind(req),days:chatDays(req),q:String(req.query.q||'').slice(0,100),userId:String(req.query.userId||'').slice(0,100),characterId:String(req.query.characterId||'').slice(0,100),page:page(req)});ops.audit(req.admin.id,'conversation_list',chatKind(req),{page:page(req),filtered:Boolean(req.query.q||req.query.userId||req.query.characterId)});res.json({success:true,...result});}catch(e){next(e);}});
+router.get('/conversations/:userId/:characterId',async(req,res,next)=>{try{
+ const conversation=await conversations.transcript(req.params.userId,req.params.characterId,req.query.latest==='1'?null:page(req));if(!conversation)return res.sendStatus(404);
  ops.audit(req.admin.id,'conversation_view',req.params.userId,{characterId:req.params.characterId,page:conversation.page});res.json({success:true,conversation});
-});
+}catch(e){next(e);}});
 router.get('/conversation-insights',(req,res)=>res.json({success:true,...conversations.insights(chatKind(req),chatDays(req)||30)}));
 router.get('/matching-insights',(req,res)=>{
   const days=[7,30,90].includes(Number(req.query.days))?Number(req.query.days):30;
