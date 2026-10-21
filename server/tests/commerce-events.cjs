@@ -1,0 +1,45 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),crypto=require('node:crypto');
+const dir=fs.mkdtempSync(path.join(os.tmpdir(),'azit-commerce-events-')),secret=crypto.randomBytes(40).toString('hex'),password=crypto.randomBytes(20).toString('hex'),salt=crypto.randomBytes(16).toString('hex'),origin='https://example.com';
+Object.assign(process.env,{NODE_ENV:'test',PORT:'19429',HOST:'127.0.0.1',JWT_SECRET:secret,ADMIN_PASSWORD_HASH:salt+':'+crypto.scryptSync(password,salt,64).toString('hex'),ALLOWED_ORIGINS:origin,DATABASE_FILE:path.join(dir,'old.json'),SQLITE_FILE:path.join(dir,'db.sqlite'),PORTONE_MODE:'test',PORTONE_PAYMENT_PROVIDER:'inicis',PORTONE_IDENTITY_PROVIDER:'INICIS_UNIFIED',PORTONE_INICIS_MID:'mock-mid',PORTONE_IDENTITY_MID:'mock-id-mid',PORTONE_PAYMENT_ENABLED:'true',PORTONE_IDENTITY_ENABLED:'true',PORTONE_PAYMENT_CHANNEL_KEY:'mock-channel',PORTONE_STORE_ID:'mock-store',PORTONE_IDENTITY_CHANNEL_KEY:'mock-id-channel',PORTONE_V2_API_SECRET:'mock-secret'});
+const db=require('../services/dbService'),events=require('../services/commerceEvents'),payments=require('../services/paymentService'),identity=require('../services/identityService'),gateway=require('../services/portoneGateway'),jwt=require('jsonwebtoken');
+const u=db.createUser({id:'01000003001',phone:'01000003001',hearts:0,createdAt:Date.now()}),other=db.createUser({id:'01000003002',phone:'01000003002',hearts:0,createdAt:Date.now()}),token=jwt.sign({userId:u.id},secret),otherToken=jwt.sign({userId:other.id},secret);let server,cookie;
+async function req(route,{method='GET',body,auth=token,admin=false,headers={}}={}){const r=await fetch('http://127.0.0.1:19429/api'+route,{method,headers:{'Content-Type':'application/json',Origin:origin,'X-Azit-Admin':'1',...(auth?{Authorization:'Bearer '+auth}:{}),...(admin?{Cookie:cookie}:{}),...headers},...(body===undefined?{}:{body:JSON.stringify(body)})});let d;try{d=await r.json();}catch{d={};}return {status:r.status,data:d,cookie:r.headers.get('set-cookie')};}
+(async()=>{try{
+ const prepared=payments.create(u,'starter'),id=prepared.order.id;
+ gateway.find=async()=>({merchant_uid:id,imp_uid:'imp_mock_unique',status:'paid',paid_at:Math.floor(Date.now()/1000),amount:prepared.request.totalAmount,cancel_amount:0,name:prepared.request.orderName,currency:'KRW',pay_method:'card',pg_provider:'inicis_v2',pg_id:'mock-mid',custom_data:prepared.request.customData,store_id:'mock-store',channel_key:'mock-channel',channel_type:'TEST',api_version:'V2'});gateway.payment=gateway.find;
+ await payments.reconcile(id);await payments.reconcile(id);
+ assert.equal(events.timeline('payment',id).filter(e=>e.stage==='paid').length,1,'Duplicate callbacks do not inflate paid events');
+ gateway.find=async()=>{throw Error('PRIVATE_KEY_AND_RAW_PROVIDER_BODY');};gateway.payment=gateway.find;
+ await assert.rejects(()=>payments.reconcile(id));assert.equal(events.timeline('payment',id)[0].code,'PROVIDER_ERROR');
+ gateway.find=async()=>({merchant_uid:id,imp_uid:'imp_mock_unique',status:'paid',paid_at:payments.get(id).providerPaidAt/1000,amount:prepared.request.totalAmount,cancel_amount:0,name:prepared.request.orderName,currency:'KRW',pay_method:'card',pg_provider:'inicis_v2',pg_id:'mock-mid',custom_data:prepared.request.customData,store_id:'mock-store',channel_key:'mock-channel',channel_type:'TEST',api_version:'V2'});gateway.payment=gateway.find;await payments.reconcile(id);assert(!events.overview({tests:'1'}).problems.some(x=>x.flow_id===id),'Recovered provider errors leave attention queue');assert.equal(events.timeline('payment',id).filter(e=>e.stage==='paid').length,1);
+ const identityReq=identity.create(u);gateway.identity=async()=>({id:identityReq.identityVerificationId,status:'VERIFIED',channel:{key:'mock-id-channel',pgProvider:'INICIS_UNIFIED',pgMerchantId:'mock-id-mid',type:'TEST'},verifiedCustomer:{phoneNumber:u.phone,birthDate:'1990-01-01',name:'PRIVATE_NAME',ci:'PRIVATE_CI'}});
+ await identity.complete(u,identityReq.identityVerificationId);await identity.complete(u,identityReq.identityVerificationId);
+ assert.equal(events.timeline('identity',identityReq.identityVerificationId).filter(e=>e.stage==='verified_adult').length,1);
+ const asText=JSON.stringify(db.sql.prepare('SELECT * FROM commerce_events').all());assert(!/PRIVATE_|1990-01-01|mock-secret/.test(asText));
+ assert.equal(events.overview({}).total,0,'Test mode is excluded');
+ events.record({userId:other.id,flow:'phone',flowId:'synthetic',stage:'send_failed',code:'HTTP_502'});assert.equal(events.overview({}).total,1);
+ db.updateUser(other.id,{isTester:true});assert.equal(events.overview({}).total,0);db.updateUser(other.id,{isTester:false});
+ db.sql.prepare('INSERT INTO device_profiles(device_id,current_user_id,initial_user_id,created_at,updated_at) VALUES(?,?,?,?,?)').run('dev_synthetic',other.id,u.id,Date.now(),Date.now());db.updateUser(u.id,{isTester:true});assert.equal(events.overview({}).total,0,'Tester linked device excluded');db.updateUser(u.id,{isTester:false});
+ // Old pending flows remain actionable even though HTTP prepare succeeded.
+ const pending=payments.create(u,'starter').order.id;db.sql.prepare('UPDATE commerce_events SET created_at=? WHERE flow_id=?').run(Date.now()-16*60000,pending);events.record({userId:u.id,flow:'payment',flowId:pending,stage:'prepare_ok',mode:'test'});assert(events.overview({tests:'1'}).problems.some(x=>x.flow_id===pending));
+ events.record({userId:u.id,flow:'payment',flowId:pending,stage:'paid',mode:'test'});assert(!events.overview({tests:'1'}).problems.some(x=>x.flow_id===pending));
+ server=require('../server').server;if(!server.listening)await new Promise(r=>server.once('listening',r));
+ assert.equal((await req('/admin/commerce/events',{auth:null})).status,401);
+ assert.equal((await req('/admin/commerce/events')).status,401);
+ const login=await req('/admin/session',{method:'POST',body:{password}});assert.equal(login.status,200);cookie=login.cookie.split(';')[0];
+ assert.equal((await req('/admin/commerce/events?tests=1',{admin:true})).status,200);
+ assert.equal((await req('/payment/events',{method:'POST',auth:otherToken,body:{flowId:id,stage:'sdk_opened'}})).status,404);
+ assert.equal((await req('/payment/events',{method:'POST',body:{flowId:id,stage:'paid'}})).status,400,'Client cannot assert success');
+ assert.equal((await req('/payment/events',{method:'POST',body:{flowId:id,stage:'sdk_opened',code:'PRIVATE_PAYLOAD',phone:'PRIVATE_PHONE'}})).status,200);
+ await req('/payment/events',{method:'POST',body:{flowId:id,stage:'sdk_opened'}});assert.equal(events.timeline('payment',id).filter(e=>e.stage==='sdk_opened').length,1);
+ assert.equal((await req('/identity/events',{method:'POST',auth:otherToken,body:{flowId:identityReq.identityVerificationId,stage:'sdk_opened'}})).status,404);
+ const caseRoute='/admin/commerce/events/payment/'+id+'/case';
+ assert.equal((await req(caseRoute,{method:'POST',admin:true,headers:{Origin:'https://evil.invalid'},body:{state:'resolved',note:'test'}})).status,403);
+ assert.equal((await req(caseRoute,{method:'POST',admin:true,body:{state:'resolved',note:'기관 내역 확인'}})).status,200);
+ assert.equal(payments.get(id).status,'paid','Case state cannot change ledger or identity');
+ const check=await req('/admin/commerce/identity/'+identityReq.identityVerificationId+'/check',{method:'POST',admin:true,body:{}});assert.equal(check.status,200);assert(!JSON.stringify(check.data).includes(u.phone));
+ assert.equal((await req('/auth/send-otp',{method:'POST',body:{phone:'PRIVATE_PHONE'}})).status,409);await new Promise(r=>setImmediate(r));assert(events.overview({tests:'1'}).items.some(e=>e.flow==='phone'&&e.code==='ALREADY_AUTHENTICATED'));
+ assert(!/PRIVATE_/.test(JSON.stringify(db.sql.prepare('SELECT * FROM commerce_events').all())));
+ db.sql.prepare('UPDATE commerce_events SET created_at=?').run(Date.now()-91*86400000);assert.equal(events.overview({tests:'1'}).total,0);assert.equal(db.sql.prepare('SELECT count(*) n FROM commerce_events').get().n,0);
+ console.log('PASS operations events: authoritative dedupe, pending attention, safe diagnostics, test/device exclusion, ownership, client spoof prevention, admin CSRF, case notes, identity recheck and retention');
+ }catch(e){console.error(e);process.exitCode=1;}finally{if(server)await new Promise(r=>server.close(r));fs.rmSync(dir,{recursive:true,force:true});}})();

@@ -5,6 +5,7 @@ const dbService = require('../services/dbService');
 const { generateToken, requireAuth, optionalAuth } = require('../middleware/auth');
 const config = require('../config');
 const browserSession = require('../services/browserSession');
+router.use(require('../services/commerceEvents').middleware('phone',{'/send-otp':'send','/verify-otp':'verify'}));
 router.use((req,res,next)=>{res.set('Cache-Control','no-store');next();});
 
 // POST /api/auth/visit - Record traffic/landing visit for funnel analytics (even if bounced immediately)
@@ -182,13 +183,14 @@ function requireLoggedOutForOtp(req, res, next) {
 }
 router.post('/send-otp', requireAuth, requireLoggedOutForOtp, otpLimit, async (req, res) => {
   const phone = normalizePhone(req.body.phone);
-  if (!phone) return res.status(400).json({ success: false, error: '010으로 시작하는 휴대폰 번호 11자리를 입력해주세요.' });
-  if (!smsService.configured()) return res.status(503).json({ success: false, error: '문자 인증 서비스를 준비 중입니다.' });
+  if (!phone) return res.status(400).json({ success: false, code:'OTP_INVALID_INPUT', error: '010으로 시작하는 휴대폰 번호 11자리를 입력해주세요.' });
+  if (!smsService.configured()) return res.status(503).json({ success: false, code:'SMS_NOT_READY', error: '문자 인증 서비스를 준비 중입니다.' });
   const id = crypto.randomUUID();
+  req.commerceFlowId=id;
   const code = crypto.randomInt(100000, 1000000).toString();
   const status = dbService.reserveOtp({ id, phone, sessionId: req.user.id, ip: req.ip, digest: otpDigest(id, phone, code) });
   if (status !== 'ok') return res.status(429).json({ success: false,
-    error: status === 'cooldown' ? '인증번호는 60초 후 다시 받을 수 있습니다.' : '오늘 인증번호 발송 한도를 초과했습니다.' });
+    code:status==='cooldown'?'OTP_COOLDOWN':'OTP_DAILY_LIMIT', error: status === 'cooldown' ? '인증번호는 60초 후 다시 받을 수 있습니다.' : '오늘 인증번호 발송 한도를 초과했습니다.' });
   try {
     const providerId = await smsService.sendOtp(phone, code);
     dbService.markOtp(id, 'sent', providerId);
@@ -197,17 +199,17 @@ router.post('/send-otp', requireAuth, requireLoggedOutForOtp, otpLimit, async (r
   } catch (error) {
     dbService.markOtp(id, 'failed');
     console.warn('[SMS] Sending failed:', error.name === 'TimeoutError' ? 'timeout' : 'provider_failure');
-    return res.status(502).json({ success: false, error: '문자를 발송하지 못했습니다. 잠시 후 다시 시도해주세요.' });
+    return res.status(502).json({ success: false, code:'SMS_SEND_FAILED', error: '문자를 발송하지 못했습니다. 잠시 후 다시 시도해주세요.' });
   }
 });
 router.post('/verify-otp', requireAuth, requireLoggedOutForOtp, verifyLimit, (req, res) => {
   const phone = normalizePhone(req.body.phone);
   const { code, challengeId } = req.body;
   if (!phone || typeof code !== 'string' || !/^\d{6}$/.test(code) || typeof challengeId !== 'string' || challengeId.length > 64) {
-    return res.status(400).json({ success: false, error: '휴대폰 번호와 인증번호 6자리를 확인해주세요.' });
+    return res.status(400).json({ success: false, code:'OTP_INVALID_INPUT', error: '휴대폰 번호와 인증번호 6자리를 확인해주세요.' });
   }
   const result = dbService.verifyOtp(challengeId, phone, req.user.id, otpDigest(challengeId, phone, code));
-  if (!result) return res.status(400).json({ success: false, error: '인증번호가 틀렸거나 만료되었습니다. 5회 틀리면 새로 받아주세요.' });
+  if (!result) return res.status(400).json({ success: false, code:'OTP_INVALID_OR_EXPIRED', error: '인증번호가 틀렸거나 만료되었습니다. 5회 틀리면 새로 받아주세요.' });
   require('../services/operationsService').track(result.bonusAwarded ? 'phone_verified' : 'phone_login', result.user.id);
 
   browserSession.save(res,result.user);
