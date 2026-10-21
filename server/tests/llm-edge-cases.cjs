@@ -185,6 +185,18 @@ global.fetch = async (url, options) => {
           roomLeft: false
         });
       }
+    } else if (lastUserMsg.includes('youtube-link-case')) {
+      if (count === 1) {
+        outputText = JSON.stringify({
+          reply: '이거 뭐야? 링크만 딱 보내고 설명도 없구ㅋㅋ 바쁠 때 영상 띄우면 궁금해서 일 못 하잖아 일단 저장해둘게',
+          roomLeft: false
+        });
+      } else {
+        outputText = JSON.stringify({
+          reply: '오, 어떤 영상이에요? 아직 못 봤는데! 살짝만 힌트 줘요ㅎㅎ',
+          roomLeft: false
+        });
+      }
     } else if (lastUserMsg.includes('question-prep-case')) {
       outputText = JSON.stringify({
         reply: '안녕 반가워! 오늘 하루는 어땠어?',
@@ -455,6 +467,17 @@ async function req(route, token, body, method = body === undefined ? 'GET' : 'PO
     assert.equal(split2[0], '더 이상 너 같은 사람 상대하는 거 시간 낭비라는 거 확실히 알았어');
     assert.equal(split2[1], '다신 보지 말자');
     console.log(' -> 결과: 실전 카톡 호흡 분할 완벽 검증 성공');
+
+    console.log('[Test 22] 조은주 케이스: 링크 전송 시 불친절한 핀잔/무단 반말 방지 및 다정한 리액션 검증');
+    const { data: guestLink } = await req('/auth/guest', null, {});
+    // 존댓말 히스토리 조성
+    await req('/chat/send', guestLink.token, { characterId: 'p_1076', message: '반가워요 은주씨. 피자 좋아하세요?', messageId: 'link-prep-1' });
+    const linkRes = await req('/chat/send', guestLink.token, { characterId: 'p_1076', message: 'youtube-link-case: https://youtu.be/YtxhBlwwUR4 이 영상 봤어?', messageId: 'link-1' });
+    assert.equal(linkRes.status, 200);
+    assert(!linkRes.data.partnerReply.includes('설명도 없구'), '설명도 없다는 타박은 제거되어야 함');
+    assert(!linkRes.data.partnerReply.includes('일 못 하잖아'), '일 못 한다는 핀잔은 제거되어야 함');
+    assert(linkRes.data.partnerReply.includes('어떤 영상이에요') || linkRes.data.partnerReply.includes('못 봤는데') || linkRes.data.partnerReply.includes('힌트'), '친절한 호기심/리액션으로 교정되어야 함');
+    console.log(' -> 결과:', linkRes.data.partnerReply);
 
     console.log('\nPASS: All LLM edge cases, address auto-sanitization, markdown JSON parsing, system phrase filtering, and fallback resilience verified!');
     await stop();
