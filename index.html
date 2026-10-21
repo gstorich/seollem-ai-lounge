@@ -821,15 +821,15 @@
 
       <!-- 4. Clean Bottom Input Bar + Reassuring Account Status -->
       <footer class="shrink-0 bg-white px-4 pt-3 pb-3 border-t border-[#e8e4d8] z-20 shadow-[0_-1px_3px_rgba(0,0,0,0.02)] relative">
-        <div id="wellbeingToolbar" class="wb-toolbar"><button type="button" class="wellbeing-open wb-button">내 안부 · 편의 설정</button><button id="wbDictate" type="button" class="wb-button">음성 입력</button><span id="wbVoiceStatus" role="status" aria-live="polite"></span></div>
         <form id="chatForm" class="flex items-end gap-2">
           <button id="btnOpenGiftModal" type="button" title="선물하기" class="shrink-0 w-12 h-12 rounded-xl bg-rose-50 hover:bg-rose-100 active:scale-95 border border-rose-200 flex flex-col items-center justify-center transition shadow-xs text-rose-600">
             <span class="text-[18px]">🎁</span>
             <span class="text-[10px] font-bold leading-none mt-0.5">선물</span>
           </button>
 
-          <div class="flex-1 bg-[#FAF7EE] rounded-xl px-4 py-2.5 flex items-center border border-[#ded8cb] focus-within:border-amber-400 focus-within:bg-white transition">
+          <div class="wb-input flex-1 bg-[#FAF7EE] rounded-xl px-3 py-2.5 flex items-center border border-[#ded8cb] focus-within:border-amber-400 focus-within:bg-white transition">
             <textarea id="chatInput" rows="1" placeholder="따뜻한 이야기를 건네보세요..." class="w-full bg-transparent text-[16.5px] text-[#111111] placeholder-[#888888] focus:outline-none resize-none max-h-24 leading-relaxed font-medium"></textarea>
+            <button id="wbDictate" type="button" class="wb-mic" aria-label="음성 입력" title="음성 입력" aria-pressed="false"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10v2a7 7 0 0 0 14 0v-2M12 19v3m-4 0h8"/></svg></button>
           </div>
 
           <button id="btnSend" type="submit" aria-label="전송" aria-describedby="sendHeartCost" class="shrink-0 h-12 px-5 min-w-[70px] rounded-xl bg-[#c48726] hover:bg-[#d8962d] active:scale-95 text-[#1a140b] font-black text-[16px] shadow-xs border border-[#e5a93c]/50 transition flex flex-col items-center justify-center gap-0.5">
@@ -837,6 +837,7 @@
             <span id="sendHeartCost" class="text-[9px] leading-none font-normal text-[#75672e] whitespace-nowrap">♥ -3.7</span>
           </button>
         </form>
+        <div id="wbVoiceStatus" class="wb-voice-status" role="status" aria-live="polite"></div>
 
         <div class="flex items-center justify-between mt-2.5 text-[12.5px] text-[#baa997] px-1">
           <div class="flex items-center gap-2">
@@ -1305,7 +1306,7 @@
           <button id="btnCloseAiPolicy" type="button" class="w-8 h-8 rounded-full bg-[#3d342c] text-[#ded3c4] flex items-center justify-center font-bold hover:bg-[#4a3f35] transition">✕</button>
         </div>
 
-        <button type="button" class="wellbeing-open wb-button">내 안부 기록 · 글씨와 음성</button>
+        <details class="wb-accessibility"><summary>접근성</summary><button type="button" class="wellbeing-open wb-button">글씨·읽어주기 설정</button></details>
         <!-- 1. AI API Key Configuration -->
         <div id="settingsAiConfig" class="space-y-2 text-[12.5px] p-3 rounded-2xl bg-[#362f29] border border-[#4d4135]">
           <div class="flex items-center justify-between">

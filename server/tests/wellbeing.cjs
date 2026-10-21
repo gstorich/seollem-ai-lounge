@@ -20,6 +20,6 @@ try{
  assert.equal(service.context('care-a',char).prompt,'');assert.throws(()=>service.assertCurrent('care-a',char,context),/CHANGED/);
  db.linkPhone('care-a','01000000029');assert.equal(service.list('01000000029').length,1);assert.equal(service.list('care-a').length,1);
  assert(service.remove('01000000029',r.id));assert.equal(service.list('01000000029').length,0);
- const frontend=fs.readFileSync(path.join(__dirname,'../../wellbeing.js'),'utf8');assert.match(frontend,/interimResults=false/);assert.match(frontend,/e!==epoch/);assert.match(frontend,/나만 보기/);assert.match(frontend,/건강정보 등 민감한/);
+ const frontend=fs.readFileSync(path.join(__dirname,'../../wellbeing.js'),'utf8');assert.match(frontend,/interimResults=false/);assert.match(frontend,/e!==epoch/);assert.match(frontend,/readAloud:false/);assert(!frontend.includes('안부에 기록'));assert(!frontend.includes('wbForm'));assert(!frontend.includes("request('/wellbeing"));
  console.log('PASS: private records, explicit character consent, stale edit and generation rejection, scoped context, deletion, date validation, phone transfer, voice confirm-before-send');
 }finally{fs.rmSync(dir,{recursive:true,force:true});}
