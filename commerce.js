@@ -38,7 +38,7 @@ $('identify').onclick=()=>action(async()=>{if(!identityAvailable)throw Error('�
  const orderId=params.get('orderId')||params.get('paymentId')||params.get('merchant_uid')||sessionStorage.getItem('azit-pending-payment'),imp=params.get('imp_uid'),identityId=params.get('identityVerificationId');
  // Return query values never prove payment or identity; authenticated server GETs do.
  if(member&&orderId&&/^azit_[a-f0-9]{32}$/.test(orderId)){try{const checked=await request('/payment/verify','POST',{orderId,...(imp?{impUid:imp}:{})});$('notice').textContent=checked.order.status==='paid'?'결제가 확인되어 하트가 지급됐습니다.':'결제 결과를 확인 중입니다. 결제 내역에서 다시 확인해주세요.';sessionStorage.removeItem('azit-pending-payment');}catch(e){$('error').textContent=e.message;}}
- if(member&&identityId){try{showIdentity(await request('/identity/complete','POST',{identityVerificationId:identityId}));}catch(e){$('error').textContent=e.message;}}else if(member&&identityCfg.enabled)showIdentity(await request('/identity/status'));
+ if(member&&identityId){try{showIdentity(await request('/identity/complete','POST',{identityVerificationId:identityId}));}catch(e){$('error').textContent=e.message;}}else if(member){const state=await request('/identity/status');if(state.verified||identityCfg.enabled)showIdentity(state);}
  await orders();
  }catch(e){$('error').textContent=e.message;}})();
 })();

@@ -49,7 +49,7 @@ gateway.identity=async()=>structuredClone(identityResult);
  process.env.PORT='19422';process.env.HOST='127.0.0.1';const appConfig=require('../config');appConfig.port=19422;appConfig.host='127.0.0.1';server=require('../server').server;
  if(!server.listening)await new Promise(r=>server.once('listening',r));
  const base='http://127.0.0.1:19422',token=require('../middleware/auth').generateToken({userId:u.id}),otherToken=require('../middleware/auth').generateToken({userId:v.id});
- async function http(route,method='GET',body,auth=token){const r=await fetch(base+route,{method,headers:{'Content-Type':'application/json',...(auth?{Authorization:'Bearer '+auth}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});return {status:r.status,body:await r.text()};}
+ async function http(route,method='GET',body,auth=token){const r=await fetch(base+route,{method,headers:{'Content-Type':'application/json',...(auth?{Authorization:'Bearer '+auth}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});return {status:r.status,headers:r.headers,body:await r.text()};}
  assert.equal((await http('/api/payment/prepare','POST',{pkgKey:'starter'})).status,400);
  assert.equal((await http('/api/payment/orders','GET',undefined,'')).status,401);
  assert.equal((await http('/api/admin/commerce')).status,401);
@@ -60,7 +60,7 @@ gateway.identity=async()=>structuredClone(identityResult);
  assert.equal((await http('/api/payment/webhook','POST',{merchant_uid:id,imp_uid:p.imp_uid},'')).status,200);assert.equal(db.getUser(u.id).hearts,2499.9);
  const usedRefund=await http('/api/payment/orders/'+id+'/refund','POST',{});assert.equal(usedRefund.status,409);assert.equal(JSON.parse(usedRefund.body).error,'REFUND_PURCHASE_USED');
  assert.equal((await http('/billing.css')).status,200);
- for(const page of ['/billing','/payment/complete','/verification/complete']){const r=await http(page);assert.equal(r.status,200);assert(r.body.includes('/commerce.js'));}
+ for(const page of ['/billing','/payment/complete','/verification/complete']){const r=await http(page);assert.equal(r.status,200);assert(r.body.includes('/commerce.js'));assert.equal(r.headers.get('cross-origin-opener-policy'),'same-origin-allow-popups');}
  await new Promise(r=>server.close(r));server=null;
  const {execFileSync}=require('node:child_process');const persisted=JSON.parse(execFileSync(process.execPath,['-e',`const d=require('./server/services/dbService');const p=require('./server/services/paymentService');process.stdout.write(JSON.stringify({order:p.get(process.argv[1]).status,held:JSON.parse(d.sql.prepare('SELECT data FROM payment_refunds WHERE order_id=?').get(process.argv[2]).data).status}));`,fullId,id3],{cwd:path.resolve(__dirname,'../..'),env:process.env,encoding:'utf8'}));assert.equal(persisted.order,'refunded');assert.equal(persisted.held,'pending');
  const original=gateway.settings.mode;gateway.settings.mode='live';gateway.settings.approved=false;assert.equal(gateway.ready('payment'),false);gateway.settings.mode=original;
