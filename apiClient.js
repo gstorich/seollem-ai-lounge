@@ -349,6 +349,7 @@
       roomFingerprints.delete(id);
     },
     async logout() {
+      window.AzitWellbeing?.resetAccount();
       await this.flushState();
       if(window.AzitNotifications)await window.AzitNotifications.logout();
       this.pauseSync();

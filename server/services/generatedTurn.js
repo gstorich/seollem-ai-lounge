@@ -70,12 +70,14 @@ module.exports = async function generatedTurn(req, res, {character, message, req
     const relationship = require('./relationshipContext').buildRelationshipContext(character,[...agreementSources,...validOldMessages,...(userMessage?[{sender:'user',text:message}]:[])]);
     const history = validOldMessages.map(m=>({id:m.id,role:m.sender==='user'?'user':'assistant',content:m.text,createdAt:m.createdAt}));
     const conversation = require('./conversationContext').prepare([...history,{id:requestId,role:'user',content:message,createdAt:Date.now()}],storedState.memory,{replyId:'reply_'+requestId,kind,speechRegister:relationship.speechRegister,bankNotes:db.getConversationNotes(id,character.id),stateHistory:db.getConversationStateHistory(id,character.id)});
+    conversation.wellbeing=require('./wellbeingService').context(id,character.id);
     db.transaction(()=>{
       db.saveChatRequest(id,requestId,{status:'pending',fingerprint,createdAt:Date.now()});
     });
     const result = await llm.generateReply(character,[...history,{role:'user',content:message}],{verifiedAdult:require('./contentAccess').verifiedAdult(user),relationship,conversation,...(kind==='greeting'?{greeting:true}:{})});
     if (!result.isAiGenerated || !result.text?.trim()) throw Error('Invalid generated reply');
     const response = db.transaction(()=>{
+      require('./wellbeingService').assertCurrent(id,character.id,conversation.wellbeing);
       if(require('./contentAccess').verifiedAdult(user)&&!require('./contentAccess').verifiedAdult(db.getUser(id)))throw Object.assign(Error('ADULT_VERIFICATION_REQUIRED'),{accessBlocked:true});
       if(!require('./legalService').accepted(db.getUser(id)))throw Object.assign(Error('LLM_CONSENT_CHANGED'),{accessBlocked:true});
       const charged = cost > 0 ? db.debit(id,cost,kind==='gift'?'gift:'+userMessage.giftKey:'chat') : db.getUser(id);

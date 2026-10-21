@@ -76,6 +76,7 @@ app.get('/api/public-config', (req,res) => {
 app.use('/api/auth', authRoutes);
 app.use('/api/legal',require('./routes/legal'));
 app.use('/api/account', require('./routes/account'));
+app.use('/api/wellbeing', requestLimit(60), require('./routes/wellbeing'));
 app.use('/api/notifications', requestLimit(60), require('./routes/notifications'));
 app.use('/api/match', matchRoutes);
 app.use('/api/chat', chatRoutes);
@@ -127,7 +128,7 @@ app.get('/sitemap.xml', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'sitemap.xml'));
 });
 for (const file of [
-  'legal.js', 'commerce.js', 'advertising.js', 'apiClient.js', 'chatTiming.js', 'analytics.js',
+  'wellbeing.js', 'wellbeing.css', 'legal.js', 'commerce.js', 'advertising.js', 'apiClient.js', 'chatTiming.js', 'analytics.js',
   'notifications.js', 'notification-worker.js', 'manifest.webmanifest', 'admin.js',
   'adminCharacters.js', 'adminFunnel.js', 'support.js', 'billing.css', 'operations.css', 'policy.css', 'custom_avatars_manifest.json',
   'logo.png', 'logo-horizontal.png', 'app-icon.png', 'app-icon-192.png', 'app-icon-512.png',

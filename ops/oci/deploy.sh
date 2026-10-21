@@ -5,6 +5,8 @@ release="$(date -u +%Y%m%dT%H%M%SZ)-$(git rev-parse --short HEAD)"
 bash ops/build-styles.sh
 node server/scripts/sync-personas.cjs
 node ops/oci/smoke.cjs
+node server/tests/wellbeing.cjs
+node server/tests/wellbeing-api.cjs
 node server/tests/accounts.cjs
 node server/tests/operations.cjs
 node server/tests/analytics.cjs

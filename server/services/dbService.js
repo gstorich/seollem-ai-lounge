@@ -216,6 +216,7 @@ module.exports = {
         sql.prepare('INSERT OR IGNORE INTO conversation_state_events SELECT ?,character_id,reply_id,data,created_at FROM conversation_state_events WHERE user_id=?').run(user.id,sessionId);
         sql.prepare('DELETE FROM conversation_state_events WHERE user_id=?').run(sessionId);
         require('./proactiveStore').transfer(sessionId,user.id);
+        require('./wellbeingService').transfer(sessionId,user.id);
         require('./legalService');
         sql.prepare('UPDATE legal_acceptance_events SET user_id=? WHERE user_id=?').run(user.id,sessionId);
         sql.prepare('UPDATE ledger SET user_id=? WHERE user_id=?').run(user.id, sessionId);
