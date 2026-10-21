@@ -15,3 +15,30 @@ s.context.rememberConfirmedReply(s.state.currentChar,{replyId:'reply_terminal',p
 assert(s.saved.savedRooms['room-a'].roomLeft,'Departure is durable before typing finishes');assert(s.saved.savedRooms['room-a'].messages.some(m=>m.id===left.id));
 s.state.roomLeft=true;s.state.messages.push(left);s.context.saveAccountState();assert(s.saved.savedRooms['room-a'].roomLeft);assert.equal(s.saved.savedRooms['room-a'].messages.filter(m=>m.id===left.id).length,1,'Closed room retains one system notice after saving and reentry');
 console.log('PASS: persist before typing, navigation during partial delivery, canonical deduplication, pagehide/reload flush and late reply room ownership');
+
+// Exercise the actual appendMessage presentation boundary in both entrypoints.
+for(const file of ['index.html','seollem_chat_standalone.html']){
+ const source=fs.readFileSync(path.resolve(__dirname,'../..',file),'utf8');
+ const from=source.indexOf('      // Server recovery and delayed bubble delivery can race;');
+ const to=source.indexOf('      const timeStr = options.time || getFormatTime();',from);
+ assert(from>=0&&to>from);
+ let rows=[];
+ const context=vm.createContext({AzitMessageDelivery:delivery,chatContainer:{querySelectorAll(){return rows;}},record(sender,text,options){
+  const row={dataset:{msgId:options.id},text,remove(){rows=rows.filter(item=>item!==row);}};rows.push(row);
+ }});
+ vm.runInContext('function appendMessage(sender,text,options={}){'+source.slice(from,to)+'record(sender,text,options);}',context);
+ const append=(id,text,bubbles)=>context.appendMessage('ai',text,{id,skipPush:!!bubbles,bubbles});
+ // Sync/reentry recovers the complete reply before the animation resumes.
+ append('reply_race','first second');append('reply_race_0','first');append('reply_race_1','second');
+ assert.deepEqual(rows.map(row=>row.text),['first second'],file+': recovered response suppresses late fragments');
+ rows=[];
+ // Recovery can also finish between the first and second animated bubbles.
+ append('reply_race_0','first');append('reply_race','first second');append('reply_race_1','second');
+ assert.deepEqual(rows.map(row=>row.text),['first second'],file+': canonical reply replaces partial animation');
+ rows=[];
+ append('reply_gift','one two three',['one','two','three']);
+ append('reply_gift_0','one');append('reply_gift_1','two');append('reply_gift_2','three');
+ assert.deepEqual(rows.map(row=>row.text),['one','two','three'],file+': restored gift bubbles cannot animate a second time');
+ append('reply_other','one');assert.equal(rows.length,4,'Distinct replies with equal text remain visible');
+}
+console.log('PASS: canonical/fragment DOM races, resumed animations and restored gift deduplication in both entrypoints');

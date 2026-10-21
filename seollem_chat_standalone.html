@@ -1563,7 +1563,7 @@
   </div>
 
   <script src="/legal.js"></script>
-  <script src="messageDelivery.js"></script>
+  <script src="messageDelivery.js?v=20261022-dedup"></script>
   <script src="apiClient.js"></script>
   <script src="chatTiming.js"></script>
   <script src="notifications.js" defer></script>
@@ -4904,6 +4904,13 @@
         }
         if(options.insertBeforeNode)chatContainer.insertBefore(row,options.insertBeforeNode);else chatContainer.appendChild(row);
         if(!options.noScroll)scrollToBottom();return;
+      }
+      // Server recovery and delayed bubble delivery can race; render each reply once.
+      if(options.id){
+        const rows=[...chatContainer.querySelectorAll('[data-msg-id]')];
+        const decision=AzitMessageDelivery.presentation(sender,options.id,rows.map(row=>row.dataset.msgId));
+        if(decision.skip)return;
+        for(const row of rows)if(decision.remove.includes(row.dataset.msgId))row.remove();
       }
       if(sender==='ai'&&options.skipPush&&Array.isArray(options.bubbles)&&options.bubbles.length>1){options.bubbles.forEach((bubble,index)=>appendMessage('ai',bubble,{...options,bubbles:null,id:options.id+'_'+index}));return;}
       const timeStr = options.time || getFormatTime();

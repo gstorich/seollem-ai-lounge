@@ -5,5 +5,15 @@
   for(const [id,m] of messages)if(m.sender==='ai'&&/^reply_/.test(id)){const base=id.replace(/_\d+$/,'');if(base!==id&&messages.get(base)?.sender==='ai')messages.delete(id);}
   return [...messages.values()].sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
  }
- const api={merge};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.AzitMessageDelivery=api;
+ function presentation(sender,id,visibleIds){
+  const visible=new Set(visibleIds);
+  if(!id)return {skip:false,remove:[]};
+  if(visible.has(id))return {skip:true,remove:[]};
+  if(sender!=='ai'||!/^reply_/.test(id))return {skip:false,remove:[]};
+  const base=id.replace(/_\d+$/,'');
+  // A recovered complete response already contains every animated fragment.
+  if(base!==id)return {skip:visible.has(base),remove:[]};
+  return {skip:false,remove:[...visible].filter(key=>key.replace(/_\d+$/,'')===id&&key!==id)};
+ }
+ const api={merge,presentation};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.AzitMessageDelivery=api;
 })(typeof window!=='undefined'?window:globalThis);
