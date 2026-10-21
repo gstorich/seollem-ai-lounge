@@ -17,7 +17,18 @@ module.exports = async function generatedTurn(req, res, {character, message, req
     if (!previous.isAiGenerated) return res.status(503).json({success:false,error:'AI_GENERATION_FAILED',message:FAILURE,costDeducted:0,heartsRemaining:db.getUser(id).hearts});
     return res.json({...previous,heartsRemaining:db.getUser(id).hearts});
   }
-  if (active.has(id)) return res.status(409).json({success:false,error:'GENERATION_PENDING',message:'답변을 생성 중입니다. 잠시 기다려주세요.'});
+  if (active.has(id)) {
+    if (kind === 'greeting') {
+      // 이전 대화 턴의 메모리 저장/생성이 마무리 중일 수 있으므로 그리팅은 최대 2.5초 대기
+      for (let i = 0; i < 10; i++) {
+        await new Promise(r => setTimeout(r, 250));
+        if (!active.has(id)) break;
+      }
+    }
+    if (active.has(id)) {
+      return res.status(409).json({success:false,error:'GENERATION_PENDING',message:'답변을 생성 중입니다. 잠시 기다려주세요.'});
+    }
+  }
   // Recover abandoned pending work after process restart; no charge was made.
   const user = db.getUser(id);
   const required = kind === 'greeting' ? config.heartsPerMessage : cost;

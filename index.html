@@ -4717,7 +4717,7 @@
       await runRealisticReplySequence(plan, false, turnId);
     }
 
-    async function fetchLLMResponse(userText, requestId) {
+    async function fetchLLMResponse(userText, requestId, retryCount = 0) {
       const char = state.currentChar;
       requestId = requestId || state.messages.filter(m => m.sender === 'user').at(-1)?.id;
       try {
@@ -4733,6 +4733,12 @@
         return { bubbles, replyId: result.replyId, forceLeave: Boolean(result.roomLeft), leaveRoom: Boolean(result.roomLeft) };
       } catch (error) {
         if (state.currentChar?.id !== char?.id) return {bubbles:[],failed:true};
+        if ((error.status === 409 || error.code === 'GENERATION_PENDING') && retryCount < 3) {
+          await new Promise(r => registerTimeout(r, 700));
+          if (state.currentChar?.id === char?.id) {
+            return fetchLLMResponse(userText, requestId, retryCount + 1);
+          }
+        }
         if (typeof error.data?.heartsRemaining === 'number') { state.hearts = state.credits = error.data.heartsRemaining; updateAccountAndCreditUI(); }
         if (error.code === 'INSUFFICIENT_HEARTS') openHeartNeededModal(char.name);
         else if (!showContentAccessNotice(error, () => retryGeneratedReply(char,userText,requestId), {char, userText, requestId})) showGenerationError(() => retryGeneratedReply(char,userText,requestId));
@@ -5008,7 +5014,7 @@
       updateAccountAndCreditUI();
     }
 
-    async function deliverFirstGreeting(char, requestId = 'greet_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6)) {
+    async function deliverFirstGreeting(char, requestId = 'greet_' + Date.now().toString(36) + '_' + Math.random().toString(36).slice(2, 6), retryCount = 0) {
       const greetingStartedAt = Date.now();
       if (state.currentChar?.id !== char.id) return;
       state.isAiBusy = true;
@@ -5025,7 +5031,16 @@
         // 첫인사 전송 직후, 사용자가 첫인사 타이핑 도중 먼저 보낸 대기 메시지가 있다면 씹지 않고 종합 답장 진행!
         await checkAndProcessPendingUserMessages(char);
       } catch (error) {
-        if (state.currentChar?.id === char.id && !showContentAccessNotice(error)) showGenerationError(() => deliverFirstGreeting(char,requestId));
+        if (state.currentChar?.id !== char.id) return;
+        // 이전 방의 생성이 마무리 중인 경우(409 GENERATION_PENDING), 사용자에게 에러 노출 없이 700ms 후 자동 무음 재시도
+        if ((error.status === 409 || error.code === 'GENERATION_PENDING') && retryCount < 3) {
+          await new Promise(r => registerTimeout(r, 700));
+          if (state.currentChar?.id === char.id) {
+            return deliverFirstGreeting(char, requestId, retryCount + 1);
+          }
+          return;
+        }
+        if (!showContentAccessNotice(error)) showGenerationError(() => deliverFirstGreeting(char,requestId));
       } finally {
         if (state.currentChar?.id === char.id) {
           state.isGreetingPending = false;
