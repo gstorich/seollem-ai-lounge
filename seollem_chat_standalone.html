@@ -4204,17 +4204,18 @@
             if (char?.id && state.activePendingDeliveries) {
               delete state.activePendingDeliveries[char.id];
             }
+            if (replyPlan && (replyPlan.leaveRoom || replyPlan.forceLeave)) {
+              state.pendingUserMessages = [];
+              clearUserDebounce();
+              state.isAiBusy = false;
+              handlePartnerLeftRoom();
+              return;
+            }
             if (!state.pendingUserMessages || state.pendingUserMessages.length === 0) {
               state.isAiBusy = false;
             }
-            if (replyPlan && (replyPlan.leaveRoom || replyPlan.forceLeave)) {
-              registerTimeout(() => {
-                handlePartnerLeftRoom();
-              }, 300);
-            } else {
-              if (isInActiveRoom() && (!state.pendingUserMessages || state.pendingUserMessages.length === 0)) updateHeaderDefaultStatus();
-              scheduleIdleFollowUp();
-            }
+            if (isInActiveRoom() && (!state.pendingUserMessages || state.pendingUserMessages.length === 0)) updateHeaderDefaultStatus();
+            scheduleIdleFollowUp();
             return;
           }
 
@@ -4799,7 +4800,10 @@
         state.hearts = state.credits = result.heartsRemaining;
         updateAccountAndCreditUI();
         state.adultGatedTurn = null;
-        return { bubbles: [result.partnerReply], replyId: result.replyId, forceLeave: Boolean(result.roomLeft), leaveRoom: Boolean(result.roomLeft) };
+        const bubbles = (window.AzitChatTiming?.splitIntoRealisticBubbles
+          ? window.AzitChatTiming.splitIntoRealisticBubbles(result.partnerReply)
+          : [result.partnerReply]);
+        return { bubbles, replyId: result.replyId, forceLeave: Boolean(result.roomLeft), leaveRoom: Boolean(result.roomLeft) };
       } catch (error) {
         if (state.currentChar?.id !== char?.id) return {bubbles:[],failed:true};
         if (typeof error.data?.heartsRemaining === 'number') { state.hearts = state.credits = error.data.heartsRemaining; updateAccountAndCreditUI(); }
@@ -5442,6 +5446,15 @@
       // 사용자가 방에 있든 뒤로가기를 눌러 목록에 있든, 예정된 현실적 타이핑 시간 후에 안전하게 배송 및 알림
       await runRealisticReplySequence(plan, false, turnId, startedAt);
 
+      // 만약 이번 턴에서 상대방이 방을 나갔다면, 남은 대기열을 즉시 폐기하고 대화 입력을 차단하며 종료
+      if (plan.leaveRoom || plan.forceLeave || state.roomLeft) {
+        state.pendingUserMessages = [];
+        clearUserDebounce();
+        state.isAiBusy = false;
+        handlePartnerLeftRoom();
+        return;
+      }
+
       // 이번 턴의 응답 전송이 완료된 후, 사용자가 타이핑 중 끼어들어 보낸 대기 메시지들이 쌓여있다면 연속해서 전부 읽고 종합 답장!
       await checkAndProcessPendingUserMessages(char);
     }
@@ -5471,12 +5484,17 @@
       }
 
       // 사용자가 연달아 보낸 여러 개의 메시지 내용을 종합하여 상대방이 전부 읽고 한꺼번에 답장하도록 구성
-      const combinedText = pending.map(p => p.text).join('\n');
+      const combinedText = pending.map(p => p.text.trim()).filter(Boolean).join('\n');
       const latestRequestId = pending.at(-1).requestId;
 
-      // 상대방이 내가 연달아 보낸 메시지들을 읽고 반응하는 약간의 자연스러운 인간적 반응 지연(250~450ms)
-      await new Promise(r => registerTimeout(r, Math.round(250 + Math.random() * 200)));
-      if (state.currentChar?.id !== char?.id || state.roomLeft) return;
+      // 상대방이 내가 연달아 보낸 메시지들을 읽고 반응하는 자연스러운 인간적 지연 (메시지가 많을수록 숙고 시간 소폭 증가)
+      const readDelay = Math.min(800, 300 + pending.length * 120);
+      await new Promise(r => registerTimeout(r, readDelay));
+      if (state.currentChar?.id !== char?.id || state.roomLeft) {
+        state.pendingUserMessages = [];
+        state.isAiBusy = false;
+        return;
+      }
 
       await executeUserMessageTurn(combinedText, latestRequestId, char);
     }

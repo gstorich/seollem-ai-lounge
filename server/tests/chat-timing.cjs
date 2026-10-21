@@ -7,6 +7,10 @@ assert(timing.typingDuration('가'.repeat(10000),()=>1)<=10000,'Capped typing ti
 assert(timing.remainingDelay(long,60000,()=>0)>=1000&&timing.remainingDelay(long,60000,()=>0)<=2000,'Slow model response must finish with a natural short beat');
 assert.equal(timing.greetingRemainingDelay(5000),0,'Provider latency must not be followed by artificial greeting typing');
 assert.equal(timing.greetingRemainingDelay(100),0,'Greeting displays immediately once generated');
+assert.deepEqual(timing.splitIntoRealisticBubbles('응 그래'), ['응 그래'], 'Short single sentence stays 1 bubble');
+assert.deepEqual(timing.splitIntoRealisticBubbles('오늘 날씨 너무 좋다! 우리 이따 한강 갈래?'), ['오늘 날씨 너무 좋다!', '우리 이따 한강 갈래?'], 'Punctuated sentences split into 2 natural bubbles');
+assert.deepEqual(timing.splitIntoRealisticBubbles('첫 번째 말풍선입니다\n두 번째 말풍선이에요'), ['첫 번째 말풍선입니다', '두 번째 말풍선이에요'], 'Newline split into natural bubbles');
+assert.equal(timing.splitIntoRealisticBubbles('더 이상 너 같은 사람 상대하는 거 시간 낭비라는 거 확실히 알았어 다신 보지 말자').length, 2, 'Long Korean sentence without punctuation splits into 2 bubbles');
 (async()=>{
  for(const file of ['index.html','seollem_chat_standalone.html']){
   const html=fs.readFileSync(path.resolve(__dirname,'../..',file),'utf8');

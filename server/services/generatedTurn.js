@@ -25,6 +25,22 @@ module.exports = async function generatedTurn(req, res, {character, message, req
   active.add(id);
   try {
     const oldMessages = user.savedRooms?.[character.id]?.messages || [];
+    // 이전 대화에서 상대방이 이미 퇴장(roomLeft: true)한 방인 경우 추가 메시지 생성 차단
+    const lastAi = [...oldMessages].reverse().find(m => m.sender === 'ai');
+    if (lastAi && lastAi.id) {
+      const origReqId = lastAi.id.startsWith('reply_') ? lastAi.id.slice(6) : lastAi.id;
+      const prevAiReq = db.getChatRequest(id, origReqId);
+      if (prevAiReq?.roomLeft) {
+        return res.status(400).json({
+          success: false,
+          error: 'ROOM_LEFT',
+          message: '상대방이 대화방을 나갔습니다.',
+          roomLeft: true,
+          costDeducted: 0,
+          heartsRemaining: user.hearts
+        });
+      }
+    }
     const storedState = db.getConversationState(id,character.id);
     const agreementSources=db.getConversationSources(id,character.id,(storedState.memory?.agreements||[]).map(note=>note.sourceId));
     const validOldMessages = oldMessages.filter((m, idx, arr) => {

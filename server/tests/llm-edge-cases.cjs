@@ -436,6 +436,26 @@ async function req(route, token, body, method = body === undefined ? 'GET' : 'PO
     assert(questionRes.data.partnerReply.includes('아 그렇구나'), '자연스러운 공감/리액션으로 답변해야 함');
     console.log(' -> 결과:', questionRes.data.partnerReply);
 
+    console.log('[Test 20] roomLeft 퇴장된 대화방에 대한 추가 요청 시 서버에서 400(ROOM_LEFT) 차단 검증');
+    const afterExitRes = await req('/chat/send', guest2.token, { characterId: 'subin', message: '안 나갔지?', messageId: 'exit-after-1' });
+    assert.equal(afterExitRes.status, 400, '퇴장된 방의 추가 메시지는 400 차단');
+    assert.equal(afterExitRes.data.error, 'ROOM_LEFT');
+    assert.equal(afterExitRes.data.roomLeft, true);
+    assert.equal(afterExitRes.data.costDeducted, 0, '퇴장 차단 시 하트 차감 없음');
+    console.log(' -> 결과: 400 ROOM_LEFT 차단 성공, 하트 차감 0');
+
+    console.log('[Test 21] 카카오톡 실전 다중 말풍선 분할(splitIntoRealisticBubbles) 검증');
+    const timing = require('../../chatTiming');
+    const split1 = timing.splitIntoRealisticBubbles('창조주니 뭐니 이제는 헛소리까지 하네 더는 불쾌해서 대화 못 하겠어 수준 안 맞으니까 여기서 끝내자');
+    assert.equal(split1.length, 2);
+    assert.equal(split1[0], '창조주니 뭐니 이제는 헛소리까지 하네');
+    assert.equal(split1[1], '더는 불쾌해서 대화 못 하겠어 수준 안 맞으니까 여기서 끝내자');
+    const split2 = timing.splitIntoRealisticBubbles('더 이상 너 같은 사람 상대하는 거 시간 낭비라는 거 확실히 알았어 다신 보지 말자');
+    assert.equal(split2.length, 2);
+    assert.equal(split2[0], '더 이상 너 같은 사람 상대하는 거 시간 낭비라는 거 확실히 알았어');
+    assert.equal(split2[1], '다신 보지 말자');
+    console.log(' -> 결과: 실전 카톡 호흡 분할 완벽 검증 성공');
+
     console.log('\nPASS: All LLM edge cases, address auto-sanitization, markdown JSON parsing, system phrase filtering, and fallback resilience verified!');
     await stop();
     process.exit(0);
