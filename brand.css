@@ -740,3 +740,16 @@ figcaption p {
     scroll-behavior: auto;
   }
 }
+
+/* Approved brand assets; early sketches stay available as design history. */
+.hero-app-image { position:absolute; width:94%; height:94%; left:4%; top:0; object-fit:contain; filter:drop-shadow(0 16px 26px #4b291517); }
+.approved-identities { grid-column:1/-1; display:grid; grid-template-columns:1fr 1fr; gap:28px; }
+.logo-display,.icon-display { min-height:290px; display:grid; place-items:center; background:#eae3d5; }
+.logo-display { background:#3b251a; }
+.logo-display img { display:block; width:180px; height:180px; object-fit:contain; }
+.icon-display img { display:block; width:250px; height:250px; object-fit:contain; }
+.identity-origin { grid-column:1/-1; border-top:1px solid var(--line); padding-top:22px; }
+.identity-origin summary { cursor:pointer; font-size:14px; color:var(--muted); line-height:1.8; }
+.identity-origin .symbol-grid { margin-top:28px; }
+.identity-origin .exploration-note { margin-top:28px; }
+@media(max-width:520px) { .approved-identities { gap:18px; grid-template-columns:1fr; } .logo-display,.icon-display { min-height:250px; } .logo-display img { width:154px; height:154px; } .icon-display img { width:220px; height:220px; } }

@@ -86,7 +86,7 @@
   try {
     const title = char?.name || '아지트챗';
     const body = (text || '새 메시지가 도착했어요').slice(0, 100);
-    const icon = char?.avatar || '/app-icon.png';
+    const icon = char?.avatar || '/app-icon.png?v=20261022-identity';
     const tag = 'azit-msg-' + (char?.id || 'chat');
     const charId = char?.id;
 
@@ -97,7 +97,7 @@
           await reg.showNotification(title, {
             body,
             icon,
-            badge: '/favicon-64.png',
+            badge: '/notification-badge.png?v=20261022-identity',
             tag,
             renotify: true,
             data: { characterId: charId }

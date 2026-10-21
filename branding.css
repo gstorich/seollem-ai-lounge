@@ -1,0 +1,13 @@
+/* Shared identity: supplied AzitChat artwork, consistent across every surface. */
+.azit-brand { display:inline-flex; align-items:center; justify-content:flex-start; gap:9px; color:inherit; text-decoration:none; white-space:nowrap; line-height:1.2; }
+.azit-brand .azit-brand-icon { display:block; width:38px; height:38px; max-width:none; object-fit:contain; flex-shrink:0; vertical-align:middle; }
+.azit-brand .azit-name { display:inline; margin:0; padding:0; border:0; border-radius:0; background:none; box-shadow:none; color:inherit; font-size:21px; font-weight:750; letter-spacing:-.8px; line-height:1.2; }
+.policy-brand.azit-brand { display:flex; justify-content:flex-start; gap:10px; }
+.policy-brand.azit-brand .azit-brand-icon { width:40px; height:40px; }
+.policy-brand.azit-brand .azit-name { font-size:23px; }
+.brand-header .azit-brand .azit-name, .brand-footer .azit-brand .azit-name { font-size:20px; letter-spacing:-.7px; }
+.login .azit-brand { display:flex; justify-content:center; color:#302b23; margin-bottom:8px; }
+.side .azit-brand .azit-name { font-size:20px; }
+.top .azit-brand { color:#302b23; }
+@media(max-width:520px) { .azit-brand { gap:6px; } .azit-brand .azit-brand-icon { width:32px; height:32px; } .azit-brand .azit-name { font-size:19px; } }
+.policy-brand.azit-brand, #viewChatList > header .azit-brand { color:#fbf7f2; }

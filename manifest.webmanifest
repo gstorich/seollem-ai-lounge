@@ -1,1 +1,31 @@
-{"id":"/","name":"아지트챗","short_name":"아지트 대화방","start_url":"/","scope":"/","display":"standalone","lang":"ko","background_color":"#FAF7EE","theme_color":"#FAF7EE","icons":[{"src":"/app-icon-192.png","sizes":"192x192","type":"image/png","purpose":"any maskable"},{"src":"/app-icon-512.png","sizes":"512x512","type":"image/png","purpose":"any maskable"},{"src":"/app-icon.png","sizes":"1024x1024","type":"image/png","purpose":"any"},{"src":"/app-icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any"}]}
+{
+  "id": "/",
+  "name": "아지트챗",
+  "short_name": "아지트챗",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "lang": "ko",
+  "background_color": "#2b2520",
+  "theme_color": "#332b24",
+  "icons": [
+    {
+      "src": "/app-icon-192.png?v=20261022-identity",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/app-icon-512.png?v=20261022-identity",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/app-icon.png?v=20261022-identity",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}
