@@ -4076,7 +4076,10 @@
         const rawBubbles = replyPlan?.bubbles?.filter(text => typeof text === 'string' && text.trim());
         if (!rawBubbles?.length) { if (typeof showGenerationError === 'function') showGenerationError(); return; }
 
-        const bubbles = rawBubbles.slice(0, 2);
+        // 텍스트 유실 방지: 3개 이상으로 분할된 경우 뒷부분을 버리지 않고 마지막 버블에 온전히 결합
+        const bubbles = rawBubbles.length > 2
+          ? [rawBubbles[0], rawBubbles.slice(1).join(' ')]
+          : [...rawBubbles];
 
         // 진행 중인 배송 등록 (도중 이탈 시에도 유실 방지)
         if (char?.id) {

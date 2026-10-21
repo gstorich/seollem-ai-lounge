@@ -10,6 +10,10 @@ assert.equal(timing.greetingRemainingDelay(100),0,'Greeting displays immediately
 assert(timing.subsequentBubbleDelay('짧은 답변',()=>0)>=350&&timing.subsequentBubbleDelay('짧은 답변',()=>0)<=500,'Subsequent bubble delay must be fast and natural');
 assert(timing.subsequentBubbleDelay(long,()=>1)<=800,'Subsequent bubble delay must not exceed 800ms');
 assert.deepEqual(timing.splitIntoRealisticBubbles('너무 노골적이면 좀 부담스럽겠지만, 적당히 선 넘나들면서 적극적인 거면 얘기가 좀 다르죠'), ['너무 노골적이면 좀 부담스럽겠지만, 적당히 선 넘나들면서 적극적인 거면 얘기가 좀 다르죠'], 'Comma clause must not be awkwardly severed into disconnected bubble');
+assert.deepEqual(timing.splitIntoRealisticBubbles('흐으, 하아... 미치겠어, 진짜... 대답할 정신도 없게 만드는 거 알아? 으응, 너무 잘해서... 하아, 더, 더 해줘... 응, 멈추지 말고 계속...'), [
+  '흐으, 하아... 미치겠어, 진짜... 대답할 정신도 없게 만드는 거 알아?',
+  '으응, 너무 잘해서... 하아, 더, 더 해줘... 응, 멈추지 말고 계속...'
+], 'Ellipsis sigh must not be severed into isolated truncated fragment');
 assert.deepEqual(timing.splitIntoRealisticBubbles('응 그래'), ['응 그래'], 'Short single sentence stays 1 bubble');
 assert.deepEqual(timing.splitIntoRealisticBubbles('오늘 날씨 너무 좋다! 우리 이따 한강 갈래?'), ['오늘 날씨 너무 좋다!', '우리 이따 한강 갈래?'], 'Punctuated sentences split into 2 natural bubbles');
 assert.deepEqual(timing.splitIntoRealisticBubbles('첫 번째 말풍선입니다\n두 번째 말풍선이에요'), ['첫 번째 말풍선입니다', '두 번째 말풍선이에요'], 'Newline split into natural bubbles');
@@ -44,6 +48,16 @@ assert.equal(timing.splitIntoRealisticBubbles('더 이상 너 같은 사람 상�
   timers.shift().fn(); // 두 번째 말풍선 타이핑 대기 완료
   await multi;
   assert.equal(messages.length,2);assert.equal(messages[1].text,'두 번째 말풍선');
+  messages=[];timers=[];
+  const threeBubbles=context.runRealisticReplySequence({bubbles:['첫째','둘째','셋째 핵심 내용'],replyId:'three'},false,7,Date.now()-5000);
+  timers.shift().fn(); // 1번
+  await new Promise(r=>setImmediate(r));
+  timers.shift().fn(); // breath
+  await new Promise(r=>setImmediate(r));
+  timers.shift().fn(); // 2번 (셋째가 합쳐져서 나옴)
+  await threeBubbles;
+  assert.equal(messages.length,2);
+  assert.equal(messages[1].text,'둘째 셋째 핵심 내용','Third bubble content must merge instead of being truncated');
   messages=[];timers=[];const stale=context.runRealisticReplySequence({bubbles:[short]},false,7);state.messageTurnId=8;timers.shift().fn();await stale;assert.equal(messages.length,0,'Stale delayed reply must not appear in another turn');
  }
  console.log('PASS: length-based typing, long replies wait even after slow generation, no early display, no text truncation, stale turn cancellation and frontend syntax');

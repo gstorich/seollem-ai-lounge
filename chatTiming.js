@@ -24,47 +24,50 @@
     const characters=Array.from(content.replace(/\s/g,'')).length;
     return Math.round(Math.min(800,Math.max(350,300+characters*(10+random()*8))));
   }
-  // 실제 카카오톡처럼 1~3개의 자연스러운 말풍선 호흡으로 분할
+  // 실제 카카오톡처럼 1~2개의 자연스럽고 온전한 말풍선 호흡으로 분할 (텍스트 유실 방지)
   function splitIntoRealisticBubbles(text, options = {}) {
     const raw = String(text || '').trim();
     if (!raw) return [];
-    if (raw.length <= 22) return [raw];
+    if (raw.length <= 20) return [raw];
 
-    // 1. 줄바꿈 분할
+    // 1. 줄바꿈 분할 (단, 너무 짧은 조각은 합쳐서 문맥 보존)
     if (raw.includes('\n')) {
       const lines = raw.split(/\r?\n+/).map(s => s.trim()).filter(Boolean);
       if (lines.length > 1) {
         const result = [];
         for (const line of lines) {
-          if (result.length > 0 && (result[result.length - 1].length < 7 || line.length < 4) && result.length < 3) {
+          if (result.length > 0 && (result[result.length - 1].length < 10 || line.length < 5)) {
             result[result.length - 1] += ' ' + line;
           } else {
             result.push(line);
           }
         }
-        if (result.length > 1) return result.slice(0, 3);
+        if (result.length > 1) {
+          return result.length > 2 ? [result[0], result.slice(1).join(' ')] : result;
+        }
       }
     }
 
-    // 2. 구두점(. ! ? ~) 뒤 공백 기준 분할
-    const punctSplits = raw.split(/(?<=[.!?~])\s+/).map(s => s.trim()).filter(Boolean);
+    // 2. 명확한 종결 구두점(. ! ?) 뒤 공백 기준 분할
+    // 말줄임표(...) 중간이나 감탄사 직후는 호흡이므로 자르지 않고, 온전한 단일 구두점 뒤에서만 분할
+    const punctSplits = raw.split(/(?<=(?<!\.)[.!?~](?!\.))\s+/).map(s => s.trim()).filter(Boolean);
     if (punctSplits.length >= 2) {
       const result = [];
       for (const piece of punctSplits) {
         if (result.length === 0) {
           result.push(piece);
-        } else if (result.length < 3 && result[result.length - 1].length >= 7 && piece.length >= 4) {
+        } else if (result.length < 2 && result[result.length - 1].length >= 9 && piece.length >= 6) {
           result.push(piece);
         } else {
           result[result.length - 1] += ' ' + piece;
         }
       }
-      if (result.length > 1) return result.slice(0, 3);
+      if (result.length > 1) return result;
     }
 
     // 3. 구두점 없이 어절 단위로 긴 문장 (28자 이상)
     if (raw.length >= 28) {
-      const endMatch = raw.match(/^(.{8,38}?(?:았어|었어|였어|겠어|했어|했네|하네|없네|있네|없어|있어|잖아|거든|이야|보자|하자|줄게|할게|갈게|올게|맞아|아냐|같아|끝내자|알았어))\s+(.{6,})$/);
+      const endMatch = raw.match(/^(.{10,38}?(?:았어|었어|였어|겠어|했어|했네|하네|없네|있네|없어|있어|잖아|거든|이야|보자|하자|줄게|할게|갈게|올게|맞아|아냐|같아|끝내자|알았어|좋아|돼))\s+(.{6,})$/);
       if (endMatch) {
         return [endMatch[1].trim(), endMatch[2].trim()];
       }
