@@ -20,18 +20,25 @@ router.get('/sync',(req,res)=>{res.set('Cache-Control','no-store');const user=db
 router.get('/state', (req, res) => res.json(snapshot(db.getUser(req.user.id))));
 const roomStrings = ['memorySummary', 'lastGreetingSlot'];
 const roomNumbers = ['firstMetAt', 'photosSentCount', 'unreadCount', 'affection', 'turnCount', 'rudeStrikes', 'anger', 'updatedAt'];
-const msgStrings = ['id', 'sender', 'text', 'time', 'mediaType', 'mediaId', 'photoUrl', 'photoTitle', 'photoDesc', 'voiceText', 'durationText', 'giftEmoji', 'giftName', 'giftImage', 'giftBrand'];
+const msgStrings = ['id', 'sender', 'text', 'time', 'systemKind', 'errorCode', 'requestId', 'requestKind', 'mediaType', 'mediaId', 'photoUrl', 'photoTitle', 'photoDesc', 'voiceText', 'durationText', 'giftEmoji', 'giftName', 'giftImage', 'giftBrand'];
 function sanitizeRooms(rooms, existingRooms = {}) {
   if (!rooms || typeof rooms !== 'object' || Array.isArray(rooms) || Object.keys(rooms).length > 1250) throw new Error('Invalid rooms');
   const out = {};
   for (const [id, room] of Object.entries(rooms)) {
     if (!characters.getCharacterById(id) || (!characters.isPublished(id) && !existingRooms[id]) || !room || !Array.isArray(room.messages) || room.messages.length > 2000) throw new Error('Invalid room');
-    const clean = { charId: id, messages: [], userFacts: Array.isArray(room.userFacts) ? room.userFacts.filter(f => typeof f === 'string').slice(-25).map(f => f.slice(0,500)) : [] };
+    const clean = { charId: id, roomLeft:Boolean(existingRooms[id]?.roomLeft),partnerLeftAt:existingRooms[id]?.partnerLeftAt,partnerLeftReplyId:existingRooms[id]?.partnerLeftReplyId, messages: [], userFacts: Array.isArray(room.userFacts) ? room.userFacts.filter(f => typeof f === 'string').slice(-25).map(f => f.slice(0,500)) : [] };
     for (const key of roomStrings) if (typeof room[key] === 'string') clean[key] = room[key].slice(0,2000);
     for (const key of roomNumbers) if (Number.isFinite(room[key])) clean[key] = Math.max(0,room[key]);
     for (const key of ['warned', 'bookmarked']) clean[key] = Boolean(room[key]);
     for (const message of room.messages) {
-      if (!message || typeof message.id !== 'string' || message.id.length > 140 || !['user','ai'].includes(message.sender)) throw new Error('Invalid message');
+      if (!message || typeof message.id !== 'string' || message.id.length > 140 || !['user','ai','system'].includes(message.sender)) throw new Error('Invalid message');
+      if(message.sender==='system'){
+        if(message.systemKind==='partner_left'){
+          // Canonical server notices already survive merges; clients cannot forge a departure.
+          continue;
+        }
+        if(!['generation_error','content_notice'].includes(message.systemKind))throw Error('Invalid system notice');
+      }
       const msg = {};
       for (const key of msgStrings) if (typeof message[key] === 'string') msg[key] = message[key].slice(0,key === 'text' ? 8000 : 2000);
       for (const key of ['photoUrl','giftImage']) if (msg[key] && !/^(avatars|gifts)\/[a-zA-Z0-9_.-]+$/.test(msg[key])) delete msg[key];

@@ -3367,9 +3367,11 @@
     function saveAccountState() {
       try {
         compressOldMessagesIntoMemory();
-        if (state.currentChar && !state.roomLeft && state.messages.length > 0) {
+        if (state.currentChar && state.messages.length > 0) {
           const prevSaved = state.savedRooms[state.currentChar.id] || {};
           state.savedRooms[state.currentChar.id] = {
+            ...prevSaved,
+            roomLeft: Boolean(prevSaved.roomLeft || state.roomLeft),
             charId: state.currentChar.id,
             messages: AzitMessageDelivery.merge(prevSaved.messages,state.messages).slice(-300),
             userFacts: (state.userFacts || []).slice(-25),
@@ -3781,33 +3783,31 @@
       }
     }
 
+    function rememberSystemNotice(kind,text,options={}) {
+      const char=state.currentChar;if(!char)return null;
+      const room=state.savedRooms[char.id]||{charId:char.id,messages:[]};
+      const id=options.id||('system_error_'+(options.requestId||Date.now().toString(36)+'_'+Math.random().toString(36).slice(2,6)));
+      const existing=(room.messages||[]).find(m=>m.id===id);
+      const notice={...options,id,sender:'system',systemKind:kind,text,createdAt:existing?.createdAt||options.createdAt||Date.now(),unread:false};
+      state.messages=AzitMessageDelivery.merge(state.messages,[notice]);
+      room.messages=AzitMessageDelivery.merge(room.messages,[notice]);state.savedRooms[char.id]=room;
+      saveAccountState();return notice;
+    }
     function handlePartnerLeftRoom() {
-      const char = state.currentChar;
-      if (!char || state.hasRenderedLeaveBanner) return;
-      state.hasRenderedLeaveBanner = true;
-      state.roomLeft = true;
-      clearIdleFollowUpTimer();
-      state.bookmarked = false;
-      if (state.savedRooms[char.id]) {
-        if (ApiClient.isHosted() && serverStateReady) ApiClient.removeRoom(char.id).catch(() => showToast('대화방 삭제를 완료하지 못했습니다. 다시 시도해주세요.'));
-          delete state.savedRooms[char.id];
-      }
-      saveAccountState();
-      updateHeaderDefaultStatus();
-      setChatInputEnabled(false);
-
-      // 1. 카카오톡 스타일 시스템 중앙 안내 메시지
-      const sysNotice = document.createElement('div');
-      sysNotice.className = 'my-3 text-center msg-animate';
-      sysNotice.innerHTML = `
-        <span class="inline-block px-3.5 py-1.5 rounded-full bg-black/5 border border-black/10 text-[#4e5968] text-[12px] font-medium shadow-2xs">
-          ${escapeHtml(char.name)}님이 대화방을 나갔습니다.
-        </span>
-      `;
-      chatContainer.appendChild(sysNotice);
-
+      const char=state.currentChar;if(!char)return;
+      state.roomLeft=true;clearIdleFollowUpTimer();state.pendingUserMessages=[];clearUserDebounce();state.isAiBusy=false;
+      const canonical=(state.savedRooms[char.id]?.messages||[]).findLast(m=>m.sender==='system'&&m.systemKind==='partner_left');
+      const notice=rememberSystemNotice('partner_left',char.name+'님이 대화방을 나갔습니다.',canonical||{id:'system_left_'+char.id});
+      updateHeaderDefaultStatus();setChatInputEnabled(false);hideTypingIndicator();
+      if(notice)appendMessage('system',notice.text,{...notice,skipPush:true});
+      renderPartnerLeaveBanner();
+    }
+    function renderPartnerLeaveBanner() {
+      const char=state.currentChar;if(!char||document.getElementById('partnerLeaveBanner'))return;
+      state.hasRenderedLeaveBanner=true;
       // 2. 새로운 상대 매칭 유도 안내 카드
       const leaveBanner = document.createElement('div');
+      leaveBanner.id = 'partnerLeaveBanner';
       leaveBanner.className = 'my-2 mx-auto w-full bg-white border border-rose-200 text-[#191f28] rounded-2xl p-4 text-center space-y-3 shadow-sm msg-animate';
       leaveBanner.innerHTML = `
         <div class="w-12 h-12 mx-auto rounded-2xl bg-rose-50 border border-rose-100 flex items-center justify-center text-rose-500 text-2xl">
@@ -3843,7 +3843,8 @@
     function rememberConfirmedReply(char,result) {
       if(!char?.id||!result?.replyId||!result.partnerReply)return;
       const room=state.savedRooms[char.id]||{charId:char.id,messages:[]};
-      room.messages=AzitMessageDelivery.merge(room.messages,[{id:result.replyId,sender:'ai',text:result.partnerReply,createdAt:Date.now(),unread:true}]);
+      room.messages=AzitMessageDelivery.merge(room.messages,[{id:result.replyId,sender:'ai',text:result.partnerReply,createdAt:result.replyCreatedAt||result.systemMessages?.[0]?.createdAt-1||Date.now(),unread:true}],result.systemMessages);
+      if(result.roomLeft){room.roomLeft=true;room.partnerLeftAt=result.systemMessages?.[0]?.createdAt||Date.now();room.partnerLeftReplyId=result.replyId;}
       room.updatedAt=Date.now();room.unreadCount=room.messages.filter(m=>m.sender==='ai'&&m.unread).length;state.savedRooms[char.id]=room;
       saveAccountState();renderChatRoomsList();updateChatListBadges();
     }
@@ -4024,6 +4025,7 @@
             }
             if(isInActiveRoom()&&document.visibilityState==='visible'){const room=state.savedRooms?.[char?.id];if(room){room.messages=room.messages.map(m=>m.id===replyPlan.replyId?{...m,unread:false}:m);saveAccountState();}}
             if (replyPlan && (replyPlan.leaveRoom || replyPlan.forceLeave)) {
+              if(state.currentChar?.id!==char.id)return;
               state.pendingUserMessages = [];
               clearUserDebounce();
               state.isAiBusy = false;
@@ -4450,9 +4452,11 @@
       if (reqId && typeof markUserMessageFailed === 'function') {
         markUserMessageFailed(reqId, message || '전송 실패');
       }
+      const savedNotice=rememberSystemNotice('generation_error',message||'문제가 발생했습니다. 잠시 후에 다시 시도해주세요.',{requestId:reqId,requestKind:String(reqId||'').startsWith('greet_')?'greeting':'chat'});
       document.getElementById('generationErrorNotice')?.remove();
       const notice = document.createElement('div');
       notice.id = 'generationErrorNotice';
+      if(savedNotice){notice.dataset.msgId=savedNotice.id;for(const row of chatContainer.querySelectorAll('[data-msg-id]'))if(row.dataset.msgId===savedNotice.id)row.remove();}
       notice.setAttribute('role', 'alert');
       notice.className = 'mx-auto my-4 max-w-[90%] rounded-xl bg-[#e5e1d8] px-4 py-3 text-center text-[12px] text-[#66635d] leading-relaxed';
       const text = document.createElement('p');
@@ -4471,17 +4475,20 @@
 
     function showContentAccessNotice(error, retry, meta = {}) {
       const errorCode = error.code || error.error;
+      if(errorCode==='ROOM_LEFT'||error.data?.roomLeft){handlePartnerLeftRoom();return true;}
       const safetyCategory = error.safetyCategory || error.data?.safetyCategory;
       const isSeriousHarm = safetyCategory === 'seriousHarm' || (typeof error.message === 'string' && error.message.includes('109'));
       if (!['MINIMUM_AGE_REQUIRED','ADULT_VERIFICATION_REQUIRED','CONTENT_NOT_ALLOWED'].includes(errorCode) && !isSeriousHarm) return false;
-      const reqId = meta.requestId || (typeof state !== 'undefined' && state.messages ? state.messages.filter(m => m.sender === 'user').at(-1)?.id : null);
+      const reqId = meta.requestId || error.data?.systemMessage?.requestId || (typeof state !== 'undefined' && state.messages ? state.messages.filter(m => m.sender === 'user').at(-1)?.id : null);
       if (reqId && typeof markUserMessageFailed === 'function') {
         const failLabel = isSeriousHarm ? '위기상담 안내 (전송되지 않음)' : (errorCode === 'ADULT_VERIFICATION_REQUIRED' ? '성인인증 필요' : '전송 불가');
         markUserMessageFailed(reqId, failLabel);
       }
+      const savedNotice=rememberSystemNotice('content_notice',error.message||'일반 대화를 이어가주세요. 하트는 차감되지 않았습니다.',{requestId:reqId,errorCode});
       document.getElementById('generationErrorNotice')?.remove();
       const notice = document.createElement('div');
       notice.id = 'generationErrorNotice';
+      if(savedNotice){notice.dataset.msgId=savedNotice.id;for(const row of chatContainer.querySelectorAll('[data-msg-id]'))if(row.dataset.msgId===savedNotice.id)row.remove();}
       notice.setAttribute('role', 'alert');
       if (errorCode === 'ADULT_VERIFICATION_REQUIRED') {
         const char = meta.char || state.currentChar;
@@ -4744,7 +4751,7 @@
       banner.innerHTML = `
         <div class="space-y-1.5">
           <p class="font-black text-[15.5px] text-[#111111]">
-            ${isResumed ? `🌸 '${escapeHtml(char.name)}'님과의 대화를 이어갑니다` : `🌸 ${escapeHtml(char.name)} (${char.age}세 · ${escapeHtml(char.job || char.area || '인연')}) 님과 대화가 시작되었습니다`}
+            ${isResumed ? (state.roomLeft ? `🚪 '${escapeHtml(char.name)}'님과의 종료된 대화입니다` : `🌸 '${escapeHtml(char.name)}'님과의 대화를 이어갑니다`) : `🌸 ${escapeHtml(char.name)} (${char.age}세 · ${escapeHtml(char.job || char.area || '인연')}) 님과 대화가 시작되었습니다`}
           </p>
           <p class="text-[#666666] text-[13px] leading-relaxed">
             따뜻하고 고운 말을 나누어 주세요.
@@ -4811,6 +4818,25 @@
     }
 
     function appendMessage(sender, text, options = {}) {
+      if(sender==='system'){
+        if(options.id&&[...chatContainer.querySelectorAll('[data-msg-id]')].some(row=>row.dataset.msgId===options.id))return;
+        const row=document.createElement('div');row.className='my-3 mx-auto max-w-[90%] text-center text-[12px] leading-relaxed';row.style.color='inherit';row.style.opacity='0.8';
+        if(options.id)row.dataset.msgId=options.id;
+        const label=document.createElement('span');label.className='inline-block px-3.5 py-1.5 rounded-full bg-black/5 border border-black/10';label.textContent=text;row.appendChild(label);
+        if(options.systemKind==='content_notice'&&options.errorCode==='ADULT_VERIFICATION_REQUIRED'){
+          const button=document.createElement('button');button.type='button';button.textContent='성인인증 안내';button.className='block mx-auto mt-2 underline underline-offset-2 text-amber-700';
+          button.onclick=()=>{const source=state.messages.find(m=>m.id===options.requestId&&m.sender==='user');showContentAccessNotice({code:options.errorCode,message:text},source?()=>retryGeneratedReply(state.currentChar,source.text,options.requestId):null,{char:state.currentChar,userText:source?.text,requestId:options.requestId});};row.appendChild(button);
+        }
+        if(options.systemKind==='generation_error'&&options.requestId){
+          const source=state.messages.find(m=>m.id===options.requestId&&m.sender==='user');
+          if(source||options.requestKind==='greeting'){
+            const button=document.createElement('button');button.type='button';button.textContent='다시 시도';button.className='block mx-auto mt-2 underline underline-offset-2 text-amber-700';
+            button.onclick=()=>options.requestKind==='greeting'?deliverFirstGreeting(state.currentChar,options.requestId):retryGeneratedReply(state.currentChar,source.text,options.requestId);row.appendChild(button);
+          }
+        }
+        if(options.insertBeforeNode)chatContainer.insertBefore(row,options.insertBeforeNode);else chatContainer.appendChild(row);
+        if(!options.noScroll)scrollToBottom();return;
+      }
       const timeStr = options.time || getFormatTime();
       const skipPush = Boolean(options.skipPush);
       const isUnread = options.unread !== undefined ? options.unread : (sender === 'user');
@@ -5029,7 +5055,7 @@
         if (!result.isAiGenerated || !result.partnerReply?.trim()) throw new Error('Invalid generated greeting');
         rememberConfirmedReply(char,result);
         if (state.currentChar?.id !== char.id || !state.isGreetingPending) return;
-        await runRealisticReplySequence({bubbles:[result.partnerReply],replyId:result.replyId,greeting:true},false,null,greetingStartedAt);
+        await runRealisticReplySequence({bubbles:[result.partnerReply],replyId:result.replyId,greeting:true,leaveRoom:Boolean(result.roomLeft),forceLeave:Boolean(result.roomLeft)},false,null,greetingStartedAt);
         state.isGreetingPending = false;
         // 첫인사 전송 직후, 사용자가 첫인사 타이핑 도중 먼저 보낸 대기 메시지가 있다면 씹지 않고 종합 답장 진행!
         await processPendingUserMessagesNow(char);
@@ -5043,7 +5069,7 @@
           }
           return;
         }
-        if (!showContentAccessNotice(error)) showGenerationError(() => deliverFirstGreeting(char,requestId));
+        if (!showContentAccessNotice(error)) showGenerationError(() => deliverFirstGreeting(char,requestId),undefined,requestId);
       } finally {
         if (state.currentChar?.id === char.id) {
           state.isGreetingPending = false;
@@ -5060,7 +5086,7 @@
       const charId=state.currentChar?.id,shown=new Set();let cursor=null,hasMore=true,loading=false,initialized=false;
       chatContainer.innerHTML='';applyCharacterToHeader();renderMatchNotice(true);
       const older=document.createElement('div');older.id='loadOlderMessagesContainer';older.className='w-full text-center py-2';chatContainer.appendChild(older);
-      const sameRoom=()=>state.currentChar?.id===charId&&!state.roomLeft;
+      const sameRoom=()=>state.currentChar?.id===charId;
       function button(failed=false){older.replaceChildren();const b=document.createElement('button');b.type='button';b.className='px-3 py-2 text-sm underline';b.disabled=loading;b.textContent=loading?'이전 대화 불러오는 중…':failed?'불러오지 못했습니다 · 다시 시도':hasMore?'이전 대화 더보기':'첫 대화입니다';b.onclick=()=>loadOlder();if(!hasMore)b.disabled=true;older.appendChild(b);}
       function draw(m,ref){if(shown.has(m.id))return;shown.add(m.id);appendMessage(m.sender,m.text,{...m,unread:false,skipPush:true,insertBeforeNode:ref,noScroll:true});}
       for(const m of state.messages.slice(-40))draw(m,null);scrollToBottom();
@@ -5128,7 +5154,10 @@
         state.bookmarked = true;
         existingRoom.unreadCount = 0;
         state.messages = existingRoom.messages.map(m => ({ ...m, unread: false }));
+        state.roomLeft=Boolean(existingRoom.roomLeft);
+        if(state.roomLeft)setChatInputEnabled(false);
         await renderRoomMessagesWithPagination();
+        if(state.roomLeft)handlePartnerLeftRoom();
         saveAccountState();
         scheduleIdleFollowUp();
         return;
@@ -6922,6 +6951,7 @@
             const open=state.currentView==='chatRoom',atBottom=chatContainer.scrollHeight-chatContainer.scrollTop-chatContainer.clientHeight<120;
             for(const m of unseen){if(m.sender==='ai'){m.unread=!open;for(const row of chatContainer.querySelectorAll('[data-msg-id]'))if(row.dataset.msgId.startsWith(m.id+'_'))row.remove();}if(open)appendMessage(m.sender,m.text,{...m,skipPush:true,noScroll:!atBottom});}
             if(open)state.savedRooms[id].messages=state.savedRooms[id].messages.map(m=>({...m,unread:false}));
+            if(incoming.roomLeft){state.roomLeft=true;clearIdleFollowUpTimer();updateHeaderDefaultStatus();setChatInputEnabled(false);if(open)renderPartnerLeaveBanner();}
           }
           state.savedRooms[id].unreadCount=state.savedRooms[id].messages.filter(m=>m.sender==='ai'&&m.unread).length;
         }

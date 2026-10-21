@@ -29,6 +29,8 @@ CREATE TABLE IF NOT EXISTS conversation_memory_items(user_id TEXT NOT NULL,chara
 CREATE TABLE IF NOT EXISTS conversation_state_events(user_id TEXT NOT NULL,character_id TEXT NOT NULL,reply_id TEXT NOT NULL,data TEXT NOT NULL,created_at INTEGER NOT NULL,PRIMARY KEY(user_id,character_id,reply_id));
 CREATE TABLE IF NOT EXISTS match_recommendations(id TEXT PRIMARY KEY, user_id TEXT NOT NULL, character_id TEXT NOT NULL, mode TEXT NOT NULL, filter_applied TEXT, created_at INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS match_rec_time ON match_recommendations(created_at);
+CREATE INDEX IF NOT EXISTS conversation_message_lookup ON conversation_messages(user_id,message_id);
+CREATE INDEX IF NOT EXISTS chat_closed_replies ON chat_requests(user_id,json_extract(data,'$.replyId')) WHERE json_extract(data,'$.roomLeft')=1 AND json_extract(data,'$.success')=1;
 CREATE INDEX IF NOT EXISTS conversation_time ON conversation_messages(created_at,user_id,character_id);
 CREATE TABLE IF NOT EXISTS device_profiles (device_id TEXT PRIMARY KEY, current_user_id TEXT NOT NULL, initial_user_id TEXT NOT NULL, welcome_granted INTEGER NOT NULL DEFAULT 1, ip TEXT, user_agent TEXT, created_at INTEGER NOT NULL, updated_at INTEGER NOT NULL);
 CREATE INDEX IF NOT EXISTS device_profiles_current_user ON device_profiles(current_user_id);
@@ -87,7 +89,7 @@ function getUser(id) {
 function archiveRooms(user) {
   const insert=sql.prepare('INSERT OR IGNORE INTO conversation_messages VALUES(?,?,?,?,?)');
   for(const [characterId,room] of Object.entries(user.savedRooms||{}))for(const message of room.messages||[]){
-    if(!message.id || !['user','ai'].includes(message.sender))continue;
+    if(!message.id || !['user','ai','system'].includes(message.sender))continue;
     const result=insert.run(user.id,characterId,String(message.id),JSON.stringify(message),Number.isFinite(message.createdAt)?message.createdAt:(room.firstMetAt||user.createdAt||0));
     if(result.changes)sql.prepare('INSERT INTO account_message_versions VALUES(?,1) ON CONFLICT(user_id) DO UPDATE SET version=version+1').run(user.id);
   }
@@ -153,7 +155,7 @@ function mergeRooms(left = {}, right = {}) {
       }
       messages.set(m.id, m);
     }
-    out[id] = { ...prev, ...room, messages: [...messages.values()].sort((a,b) => (a.createdAt || 0) - (b.createdAt || 0)) };
+    out[id] = { ...prev, ...room, roomLeft: Boolean(prev.roomLeft || room.roomLeft), messages: [...messages.values()].sort((a,b) => (a.createdAt || 0) - (b.createdAt || 0)) };
   }
   return out;
 }
@@ -362,7 +364,7 @@ module.exports = {
                sum(json_extract(data, '$.sender') = 'user') as user_turns,
                count(DISTINCT user_id) as unique_users
         FROM conversation_messages
-        WHERE created_at >= ?
+        WHERE created_at >= ? AND json_extract(data,'$.sender') IN ('user','ai')
         GROUP BY character_id
       `).all(since);
       const stats = {};
@@ -396,7 +398,7 @@ module.exports = {
       const recs = sql.prepare(`
         SELECT character_id, mode, count(*) as count
         FROM match_recommendations
-        WHERE created_at >= ?
+        WHERE created_at >= ? AND json_extract(data,'$.sender') IN ('user','ai')
         GROUP BY character_id, mode
         ORDER BY count DESC
       `).all(since);

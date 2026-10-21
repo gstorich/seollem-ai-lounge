@@ -75,6 +75,12 @@ store.configured=()=>true;store.putVerified=async(key,bytes)=>{if(failPut)throw 
  const response={status(n){this.code=n;return this;},json(value){replay=value;return value;}};
  await require('../services/generatedTurn')({user:{id:'other-user'}},response,{character:{id:'cold-room'},message:'old-input',requestId:'old-request',kind:'chat',cost:3.7});
  assert.equal(replay.partnerReply,oldReply.text);assert.equal(db.getUser('other-user').hearts,hearts,'Cold replay cannot charge again');
+ const coldSystem={id:'cold-system-notice',sender:'system',systemKind:'generation_error',requestId:'cold-request',text:'문제가 발생했습니다. 잠시 후에 다시 시도해주세요.',createdAt:oldAt};
+ db.appendMessages('other-user','cold-system',[coldSystem,...Array.from({length:120},(_,i)=>({id:'system-later-'+i,sender:'user',text:'later',createdAt:oldAt+i+1}))]);
+ await archive.archiveBatch();assert.equal(await archive.compactBatch(),1);
+ const coldSystemRow=db.sql.prepare("SELECT * FROM conversation_messages WHERE user_id='other-user' AND message_id='cold-system-notice'").get();
+ assert(JSON.parse(coldSystemRow.data).archiveCold);const [restoredSystem]=await archive.hydrateRows([coldSystemRow]);assert.equal(restoredSystem.sender,'system');assert.equal(restoredSystem.systemKind,'generation_error');assert.equal(restoredSystem.text,coldSystem.text);
+ assert.equal(db.getCharacterTurnStats(0)['cold-system'].totalMessages,120,'System notices cannot inflate character dialogue totals');
  const reclaimed=require('../scripts/reclaim-database.cjs').reclaim(process.env.SQLITE_FILE);assert(reclaimed.verified);const reopened=new (require('node:sqlite').DatabaseSync)(process.env.SQLITE_FILE);assert.equal(reopened.prepare('PRAGMA auto_vacuum').get().auto_vacuum,2);reopened.close();assert.equal((await conversations.transcript('01000000088','chaewon',0)).messages[0].text,'개인 대화 0');
  console.log('PASS: verified cold-body removal, seven-day/120-message retention, complete R2 history/admin search/analytics/memory, honest outage errors, phone merge, compact replay without repeat charge');
  const source=path.join(dir,'snapshot.bin'),target=path.join(dir,'restored.bin'),bytes=crypto.randomBytes(9*1024*1024);fs.writeFileSync(source,bytes);const uploaded=await backup.upload(source);assert.equal(uploaded.parts,2);await backup.restore(uploaded.key,target);assert.deepEqual(fs.readFileSync(target),bytes,'Multi-part backup restores exactly');

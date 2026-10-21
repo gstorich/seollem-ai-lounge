@@ -50,6 +50,6 @@ global.fetch=async(url,options)=>{
   for(const key of ['userFacts','characterFacts','sharedEvents','openThreads','agreements'])if(!text.includes('remember-test')&&!text.includes('invalid-memory-test')&&!text.includes('wrong-role-test'))memory[key]=[];
   memory.retirements=[];
   if(recording&&text.includes('memory-phase-fail'))throw Error('Synthetic memory extraction failure');
-  const output=text.includes('malformed-json-test')?'not json':JSON.stringify(recording?{memory}:{reply:answer,roomLeft:false});
+  const output=text.includes('malformed-json-test')?'not json':JSON.stringify(recording?{memory}:{reply:answer,roomLeft:text.includes('room-left-test')});
   return new Response(JSON.stringify({candidates:[{finishReason:finish,content:{parts:text.includes('empty-test')?[]:[{thought:true,text:'private internal reasoning'},{text:finish==='STOP'?output:'incomplete fragment'}]}}]}));
 };

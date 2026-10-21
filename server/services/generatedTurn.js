@@ -43,6 +43,7 @@ module.exports = async function generatedTurn(req, res, {character, message, req
   }
   // Recover abandoned pending work after process restart; no charge was made.
   const user = db.getUser(id);
+  if(user?.savedRooms?.[character.id]?.roomLeft)return res.status(400).json({success:false,error:'ROOM_LEFT',message:'상대방이 대화방을 나갔습니다.',roomLeft:true,costDeducted:0,heartsRemaining:user.hearts});
   const required = kind === 'greeting' ? config.heartsPerMessage : cost;
   if (!user || (!user.isVipUnlimited && user.hearts < required)) return res.status(402).json({success:false,error:'INSUFFICIENT_HEARTS',message:'하트가 부족합니다.',costDeducted:0});
   active.add(id);
@@ -55,6 +56,7 @@ module.exports = async function generatedTurn(req, res, {character, message, req
       const origReqId = lastAi.id.startsWith('reply_') ? lastAi.id.slice(6) : lastAi.id;
       const prevAiReq = db.getChatRequest(id, origReqId);
       if (prevAiReq?.roomLeft) {
+        require('./roomLifecycle').close(id,character,lastAi.id,lastAi.createdAt||Date.now());
         return res.status(400).json({
           success: false,
           error: 'ROOM_LEFT',
@@ -106,12 +108,13 @@ module.exports = async function generatedTurn(req, res, {character, message, req
       if(followUp&&result.roomLeft){const skipped={success:true,skipped:true,costDeducted:0,fingerprint,contentPolicyVersion:require('./contentAccess').version,contentAudience:'general'};db.saveChatRequest(id,requestId,skipped);return skipped;}
       const charged = cost > 0 ? db.debit(id,cost,kind==='gift'?'gift:'+userMessage.giftKey:'chat') : db.getUser(id);
       if (!charged) { const error=Error('Insufficient balance after generation');error.code='INSUFFICIENT_HEARTS';throw error; }
-      const replyId='reply_'+requestId;
-      const userMsgToAppend = userMessage ? [{...userMessage,id:requestId,sender:'user',text:message,createdAt:Date.now()}] : [];
+      const replyId='reply_'+requestId,replyCreatedAt=Date.now();
+      const userMsgToAppend = userMessage ? [{...userMessage,id:requestId,sender:'user',text:message,createdAt:replyCreatedAt}] : [];
       if(kind==='chat')require('./advertisingService').firstChat(id);
-      const current=db.appendMessages(id,character.id,[...userMsgToAppend,{id:replyId,sender:'ai',text:result.text,createdAt:Date.now(),...(followUp?{followUpType:'idle',proactive:true}:{}),time:new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'})}]);
+      const current=db.appendMessages(id,character.id,[...userMsgToAppend,{id:replyId,sender:'ai',text:result.text,createdAt:replyCreatedAt,...(followUp?{followUpType:'idle',proactive:true}:{}),time:new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'})}]);
       db.saveConversationState(id,character.id,result.memory,replyId,storedState.revision);
-      const value={success:true,partnerReply:result.text,replyId,roomLeft:result.roomLeft,heartsRemaining:current.hearts,costDeducted:charged.isVipUnlimited?0:cost,isAiGenerated:true,contentAudience:require('./contentAccess').verifiedAdult(user)?'adult':'general',fingerprint,...(kind==='gift'?{giftMessageId:requestId}:{})};
+      const value={success:true,partnerReply:result.text,replyId,replyCreatedAt,roomLeft:result.roomLeft,heartsRemaining:current.hearts,costDeducted:charged.isVipUnlimited?0:cost,isAiGenerated:true,contentAudience:require('./contentAccess').verifiedAdult(user)?'adult':'general',fingerprint,...(kind==='gift'?{giftMessageId:requestId}:{})};
+      if(result.roomLeft)value.systemMessages=[require('./roomLifecycle').close(id,character,replyId,replyCreatedAt)];
       value.contentPolicyVersion=require('./contentAccess').version;
       db.saveChatRequest(id,requestId,value);
       if(kind==='chat'&&!result.roomLeft) require('./proactiveService').schedule(id,character.id);
@@ -139,7 +142,7 @@ module.exports = async function generatedTurn(req, res, {character, message, req
       fingerprint
     };
     // Keep failures retryable with the same ID; never cache a fabricated reply.
-    db.saveChatRequest(id,requestId,failure);
+    db.transaction(()=>{if(error.message!=='CONVERSATION_CHANGED')failure.systemMessage=require('./roomLifecycle').failure(id,character.id,requestId,kind,failure);db.saveChatRequest(id,requestId,failure);});
     return res.status(status).json({...failure,heartsRemaining:db.getUser(id)?.hearts});
   } finally { active.delete(id); }
 };

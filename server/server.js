@@ -161,6 +161,7 @@ app.use((err, req, res, next) => {
   });
 });
 
+require('./services/roomLifecycle').repair();
 const stopHeartExpiry = require('./services/dbService').startHeartExpiryWorker();
 const stopProactive = require('./services/proactiveService').start();
 const server = app.listen(config.port, config.host, () => {
