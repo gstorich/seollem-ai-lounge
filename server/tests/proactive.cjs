@@ -7,10 +7,11 @@ const HOUR=3600000,DAY=24*HOUR;
 const catalog=require('../services/characterService').getAllCharacters(),character=catalog.find(c=>service.selected(c.id));
 const selected=catalog.filter(c=>service.selected(c.id));assert(selected.length/catalog.length>.02&&selected.length/catalog.length<.08);
 const charId=character.id;
-function room(id,at=now-185*DAY){
+function room(id,at=now-185*DAY,turns=10){
  db.createUser({id,hearts:0});require('../services/legalService').accept(id,{version:'2026-10-20.1',atLeast18:true,termsAccepted:true,privacyAcknowledged:true,aiNoticeAcknowledged:true});
- db.appendMessages(id,charId,Array.from({length:8},(_,i)=>({id:id+'_'+i,sender:i%2?'ai':'user',text:i%2?'말해준 발표 기억할게':'발표 끝나면 이야기할게',createdAt:at+i})));
- assert(service.schedule(id,charId,at));
+ for(let i=0;i<turns*2;i+=2)db.saveChatRequest(id,id+'_'+i,{success:true});
+ db.appendMessages(id,charId,Array.from({length:turns*2},(_,i)=>({id:id+'_'+i,sender:i%2?'ai':'user',text:i%2?'말해준 발표 기억할게':'발표 끝나면 이야기할게',createdAt:at+i})));
+ assert.equal(service.schedule(id,charId,at),turns>=10);
  return db.sql.prepare('SELECT * FROM proactive_jobs WHERE user_id=?').get(id);
 }
 let calls=0;
@@ -21,9 +22,11 @@ llm.generateReply=async(character,history,{conversation})=>{
 };
 (async()=>{try{
  assert(service.quiet(Date.UTC(2026,9,20,13)));assert(service.quiet(Date.UTC(2026,9,20,0)));assert(!service.quiet(now));
- const job=room('one');assert(job.due_at>=now-183*DAY&&job.due_at<=now-5*DAY+1000);assert.equal(job.source_id,'one_6');
+ room('short',now-185*DAY,9);assert.equal(db.sql.prepare('SELECT count(*) n FROM proactive_jobs WHERE user_id=?').get('short').n,0,'No scheduled contact below ten successful turns');
+ const shortJob={user_id:'short',character_id:charId,source_id:'short_16',due_at:now-1};db.sql.prepare("INSERT INTO proactive_jobs VALUES(?,?,?,?,'pending',0,0)").run('short',charId,'short_16',now-1);assert.equal(await service.processJob(shortJob),false);assert.equal(db.sql.prepare('SELECT status FROM proactive_jobs WHERE user_id=?').get('short').status,'cancelled','Legacy weak-contact jobs are cancelled');assert.equal(calls,0);
+ const job=room('one');assert(job.due_at>=now-183*DAY&&job.due_at<=now-5*DAY+1000);assert.equal(job.source_id,'one_18');
  assert(await service.processJob(job));assert.equal(db.getUser('one').hearts,0,'Free even with zero hearts');
- const messages=db.getUser('one').savedRooms[charId].messages;assert.equal(messages.length,9);assert(messages.at(-1).proactive);assert(messages.at(-1).unread);assert.equal(messages.filter(m=>m.sender==='user').length,4,'No fake user prompt persisted');
+ const messages=db.getUser('one').savedRooms[charId].messages;assert.equal(messages.length,21);assert(messages.at(-1).proactive);assert(messages.at(-1).unread);assert.equal(messages.filter(m=>m.sender==='user').length,10,'No fake user prompt persisted');
  assert.equal(db.getConversationState('one',charId).revision,1);assert.equal(store.inbox('one').length,1);assert.equal(store.inbox('other').length,0);
  assert.equal(await service.processJob(job),false,'No repeated contact without user reply');assert.equal(calls,1);
  const sampled=selected.map(c=>service.delayFor('sample',c.id,'sample')/DAY);
@@ -35,19 +38,20 @@ llm.generateReply=async(character,history,{conversation})=>{
  service.schedule('early',charId,now+HOUR);assert.equal(db.sql.prepare('SELECT due_at FROM proactive_jobs WHERE user_id=?').get('early').due_at,previousDue,'Opening/backfill cannot move due date');
  const withIdle=room('with-idle');db.appendMessages('with-idle',charId,[{id:'reply_idle_synthetic',sender:'ai',text:'earlier reminder',createdAt:now-HOUR,proactive:true,followUpType:'idle'}]);
  assert(await service.processJob(withIdle),'Short reminders do not cancel days-later contact');
+ db.saveChatRequest('one','one_new_user',{success:true});
  db.appendMessages('one',charId,[{id:'one_new_user',sender:'user',text:'다시 이야기해요',createdAt:now+1},{id:'one_new_answer',sender:'ai',text:'다시 만났네요',createdAt:now+2}]);
  assert(service.schedule('one',charId));const rearmed=db.sql.prepare('SELECT * FROM proactive_jobs WHERE user_id=?').get('one');assert.equal(rearmed.source_id,'one_new_user');assert(rearmed.due_at>now);
- const legacy=room('legacy',now-DAY);db.sql.prepare("UPDATE proactive_jobs SET source_id='legacy_7',due_at=? WHERE user_id='legacy'").run(now-1);service.schedule('legacy',charId);const migrated=db.sql.prepare("SELECT * FROM proactive_jobs WHERE user_id='legacy'").get();assert.equal(migrated.source_id,'legacy_6');assert.equal(migrated.due_at,legacy.due_at,'Old hourly pending jobs are replanned from original user date');
+ const legacy=room('legacy',now-DAY);db.sql.prepare("UPDATE proactive_jobs SET source_id='legacy_19',due_at=? WHERE user_id='legacy'").run(now-1);service.schedule('legacy',charId);const migrated=db.sql.prepare("SELECT * FROM proactive_jobs WHERE user_id='legacy'").get();assert.equal(migrated.source_id,'legacy_18');assert.equal(migrated.due_at,legacy.due_at,'Old hourly pending jobs are replanned from original user date');
  const live=room('online');store.seen('online',now);assert(!await service.processJob(live));
  const disabled=room('disabled');store.setEnabled('disabled',false);assert(!await service.processJob(disabled));
  const removed=room('removed');db.transaction(()=>{db.updateUser('removed',{savedRooms:{}});db.resetConversationState('removed',charId);});assert(!await service.processJob(removed));
  const concurrent=room('concurrent');require('../services/generationLock').add('concurrent');assert(!await service.processJob(concurrent));require('../services/generationLock').clear();
  const success=llm.generateReply;
- const failed=room('failed');llm.generateReply=async()=>{throw Error('synthetic provider failure');};assert(!await service.processJob(failed));assert.equal(db.getUser('failed').savedRooms[charId].messages.length,8);assert.equal(db.getConversationState('failed',charId).revision,0);assert.equal(store.inbox('failed').length,0);
+ const failed=room('failed');llm.generateReply=async()=>{throw Error('synthetic provider failure');};assert(!await service.processJob(failed));assert.equal(db.getUser('failed').savedRooms[charId].messages.length,20);assert.equal(db.getConversationState('failed',charId).revision,0);assert.equal(store.inbox('failed').length,0);
  llm.generateReply=success;
- const changed=room('changed');llm.generateReply=async(...args)=>{const value=await success(...args);store.setEnabled('changed',false);return value;};assert(!await service.processJob(changed));assert.equal(db.getUser('changed').savedRooms[charId].messages.length,8);
+ const changed=room('changed');llm.generateReply=async(...args)=>{const value=await success(...args);store.setEnabled('changed',false);return value;};assert(!await service.processJob(changed));assert.equal(db.getUser('changed').savedRooms[charId].messages.length,20);
  llm.generateReply=success;
- const rollback=room('rollback');db.sql.exec("CREATE TRIGGER reject_memory BEFORE INSERT ON conversation_state WHEN NEW.user_id='rollback' BEGIN SELECT RAISE(ABORT,'test'); END");assert(!await service.processJob(rollback));assert.equal(store.inbox('rollback').length,0);assert.equal(db.getUser('rollback').savedRooms[charId].messages.length,8);db.sql.exec('DROP TRIGGER reject_memory');
+ const rollback=room('rollback');db.sql.exec("CREATE TRIGGER reject_memory BEFORE INSERT ON conversation_state WHEN NEW.user_id='rollback' BEGIN SELECT RAISE(ABORT,'test'); END");assert(!await service.processJob(rollback));assert.equal(store.inbox('rollback').length,0);assert.equal(db.getUser('rollback').savedRooms[charId].messages.length,20);db.sql.exec('DROP TRIGGER reject_memory');
  const ec=crypto.createECDH('prime256v1');ec.generateKeys();
  const subscription={endpoint:'https://fcm.googleapis.com/fcm/send/synthetic',keys:{auth:crypto.randomBytes(16).toString('base64url'),p256dh:ec.getPublicKey().toString('base64url')}};
  assert(push.validSubscription(subscription));for(const endpoint of ['http://fcm.googleapis.com/a','https://127.0.0.1/a','https://fcm.googleapis.com.attacker.test/a','https://fcm.googleapis.com:8443/a','https://user@fcm.googleapis.com/a'])assert(!push.validSubscription({...subscription,endpoint}));

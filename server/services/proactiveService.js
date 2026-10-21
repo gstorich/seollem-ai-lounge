@@ -1,6 +1,7 @@
 const crypto=require('node:crypto');
 const db=require('./dbService'),store=require('./proactiveStore'),active=require('./generationLock');
 const characters=require('./characterService'),llm=require('./llmService'),context=require('./conversationContext');
+const {MIN_TURNS,completedTurns}=require('./contactEligibility');
 const HOUR=3600000,DAY=24*HOUR;
 function selected(characterId){return crypto.createHash('sha256').update('azit-first-contact-v1:'+characterId).digest().readUInt32BE(0)%100<5;}
 function quiet(now){const hour=new Date(now+9*HOUR).getUTCHours();return hour<10||hour>=22;}
@@ -21,12 +22,12 @@ function roomState(id,characterId){
  const users=messages.filter(genuine),lastUser=users.at(-1),last=messages.at(-1),at=messages.findLastIndex(m=>m.id===lastUser?.id);
  const alreadySent=at>=0&&messages.slice(at+1).some(m=>m.sender==='ai'&&(m.followUpType==='reconnect'||String(m.id).startsWith('reply_contact_')));
  const closed=last?.sender==='ai'&&db.getChatRequest(id,String(last.id).replace(/^reply_/,''))?.roomLeft;
- return {user,room,messages,lastUser,last,alreadySent,closed,userCount:users.length};
+ return {user,room,messages,lastUser,last,alreadySent,closed,userCount:completedTurns(id,messages)};
 }
 function schedule(id,characterId,now=Date.now()){
  id=db.resolveUserId(id);
  const r=roomState(id,characterId);
- if(!r.room||!characters.isPublished(characterId)||!selected(characterId)||!store.preferences(id).enabled||r.alreadySent||r.closed||r.userCount<4||r.last?.sender!=='ai'||!r.lastUser)return false;
+ if(!r.room||!characters.isPublished(characterId)||!selected(characterId)||!store.preferences(id).enabled||r.alreadySent||r.closed||r.userCount<MIN_TURNS||r.last?.sender!=='ai'||!r.lastUser)return false;
  const at=Number(r.lastUser.createdAt);
  if(!Number.isFinite(at)||at<=0||now-at>MAX_AGE)return false;
  // Anchor to a real user turn. Idle replies, room entry and restarts never rearm it.
@@ -36,7 +37,7 @@ function schedule(id,characterId,now=Date.now()){
 }
 function eligible(job,now){
  const r=roomState(job.user_id,job.character_id),prefs=store.preferences(job.user_id);
- return Boolean(require('./legalService').accepted(r.user)&&characters.isPublished(job.character_id)&&selected(job.character_id)&&prefs.enabled&&r.room&&!r.room.roomLeft&&!r.closed&&!r.alreadySent&&r.last?.sender==='ai'&&r.lastUser?.id===job.source_id&&r.userCount>=4&&now>=job.due_at&&now-(r.lastUser.createdAt||now)>=2*DAY&&now-(r.lastUser.createdAt||0)<=MAX_AGE&&now-prefs.last_seen>=10*60000&&now-prefs.last_sent>=3*DAY);
+ return Boolean(require('./legalService').accepted(r.user)&&characters.isPublished(job.character_id)&&selected(job.character_id)&&prefs.enabled&&r.room&&!r.room.roomLeft&&!r.closed&&!r.alreadySent&&r.last?.sender==='ai'&&r.lastUser?.id===job.source_id&&r.userCount>=MIN_TURNS&&now>=job.due_at&&now-(r.lastUser.createdAt||now)>=2*DAY&&now-(r.lastUser.createdAt||0)<=MAX_AGE&&now-prefs.last_seen>=10*60000&&now-prefs.last_sent>=3*DAY);
 }
 let backlogKey='',backlogQuery,backlogOffset=0;
 function backlog(now){
@@ -55,7 +56,7 @@ async function processJob(job,now=Date.now()){
  if(quiet(now)||now<job.due_at||active.has(job.user_id))return false;
  if(!eligible(job,now)){
    const r=roomState(job.user_id,job.character_id);
-   const obsolete=!store.preferences(job.user_id).enabled||!r.room||r.closed||r.alreadySent||r.lastUser?.id!==job.source_id||!r.lastUser||now-(r.lastUser.createdAt||0)>MAX_AGE||!characters.isPublished(job.character_id);
+   const obsolete=r.userCount<MIN_TURNS||!store.preferences(job.user_id).enabled||!r.room||r.closed||r.alreadySent||r.lastUser?.id!==job.source_id||!r.lastUser||now-(r.lastUser.createdAt||0)>MAX_AGE||!characters.isPublished(job.character_id);
    db.sql.prepare("UPDATE proactive_jobs SET status=?,due_at=? WHERE user_id=? AND character_id=? AND status='pending'").run(obsolete?'cancelled':'pending',now+HOUR,job.user_id,job.character_id);return false;
  }
  const claimed=db.sql.prepare("UPDATE proactive_jobs SET status='generating',lease_until=?,attempts=attempts+1 WHERE user_id=? AND character_id=? AND source_id=? AND status='pending' AND due_at<=?").run(now+120000,job.user_id,job.character_id,job.source_id,now);
