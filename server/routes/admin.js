@@ -31,8 +31,8 @@ const chatKind=req=>['members','guests'].includes(req.query.kind)?req.query.kind
 const chatDays=req=>[7,30,90].includes(Number(req.query.days))?Number(req.query.days):0;
 router.get('/conversations',(req,res)=>{const result=conversations.rooms({kind:chatKind(req),days:chatDays(req),q:String(req.query.q||'').slice(0,100),userId:String(req.query.userId||'').slice(0,100),characterId:String(req.query.characterId||'').slice(0,100),page:page(req)});ops.audit(req.admin.id,'conversation_list',chatKind(req),{page:page(req),filtered:Boolean(req.query.q||req.query.userId||req.query.characterId)});res.json({success:true,...result});});
 router.get('/conversations/:userId/:characterId',(req,res)=>{
- const conversation=conversations.transcript(req.params.userId,req.params.characterId,page(req));if(!conversation)return res.sendStatus(404);
- ops.audit(req.admin.id,'conversation_view',req.params.userId,{characterId:req.params.characterId,page:page(req)});res.json({success:true,conversation});
+ const conversation=conversations.transcript(req.params.userId,req.params.characterId,req.query.latest==='1'?null:page(req));if(!conversation)return res.sendStatus(404);
+ ops.audit(req.admin.id,'conversation_view',req.params.userId,{characterId:req.params.characterId,page:conversation.page});res.json({success:true,conversation});
 });
 router.get('/conversation-insights',(req,res)=>res.json({success:true,...conversations.insights(chatKind(req),chatDays(req)||30)}));
 router.get('/matching-insights',(req,res)=>{
