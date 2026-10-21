@@ -23,7 +23,7 @@ function sanitizeRooms(rooms, existingRooms = {}) {
   if (!rooms || typeof rooms !== 'object' || Array.isArray(rooms) || Object.keys(rooms).length > 1250) throw new Error('Invalid rooms');
   const out = {};
   for (const [id, room] of Object.entries(rooms)) {
-    if (!characters.getCharacterById(id) || (!characters.isPublished(id) && !existingRooms[id]) || !room || !Array.isArray(room.messages) || room.messages.length > 500) throw new Error('Invalid room');
+    if (!characters.getCharacterById(id) || (!characters.isPublished(id) && !existingRooms[id]) || !room || !Array.isArray(room.messages) || room.messages.length > 2000) throw new Error('Invalid room');
     const clean = { charId: id, messages: [], userFacts: Array.isArray(room.userFacts) ? room.userFacts.filter(f => typeof f === 'string').slice(-25).map(f => f.slice(0,500)) : [] };
     for (const key of roomStrings) if (typeof room[key] === 'string') clean[key] = room[key].slice(0,2000);
     for (const key of roomNumbers) if (Number.isFinite(room[key])) clean[key] = Math.max(0,room[key]);

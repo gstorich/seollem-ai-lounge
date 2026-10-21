@@ -514,6 +514,32 @@ async function req(route, token, body, method = body === undefined ? 'GET' : 'PO
     assert.equal(crisisRes.data.costDeducted, 0);
     console.log(' -> 결과: 자연어 자살 발언 시 즉시 109 상담 안내 반환 및 하트 미차감 확인');
 
+    console.log('[Test 26] 대화 1,000개 이상 대량 누적 시에도 지연/오류 없이 200 정상 응답 및 동기화 검증');
+    const { data: guestMass } = await req('/auth/guest', null, {});
+    const massMessages = Array.from({ length: 1000 }, (_, i) => ({
+      id: `mass_msg_${i}`,
+      sender: i % 2 === 0 ? 'user' : 'ai',
+      text: `메시지 내용 #${i}`,
+      createdAt: Date.now() - (1000 - i) * 60000
+    }));
+    const putRes = await req('/account/state', guestMass.token, {
+      savedRooms: {
+        p_1076: {
+          charId: 'p_1076',
+          messages: massMessages
+        }
+      }
+    }, 'PUT');
+    assert.equal(putRes.status, 200, '1,000개 메시지 방 동기화가 성공해야 함');
+    const sendMass = await req('/chat/send', guestMass.token, {
+      characterId: 'p_1076',
+      message: '1001번째 메시지 보내요',
+      messageId: 'mass-new-1'
+    });
+    assert.equal(sendMass.status, 200);
+    assert.equal(sendMass.data.isAiGenerated, true);
+    console.log(' -> 결과: 1,000개 이상 대화 누적 대화방 정상 동기화 및 턴 응답 검증 완료');
+
     console.log('\nPASS: All LLM edge cases, address auto-sanitization, markdown JSON parsing, system phrase filtering, and fallback resilience verified!');
     await stop();
     process.exit(0);

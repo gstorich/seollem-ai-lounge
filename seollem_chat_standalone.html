@@ -3391,7 +3391,7 @@
             state.memorySummary = ((state.memorySummary ? state.memorySummary + ' ' : '') + snippet).slice(-600);
           }
         }
-        state.messages = state.messages.slice(-40);
+        // 천개, 만개 대화도 브라우저 세션에서 영구 보존하기 위해 state.messages를 강제 삭제하지 않음
       }
     }
 
@@ -3438,7 +3438,7 @@
           const prevSaved = state.savedRooms[state.currentChar.id] || {};
           state.savedRooms[state.currentChar.id] = {
             charId: state.currentChar.id,
-            messages: state.messages.slice(-45),
+            messages: state.messages.slice(-300),
             userFacts: (state.userFacts || []).slice(-25),
             memorySummary: state.memorySummary || '',
             firstMetAt: state.firstMetAt || prevSaved.firstMetAt || Date.now(),
@@ -5084,8 +5084,14 @@
           `;
         }
       }
-      chatContainer.appendChild(row);
-      scrollToBottom();
+      if (options.insertBeforeNode) {
+        chatContainer.insertBefore(row, options.insertBeforeNode);
+      } else {
+        chatContainer.appendChild(row);
+      }
+      if (!options.noScroll) {
+        scrollToBottom();
+      }
       if (sender === 'ai' && !skipPush) {
         window.AzitNotifications?.notifyAiMessage(char, text, { inActiveRoom: true });
       }
@@ -5148,6 +5154,81 @@
       }
     }
 
+    function renderRoomMessagesWithPagination() {
+      chatContainer.innerHTML = '';
+      applyCharacterToHeader();
+      renderMatchNotice(true);
+
+      const total = state.messages.length;
+      const PAGE_SIZE = 40;
+      let startIndex = Math.max(0, total - PAGE_SIZE);
+
+      const loadOlderContainer = document.createElement('div');
+      loadOlderContainer.id = 'loadOlderMessagesContainer';
+      loadOlderContainer.className = 'w-full text-center py-2';
+      chatContainer.appendChild(loadOlderContainer);
+
+      function updateOlderButton() {
+        if (startIndex <= 0) {
+          loadOlderContainer.innerHTML = `
+            <div class="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-white/40 text-[11px] text-[#7a6e60] font-medium border border-black/5 shadow-2xs">
+              <span>🌱</span><span>${escapeHtml(state.currentChar?.name || '상대방')}님과 나눈 첫 대화입니다</span>
+            </div>
+          `;
+          return;
+        }
+        const remaining = startIndex;
+        loadOlderContainer.innerHTML = `
+          <button type="button" id="btnLoadOlderMsgs" class="inline-flex items-center gap-1.5 px-3.5 py-1.5 rounded-full bg-white/80 hover:bg-white text-[12px] font-semibold text-[#5a4e40] border border-[#d6cfc2] shadow-2xs transition-all cursor-pointer">
+            <span>⬆️ 이전 대화 ${remaining > PAGE_SIZE ? PAGE_SIZE + '개' : remaining + '개'} 더보기 (남은 대화: ${remaining}개)</span>
+          </button>
+        `;
+        const btn = loadOlderContainer.querySelector('#btnLoadOlderMsgs');
+        if (btn) {
+          btn.onclick = () => loadNextOlderPage();
+        }
+      }
+
+      function loadNextOlderPage() {
+        if (startIndex <= 0) return;
+        const nextStart = Math.max(0, startIndex - PAGE_SIZE);
+        const batch = state.messages.slice(nextStart, startIndex);
+        startIndex = nextStart;
+
+        const prevScrollHeight = chatContainer.scrollHeight;
+        const prevScrollTop = chatContainer.scrollTop;
+
+        const refNode = loadOlderContainer.nextSibling;
+        batch.forEach(m => {
+          appendMessage(m.sender, m.text, {
+            ...m,
+            unread: false,
+            skipPush: true,
+            insertBeforeNode: refNode,
+            noScroll: true
+          });
+        });
+
+        updateOlderButton();
+        const newScrollHeight = chatContainer.scrollHeight;
+        chatContainer.scrollTop = prevScrollTop + (newScrollHeight - prevScrollHeight);
+      }
+
+      const initialBatch = state.messages.slice(startIndex);
+      initialBatch.forEach(m => {
+        appendMessage(m.sender, m.text, { ...m, unread: false, skipPush: true, noScroll: true });
+      });
+
+      updateOlderButton();
+      scrollToBottom();
+
+      chatContainer.onscroll = () => {
+        if (chatContainer.scrollTop < 50 && startIndex > 0) {
+          loadNextOlderPage();
+        }
+      };
+    }
+
     async function startChatWithCharacter(char, forceResume = false) {
       if (char?.id) {
         flushPendingDeliveryForChar(char.id);
@@ -5197,14 +5278,7 @@
         state.bookmarked = true;
         existingRoom.unreadCount = 0;
         state.messages = existingRoom.messages.map(m => ({ ...m, unread: false }));
-        chatContainer.innerHTML = '';
-
-        applyCharacterToHeader();
-        renderMatchNotice(true);
-
-        state.messages.forEach(m => {
-          appendMessage(m.sender, m.text, { ...m, unread: false, skipPush: true });
-        });
+        renderRoomMessagesWithPagination();
         saveAccountState();
         scheduleIdleFollowUp();
         return;

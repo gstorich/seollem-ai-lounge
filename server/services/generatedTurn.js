@@ -58,7 +58,9 @@ module.exports = async function generatedTurn(req, res, {character, message, req
     }
     const storedState = db.getConversationState(id,character.id);
     const agreementSources=db.getConversationSources(id,character.id,(storedState.memory?.agreements||[]).map(note=>note.sourceId));
-    const validOldMessages = oldMessages.filter((m) => {
+    // 대화가 수천~수만 개로 늘어나도 성능 저하가 없도록 최근 120개 윈도우에서 안전하게 필터링
+    const candidateMessages = oldMessages.length > 120 ? oldMessages.slice(-120) : oldMessages;
+    const validOldMessages = candidateMessages.filter((m) => {
       if (!['user','ai'].includes(m.sender) || !m.text || m.id === requestId) return false;
       if (m.failed || m.isFailed) return false;
       if (m.sender === 'user') {
