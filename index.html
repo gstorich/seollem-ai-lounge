@@ -4025,8 +4025,10 @@
           const remainingTypeMs = replyPlan?.greeting
             ? AzitChatTiming.greetingRemainingDelay(elapsed)
             : (idx === 0
-                ? AzitChatTiming.remainingDelay(bubbleText, elapsed)
-                : (AzitChatTiming.subsequentBubbleDelay ? AzitChatTiming.subsequentBubbleDelay(bubbleText) : 450));
+                ? (bubbles.length > 1
+                    ? Math.min(300, AzitChatTiming.remainingDelay(bubbleText, elapsed))
+                    : AzitChatTiming.remainingDelay(bubbleText, elapsed))
+                : (AzitChatTiming.subsequentBubbleDelay ? AzitChatTiming.subsequentBubbleDelay(bubbleText) : 550));
 
           if (isInActiveRoom()) {
             headerStatusText.textContent = `${char.name}님이 입력 중...`;
@@ -4076,8 +4078,13 @@
           }
 
           if (idx < bubbles.length - 1) {
+            if (isInActiveRoom()) {
+              headerStatusText.textContent = `${char.name}님이 입력 중...`;
+              headerStatusText.className = 'text-[12.5px] text-emerald-600 mt-0.5 font-medium leading-snug';
+              showTypingIndicator(`${char.name}님이 입력 중...`);
+            }
             await new Promise(resolve => {
-              registerTimeout(resolve, Math.round(150 + Math.random() * 100));
+              registerTimeout(resolve, Math.round(200 + Math.random() * 80));
             });
           }
         }

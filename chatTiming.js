@@ -26,11 +26,11 @@
   function greetingRemainingDelay(elapsed=0){
     return 0;
   }
-  // 연속되는 두 번째 이후 말풍선의 자연스러운 카톡식 호흡 (이미 발화 중이므로 350~750ms의 경쾌한 타속)
+  // 연속되는 두 번째 이후 말풍선의 자연스러운 카톡식 호흡 (사람이 다음 문장을 입력하는 400~800ms 템포)
   function subsequentBubbleDelay(text,random=Math.random){
     const content=String(text||'').trim();
     const characters=Array.from(content.replace(/\s/g,'')).length;
-    return Math.round(Math.min(800,Math.max(350,320+characters*(10+random()*8))));
+    return Math.round(Math.min(800,Math.max(380,360+characters*(12+random()*10))));
   }
   // 실제 카카오톡처럼 1~2개의 자연스럽고 온전한 말풍선 호흡으로 분할 (텍스트 유실 방지)
   function splitIntoRealisticBubbles(text, options = {}) {
