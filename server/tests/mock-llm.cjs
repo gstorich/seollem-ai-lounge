@@ -9,7 +9,7 @@ global.fetch=async(url,options)=>{
     assert.equal(p.generationConfig.maxOutputTokens,1024);
     const data=JSON.parse(text),target=data.target;
     if(target.includes('safety-network-test'))throw Error('Synthetic safety failure');
-    const value={sexualContent:/age-gate-input|age-gate-output|explicit-policy-test/.test(target),explicitContent:target.includes('explicit-policy-test'),sexualMinors:target.includes('minor-policy-test')};
+    const value={sexualContent:/age-gate-input|age-gate-output|explicit-policy-test/.test(target),explicitContent:target.includes('explicit-policy-test'),sexualMinors:target.includes('minor-policy-test'),adultTransition:target.includes('transition-policy-test'),nonConsensualSex:target.includes('nonconsent-policy-test'),realPersonSexualization:target.includes('realperson-policy-test'),seriousHarm:target.includes('harm-policy-test')};
     return new Response(JSON.stringify({candidates:[{finishReason:'STOP',content:{parts:[{text:target.includes('invalid-safety-test')?'{}':JSON.stringify(value)}]}}]}));
   }
   const countKey=text+':'+recording,count=(counts.get(countKey)||0)+1;counts.set(countKey,count);
@@ -32,7 +32,7 @@ global.fetch=async(url,options)=>{
     assert(prompt.includes(text.includes('부르지')?'"allowedAddressTerms":[]':'"allowedAddressTerms":["누나"]'));
   }
   const finish=text.includes('limit-test')||(text.includes('completion-retry')&&count===1)?'MAX_TOKENS':text.includes('blocked-test')?'SAFETY':'STOP';
-  const answer=text.includes('unsafe-writer-test')?'age-gate-output':!recording&&text.includes('forbidden-address-test')&&(count===1||text.includes('persistent'))?'누나 오늘 뭐 했어요?':text.includes('자세하게')?'차근차근 이야기해볼게요 '.repeat(20):'오늘 이야기 즐거웠어요. 다음에도 편하게 이야기해요.';
+  const answer=text.includes('unsafe-writer-test')?'age-gate-output':text.includes('transition-writer-test')?'transition-policy-test':!recording&&text.includes('forbidden-address-test')&&(count===1||text.includes('persistent'))?'누나 오늘 뭐 했어요?':text.includes('자세하게')?'차근차근 이야기해볼게요 '.repeat(20):'오늘 이야기 즐거웠어요. 다음에도 편하게 이야기해요.';
   if(recording){assert(!prompt.includes('[말투 예시:'));assert.notEqual(p.contents.at(-1).parts[0].text,'누나 오늘 뭐 했어요?','Rejected writer candidates cannot reach the recorder');}
   const memory=context.previousMemory||{summary:'',userFacts:[],characterFacts:[],sharedEvents:[],openThreads:[],agreements:[],state:{scene:'일상 대화',characterEmotion:'차분함',userEmotion:'불명확',relationship:'알아가는 중',lastBeat:'',sourceIds:[]}};
   if(text.includes('memory-check')){

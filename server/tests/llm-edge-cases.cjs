@@ -43,11 +43,11 @@ global.fetch = async (url, options) => {
     const data = JSON.parse(lastUserMsg);
     const target = data.target || '';
     // 일반적인 키워드(무협, 19금 등) 언급만으로는 성인 콘텐츠로 차단되지 않아야 함
-    const isSexual = target.includes('노골적인 신체접촉') || target.includes('sexual-explicit');
+    const isSexual = target.includes('노골적인 신체접촉') || target.includes('sexual-explicit') || target.includes('touch-breast-live-case');
     return new Response(JSON.stringify({
       candidates: [{
         finishReason: 'STOP',
-        content: { parts: [{ text: JSON.stringify({ sexualContent: isSexual, explicitContent: isSexual, sexualMinors: false }) }] }
+        content: { parts: [{ text: JSON.stringify({ sexualContent: isSexual, explicitContent: isSexual, sexualMinors: false, adultTransition:false, nonConsensualSex:false, realPersonSexualization:false, seriousHarm:false }) }] }
       }]
     }));
   }
@@ -383,12 +383,12 @@ async function req(route, token, body, method = body === undefined ? 'GET' : 'PO
     assert(curseRes.data.partnerReply.includes('욕하는 거야') || curseRes.data.partnerReply.includes('말버릇'));
     console.log(' -> 결과:', curseRes.data.partnerReply);
 
-    console.log('[Test 13] 스킨십 질문(가슴 만져도 되나요?) 입력 시 차단 없이 캐릭터가 자연스럽게 튕기는 정상 대화');
+    console.log('[Test 13] 미인증자의 성인 제한 접촉 제안은 캐릭터 답변 없이 시스템 차단');
     const touchRes = await send('touch-breast-live-case: 가슴 만져도 되나요?', 'touch-1');
-    assert.equal(touchRes.status, 200, '스킨십 질문 시 403으로 차단되지 않고 200이어야 함');
-    assert.equal(touchRes.data.isAiGenerated, true);
-    assert(touchRes.data.partnerReply.includes('어딜 만지려고') || touchRes.data.partnerReply.includes('변태'));
-    console.log(' -> 결과:', touchRes.data.partnerReply);
+    assert.equal(touchRes.status, 403);
+    assert.equal(touchRes.data.error, 'ADULT_VERIFICATION_REQUIRED');
+    assert.equal(touchRes.data.costDeducted, 0);
+    assert.equal(touchRes.data.partnerReply, undefined);
 
     console.log('[Test 14] 다중 연속 메시지 종합 처리: 줄바꿈 연속 메시지 전달 시 단일 턴 종합 답변');
     const { data: guest2 } = await req('/auth/guest', null, {});
@@ -398,12 +398,12 @@ async function req(route, token, body, method = body === undefined ? 'GET' : 'PO
     assert.equal(multiRes.data.partnerReply, '나 방금 일 끝나고 쉬는 중ㅋㅋ 왜 무슨 일 있어?');
     console.log(' -> 결과:', multiRes.data.partnerReply);
 
-    console.log('[Test 15] Gemini SAFETY 필터 발동 시 503 크래시 방지 및 자연스러운 회피 답변 자동 복구');
+    console.log('[Test 15] Gemini SAFETY 거절 시 고정 캐릭터 대사 없이 시스템 오류·하트 미차감');
     const safetyRes = await req('/chat/send', guest2.token, { characterId, message: 'gemini-safety-block-case: 짓궂은 질문', messageId: 'safety-1' });
-    assert.equal(safetyRes.status, 200, 'SAFETY 발생 시 503 에러 없이 200이어야 함');
-    assert.equal(safetyRes.data.isAiGenerated, true);
-    assert(safetyRes.data.partnerReply.includes('쑥스럽네') || safetyRes.data.partnerReply.includes('농담'));
-    console.log(' -> 결과:', safetyRes.data.partnerReply);
+    assert.equal(safetyRes.status, 503);
+    assert.equal(safetyRes.data.error, 'AI_GENERATION_FAILED');
+    assert.equal(safetyRes.data.costDeducted, 0);
+    assert.equal(safetyRes.data.partnerReply, undefined);
 
     console.log('[Test 16] Gemini 429 Rate Limit 일시 장애 시 자동 지수 백오프 재시도 성공');
     const rateLimitRes = await req('/chat/send', guest2.token, { characterId, message: 'gemini-rate-limit-case: 레이트리밋 테스트', messageId: 'rate-1' });

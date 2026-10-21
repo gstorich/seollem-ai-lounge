@@ -179,17 +179,9 @@ async function callGemini(messages, systemInstruction, apiKey, signal = AbortSig
     console.info('[LLM] Gemini result:', JSON.stringify({ finishReason: finishReason || 'MISSING',
       outputTokens: data.usageMetadata?.candidatesTokenCount, maxOutputTokens }));
 
-    // 라이브 대화 중 SAFETY 필터가 발동했을 때 503 에러로 대화가 폭파되는 것을 방지하는 안전 폴백
-    if (!isSyntheticTest && finishReason === 'SAFETY') {
-      console.warn('[LLM] Gemini finishReason is SAFETY in live chat, applying safe conversational fallback');
-      if (moderation) {
-        return JSON.stringify({ sexualContent: false, explicitContent: false, sexualMinors: false });
-      }
-      return JSON.stringify({
-        reply: '어머, 갑자기 그런 짓궂은 농담을 하니까 쑥스럽네ㅎㅎ 딴 얘기 하자!',
-        roomLeft: false
-      });
-    }
+    // A provider refusal must never become a fabricated character reply or a
+    // successful safety classification. The caller returns a no-charge notice.
+    if (finishReason === 'SAFETY') throw Error('LLM_PROVIDER_BLOCKED');
 
     if (finishReason === 'MAX_TOKENS') {
       const parts = candidate?.content?.parts || [];
@@ -257,13 +249,13 @@ module.exports = {
     }
     async function check(target, isUser = false){
       try {
-        const raw=await generate([{role:'user',content:JSON.stringify({context:selectedHistory.slice(-6),target})}],contentAccess.prompt,contentAccess.schema,true);
+        const raw=await generate([{role:'user',content:JSON.stringify({context:selectedHistory.slice(-12),serverMemory:{summary:conversation.memory?.summary||'',state:conversation.memory?.state||{}},target})}],contentAccess.prompt,contentAccess.schema,true);
         let result = safeParseJson(raw);
         if(!result) {
           try{result=JSON.parse(raw);}catch{throw Error('LLM_INVALID_SAFETY');}
         }
-        contentAccess.enforce(result, adult, isUser, target);
-      } catch(error) {error.safetyCheckFailed=true;throw error;}
+        contentAccess.enforce(result, conversation.kind==='proactive'?false:adult);
+      } catch(error) {error.safetyCheckFailed=true;error.safetyStage=isUser?'input':'output';throw error;}
     }
     if(!['greeting','proactive'].includes(conversation.kind))await check(selectedHistory.at(-1)?.content||'', true);
     const dialogueSchema={type:'OBJECT',properties:{reply:{type:'STRING'},roomLeft:{type:'BOOLEAN'}},required:['reply','roomLeft'],propertyOrdering:['reply','roomLeft']};
