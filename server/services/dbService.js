@@ -398,7 +398,7 @@ module.exports = {
       const recs = sql.prepare(`
         SELECT character_id, mode, count(*) as count
         FROM match_recommendations
-        WHERE created_at >= ? AND json_extract(data,'$.sender') IN ('user','ai')
+        WHERE created_at >= ?
         GROUP BY character_id, mode
         ORDER BY count DESC
       `).all(since);

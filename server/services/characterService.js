@@ -9,7 +9,15 @@ const behavior = require('./characterBehavior');
 let registry=null;
 function publicProfile(c){return c?Object.fromEntries(['id','name','age','ageDecade','gender','traitKey','regionGroup','job','avatar','area','bio'].map(k=>[k,c[k]])):null;}
 
+function matchesFilters(c,filters={}) {
+  return (c.gender||'female')===(filters.gender==='male'?'male':'female')&&
+    (!filters.ages?.length||filters.ages.includes(c.ageDecade))&&
+    (!filters.traits?.length||filters.traits.includes(c.traitKey))&&
+    (!filters.regions?.length||filters.regions.includes(c.regionGroup));
+}
+
 module.exports = {
+  matchesFilters,
   initializeRegistry(){registry=require('./characterRegistry');},
   getAllCharacters() {
     return (registry?[...registry.catalog().all.values()].filter(c=>registry.catalog().enabled.has(c.id)):CHARACTERS).map(c => ({
@@ -35,23 +43,9 @@ module.exports = {
   isPublished(id){return registry?registry.catalog().enabled.has(id):CHARACTERS.some(c=>c.id===id);},
 
   findMatch(filters = {}, metIds = []) {
-    const targetGender = filters.gender === 'male' ? 'male' : 'female';
-    const eligible = (registry?[...registry.catalog().all.values()].filter(c=>registry.catalog().enabled.has(c.id)):CHARACTERS).filter(c=>(c.gender||'female')===targetGender);
-    let pool = eligible.filter(c => !metIds.includes(c.id));
-    if (pool.length === 0) pool = eligible;
-
-    if (filters.ages && filters.ages.length > 0) {
-      const ageFiltered = pool.filter(c => filters.ages.includes(c.ageDecade));
-      if (ageFiltered.length > 0) pool = ageFiltered;
-    }
-    if (filters.traits && filters.traits.length > 0) {
-      const traitFiltered = pool.filter(c => filters.traits.includes(c.traitKey));
-      if (traitFiltered.length > 0) pool = traitFiltered;
-    }
-    if (filters.regions && filters.regions.length > 0) {
-      const regFiltered = pool.filter(c => filters.regions.includes(c.regionGroup));
-      if (regFiltered.length > 0) pool = regFiltered;
-    }
+    const met=new Set(metIds);
+    let pool=(registry?[...registry.catalog().all.values()].filter(c=>registry.catalog().enabled.has(c.id)):CHARACTERS).filter(c=>matchesFilters(c,filters)&&!met.has(c.id));
+    if(!pool.length)return null;
 
     // 접속 초반 (만난 인연 수가 5명 미만인 신규/초반 유저) & 특정 성향 미지정 시:
     // 성적 대응·대담한 플러팅·은밀한 로맨스가 원활한 캐릭터를 최우선(90% 가중치)으로 매칭하여

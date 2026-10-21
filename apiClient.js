@@ -9,6 +9,8 @@
   let saving = Promise.resolve();
   let paused = false;
   let roomFingerprints = new Map();
+  let accountFingerprint = '';
+  const accountSignature = value => JSON.stringify({metCharIds:value.metCharIds||[],matchFilter:value.matchFilter||{},prevCharId:value.prevCharId||null});
   let catalogVersion='';
   let cachedDeviceId = '';
   function getDeviceId() {
@@ -268,7 +270,7 @@
       if(!data.unchanged){catalogVersion=data.version||'';window.dispatchEvent(new CustomEvent('azit-character-catalog',{detail:data.characters}));}
       return data;
     },
-    async loadConversationUpdates(after=0) { return this.request('/account/sync?after='+encodeURIComponent(after)); },
+    async loadConversationUpdates(after=0,room='') { return this.request('/account/sync?compact=1&after='+encodeURIComponent(after)+'&room='+encodeURIComponent(room)); },
     async loadState() {
       if (!authToken && !this.hasSession()) {
         return {
@@ -278,8 +280,9 @@
           matchFilter: { ages: [], traits: [], regions: [] }
         };
       }
-      const data = await this.request('/account/state');
+      const data = await this.request('/account/state?compact=1');
       this.user = data.user;
+      accountFingerprint = accountSignature(data);
       roomFingerprints = new Map(Object.entries(data.savedRooms || {}).map(([id, room]) => [id, JSON.stringify({ ...room, messages: (room.messages || []).slice(-45) })]));
       return data;
     },
@@ -287,10 +290,12 @@
       if (!connected || paused) return;
       const rooms = {};
       for (const [id, room] of Object.entries(payload.savedRooms || {})) {
+        if(room.summaryOnly)continue;
         const trimmed = { ...room, messages: (room.messages || []).slice(-45) };
         const serialized = JSON.stringify(trimmed);
         if (roomFingerprints.get(id) !== serialized) rooms[id] = trimmed;
       }
+      if(!Object.keys(rooms).length&&!pending&&accountSignature(payload)===accountFingerprint)return;
       pending = { savedRooms: { ...(pending?.savedRooms || {}), ...rooms }, metCharIds: payload.metCharIds,
         matchFilter: payload.matchFilter, prevCharId: payload.prevCharId };
       clearTimeout(timer);
@@ -315,6 +320,7 @@
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, keepalive: JSON.stringify(body).length < 50000
             });
             for (const [id, room] of Object.entries(body.savedRooms)) roomFingerprints.set(id, JSON.stringify(room));
+            accountFingerprint = accountSignature(body);
             return data;
           } catch (error) {
             if (token === authToken) pending = { ...body, ...pending, savedRooms: { ...body.savedRooms, ...pending?.savedRooms } };
@@ -340,7 +346,7 @@
       return this.request('/chat/send', 'POST', { characterId, message, chatHistory, affection, messageId, ...(messages?{messages}:{}) });
     },
     async getMatchEligibility() { return this.request('/match/eligibility'); },
-    async requestMatch(filters, characterId) { return this.request('/match/request', 'POST', { filters, characterId }); },
+    async requestMatch(filters, characterId, options={}) { return this.request('/match/request', 'POST', { filters, characterId, ...options }); },
     async idleFollowUp(characterId,userMessageId,lastReplyId) { await this.flushState(); return this.request('/chat/idle-followup','POST',{characterId,userMessageId,lastReplyId}); },
     async sendGreeting(characterId, messageId) { await this.flushState(); return this.request('/chat/greeting', 'POST', { characterId, messageId }); },
     async sendGift(characterId, giftKey, customMsg, messageId) { await this.flushState(); return this.request('/chat/gift', 'POST', { characterId, giftKey, customMsg, messageId }); },

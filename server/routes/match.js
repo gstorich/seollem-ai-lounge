@@ -33,9 +33,23 @@ router.post('/request', requireAuth, require('../services/legalService').require
   if (characterId !== undefined && (typeof characterId !== 'string' || !characterService.isPublished(characterId))) {
     return res.status(400).json({ success: false, error: '대화 상대를 찾을 수 없습니다.' });
   }
-  const matchedChar = characterId ? characterService.getCharacterById(characterId)
-    : characterService.findMatch(filters || user.matchFilter, user.metCharIds || []);
-  if(!matchedChar)return res.status(404).json({success:false,error:'조건에 맞는 공개 캐릭터가 없습니다.'});
+  const selectionFilters=filters||user.matchFilter||{};
+  const metIds=new Set([...(user.metCharIds||[]),...Object.keys(user.savedRooms||{})]);
+  const allowRepeat=req.body.allowRepeat===true;
+  let matchedChar=characterId?characterService.getCharacterById(characterId):characterService.findMatch(selectionFilters,[...metIds]);
+  if(matchedChar&&metIds.has(matchedChar.id)&&!allowRepeat)return res.status(409).json({success:false,error:'MATCH_ALREADY_MET',message:'이미 만난 상대입니다. 대화 목록에서 이어가세요.',metCharIds:[...metIds]});
+  if(!matchedChar&&allowRepeat){
+    const pool=characterService.getAllCharacters().filter(c=>characterService.matchesFilters(c,selectionFilters)&&metIds.has(c.id)&&!user.savedRooms?.[c.id]?.roomLeft&&c.id!==req.body.excludeCharacterId);
+    const activity=require('../../roomList').activity;
+    pool.sort((a,b)=>Number(Boolean(user.savedRooms?.[b.id]))-Number(Boolean(user.savedRooms?.[a.id]))||activity(user.savedRooms?.[a.id]||{})-activity(user.savedRooms?.[b.id]||{}));
+    matchedChar=pool[0]||null;
+  }
+  if(!matchedChar){
+    const eligible=characterService.getAllCharacters().filter(c=>characterService.matchesFilters(c,selectionFilters));
+    return res.status(404).json({success:false,error:eligible.length?'MATCH_POOL_EXHAUSTED':'NO_MATCHING_CHARACTERS',message:eligible.length?'선택한 조건의 새로운 상대를 모두 만났어요. 조건을 바꾸거나 대화 목록에서 이전 상대와 이어가세요.':'조건에 맞는 공개 캐릭터가 없습니다. 매칭 조건을 바꿔주세요.'});
+  }
+  const repeated=metIds.has(matchedChar.id);
+  if(repeated&&user.savedRooms?.[matchedChar.id]?.roomLeft)return res.status(400).json({success:false,error:'ROOM_LEFT',message:'종료된 대화는 다시 소개하지 않습니다. 다른 상대를 선택해주세요.'});
 
   // 추천 로깅 (7:3 Bandit telemetry)
   const mode = matchedChar._matchMode || (characterId ? 'direct_choice' : 'popular_exploitation');
@@ -44,13 +58,10 @@ router.post('/request', requireAuth, require('../services/legalService').require
   }
 
   // Update met character history
-  const metIds = Array.isArray(user.metCharIds) ? [...user.metCharIds] : [];
-  if (!metIds.includes(matchedChar.id)) {
-    metIds.push(matchedChar.id);
-  }
+  metIds.add(matchedChar.id);
 
   dbService.updateUser(user.id, {
-    metCharIds: metIds,
+    metCharIds: [...metIds],
     prevCharId: matchedChar.id
   });
 
@@ -58,6 +69,8 @@ router.post('/request', requireAuth, require('../services/legalService').require
     success: true,
     character: characterService.publicProfile(matchedChar),
     matchMode: mode,
+    repeated,
+    metCharIds:[...metIds],
     ...access
   });
 });

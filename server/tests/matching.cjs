@@ -24,7 +24,7 @@ async function request(route,token,body){const response=await fetch(base+route,{
  assert.equal(catalog.filter(c=>c.gender==='female').length,1250);
  for(const gender of ['male','female']){
   const ids=catalog.filter(c=>c.gender===gender).map(c=>c.id);
-  assert.equal(service.findMatch({gender},ids).gender,gender,'Exhausted preferred gender pool resets within that gender');
+  assert.equal(service.findMatch({gender},ids),null,'Exhausted pool is reported without clearing history or silently repeating');
  }
  const stateResponse=await fetch(base+'/account/state',{method:'PUT',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({matchFilter:{gender:'male',ages:['40'],traits:[],regions:[]}})});
  assert.equal(stateResponse.status,200);assert.equal((await request('/account/state',token)).matchFilter.gender,'male');

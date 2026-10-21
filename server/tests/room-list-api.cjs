@@ -1,0 +1,25 @@
+const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
+const dir=fs.mkdtempSync(path.join(os.tmpdir(),'azit-room-list-'));
+Object.assign(process.env,{NODE_ENV:'test',DATABASE_FILE:path.join(dir,'db.json'),SQLITE_FILE:path.join(dir,'db.sqlite'),GEMINI_API_KEY:'',OPENAI_API_KEY:''});
+const db=require('../services/dbService'),auth=require('../middleware/auth'),legal=require('../services/legalService'),characters=require('../services/characterService'),express=require('express');
+(async()=>{let server;try{
+ const catalog=characters.getAllCharacters(),savedRooms={},metCharIds=catalog.map(c=>c.id);
+ for(const [index,c]of catalog.slice(0,1100).entries())savedRooms[c.id]={charId:c.id,roomLeft:index<3,firstMetAt:1,unreadCount:index%4===0?3:0,memorySummary:'개인 기억 원문 '.repeat(60),userFacts:['고객 사실'],messages:Array.from({length:12},(_,i)=>({id:c.id+'-msg-'+i,sender:i%2?'ai':'user',text:'메시지 원문 '+i+' '.repeat(10)+'단어'.repeat(100),createdAt:index*20+i+10}))};
+ const id='room-list-user';db.createUser({id,hearts:100,savedRooms,metCharIds});legal.accept(id,{version:legal.version,termsAccepted:true,privacyAcknowledged:true,aiNoticeAcknowledged:true,atLeast18:true});
+ const app=express();app.use(express.json({limit:'2mb'}));app.use('/api/account',require('../routes/account'));app.use('/api/match',require('../routes/match'));server=app.listen(0,'127.0.0.1');await new Promise(resolve=>server.once('listening',resolve));
+ const base='http://127.0.0.1:'+server.address().port+'/api',headers={'Content-Type':'application/json',Authorization:'Bearer '+auth.generateToken({userId:id})};
+ const req=async(route,body,method=body?'POST':'GET')=>{const res=await fetch(base+route,{method,headers,...(body?{body:JSON.stringify(body)}:{})});return {status:res.status,data:await res.json()};};
+ assert.equal((await fetch(base+'/account/state?compact=1')).status,401);
+ const compact=(await req('/account/state?compact=1')).data,full=(await req('/account/state')).data;
+ assert.equal(Object.keys(compact.savedRooms).length,1100);assert(Object.values(compact.savedRooms).every(r=>r.summaryOnly&&r.messages.length===0&&!r.memorySummary&&!r.userFacts));assert.equal(compact.roomCharacters.length,0);assert(JSON.stringify(compact).length<JSON.stringify(full).length/4);
+ const activeId=catalog[10].id,active=(await req('/account/sync?compact=1&room='+activeId)).data;
+ assert.equal(active.savedRooms[activeId].messages.length,12);assert(!active.savedRooms[activeId].summaryOnly);assert.equal(Object.values(active.savedRooms).filter(r=>r.messages.length).length,1);
+ const history=(await req('/account/rooms/'+activeId+'/messages')).data;assert.equal(history.messages.length,12);assert.equal(history.messages[0].text,savedRooms[activeId].messages[0].text);assert.equal(history.roomMetadata.memorySummary,savedRooms[activeId].memorySummary);
+ assert.equal((await req('/account/state',{savedRooms:compact.savedRooms,metCharIds},'PUT')).status,200);assert.equal(db.getUser(id).metCharIds.length,catalog.length,'Met history above 1,500 survives state sync');assert.equal(db.getUser(id).savedRooms[activeId].messages.length,12,'Lightweight snapshots cannot erase server history');
+ const filters={gender:'female'},exhausted=await req('/match/request',{filters});assert.equal(exhausted.status,404);assert.equal(exhausted.data.error,'MATCH_POOL_EXHAUSTED');
+ const before=db.getUser(id),again=await req('/match/request',{filters,allowRepeat:true,excludeCharacterId:activeId});assert.equal(again.status,200);assert(again.data.repeated);assert.notEqual(again.data.character.id,activeId);assert(!before.savedRooms[again.data.character.id].roomLeft);assert.equal(db.getUser(id).hearts,before.hearts);assert.equal(db.getUser(id).savedRooms[again.data.character.id].messages.length,12);assert.equal(db.getUser(id).metCharIds.length,catalog.length);
+ assert.equal((await req('/match/request',{filters:{gender:'female',regions:['nonexistent']},allowRepeat:true})).data.error,'NO_MATCHING_CHARACTERS');
+ const fresh=catalog.filter(c=>(c.gender||'female')==='female').at(-1);db.updateUser(id,{metCharIds:metCharIds.filter(key=>key!==fresh.id)});
+ const newlyAvailable=await req('/match/request',{filters});assert.equal(newlyAvailable.status,200);assert.equal(newlyAvailable.data.character.id,fresh.id);assert.equal(newlyAvailable.data.repeated,false,'Unmet additions are recommended again after exhaustion');
+ console.log('PASS: 1,100-room compact account/sync, one-room hydration, no summary writeback/data loss, full met history, explicit repeat matching without reset/debit/closed-room reopen, strict filters and newly available characters');
+ }finally{if(server)await new Promise(resolve=>server.close(resolve));db.sql.close();fs.rmSync(dir,{recursive:true,force:true});}})().catch(error=>{console.error(error);process.exitCode=1;});

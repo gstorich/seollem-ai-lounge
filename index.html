@@ -637,7 +637,7 @@
         <div class="p-5 rounded-2xl bg-[#362f29] border border-[#4d4135] shadow-md space-y-3.5">
           <div>
             <span class="inline-flex items-center gap-1.5 text-[12px] font-bold text-[#e5a93c] bg-[#42362a] border border-[#5e4b36] px-2.5 py-0.5 rounded-full"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>실시간 1:1 프라이빗 대화</span>
-            <h2 class="text-[19px] font-black text-[#fbf7f2] mt-2 leading-snug">지금 접속 중인 상대 <span id="waitingCountText" class="text-[#e5a93c] font-black tracking-tight">불러오는 중</span></h2>
+            <h2 class="text-[19px] font-black text-[#fbf7f2] mt-2 leading-snug">처음 만날 수 있는 상대 <span id="waitingCountText" class="text-[#e5a93c] font-black tracking-tight">불러오는 중</span></h2>
             <p class="text-[13.5px] text-[#d5c8b7] mt-1 leading-relaxed">나를 기다리는 매력적인 상대들과 기다림 없이, 지금 바로 단둘만의 1:1 대화로 연결됩니다.</p>
           </div>
 
@@ -671,10 +671,19 @@
           <span class="text-[12px] text-[#a89a8a]">터치하면 대화방으로 이동합니다</span>
         </div>
 
+        <div class="flex flex-wrap gap-2">
+          <input id="roomListSearch" type="search" maxlength="100" aria-label="대화방 검색" placeholder="이름·직업·최근 메시지로 찾기" class="flex-1 min-w-0 rounded-xl border border-[#4d4135] bg-[#362f29] px-3 py-2.5 text-[14px] text-[#fbf7f2]" />
+          <select id="roomListFilter" aria-label="대화방 분류" class="rounded-xl border border-[#4d4135] bg-[#362f29] px-2 py-2 text-[13px] text-[#fbf7f2]">
+            <option value="all">전체 대화</option><option value="unread">읽지 않음</option><option value="open">대화 가능</option><option value="closed">종료된 대화</option>
+          </select>
+        </div>
+        <p id="listMatchAvailability" class="text-[12px] text-[#cbb8a3]" aria-live="polite"></p>
         <!-- Chat Rooms List Container -->
         <div id="chatRoomsListContainer" class="space-y-2.5" style="min-height:310px">
           <!-- Populated dynamically by renderChatRoomsList() -->
         </div>
+
+        <div id="roomListPagination" class="flex items-center justify-between gap-3 text-[13px] text-[#d5c8b7]"></div>
 
         <!-- Modernized, Streamlined Footer (Moved far below, muted and unobtrusive) -->
         <footer id="serviceFooter" class="mt-36 pt-10 pb-16 px-3 text-[#6e6152] border-t border-[#332a22]/70 text-[11.5px] space-y-3 opacity-60 hover:opacity-95 transition-opacity duration-300">
@@ -1494,7 +1503,8 @@
 
   <script src="/legal.js"></script>
   <script src="messageDelivery.js?v=20261022-dedup"></script>
-  <script src="apiClient.js?v=20261022-batch"></script>
+  <script src="roomList.js?v=20261022-rooms"></script>
+  <script src="apiClient.js?v=20261022-rooms"></script>
   <script src="chatTiming.js"></script>
   <script src="notifications.js" defer></script>
   <link rel="stylesheet" href="/wellbeing.css">
@@ -3386,7 +3396,7 @@
             anger: state.anger || 0,
             warned: Boolean(state.warned),
             bookmarked: Boolean(state.bookmarked),
-            updatedAt: Date.now()
+            updatedAt: state.messages.at(-1)?.createdAt || prevSaved.updatedAt || Date.now()
           };
         }
 
@@ -3394,7 +3404,7 @@
           savedRooms: state.savedRooms,
           unlockedMedia: state.unlockedMedia,
           prevCharId: state.prevCharId,
-          metCharIds: state.metCharIds.slice(-1500),
+          metCharIds: state.metCharIds,
           matchFilter: state.matchFilter,
           credits: state.credits,
           hearts: state.hearts,
@@ -3405,7 +3415,7 @@
         };
 
         if (window.ApiClient?.isHosted()) {
-          if (serverStateReady) ApiClient.saveState(payload);
+          if (serverStateReady) {ApiClient.saveState(payload);window.AzitRoomList?.trimCache(state.savedRooms,[state.currentChar?.id,...Object.keys(state.activePendingDeliveries||{}),...(state.pendingUserMessages||[]).map(item=>item.charId)]);}
         } else {
         localStorage.setItem('seollem_guest_account', JSON.stringify(payload));
         if (state.verifiedPhone) {
@@ -5105,6 +5115,14 @@
           const oldHeight=chatContainer.scrollHeight,oldTop=chatContainer.scrollTop,ref=older.nextSibling;
           const known=new Map(state.messages.map(m=>[m.id,m]));for(const m of data.messages){if(!known.has(m.id))known.set(m.id,m);draw(m,ref);}
           state.messages=[...known.values()].sort((a,b)=>(a.createdAt||0)-(b.createdAt||0));
+          if(!initialized){
+            const room=state.savedRooms[charId];
+            if(room){Object.assign(room,data.roomMetadata||{},{messages:state.messages,summaryOnly:false,unreadCount:0});
+              state.userFacts=room.userFacts||[];state.memorySummary=room.memorySummary||'';
+              for(const key of ['affection','turnCount','photosSentCount','rudeStrikes','anger'])if(typeof room[key]==='number')state[key]=room[key];
+            }
+            if(!state.roomLeft)setChatInputEnabled(true);
+          }
           cursor=data.nextCursor;hasMore=Boolean(data.hasMore);const first=!initialized;initialized=true;loading=false;button();
           if(first)scrollToBottom();else chatContainer.scrollTop=oldTop+(chatContainer.scrollHeight-oldHeight);
         }catch(error){if(sameRoom()){loading=false;button(true);}}
@@ -5147,8 +5165,9 @@
       }
 
       const existingRoom = state.savedRooms[char.id];
-      if (forceResume && existingRoom && existingRoom.messages && existingRoom.messages.length) {
+      if (forceResume && existingRoom && (existingRoom.summaryOnly || existingRoom.messages?.length)) {
         state.currentChar = char;
+        if(existingRoom.summaryOnly)setChatInputEnabled(false);
         state.affection = typeof existingRoom.affection === 'number' ? existingRoom.affection : 20;
         state.turnCount = existingRoom.turnCount || 1;
         state.rudeStrikes = existingRoom.rudeStrikes || 0;
@@ -5198,7 +5217,7 @@
     }
 
     function getFilteredUnmetPool(excludeCurrent = true) {
-      const metSet = new Set(state.metCharIds);
+      const metSet = new Set([...state.metCharIds,...Object.keys(state.savedRooms||{})]);
       const { gender, ages, traits, regions } = state.matchFilter;
       const targetGender = gender || (typeof localStorage !== 'undefined' && localStorage.getItem('azit_user_gender_pref')) || 'female';
 
@@ -5218,32 +5237,7 @@
       const { gender, ages } = state.matchFilter;
       const targetGender = gender || (typeof localStorage !== 'undefined' && localStorage.getItem('azit_user_gender_pref')) || 'female';
 
-      if (pool.length === 0) {
-        const metSet = new Set(state.metCharIds);
-        pool = CHARACTERS.filter(c => c.published !== false).filter(c => {
-          if (excludeCurrent && state.currentChar && c.id === state.currentChar.id) return false;
-          if ((c.gender || 'female') !== targetGender) return false;
-          if (metSet.has(c.id)) return false;
-          if (ages && ages.length > 0 && !ages.includes(c.ageDecade)) return false;
-          return true;
-        });
-      }
-
-      if (pool.length === 0) {
-        const metSet = new Set(state.metCharIds);
-        pool = CHARACTERS.filter(c => c.published !== false).filter(c => {
-          if ((c.gender || 'female') !== targetGender) return false;
-          return !metSet.has(c.id);
-        });
-      }
-
-      if (pool.length === 0) {
-        state.metCharIds = state.metCharIds.filter(id => {
-          const char = CHARACTERS.find(c => c.id === id);
-          return char && (char.gender || 'female') !== targetGender;
-        });
-        pool = CHARACTERS.filter(c => c.published !== false).filter(c => (c.gender || 'female') === targetGender);
-      }
+      if (!pool.length) return null;
 
       // 동일 인물(원본 ↔ 클로즈업 페어)은 하나의 '인물 키'로 취급
       const personKey = (url) => {
@@ -5798,17 +5792,39 @@
       if (!el) return;
       const count = typeof getFilteredUnmetPool === 'function' ? getFilteredUnmetPool(false).length : 0;
       el.textContent = `${count.toLocaleString()}명`;
+      const button=document.querySelector('#btnListNewMatch span');
+      if(button)button.textContent=count?'새로운 상대와 대화 시작':'이전 상대와 다시 대화';
+      const note=document.getElementById('listMatchAvailability');
+      if(note)note.textContent=count?'':'선택한 조건의 새로운 상대를 모두 만났어요. 조건을 바꾸거나 이전 상대와 대화를 이어갈 수 있어요.';
     }
 
+    let roomListPage=1;
     function renderChatRoomsList() {
       const container = document.getElementById('chatRoomsListContainer');
       if (!container) return;
       container.innerHTML = '';
 
       updateWaitingCount();
-      const entries = Object.values(state.savedRooms || {}).sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
+      const characterMap=new Map(CHARACTERS.map(char=>[char.id,char]));
+      const page=AzitRoomList.page(state.savedRooms,CHARACTERS,{query:document.getElementById('roomListSearch')?.value||'',filter:document.getElementById('roomListFilter')?.value||'all',page:roomListPage});
+      roomListPage=page.page;
+      const entries=page.entries;
+      const pagination=document.getElementById('roomListPagination');
+      if(pagination){pagination.replaceChildren();
+        if(page.total){
+          const label=document.createElement('span');label.textContent=`${page.total.toLocaleString()}개 중 ${(page.page-1)*30+1}–${Math.min(page.page*30,page.total)}개`;
+          pagination.appendChild(label);
+          for(const [label,delta]of [['이전',-1],['다음',1]]){
+            const button=document.createElement('button');button.type='button';button.textContent=label;button.className='px-3 py-2 rounded-xl border border-[#4d4135] disabled:opacity-40';button.disabled=delta<0?page.page===1:page.page===page.pages;
+            button.onclick=()=>{roomListPage+=delta;renderChatRoomsList();document.getElementById('roomListSearch')?.scrollIntoView({block:'start'});};pagination.appendChild(button);
+          }
+        }
+      }
       updateChatListBadges();
 
+      if(!entries.length&&Object.keys(state.savedRooms||{}).length){
+        container.innerHTML='<p class="py-10 text-center text-[#cbb8a3]">조건에 맞는 대화가 없어요. 검색어나 분류를 바꿔보세요.</p>';return;
+      }
       if (entries.length === 0) {
         container.innerHTML = `
           <div class="py-12 px-4 text-center space-y-3.5 bg-[#362f29] rounded-2xl border border-[#4d4135] shadow-xs">
@@ -5836,13 +5852,11 @@
       }
 
       entries.forEach(room => {
-        const char = CHARACTERS.find(c => c.id === room.charId);
+        const char = characterMap.get(room.charId);
         if (!char) return;
         const isCurrent = state.currentChar && state.currentChar.id === char.id;
-        const lastMsg = room.messages && room.messages.length
-          ? room.messages[room.messages.length - 1]
-          : { text: char.bio, time: '' };
-        const unreadCnt = isCurrent ? 0 : (Number(room.unreadCount) || 0);
+        const lastMsg = AzitRoomList.latest(room) || {text:char.bio,time:''};
+        const unreadCnt = isCurrent && state.currentView==='chatRoom' ? 0 : (Number(room.unreadCount) || 0);
 
         let timeDisplay = lastMsg.time || '';
         if (!timeDisplay && room.updatedAt) {
@@ -5863,7 +5877,7 @@
 
         card.innerHTML = `
           <div class="relative shrink-0">
-            <img src="${escapeHtml(char.avatar)}" alt="${escapeHtml(char.name)}" class="rounded-2xl object-cover border border-[#5e5143] shadow-xs" style="width: 52px; height: 52px;" />
+            <img loading="lazy" decoding="async" src="${escapeHtml(char.avatar)}" alt="${escapeHtml(char.name)}" class="rounded-2xl object-cover border border-[#5e5143] shadow-xs" style="width: 52px; height: 52px;" />
             <span class="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-emerald-500 ring-2 ring-[#362f29]"></span>
             ${unreadCnt > 0 ? `<span class="absolute -top-1.5 -right-1.5 min-w-[20px] h-[20px] px-1 rounded-full bg-rose-500 text-white text-[11px] font-black flex items-center justify-center shadow-md ring-2 ring-[#362f29]">${unreadCnt}</span>` : ''}
           </div>
@@ -5912,6 +5926,7 @@
 
     // Alias for backward compatibility
     const renderSavedRoomsList = renderChatRoomsList;
+    for(const id of ['roomListSearch','roomListFilter'])document.getElementById(id)?.addEventListener(id==='roomListSearch'?'input':'change',()=>{roomListPage=1;renderChatRoomsList();});
 
     function openHeartNeededModal(charName = '상대방', forMatch = false) {
       const modal = document.getElementById('heartNeededModal');
@@ -6678,6 +6693,7 @@
     }
 
     function updateMatchAccess(access) {
+      if(Array.isArray(access.metCharIds))state.metCharIds=[...new Set([...state.metCharIds,...access.metCharIds])];
       if (typeof access.heartsRemaining === 'number') state.hearts = state.credits = access.heartsRemaining;
       if (access.heartExpiry) state.heartExpiry = access.heartExpiry;
       if (typeof access.isVipUnlimited === 'boolean') state.isVipUnlimited = access.isVipUnlimited;
@@ -6705,26 +6721,31 @@
         const remain = getRemainingMatchCooldown();
         if (remain > 0) { showToast(`⏳ ${remain}초 후 새로운 상대를 만날 수 있습니다.`); return; }
         let nextChar = pickRandomCharacter(true);
+        const allowRepeat=!nextChar;
+        let resumed=false;
         if (ApiClient.isHosted()) {
           saveAccountState();
           await ApiClient.flushState();
-          const match = await ApiClient.requestMatch(state.matchFilter, nextChar.id);
+          const match = await ApiClient.requestMatch(state.matchFilter, nextChar?.id, {allowRepeat,excludeCharacterId:state.currentChar?.id});
           updateMatchAccess(match);
+          resumed=Boolean(match.repeated);
           nextChar = CHARACTERS.find(character => character.id === match.character.id);
           if (!nextChar) throw new Error('대화 상대 정보를 불러오지 못했습니다.');
         }
+        if(!nextChar){showToast('조건에 맞는 새로운 상대가 없습니다. 조건을 바꾸거나 대화 목록에서 이어가세요.');return;}
         if (radarModal) radarModal.classList.remove('hidden');
         const subtext = document.getElementById('matchingRadarSubtext');
         const status = document.getElementById('matchingRadarStatus');
-        if (subtext) subtext.textContent = '조건에 맞는 새로운 대화 상대를 찾았습니다.';
+        if (subtext) subtext.textContent = resumed?'이전에 만난 상대와 대화를 이어갑니다.':'조건에 맞는 새로운 대화 상대를 찾았습니다.';
         if (status) status.textContent = `${nextChar.name}님과 대화 연결 중`;
         await new Promise(resolve => setTimeout(resolve, 700));
         state.lastMatchTime = Date.now();
         saveAccountState();
-        startChatWithCharacter(nextChar, false);
+        await startChatWithCharacter(nextChar, resumed&&Boolean(state.savedRooms[nextChar.id]));
         showView('chatRoom');
         updateMatchCooldownUI();
       } catch (error) {
+        if(error.data?.metCharIds)updateMatchAccess(error.data);
         if (error.code === 'INSUFFICIENT_HEARTS') {
           updateMatchAccess(error.data || {});
           openHeartNeededModal('상대방', true);
@@ -6884,13 +6905,14 @@
       if(!serverStateReady||conversationSyncBusy||!window.ApiClient?.isConnected()||document.visibilityState!=='visible')return;
       conversationSyncBusy=true;const accountId=ApiClient.user?.id;
       try{
-        const data=await ApiClient.loadConversationUpdates(conversationSyncAfter);
+        const data=await ApiClient.loadConversationUpdates(conversationSyncAfter,state.currentView==='chatRoom'?state.currentChar?.id:'');
         if(ApiClient.user?.id!==accountId)return;
         conversationSyncAfter=data.syncVersion||conversationSyncAfter;if(data.unchanged)return;
+        if(data.metCharIds)state.metCharIds=[...new Set([...state.metCharIds,...data.metCharIds])];
         for(const c of data.roomCharacters||[]){const existing=CHARACTERS.find(x=>x.id===c.id);if(existing)Object.assign(existing,c);else CHARACTERS.push(c);}
         for(const [id,incoming] of Object.entries(data.savedRooms||{})){
           const local=state.savedRooms[id]||{charId:id,messages:[]};
-          state.savedRooms[id]={...local,...incoming,messages:AzitMessageDelivery.merge(local.messages,incoming.messages)};
+          state.savedRooms[id]={...local,...incoming,summaryOnly:Boolean(incoming.summaryOnly&&local.summaryOnly!==false),messages:AzitMessageDelivery.merge(local.messages,incoming.messages)};
           if(state.currentChar?.id===id&&!state.isAiBusy&&!state.isGreetingPending&&!state.roomLeft){
             const previous=state.messages,known=new Set(previous.map(m=>m.id)),clean=t=>String(t||'').replace(/\s/g,'');
             const covered=m=>m.sender==='ai'&&previous.filter(p=>p.sender==='ai'&&p.id?.startsWith(m.id+'_')).map(p=>clean(p.text)).join('')===clean(m.text);
@@ -6902,7 +6924,7 @@
             if(open)state.savedRooms[id].messages=state.savedRooms[id].messages.map(m=>({...m,unread:false}));
             if(incoming.roomLeft){state.roomLeft=true;clearIdleFollowUpTimer();updateHeaderDefaultStatus();setChatInputEnabled(false);if(open)renderPartnerLeaveBanner();}
           }
-          state.savedRooms[id].unreadCount=state.savedRooms[id].messages.filter(m=>m.sender==='ai'&&m.unread).length;
+          state.savedRooms[id].unreadCount=incoming.summaryOnly?incoming.unreadCount:state.savedRooms[id].messages.filter(m=>m.sender==='ai'&&m.unread).length;
         }
         if(typeof data.user?.hearts==='number')state.hearts=state.credits=data.user.hearts;
         saveAccountState();renderChatRoomsList();updateChatListBadges();
