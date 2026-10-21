@@ -56,14 +56,11 @@ module.exports = async function generatedTurn(req, res, {character, message, req
     }
     const storedState = db.getConversationState(id,character.id);
     const agreementSources=db.getConversationSources(id,character.id,(storedState.memory?.agreements||[]).map(note=>note.sourceId));
-    const validOldMessages = oldMessages.filter((m, idx, arr) => {
+    const validOldMessages = oldMessages.filter((m) => {
       if (!['user','ai'].includes(m.sender) || !m.text || m.id === requestId) return false;
       if (m.sender === 'user') {
         const reqRecord = db.getChatRequest(id, m.id);
         if (reqRecord && reqRecord.success === false) return false;
-        // 다음 메시지가 존재하지 않는 경우만 제외하고, ai 또는 연달아 보낸 user 메시지는 모두 보존하여 연속 발언을 전부 읽도록 지원
-        const next = arr[idx + 1];
-        if (!next) return false;
       }
       return true;
     });

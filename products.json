@@ -8,19 +8,19 @@
   {
     "id": "popular",
     "name": "베스트 패키지",
-    "hearts": 8000,
+    "hearts": 6500,
     "price": 49000
   },
   {
     "id": "mania",
     "name": "VIP 메가 패키지",
-    "hearts": 20000,
+    "hearts": 12500,
     "price": 89000
   },
   {
     "id": "master",
     "name": "VVIP 로열 패키지",
-    "hearts": 50000,
+    "hearts": 22000,
     "price": 149000
   }
 ]

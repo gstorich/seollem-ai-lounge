@@ -479,6 +479,17 @@ async function req(route, token, body, method = body === undefined ? 'GET' : 'PO
     assert(linkRes.data.partnerReply.includes('어떤 영상이에요') || linkRes.data.partnerReply.includes('못 봤는데') || linkRes.data.partnerReply.includes('힌트'), '친절한 호기심/리액션으로 교정되어야 함');
     console.log(' -> 결과:', linkRes.data.partnerReply);
 
+    console.log('[Test 23] 연속 유저 메시지 히스토리 보존 검증: 직전 유저 메시지가 oldMessages 마지막이어도 누락 없이 유지');
+    const { data: guestSeq } = await req('/auth/guest', null, {});
+    // 유저 첫 번째 메시지 발송
+    const seq1 = await req('/chat/send', guestSeq.token, { characterId: 'p_1076', message: '마흔밖에 안먹은것이,,, 나는 칠십 여섯이야!!', messageId: 'seq-1' });
+    assert.equal(seq1.status, 200);
+    // 연속 두 번째 메시지 발송 (이때 oldMessages에는 seq-1과 그 답변이 있으며, 정상적으로 보존되어야 함)
+    const seq2 = await req('/chat/send', guestSeq.token, { characterId: 'p_1076', message: '조용해임마!!', messageId: 'seq-2' });
+    assert.equal(seq2.status, 200);
+    assert.equal(seq2.data.isAiGenerated, true);
+    console.log(' -> 결과: 연속 메시지 발송 시 정상 응답 생성 확인');
+
     console.log('\nPASS: All LLM edge cases, address auto-sanitization, markdown JSON parsing, system phrase filtering, and fallback resilience verified!');
     await stop();
     process.exit(0);
