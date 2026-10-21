@@ -117,7 +117,7 @@ for (const [route,file] of [['/support','support.html'],['/privacy','privacy.htm
   app.get(route,(req,res)=>{if(file==='billing.html')res.set('Cross-Origin-Opener-Policy','same-origin-allow-popups');res.set('Cache-Control','no-store');res.set('Content-Security-Policy',file==='billing.html'?"default-src 'self'; script-src 'self' https://cdn.iamport.kr https://cdn.portone.io https://www.googletagmanager.com https://connect.facebook.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: https:; connect-src 'self' https://*.iamport.kr https://*.portone.io https://www.google-analytics.com https://*.google.com https://*.googleadservices.com https://*.doubleclick.net https://www.facebook.com; frame-src https:; frame-ancestors 'none'; base-uri 'none'; form-action 'self' https:":"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; frame-ancestors 'none'; base-uri 'none'; form-action 'self'");res.sendFile(path.join(__dirname,'..',file));});
 }
 app.get('/index.html',(req,res)=>res.redirect(301,'/'+(req.originalUrl.includes('?')?req.originalUrl.slice(req.originalUrl.indexOf('?')):'')));
-app.get('/',(req,res)=>res.sendFile(path.join(__dirname,'..','index.html')));
+app.get('/',(req,res)=>{res.set('Cache-Control','no-store');res.sendFile(path.join(__dirname,'..','index.html'));});
 // Public static assets
 app.get('/robots.txt', (req, res) => {
   res.type('text/plain');

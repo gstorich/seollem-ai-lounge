@@ -1,5 +1,10 @@
 const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('node:vm'),path=require('node:path');
-const html=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
+let html;
+for(const file of ['index.html','seollem_chat_standalone.html']){
+html=fs.readFileSync(path.resolve(__dirname,'../..',file),'utf8');
+assert(!html.includes('checkAndProcessPendingUserMessages('),'Both entrypoints must call an existing pending-message handler');
+}
+html=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
 function section(from,to){const start=html.indexOf(from),end=html.indexOf(to,start);assert(start>=0&&end>start);return html.slice(start,end);}
 const greeting=section('    async function deliverFirstGreeting(', '    async function startChatWithCharacter(');
 const pending=section('    async function processPendingUserMessagesNow(', '    async function sendUserMessage(');
