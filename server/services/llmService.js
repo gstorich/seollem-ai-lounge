@@ -91,6 +91,13 @@ function dialogueFeedback(reply,character,conversation,relationship){
   if(/(?:기대(?:해\s*봐도|해도|해\s*볼게|할게|하겠)|얼마나\s*잘하는지\s*지켜볼게|어디\s*한번\s*(?:기대|지켜)|기대\s*이상이어야)/.test(reply)){
     return {instruction:'상대를 시험하거나 평가하듯 "기대해봐도 되나?", "기대할게", "지켜볼게" 같은 건방진 심사위원식 상투적인 클리셰를 절대 쓰지 마세요. 캐릭터는 면접관이나 상전이 아닙니다. 동등한 대화 상대로서 자연스러운 호기심이나 유쾌한 맞장구로 다시 쓰세요.'};
   }
+  const isQuestion = text => /[?？]|(?:어때|어떨까|뭐해|뭐야|맞아|있어|없어|해볼래|할래|좋아해|봤어|알아|생각해|그런가)\s*[?]?\s*$/u.test((text||'').trim());
+  const prevAssistant = conversation.recent.filter(m => m.role === 'assistant').at(-1)?.content || '';
+  if (prevAssistant && isQuestion(prevAssistant) && isQuestion(reply)) {
+    return {
+      instruction: '직전 답장에서도 질문을 했는데 이번에도 또 질문을 던졌습니다. 상대를 심문하듯 질문을 연속으로 쏟아내지 마세요. 이번 답장에서는 물음표(?)와 질문을 완전히 빼고, 본인의 솔직한 느낌이나 가벼운 리액션 평서문으로만 답하세요.'
+    };
+  }
   if(character.creatorDefinition)return null; // Authored styles are not generic presets.
   if(/요청하신\s*대로|앞으로는?\s*정중하게|존댓말(?:을|로)\s*(?:사용|대화|말씀).*겠|말투를\s*바꾸겠/.test(reply))return {instruction:'요청을 설명하는 직원용 확인문이 나왔습니다. 설정 변경을 복창하지 말고, 실제로 요청된 말높임으로 한두 마디 대화를 이어가세요. 장난을 중단하되 성격과 취향은 유지합니다. 장황한 사과나 다른 주제를 고르라는 질문도 필요 없습니다.'};
   if(conversation.kind==='greeting'){

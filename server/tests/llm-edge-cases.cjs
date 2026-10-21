@@ -173,6 +173,23 @@ global.fetch = async (url, options) => {
           roomLeft: false
         });
       }
+    } else if (lastUserMsg.includes('consecutive-question-case')) {
+      if (count === 1) {
+        outputText = JSON.stringify({
+          reply: '그럼 평소엔 주말에 주로 뭐하면서 시간 보내?',
+          roomLeft: false
+        });
+      } else {
+        outputText = JSON.stringify({
+          reply: '아 그렇구나ㅋㅋ 나도 집에서 뒹굴거리는 거 진짜 좋아해',
+          roomLeft: false
+        });
+      }
+    } else if (lastUserMsg.includes('question-prep-case')) {
+      outputText = JSON.stringify({
+        reply: '안녕 반가워! 오늘 하루는 어땠어?',
+        roomLeft: false
+      });
     } else if (lastUserMsg.includes('gemini-safety-block-case')) {
       return new Response(JSON.stringify({
         candidates: [{
@@ -409,6 +426,15 @@ async function req(route, token, body, method = body === undefined ? 'GET' : 'PO
     assert(!clicheRes.data.partnerReply.includes('기대해봐도 되나'), '건방진 심사위원식 클리셰는 제거되어야 함');
     assert(clicheRes.data.partnerReply.includes('궁금하네'), '자연스러운 호기심으로 교정되어야 함');
     console.log(' -> 결과:', clicheRes.data.partnerReply);
+
+    console.log('[Test 19] 취조식 연속 질문 남발 시 평서문/리액션으로 자동 교정 검증');
+    const { data: guestQ } = await req('/auth/guest', null, {});
+    await req('/chat/send', guestQ.token, { characterId: 'p_0648', message: 'question-prep-case: 안녕', messageId: 'q-prep' });
+    const questionRes = await req('/chat/send', guestQ.token, { characterId: 'p_0648', message: 'consecutive-question-case: 그냥 침대에 누워있었어', messageId: 'q-1' });
+    assert.equal(questionRes.status, 200);
+    assert(!questionRes.data.partnerReply.includes('?'), '취조식 연속 질문은 평서문으로 교정되어야 함');
+    assert(questionRes.data.partnerReply.includes('아 그렇구나'), '자연스러운 공감/리액션으로 답변해야 함');
+    console.log(' -> 결과:', questionRes.data.partnerReply);
 
     console.log('\nPASS: All LLM edge cases, address auto-sanitization, markdown JSON parsing, system phrase filtering, and fallback resilience verified!');
     await stop();

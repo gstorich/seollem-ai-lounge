@@ -87,12 +87,14 @@ const FREQUENCY_GUIDANCE = `
 - 최근 자기 답장의 시작말과 끝 장식이 반복되면 이번에는 그 장식을 쉬어갑니다. 반복을 피하려고 ㅋㅎ를 ㅎㅎ나 이모지로 기계적으로 바꿔 붙이지 않습니다. 말버릇을 생략해도 성격·말높임·취향·대화 흐름은 그대로 유지합니다.`;
 function buildCadencePrompt(recent=[]){
   const own=recent.filter(m=>m.role==='assistant'&&typeof m.content==='string').slice(-2);
-  if(own.length<2)return '';
+  if(own.length<1)return '';
   const laughter=m=>/[ㅋㅎ]{1,}[\s.!?~…]*$/u.test(m.content.trim());
   const prefix=m=>m.content.trim().match(/^(엥|아니|와|음|오)(?=[\s,.!?~ㅋㅎ]|$)/u)?.[1];
+  const isQuestion=m=>/[?？]|(?:어때|어떨까|뭐해|뭐야|맞아|있어|없어|해볼래|할래|좋아해|봤어|알아|생각해|그런가)\s*[?]?\s*$/u.test(m.content.trim());
   const repeated=[];
-  if(own.every(laughter))repeated.push('최근 자기 답장 두 개가 모두 웃음 표기로 끝났습니다. 이번에는 웃음·대체 이모지 없이 내용으로 반응하세요.');
-  if(prefix(own[0])&&prefix(own[0])===prefix(own[1]))repeated.push('최근 자기 답장 두 개의 시작 감탄사가 같았습니다. 이번에는 그 시작말을 생략하고 바로 할 말을 하세요.');
+  if(own.length>=2&&own.every(laughter))repeated.push('최근 자기 답장 두 개가 모두 웃음 표기로 끝났습니다. 이번에는 웃음·대체 이모지 없이 내용으로 반응하세요.');
+  if(own.length>=2&&prefix(own[0])&&prefix(own[0])===prefix(own[1]))repeated.push('최근 자기 답장 두 개의 시작 감탄사가 같았습니다. 이번에는 그 시작말을 생략하고 바로 할 말을 하세요.');
+  if(own.some(isQuestion))repeated.push('직전 자기 답장에 이미 질문이 있었습니다. 이번 답장에서는 절대로 질문(? 또는 되묻는 말)을 덧붙이지 마세요. 심문하듯 묻지 말고, 본인의 짧은 생각이나 감정, 리액션 평서문으로만 대답하세요.');
   return repeated.length?'[이번 답장의 반복 완화]\n'+repeated.join('\n'):'';
 }
 function buildCompactPrompt(character){
