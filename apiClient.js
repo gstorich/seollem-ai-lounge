@@ -339,6 +339,7 @@
     },
     async getMatchEligibility() { return this.request('/match/eligibility'); },
     async requestMatch(filters, characterId) { return this.request('/match/request', 'POST', { filters, characterId }); },
+    async idleFollowUp(characterId,userMessageId,lastReplyId) { await this.flushState(); return this.request('/chat/idle-followup','POST',{characterId,userMessageId,lastReplyId}); },
     async sendGreeting(characterId, messageId) { await this.flushState(); return this.request('/chat/greeting', 'POST', { characterId, messageId }); },
     async sendGift(characterId, giftKey, customMsg, messageId) { await this.flushState(); return this.request('/chat/gift', 'POST', { characterId, giftKey, customMsg, messageId }); },
     async unlockMedia(mediaId) { return this.request('/media/unlock', 'POST', { mediaId }); },

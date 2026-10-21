@@ -25,6 +25,13 @@ router.post('/greeting',async(req,res)=>{
   const value=characterAndId(req,res);if(!value)return;
   return generatedTurn(req,res,{...value,message:'새 대화가 연결되었습니다. 상대는 아직 아무 말도 하지 않은 낯선 사람입니다. 이 캐릭터의 고유 성향과 첫마디 연출에 따라 지금 보내고 싶은 짧은 첫 메시지를 쓰세요. 정중한 인사부터 할 필요는 없습니다. 반말 캐릭터는 처음부터 편하게 안녕, ㅎㅇ, 뭐해 등으로 짧게 말을 트세요. 사용자 신상·외모·이전 관계를 지어내지 마세요.',kind:'greeting',cost:0});
 });
+router.post('/idle-followup',async(req,res)=>{
+  const value=characterAndId(req,res);if(!value)return;
+  const idle=require('../services/idleFollowUp');
+  const followUp=idle.state(req.user.id,value.character.id);
+  if(!followUp.eligible||req.body.userMessageId!==followUp.userMessageId||req.body.lastReplyId!==followUp.lastReplyId)return res.json({success:true,skipped:true,costDeducted:0});
+  return generatedTurn(req,res,{character:value.character,requestId:followUp.requestId,followUp,kind:'proactive',cost:0,message:'서버 요청: 사용자가 마지막 답변 뒤 아직 답장하지 않은 상황입니다. 실제 지난 대화와 캐릭터의 성격·말투를 참고해 자연스럽게 이어갈 짧은 연락 하나를 생성하세요. 답장을 재촉하거나 죄책감을 주지 말고 직전 표현·안부 질문을 반복하지 마세요. 연락을 원하지 않거나 대화가 끝났거나 적절히 이어갈 소재가 없으면 roomLeft:true로 표시하세요. 이 요청은 사용자의 새 발화가 아닙니다.'});
+});
 router.post('/gift',async(req,res)=>{
   const value=characterAndId(req,res);if(!value)return;
   const {giftKey,customMsg=''}=req.body;

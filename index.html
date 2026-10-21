@@ -2991,7 +2991,6 @@
       pendingUserMessages: [],
       pendingReadTimer: null,
       idleFollowUpTimer: null,
-      idleFollowUpCount: 0,
       activeTimers: []
     };
 
@@ -3947,116 +3946,36 @@
     }
 
     // 캐릭터 성향별 자연스럽고 설레는 무응답 선톡/재촉 멘트 생성기
-    function pickCharacterFollowUpLine(char, count) {
-      if (!char) return null;
-      const isFirst = count === 1;
-      const trait = char.traitKey || '';
-      const concept = char.conceptKey || '';
-      const text = `${char.conceptTitle || ''} ${char.conceptMission || ''} ${char.speechStyle || ''} ${char.bio || ''}`;
-      const isSensual = /19금|은밀|시크릿|관능|대담|직진|유혹|도발|섹시|플러팅|야릇|스킨십/.test(text) || trait === 'chic' || concept === 'sensual_flirt';
-
-      if (isSensual) {
-        const pool1 = [
-          '오빠 갑자기 왜 말이 없어? 나 혼자 두근거리게 해놓고 어디 간 거야 ㅎㅎ',
-          '어디 갔어? 설마 나 두고 딴짓하는 건 아니지? 얼른 와, 기다리고 있단 말이야',
-          '답장 없으니까 더 궁금해지잖아... 무슨 생각 해?',
-          '오빠 조용하니까 괜히 더 보고 싶네... 얼른 대답해줘요'
-        ];
-        const pool2 = [
-          '치... 답장도 안 해주고 너무해. 나 삐지기 전에 얼른 와요',
-          '설마 나 혼자만 설렜던 거야? 얼른 와서 솔직하게 말해봐요 ㅎㅎ',
-          '계속 기다리게 하면 나도 딴생각 할 거야? 얼른 와요~'
-        ];
-        const arr = isFirst ? pool1 : pool2;
-        return arr[Math.floor(Math.random() * arr.length)];
-      }
-
-      if (trait === 'tsundere' || trait === 'cold') {
-        const pool1 = [
-          '뭐야, 먼저 말 걸어놓고 딴청 피우는 거야? 사람 기다리게 하지 마',
-          '바쁜 척하는 거 다 티나거든? 얼른 대답이나 해',
-          '갑자기 왜 말이 없는데? 할 말 다 했어?'
-        ];
-        const pool2 = [
-          '하, 말 안 할 거면 나도 딴짓하러 간다? ...진짜 간다?',
-          '진짜 안 읽을 거야? 사람 안달나게 하는데 뭐 있네...',
-          '답장 오나 폰 계속 쳐다본 내가 바보지. 흥'
-        ];
-        const arr = isFirst ? pool1 : pool2;
-        return arr[Math.floor(Math.random() * arr.length)];
-      }
-
-      if (trait === 'cute' || trait === 'lively') {
-        const pool1 = [
-          '오빠아~ 어디 갔어? 나 심심하단 말이야 ㅠㅠ 얼른 와줘!',
-          '똑똑똑~ 거기 계신가요? 나 안 보고 싶어? ㅎㅎ',
-          '갑자기 사라지기 있긔 없긔? 톡 보면 바로 대답해줘~'
-        ];
-        const pool2 = [
-          '설마 잠든 건 아니지? 톡 확인하면 얼른 대답해줘~ 기다릴게!',
-          '아직 바쁜가 봐... 얼른 끝나구 나랑 놀아줘야 돼 약속!',
-          '나 심심해서 시무룩해지는 중... 1분 안에 와줘요 ㅠㅠ'
-        ];
-        const arr = isFirst ? pool1 : pool2;
-        return arr[Math.floor(Math.random() * arr.length)];
-      }
-
-      const pool1 = [
-        '바쁜 일 있으신가 봐요? 천천히 오셔도 돼요, 기다릴게요 ㅎㅎ',
-        '갑자기 조용해지셔서 걱정했어요. 무슨 일 있는 건 아니죠?',
-        '이야기하다가 잠깐 어디 가셨나 봐요~ 편할 때 말 걸어줘요'
-      ];
-      const pool2 = [
-        '편할 때 천천히 답장 줘요~ 계속 생각하고 있을게요 :)',
-        '오늘 하루도 많이 바빴죠? 대화방 열어두고 기다리고 있을게요 ㅎㅎ'
-      ];
-      const arr = isFirst ? pool1 : pool2;
-      return arr[Math.floor(Math.random() * arr.length)];
+    // Count from persisted messages after the latest user turn, never room entry.
+    function idleFollowUpState() {
+      const messages=state.messages||[];
+      let index=-1;
+      for(let i=messages.length-1;i>=0;i--)if(messages[i].sender==='user'&&!messages[i].failed&&!messages[i].isFailed){index=i;break;}
+      return {userMessageId:messages[index]?.id,lastReplyId:messages.at(-1)?.id,count:index<0?2:messages.slice(index+1).filter(m=>m.sender==='ai'&&(/^(?:idle_followup_|reply_idle_)/.test(m.id||'')||m.followUpType==='idle')).length};
     }
-
-    // 선톡(무응답 시 자동 재촉 및 플러팅 메시지) 스케줄러 복원
     function scheduleIdleFollowUp() {
       clearIdleFollowUpTimer();
-      const char = state.currentChar;
-      if (!char || state.roomLeft || state.isAiBusy) return;
-      if (!state.messages || state.messages.length < 2) return;
-      const lastMsg = state.messages[state.messages.length - 1];
-      if (!lastMsg || lastMsg.sender !== 'ai') return;
-      if ((state.idleFollowUpCount || 0) >= 2) return;
-
-      // 45초 ~ 75초 후 자연스러운 선톡 발송
-      const delayMs = Math.round(45000 + Math.random() * 30000);
-      state.idleFollowUpTimer = setTimeout(async () => {
-        state.idleFollowUpTimer = null;
-        if (state.roomLeft || state.isAiBusy) return;
-        if ((state.idleFollowUpCount || 0) >= 2) return;
-
-        const currentLast = state.messages && state.messages[state.messages.length - 1];
-        if (currentLast && currentLast.sender === 'user') return;
-
-        state.idleFollowUpCount = (state.idleFollowUpCount || 0) + 1;
-        const line = pickCharacterFollowUpLine(char, state.idleFollowUpCount);
-        if (!line) return;
-
-        const replyPlan = {
-          bubbles: [line],
-          replyId: 'idle_followup_' + Date.now()
-        };
-
-        if (state.currentChar?.id === char.id && state.currentView === 'chatRoom') {
-          await runRealisticReplySequence(replyPlan, true, null, Date.now());
-        } else {
-          state.activePendingDeliveries[char.id] = {
-            charId: char.id,
-            bubbles: [line],
-            replyId: replyPlan.replyId
-          };
-          flushPendingDeliveryForChar(char.id);
-          if (window.AzitNotifications?.notifyAiMessage) {
-            AzitNotifications.notifyAiMessage(char, line);
-          }
+      const char=state.currentChar,last=state.messages?.at(-1),snapshot=idleFollowUpState();
+      if(!char||state.roomLeft||state.isAiBusy||last?.sender!=='ai'||snapshot.count>=2||!snapshot.userMessageId||!window.ApiClient?.isConnected())return;
+      const delayMs=Math.round(45000+Math.random()*30000);
+      state.idleFollowUpTimer=setTimeout(async()=>{
+        state.idleFollowUpTimer=null;
+        const current=idleFollowUpState();
+        if(state.currentChar?.id!==char.id||state.roomLeft||state.isAiBusy||current.count>=2||current.userMessageId!==snapshot.userMessageId||current.lastReplyId!==snapshot.lastReplyId)return;
+        state.isAiBusy=true;
+        const turnId=state.messageTurnId,startedAt=Date.now();
+        try{
+          const result=await ApiClient.idleFollowUp(char.id,snapshot.userMessageId,snapshot.lastReplyId);
+          if(result.skipped)return;
+          if(!result.isAiGenerated||!result.partnerReply?.trim())throw Error('Invalid generated follow-up');
+          if(state.currentChar?.id!==char.id||state.roomLeft||state.messageTurnId!==turnId||idleFollowUpState().userMessageId!==snapshot.userMessageId)return;
+          await runRealisticReplySequence({bubbles:[result.partnerReply],replyId:result.replyId},true,turnId,startedAt);
+        }catch(error){
+          if(state.currentChar?.id===char.id&&state.messageTurnId===turnId)showGenerationError(()=>scheduleIdleFollowUp());
+        }finally{
+          if(state.currentChar?.id===char.id&&state.messageTurnId===turnId)state.isAiBusy=false;
         }
-      }, delayMs);
+      },delayMs);
     }
 
     async function runRealisticReplySequence(replyPlan, isProactiveFollowUp = false, turnId = null, typingStartedAt = null) {
@@ -4583,10 +4502,13 @@
 
     function showContentAccessNotice(error, retry, meta = {}) {
       const errorCode = error.code || error.error;
-      if (!['MINIMUM_AGE_REQUIRED','ADULT_VERIFICATION_REQUIRED','CONTENT_NOT_ALLOWED'].includes(errorCode)) return false;
+      const safetyCategory = error.safetyCategory || error.data?.safetyCategory;
+      const isSeriousHarm = safetyCategory === 'seriousHarm' || (typeof error.message === 'string' && error.message.includes('109'));
+      if (!['MINIMUM_AGE_REQUIRED','ADULT_VERIFICATION_REQUIRED','CONTENT_NOT_ALLOWED'].includes(errorCode) && !isSeriousHarm) return false;
       const reqId = meta.requestId || (typeof state !== 'undefined' && state.messages ? state.messages.filter(m => m.sender === 'user').at(-1)?.id : null);
       if (reqId && typeof markUserMessageFailed === 'function') {
-        markUserMessageFailed(reqId, error.message || (errorCode === 'ADULT_VERIFICATION_REQUIRED' ? '성인인증 필요' : '전송 불가'));
+        const failLabel = isSeriousHarm ? '위기상담 안내 (전송되지 않음)' : (errorCode === 'ADULT_VERIFICATION_REQUIRED' ? '성인인증 필요' : '전송 불가');
+        markUserMessageFailed(reqId, failLabel);
       }
       document.getElementById('generationErrorNotice')?.remove();
       const notice = document.createElement('div');
@@ -4710,6 +4632,31 @@
             feedback.classList.remove('hidden');
           }
         };
+      } else if (isSeriousHarm) {
+        notice.className = 'mx-auto my-4 max-w-[92%] rounded-2xl bg-gradient-to-b from-[#252830] to-[#1a1c23] border border-emerald-500/40 p-4 text-center text-[#e8eaed] shadow-xl';
+        notice.innerHTML = `
+          <div class="flex items-center justify-center gap-1.5 font-bold text-emerald-400 text-[14px] mb-2">
+            <span>💚</span><span>소중한 당신, 혼자 힘들어하지 마세요</span>
+          </div>
+          <p class="text-[#c4c7d0] text-[12.5px] leading-relaxed mb-3">
+            힘든 마음을 털어놓고 기댈 수 있는 전문가들이 24시간 함께하고 있습니다.<br>
+            언제든 편안하게 무료로 도움을 받으실 수 있습니다.
+          </p>
+          <div class="flex flex-col gap-2 w-full max-w-xs mx-auto mb-3">
+            <a href="tel:109" class="inline-flex items-center justify-center gap-2 px-4 py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold text-[13.5px] shadow transition-all cursor-pointer no-underline">
+              <span>☎ 24시간 자살예방 상담전화 109</span>
+            </a>
+            <div class="grid grid-cols-2 gap-1.5 text-[11px] text-[#a0a5b5]">
+              <div class="bg-white/5 py-1.5 px-2 rounded-lg border border-white/5">
+                정신건강 <a href="tel:1577-0199" class="text-emerald-300 font-semibold underline">1577-0199</a>
+              </div>
+              <div class="bg-white/5 py-1.5 px-2 rounded-lg border border-white/5">
+                생명의전화 <a href="tel:1588-9191" class="text-emerald-300 font-semibold underline">1588-9191</a>
+              </div>
+            </div>
+          </div>
+          <p class="text-[11px] text-[#8e93a6]">비밀이 보장되며 통화료는 무료입니다 · 하트는 차감되지 않았습니다.</p>
+        `;
       } else {
         notice.className = 'mx-auto my-4 max-w-[90%] rounded-xl bg-[#e5e1d8] px-4 py-3 text-center text-[12px] text-[#66635d] leading-relaxed';
         const text = document.createElement('p');
@@ -5159,7 +5106,6 @@
       clearAllTimers();
       state.roomLeft = false;
       state.hasRenderedLeaveBanner = false;
-      state.idleFollowUpCount = 0;
       setChatInputEnabled(true);
 
       if (!state.metCharIds.includes(char.id)) {

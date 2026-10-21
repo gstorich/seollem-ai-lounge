@@ -7,7 +7,7 @@ const FAILURE = '문제가 발생했습니다. 잠시 후에 다시 시도해주
 
 // A pending request records intent, never a charge. Reply + debit + replay result
 // commit together only after an actual provider response has been validated.
-module.exports = async function generatedTurn(req, res, {character, message, requestId, kind, cost, userMessage}) {
+module.exports = async function generatedTurn(req, res, {character, message, requestId, kind, cost, userMessage, followUp}) {
   const id = req.user.id;
   const fingerprint = crypto.createHash('sha256').update(JSON.stringify({kind,characterId:character.id,message})).digest('hex');
   const previous = db.getChatRequest(id, requestId);
@@ -15,6 +15,7 @@ module.exports = async function generatedTurn(req, res, {character, message, req
   if (previous?.success) {
     if(previous.contentPolicyVersion!==require('./contentAccess').version)return res.status(409).json({success:false,error:'REPLY_POLICY_CHANGED',message:'대화 제공 기준이 변경되었습니다. 새 메시지로 다시 시도해주세요. 하트는 차감되지 않았습니다.',costDeducted:0,heartsRemaining:db.getUser(id).hearts});
     if(previous.contentAudience!=='general'&&!require('./contentAccess').verifiedAdult(db.getUser(id)))return res.status(403).json({success:false,error:'ADULT_VERIFICATION_REQUIRED',message:'성인인증 상태를 확인해주세요. 인증 전에는 일반 대화만 가능합니다.',costDeducted:0,heartsRemaining:db.getUser(id).hearts});
+    if(previous.skipped)return res.json({...previous,heartsRemaining:db.getUser(id).hearts});
     if (!previous.isAiGenerated) return res.status(503).json({success:false,error:'AI_GENERATION_FAILED',message:FAILURE,costDeducted:0,heartsRemaining:db.getUser(id).hearts});
     return res.json({...previous,heartsRemaining:db.getUser(id).hearts});
   }
@@ -37,6 +38,7 @@ module.exports = async function generatedTurn(req, res, {character, message, req
   if (!user || (!user.isVipUnlimited && user.hearts < required)) return res.status(402).json({success:false,error:'INSUFFICIENT_HEARTS',message:'하트가 부족합니다.',costDeducted:0});
   active.add(id);
   try {
+    if(followUp)require('./idleFollowUp').assertCurrent(id,character.id,followUp);
     const oldMessages = user.savedRooms?.[character.id]?.messages || [];
     // 이전 대화에서 상대방이 이미 퇴장(roomLeft: true)한 방인 경우 추가 메시지 생성 차단
     const lastAi = [...oldMessages].reverse().find(m => m.sender === 'ai');
@@ -78,12 +80,14 @@ module.exports = async function generatedTurn(req, res, {character, message, req
       require('./wellbeingService').assertCurrent(id,character.id,conversation.wellbeing);
       if(require('./contentAccess').verifiedAdult(user)&&!require('./contentAccess').verifiedAdult(db.getUser(id)))throw Object.assign(Error('ADULT_VERIFICATION_REQUIRED'),{accessBlocked:true});
       if(!require('./legalService').accepted(db.getUser(id)))throw Object.assign(Error('LLM_CONSENT_CHANGED'),{accessBlocked:true});
+      if(followUp)require('./idleFollowUp').assertCurrent(id,character.id,followUp);
+      if(followUp&&result.roomLeft){const skipped={success:true,skipped:true,costDeducted:0,fingerprint,contentPolicyVersion:require('./contentAccess').version,contentAudience:'general'};db.saveChatRequest(id,requestId,skipped);return skipped;}
       const charged = cost > 0 ? db.debit(id,cost,kind==='gift'?'gift:'+userMessage.giftKey:'chat') : db.getUser(id);
       if (!charged) { const error=Error('Insufficient balance after generation');error.code='INSUFFICIENT_HEARTS';throw error; }
       const replyId='reply_'+requestId;
       const userMsgToAppend = userMessage ? [{...userMessage,id:requestId,sender:'user',text:message,createdAt:Date.now()}] : [];
       if(kind==='chat')require('./advertisingService').firstChat(id);
-      const current=db.appendMessages(id,character.id,[...userMsgToAppend,{id:replyId,sender:'ai',text:result.text,createdAt:Date.now(),time:new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'})}]);
+      const current=db.appendMessages(id,character.id,[...userMsgToAppend,{id:replyId,sender:'ai',text:result.text,createdAt:Date.now(),...(followUp?{followUpType:'idle',proactive:true}:{}),time:new Date().toLocaleTimeString('ko-KR',{timeZone:'Asia/Seoul',hour:'numeric',minute:'2-digit'})}]);
       db.saveConversationState(id,character.id,result.memory,replyId,storedState.revision);
       const value={success:true,partnerReply:result.text,replyId,roomLeft:result.roomLeft,heartsRemaining:current.hearts,costDeducted:charged.isVipUnlimited?0:cost,isAiGenerated:true,contentAudience:require('./contentAccess').verifiedAdult(user)?'adult':'general',fingerprint,...(kind==='gift'?{giftMessageId:requestId}:{})};
       value.contentPolicyVersion=require('./contentAccess').version;
