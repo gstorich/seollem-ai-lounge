@@ -43,6 +43,7 @@ async function verify(token, phone, challenge, code=challenge.code) { return req
   fs.writeFileSync(env.DATABASE_FILE,JSON.stringify({users:{legacy_guest:{id:'legacy_guest',hearts:17.4,phone:null,savedRooms:{},metCharIds:[]}},orders:{}}));
   await start();
   const sql = new DatabaseSync(env.SQLITE_FILE);
+  sql.exec('PRAGMA busy_timeout=5000;');
   assert.equal(JSON.parse(sql.prepare('SELECT data FROM users WHERE id=?').get('legacy_guest').data).hearts,17.4);
   const a=await guest(), b=await guest();
   assert.equal((await getState()).status,401);
