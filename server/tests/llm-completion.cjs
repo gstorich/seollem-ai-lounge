@@ -1,6 +1,7 @@
 const assert=require('node:assert/strict'),{spawn}=require('node:child_process'),fs=require('node:fs'),path=require('node:path'),os=require('node:os'),crypto=require('node:crypto'),{DatabaseSync}=require('node:sqlite');
 const format=require('../services/chatPunctuation');
 assert.equal(format('좋아요. 3.7하트 https://예시.한국/a. “네.” ㅋㅋ...'),'좋아요 3.7하트 https://예시.한국/a. “네.” ㅋㅋ...');
+assert.equal(format('와, 진짜? 아니, ㅋㅋ\n“헐, 대박.” 10,000하트 3.7하트 https://example.com/a,b'), '와 진짜? 아니 ㅋㅋ\n“헐 대박.” 10,000하트 3.7하트 https://example.com/a,b');
 const root=path.resolve(__dirname,'../..'),dir=fs.mkdtempSync(path.join(os.tmpdir(),'azit-api-only-')),base='http://127.0.0.1:19414/api';
 const env={...process.env,NODE_ENV:'production',HOST:'127.0.0.1',PORT:'19414',DATABASE_FILE:path.join(dir,'legacy.json'),SQLITE_FILE:path.join(dir,'db.sqlite'),JWT_SECRET:crypto.randomBytes(48).toString('hex'),GEMINI_API_KEY:'synthetic-test-key',OPENAI_API_KEY:''};
 let child,logs='',sql,clientIp=0;
