@@ -125,7 +125,7 @@ function dialogueFeedback(reply,character,conversation,relationship){
   return null;
 }
 
-async function callGemini(messages, systemInstruction, apiKey, signal = AbortSignal.timeout(45000), responseSchema = conversationContext.responseSchema, moderation = false, adult = false) {
+async function callGemini(messages, systemInstruction, apiKey, signal = AbortSignal.timeout(45000), responseSchema = conversationContext.responseSchema, moderation = false, adult = false, thinkingLevel = 'LOW') {
   const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(config.geminiModel)}:generateContent`;
 
   const contents = messages.map(m => ({
@@ -144,7 +144,7 @@ async function callGemini(messages, systemInstruction, apiKey, signal = AbortSig
       maxOutputTokens: 16384,
       responseMimeType: 'application/json',
       responseSchema,
-      thinkingConfig: { thinkingLevel: 'LOW' }
+      thinkingConfig: { thinkingLevel: thinkingLevel==='MINIMAL'&&/^gemini-3\.1-flash-lite(?:-preview)?$/.test(config.geminiModel)?'MINIMAL':'LOW' }
     },
     safetySettings: [
       { category: 'HARM_CATEGORY_SEXUALLY_EXPLICIT', threshold: (moderation || adult) ? 'BLOCK_NONE' : 'BLOCK_ONLY_HIGH' },
@@ -261,7 +261,7 @@ module.exports = {
     const selectedHistory = conversation.recent.map(m=>({role:m.role,content:m.content}));
     const signal = AbortSignal.timeout(45000);
     async function generate(messages,prompt,schema,moderation=false){
-      if(config.geminiApiKey)return callGemini(messages,prompt,config.geminiApiKey,signal,schema,moderation,adult);
+      if(config.geminiApiKey)return callGemini(messages,prompt,config.geminiApiKey,signal,schema,moderation,adult,conversation.kind==='gift'&&!moderation&&schema?.properties?.reply?.type==='ARRAY'?'MINIMAL':'LOW');
       if(config.openaiApiKey)return callOpenAI(messages,prompt,config.openaiApiKey,signal);
       throw new Error('LLM_NOT_CONFIGURED');
     }

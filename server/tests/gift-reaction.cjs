@@ -21,7 +21,7 @@ global.fetch=async(url,options)=>{
   const memory={summary:'야근 후 커피 이야기를 하다 커피 선물을 받아 기뻐함',userFacts:[],characterFacts:[],sharedEvents:[{text:'야근 뒤 커피 얘기와 이어진 선물',sourceId:data.recentMessageSources.at(-1).id}],openThreads:[],agreements:[],retirements:[],state:{scene:'야근 후 커피 선물',characterEmotion:'신남',userEmotion:'확인되지 않음',relationship:'편하게 반말하는 사이',lastBeat:'커피 선물에 신나서 반응함',sourceIds:[data.newReplySourceId]}};
   return response(JSON.stringify({memory}));
  }
- writes++;assert.equal(body.generationConfig.responseSchema.properties.reply.type,'ARRAY');assert.equal(body.generationConfig.responseSchema.properties.reply.minItems,3);assert.equal(body.generationConfig.responseSchema.properties.reply.maxItems,4);
+ writes++;assert.equal(body.generationConfig.thinkingConfig.thinkingLevel,'MINIMAL');assert.equal(body.generationConfig.responseSchema.properties.reply.type,'ARRAY');assert.equal(body.generationConfig.responseSchema.properties.reply.minItems,3);assert.equal(body.generationConfig.responseSchema.properties.reply.maxItems,4);
  assert(prompt.includes('선물 리액션'));assert(prompt.includes('이번 말높임은 편한 반말'));assert(body.contents.some(m=>m.role==='model'&&m.parts[0].text.includes('야근')),'Real pre-gift conversation must reach the writer');
  if(correctOnce){correctOnce=false;return response(JSON.stringify({reply:['고마워요','정말 감사해요','기뻐요'],roomLeft:false}));}
  return response(JSON.stringify({reply:bubbles,roomLeft:false}));
