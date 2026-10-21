@@ -4099,7 +4099,9 @@
           const elapsed = idx === 0 && typingStartedAt ? Date.now() - typingStartedAt : 0;
           const remainingTypeMs = replyPlan?.greeting
             ? AzitChatTiming.greetingRemainingDelay(elapsed)
-            : AzitChatTiming.remainingDelay(bubbleText, elapsed);
+            : (idx === 0
+                ? AzitChatTiming.remainingDelay(bubbleText, elapsed)
+                : (AzitChatTiming.subsequentBubbleDelay ? AzitChatTiming.subsequentBubbleDelay(bubbleText) : 450));
 
           if (isInActiveRoom()) {
             headerStatusText.textContent = `${char.name}님이 입력 중...`;
@@ -4115,7 +4117,9 @@
 
           const bubbleMsgId = (bubbles.length === 1 && idx === 0) ? replyPlan.replyId : `${replyPlan.replyId}_${idx}`;
           if (isInActiveRoom()) {
-            hideTypingIndicator();
+            if (idx === bubbles.length - 1 && (!replyPlan || !replyPlan.mediaItem)) {
+              hideTypingIndicator();
+            }
             appendMessage('ai', bubbleText, { id: bubbleMsgId });
             saveAccountState();
           } else {
@@ -4148,7 +4152,7 @@
 
           if (idx < bubbles.length - 1) {
             await new Promise(resolve => {
-              registerTimeout(resolve, Math.round(250 + Math.random() * 200));
+              registerTimeout(resolve, Math.round(150 + Math.random() * 100));
             });
           }
         }

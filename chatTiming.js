@@ -18,6 +18,12 @@
   function greetingRemainingDelay(elapsed=0){
     return 0;
   }
+  // 연속되는 두 번째 이후 말풍선의 자연스러운 카톡식 호흡 (이미 발화 중이므로 350~750ms의 경쾌한 타속)
+  function subsequentBubbleDelay(text,random=Math.random){
+    const content=String(text||'');
+    const characters=Array.from(content.replace(/\s/g,'')).length;
+    return Math.round(Math.min(800,Math.max(350,300+characters*(10+random()*8))));
+  }
   // 실제 카카오톡처럼 1~3개의 자연스러운 말풍선 호흡으로 분할
   function splitIntoRealisticBubbles(text, options = {}) {
     const raw = String(text || '').trim();
@@ -56,15 +62,7 @@
       if (result.length > 1) return result.slice(0, 3);
     }
 
-    // 3. 콤마(,) 뒤에 긴 문장이 이어지는 경우 (길이 24자 이상)
-    if (raw.length >= 24 && raw.includes(',')) {
-      const commaMatch = raw.match(/^([^,]{4,24},)\s+(.{8,})$/);
-      if (commaMatch && commaMatch[2].length >= 8) {
-        return [commaMatch[1].trim(), commaMatch[2].trim()];
-      }
-    }
-
-    // 4. 구두점 없이 어절 단위로 긴 문장 (28자 이상)
+    // 3. 구두점 없이 어절 단위로 긴 문장 (28자 이상)
     if (raw.length >= 28) {
       const endMatch = raw.match(/^(.{8,38}?(?:았어|었어|였어|겠어|했어|했네|하네|없네|있네|없어|있어|잖아|거든|이야|보자|하자|줄게|할게|갈게|올게|맞아|아냐|같아|끝내자|알았어))\s+(.{6,})$/);
       if (endMatch) {
@@ -74,7 +72,7 @@
 
     return [raw];
   }
-  const api={typingDuration,remainingDelay,greetingRemainingDelay,splitIntoRealisticBubbles};
+  const api={typingDuration,remainingDelay,greetingRemainingDelay,subsequentBubbleDelay,splitIntoRealisticBubbles};
   if(typeof module==='object'&&module.exports)module.exports=api;
   else root.AzitChatTiming=api;
 })(typeof window==='object'?window:this);
