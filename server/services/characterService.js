@@ -20,7 +20,7 @@ module.exports = {
   matchesFilters,
   initializeRegistry(){registry=require('./characterRegistry');},
   getAllCharacters() {
-    return (registry?[...registry.catalog().all.values()].filter(c=>registry.catalog().enabled.has(c.id)&&!require('./aiReports').isHeld(c.id)):CHARACTERS.filter(c=>!require('./aiReports').isHeld(c.id))).map(c => ({
+    return (registry?[...registry.catalog().all.values()].filter(c=>registry.catalog().enabled.has(c.id)&&!require('./aiReports').isHeld(c.id)):CHARACTERS).map(c => ({
       id: c.id,
       name: c.name,
       age: c.age,
@@ -39,12 +39,12 @@ module.exports = {
     return registry?registry.catalog().all.get(id)||null:CHARACTERS.find(c=>c.id===id)||null;
   },
   publicProfile,
-  catalogVersion(){return (registry?registry.catalog().version:'builtin')+'-'+require('./aiReports').holdVersion();},
-  isPublished(id){if(require('./aiReports').isHeld(id))return false;return registry?registry.catalog().enabled.has(id):CHARACTERS.some(c=>c.id===id);},
+  catalogVersion(){return registry?registry.catalog().version+'-'+require('./aiReports').holdVersion():'builtin';},
+  isPublished(id){if(registry&&require('./aiReports').isHeld(id))return false;return registry?registry.catalog().enabled.has(id):CHARACTERS.some(c=>c.id===id);},
 
   findMatch(filters = {}, metIds = []) {
     const met=new Set(metIds);
-    let pool=(registry?[...registry.catalog().all.values()].filter(c=>registry.catalog().enabled.has(c.id)&&!require('./aiReports').isHeld(c.id)):CHARACTERS.filter(c=>!require('./aiReports').isHeld(c.id))).filter(c=>matchesFilters(c,filters)&&!met.has(c.id));
+    let pool=(registry?[...registry.catalog().all.values()].filter(c=>registry.catalog().enabled.has(c.id)&&!require('./aiReports').isHeld(c.id)):CHARACTERS).filter(c=>matchesFilters(c,filters)&&!met.has(c.id));
     if(!pool.length)return null;
 
     // 접속 초반 (만난 인연 수가 5명 미만인 신규/초반 유저) & 특정 성향 미지정 시:
