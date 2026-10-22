@@ -577,6 +577,19 @@
     #serviceFooter *{color:inherit}
     #serviceFooter a:hover{color:#fff}
     #viewChatList > footer > div:last-child{color:#c5b6a6}
+
+    /* Keep account details out of the balance/utility flex row. */
+    .chat-footer-meta{display:grid;grid-template-columns:minmax(0,1fr) auto;grid-template-areas:"wallet links" ". account";align-items:center;gap:6px 12px;margin-top:10px;padding:0 4px;font-size:12.5px;color:#baa997}
+    .chat-footer-wallet{grid-area:wallet;display:flex;align-items:center;gap:8px;white-space:nowrap}
+    .chat-footer-wallet>*{flex-shrink:0}
+    .chat-footer-links{grid-area:links;display:flex;align-items:center;justify-content:flex-end;gap:8px;white-space:nowrap;font-size:12px;color:#8a7c6c}
+    .chat-footer-account{grid-area:account;display:flex;justify-content:flex-end;align-items:center;min-width:0;font-size:12px;white-space:nowrap;line-height:1.4}
+    @media(max-width:480px){
+      .chat-footer-meta{grid-template-columns:auto minmax(0,1fr);grid-template-areas:"wallet wallet" "links account";gap:9px 10px}
+      .chat-footer-wallet{justify-content:space-between}
+      .chat-footer-links{justify-content:flex-start;font-size:11px}
+      .chat-footer-account{font-size:11px}
+    }
   </style>
   <script src="/analytics.js" defer></script>
   <script src="/advertising.js" defer></script>
@@ -851,19 +864,21 @@
         </form>
         <div id="wbVoiceStatus" class="wb-voice-status" role="status" aria-live="polite"></div>
 
-        <div class="flex items-center justify-between mt-2.5 text-[12.5px] text-[#baa997] px-1">
-          <div class="flex items-center gap-2">
+        <div class="chat-footer-meta">
+          <div class="chat-footer-wallet">
             <span id="footerCreditText" class="text-[#fbf7f2] font-bold">보유 50 하트 ❤️</span>
             <button id="btnOpenPaymentFooter" type="button" class="px-2 py-0.5 rounded bg-[#443328] hover:bg-[#523d2f] text-[#f0be64] text-[11.5px] font-bold border border-[#6b5239] transition">
               충전하기
             </button>
           </div>
-          <div class="flex flex-wrap items-center gap-1.5 text-[12px] text-[#8a7c6c]">
+          <div class="chat-footer-links">
             <a href="/support" class="hover:text-[#d4c3af] underline">고객센터</a> <button type="button" data-ai-report-history class="underline whitespace-nowrap">신고 내역</button>
             <!-- Hidden hooks to maintain event listeners safely -->
             <button id="btnFooterSwitchVip" type="button" class="hidden">하트모드</button>
-            <button id="btnOpenPhoneAuthFooter" type="button" class="hidden">인증</button>
             <button id="btnOpenAiPolicyInfo" type="button" class="hidden">API</button>
+          </div>
+          <div class="chat-footer-account">
+            <button id="btnOpenPhoneAuthFooter" type="button" class="hidden">인증</button>
           </div>
         </div>
       </footer>
