@@ -1,9 +1,31 @@
 (()=>{'use strict';
 const categories={sexual_minors:'미성년자 관련 성적 내용',non_consensual:'비동의·강압적 내용',sexual:'원치 않는 성적 내용',harm:'위험·범죄·혐오 내용',privacy:'개인정보·실존 인물 침해',quality:'반복·맥락 오류·부적절한 말투',other:'기타'};
-let dialog,busy=false,historyPage=0;
+let dialog,busy=false,historyPage=0,menu,menuTrigger;
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const date=x=>new Date(x).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});
+function closeMenu(restoreFocus=false){
+ if(!menu)return;
+ menu.remove();menu=null;
+ const trigger=menuTrigger;menuTrigger=null;
+ trigger?.setAttribute('aria-expanded','false');
+ if(restoreFocus&&trigger?.isConnected)trigger.focus();
+}
+function showMenu(trigger,item){
+ if(menuTrigger===trigger){closeMenu();return;}
+ closeMenu();menuTrigger=trigger;trigger.setAttribute('aria-expanded','true');
+ menu=document.createElement('div');menu.id='aiAnswerMenu';menu.className='ai-answer-menu';menu.setAttribute('role','menu');menu.setAttribute('aria-label','AI 답변 메뉴');
+ const report=document.createElement('button');report.type='button';report.setAttribute('role','menuitem');report.tabIndex=-1;report.textContent='신고하기';
+ report.onclick=()=>{closeMenu();open(item);};menu.append(report);document.body.append(menu);
+ const bounds=trigger.getBoundingClientRect(),height=menu.offsetHeight;
+ menu.style.left=Math.max(8,Math.min(bounds.left,window.innerWidth-menu.offsetWidth-8))+'px';
+ menu.style.top=Math.max(8,bounds.bottom+height+8>window.innerHeight?bounds.top-height-4:bounds.bottom+4)+'px';report.focus();
+}
+document.addEventListener('pointerdown',e=>{if(menu&&!menu.contains(e.target)&&!menuTrigger?.contains(e.target))closeMenu();});
+document.addEventListener('keydown',e=>{if(menu&&['Escape','Tab'].includes(e.key)){closeMenu(e.key==='Escape');if(e.key==='Escape'){e.preventDefault();e.stopPropagation();}}});
+document.addEventListener('scroll',()=>closeMenu(),true);
+window.addEventListener('resize',()=>closeMenu());
 function shell(title){
+ closeMenu();
  if(!dialog){dialog=document.createElement('dialog');dialog.className='ai-report-dialog';dialog.innerHTML='<div class="ai-report-top"><h2 id="aiReportTitle"></h2><button type="button" aria-label="신고 창 닫기">✕</button></div><div class="ai-report-body"></div>';dialog.setAttribute('aria-labelledby','aiReportTitle');document.body.append(dialog);dialog.querySelector('button').onclick=()=>dialog.close();}
  dialog.querySelector('h2').textContent=title;const body=dialog.querySelector('.ai-report-body');body.replaceChildren();if(!dialog.open)dialog.showModal();return body;
 }
@@ -25,6 +47,9 @@ function open(item){
 }
 window.AzitAiReports={configure(){document.querySelectorAll('[data-ai-report-history]').forEach(b=>b.onclick=()=>{historyPage=0;history();});},decorate(row,{sender,text,messageId,characterId}){
  if(sender!=='ai'||!messageId||!characterId)return;
- const b=document.createElement('button');b.type='button';b.className='ai-report-trigger';b.textContent='답변 신고';b.setAttribute('aria-label','이 AI 답변 신고');b.onclick=()=>open({messageId,characterId,text});(row.children[1]||row).append(b);
+ const content=row.children[1],line=content?.children[1],time=line?.lastElementChild;if(!line||!time)return;
+ const actions=document.createElement('div');actions.className='ai-report-actions';line.replaceChild(actions,time);
+ const b=document.createElement('button');b.type='button';b.className='ai-report-trigger';b.textContent='…';b.setAttribute('aria-label','AI 답변 메뉴');b.setAttribute('aria-haspopup','menu');b.setAttribute('aria-expanded','false');b.setAttribute('aria-controls','aiAnswerMenu');
+ const item={messageId,characterId,text};b.onclick=()=>showMenu(b,item);b.onkeydown=e=>{if(e.key==='ArrowDown'){e.preventDefault();showMenu(b,item);}};actions.append(b,time);
 },history};
 })();
