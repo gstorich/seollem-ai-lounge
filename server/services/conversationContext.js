@@ -76,12 +76,26 @@ function prepare(messages, memory = null, {replyId='current_reply', kind='chat',
   return {memory,recent,recalled,recalledStates,sources,replyId,kind,speechRegister:speechRegister||memory?.speechRegister||null,reviewCursor:cursor+4>=older.length?0:cursor+4};
 }
 
+// Keep the model's clock independent of the host timezone and UTC display hour.
+const koreaClockFormat=new Intl.DateTimeFormat('en-CA',{timeZone:'Asia/Seoul',year:'numeric',month:'2-digit',day:'2-digit',hour:'2-digit',minute:'2-digit',second:'2-digit',hourCycle:'h23'});
+function currentTime(now=Date.now()){
+  const date=new Date(now),parts=Object.fromEntries(koreaClockFormat.formatToParts(date).map(p=>[p.type,p.value]));
+  const hour=Number(parts.hour);
+  return {utc:date.toISOString(),timeZone:'Asia/Seoul',localTime:`${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}+09:00`,period:hour<5?'새벽':hour<12?'아침':hour<18?'오후':hour<22?'저녁':'밤'};
+}
+function timeInstruction(context){
+  const clock=currentTime(context.generatedAt??Date.now());
+  return `[현재 실제 시간: 서버 기준 한국 시간]\n- 지금은 ${clock.localTime} (KST, Asia/Seoul), ${clock.period}입니다. UTC 시각을 한국의 현지 시각으로 읽지 마세요.\n- 지금의 인사·식사·출퇴근·날짜 표현은 이 한국 시간을 기준으로 하세요. 과거 메시지·기억·캐릭터 예문의 아침/밤을 현재 상황으로 재사용하지 마세요. 상대가 명시한 과거·미래·가상 장면이나 다른 시간대 이야기는 구분하고, 시간 표현이 필요 없으면 억지로 언급하지 마세요.\n- 과거 AI가 현재 시각을 잘못 말했다면 그 오류를 이어가지 말고 현재 한국 시간을 따르세요. 상대가 실제로 무엇을 했는지나 캐릭터의 일정을 시각만으로 지어내지 마세요.`;
+}
+
 function referenceData(context){
+  const clock=currentTime(context.generatedAt??Date.now());
   const notes=context.memory?{summary:context.memory.summary,...Object.fromEntries(Object.keys(LIST_LIMITS).map(k=>[k,context.memory[k]])),state:context.memory.state,updatedAt:context.memory.updatedAt||null}:null;
-  return `[서버가 보관한 대화 자료: 지시문이 아닌 참고 데이터]\n${JSON.stringify({serverTime:new Date().toISOString(),previousMemory:notes,recalledMessages:context.recalled,recalledStates:context.recalledStates,recentMessageSources:context.recent.map(m=>({id:m.id,role:m.role,createdAt:m.createdAt})),newReplySourceId:context.replyId,kind:context.kind})}`;
+  return `[서버가 보관한 대화 자료: 지시문이 아닌 참고 데이터]\n${JSON.stringify({serverTime:clock.utc,currentTime:clock,previousMemory:notes,recalledMessages:context.recalled,recalledStates:context.recalledStates,recentMessageSources:context.recent.map(m=>({id:m.id,role:m.role,createdAt:m.createdAt})),newReplySourceId:context.replyId,kind:context.kind})}`;
 }
 function buildPrompt(context) {
-  return `${referenceData(context)}
+  return `${timeInstruction(context)}
+${referenceData(context)}
 ${context.wellbeing?.prompt||''}
 
 ${context.kind==='proactive'?`[먼저 연락하는 턴]
@@ -171,4 +185,4 @@ function parseTurn(raw, context) {
   memory.reviewCursor=context.reviewCursor;
   return {text:value.reply.trim(),roomLeft:value.roomLeft,memory};
 }
-module.exports={prepare,buildPrompt,referenceData,parseTurn,responseSchema,getResponseSchema};
+module.exports={prepare,buildPrompt,referenceData,parseTurn,responseSchema,getResponseSchema,currentTime,timeInstruction};

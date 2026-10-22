@@ -2,6 +2,18 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('nod
 const dir=fs.mkdtempSync(path.join(os.tmpdir(),'azit-memory-test-'));
 process.env.DATABASE_FILE=path.join(dir,'legacy.json');process.env.SQLITE_FILE=path.join(dir,'test.sqlite');
 const context=require('../services/conversationContext'),db=require('../services/dbService');
+// The production host can use UTC: 10:40Z must be evening in Korea.
+assert.deepEqual(context.currentTime(Date.parse('2026-10-22T10:40:00Z')),{utc:'2026-10-22T10:40:00.000Z',timeZone:'Asia/Seoul',localTime:'2026-10-22T19:40:00+09:00',period:'저녁'});
+assert.equal(context.currentTime(Date.parse('2026-10-22T15:00:00Z')).localTime,'2026-10-23T00:00:00+09:00');
+assert.equal(context.currentTime(Date.parse('2026-10-22T15:00:00Z')).period,'새벽');
+assert.equal(context.currentTime(Date.parse('2026-10-21T22:00:00Z')).period,'아침');
+for(const kind of ['chat','greeting','gift','proactive']){
+ const timed={...context.prepare([{id:'old',role:'assistant',content:'아침이네요',createdAt:Date.parse('2026-10-21T22:00:00Z')}],null,{kind}),generatedAt:Date.parse('2026-10-22T10:40:00Z')};
+ assert.match(context.timeInstruction(timed),/19:40:00\+09:00.*저녁/);
+ assert.match(context.buildPrompt(timed),/과거 AI가 현재 시각을 잘못 말했다면/);
+ const data=JSON.parse(context.referenceData(timed).split('\n')[1]);
+ assert.equal(data.currentTime.period,'저녁');assert.equal(data.recentMessageSources[0].createdAt,'2026-10-21T22:00:00.000Z');
+}
 const baseMemory={summary:'이전에 마음이 상했지만 사과 후 조금 풀림',userFacts:[{text:'보리차를 좋아함',sourceId:'old-user'}],characterFacts:[],sharedEvents:[],openThreads:[{text:'토요일 실내 박물관 약속',sourceId:'old-user'}],agreements:[],state:{scene:'약속 이야기',characterEmotion:'조금 누그러짐',userEmotion:'확인되지 않음',relationship:'서로 알아가는 중',lastBeat:'사과를 받아들임',sourceIds:['old-user']}};
 const messages=[{id:'old-user',role:'user',content:'토요일은 실내 박물관에서 그림 볼 거예요'},...Array.from({length:100},(_,i)=>({id:'past_'+i,role:i%2?'assistant':'user',content:'다른 일상 이야기 '.repeat(8)})),{id:'current',role:'user',content:'그때 토요일 박물관 약속 뭐였지?'}];
 const prepared=context.prepare(messages,baseMemory,{replyId:'reply_current'});

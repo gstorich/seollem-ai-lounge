@@ -256,9 +256,9 @@ module.exports = {
   async generateReply(character, chatHistory, userContext = {}) {
     require('./aiReports').assertAvailable(character.id);
     const relationship = userContext.relationship || require('./relationshipContext').buildRelationshipContext(character,chatHistory);
-    const conversation = {...(userContext.conversation || conversationContext.prepare(chatHistory, null, {kind:userContext.greeting?'greeting':'chat',speechRegister:relationship.speechRegister})),defaultRegister:require('./characterBehavior').getProfile(character).defaultRegister};
+    const conversation = {...(userContext.conversation || conversationContext.prepare(chatHistory, null, {kind:userContext.greeting?'greeting':'chat',speechRegister:relationship.speechRegister})),generatedAt:Date.now(),defaultRegister:require('./characterBehavior').getProfile(character).defaultRegister};
     const adult=userContext.verifiedAdult===true;
-    const systemPrompt = contentAccess.instruction(adult)+'\n'+conversationContext.referenceData(conversation)+'\n'+characterService.buildSystemPrompt(character, {...userContext,relationship,conversation});
+    const systemPrompt = contentAccess.instruction(adult)+'\n'+conversationContext.timeInstruction(conversation)+'\n'+conversationContext.referenceData(conversation)+'\n'+characterService.buildSystemPrompt(character, {...userContext,relationship,conversation});
     const selectedHistory = conversation.recent.map(m=>({role:m.role,content:m.content}));
     const signal = AbortSignal.timeout(45000);
     async function generate(messages,prompt,schema,moderation=false){
