@@ -341,15 +341,43 @@
       this.user = data.user;
       return data;
     },
+    async generatedRequest(route, body) {
+      const token=authToken;
+      try { return await this.request(route,'POST',body); }
+      catch (original) {
+        // Losing the HTTP response does not mean the server failed the turn.
+        if(original.status&&original.code!=='GENERATION_PENDING'&&!(original.status>=500&&original.code!=='AI_GENERATION_FAILED'))throw original;
+        const deadline=Date.now()+60000;
+        for(let attempt=0;attempt<40;attempt++){
+          if(token!==authToken)throw original;
+          // Mobile Chrome can suspend timers/network while in the background.
+          if(document.visibilityState==='hidden')await new Promise(resolve=>{
+            const resume=()=>{if(document.visibilityState!=='hidden'){document.removeEventListener('visibilitychange',resume);resolve();}};
+            document.addEventListener('visibilitychange',resume);resume();
+          });
+          let receipt;
+          try{receipt=await this.request('/chat/requests/'+encodeURIComponent(body.messageId)+'?characterId='+encodeURIComponent(body.characterId),'GET',undefined,{signal:AbortSignal.timeout(10000)});}catch{}
+          if(token!==authToken)throw original;
+          if(receipt?.state==='completed')return receipt.result;
+          if(receipt?.state==='failed'){
+            const error=new Error(receipt.failure.message||'답변을 생성하지 못했습니다.');error.code=receipt.failure.error;error.status=503;error.data=receipt.failure;throw error;
+          }
+          if(receipt?.state==='interrupted'||receipt?.state==='unknown'||Date.now()>=deadline)break;
+          await new Promise(resolve=>setTimeout(resolve,1500));
+        }
+        const error=new Error('연결이 잠시 끊겨 전송 상태를 확인 중입니다. 돌아오면 자동으로 동기화됩니다.');
+        error.code='DELIVERY_UNCONFIRMED';throw error;
+      }
+    },
     async sendMessage(characterId, message, chatHistory, affection, messageId, messages) {
       await this.flushState();
-      return this.request('/chat/send', 'POST', { characterId, message, chatHistory, affection, messageId, ...(messages?{messages}:{}) });
+      return this.generatedRequest('/chat/send', { characterId, message, chatHistory, affection, messageId, ...(messages?{messages}:{}) });
     },
     async getMatchEligibility() { return this.request('/match/eligibility'); },
     async requestMatch(filters, characterId, options={}) { return this.request('/match/request', 'POST', { filters, characterId, ...options }); },
     async idleFollowUp(characterId,userMessageId,lastReplyId) { await this.flushState(); return this.request('/chat/idle-followup','POST',{characterId,userMessageId,lastReplyId}); },
-    async sendGreeting(characterId, messageId) { await this.flushState(); return this.request('/chat/greeting', 'POST', { characterId, messageId }); },
-    async sendGift(characterId, giftKey, customMsg, messageId) { await this.flushState(); return this.request('/chat/gift', 'POST', { characterId, giftKey, customMsg, messageId }); },
+    async sendGreeting(characterId, messageId) { await this.flushState(); return this.generatedRequest('/chat/greeting', { characterId, messageId }); },
+    async sendGift(characterId, giftKey, customMsg, messageId) { await this.flushState(); return this.generatedRequest('/chat/gift', { characterId, giftKey, customMsg, messageId }); },
     async unlockMedia(mediaId) { return this.request('/media/unlock', 'POST', { mediaId }); },
     async recall(characterId) { return this.request('/match/recall-previous', 'POST', { characterId }); },
     async removeRoom(id) {

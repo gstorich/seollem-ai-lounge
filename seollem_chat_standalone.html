@@ -1574,9 +1574,9 @@
   </div>
 
   <script src="/legal.js"></script>
-  <script src="messageDelivery.js?v=20261022-dedup"></script>
+  <script src="messageDelivery.js?v=20261022-resume"></script>
   <script src="roomList.js?v=20261022-rooms"></script>
-  <script src="apiClient.js?v=20261022-rooms"></script>
+  <script src="apiClient.js?v=20261022-resume"></script>
   <script src="chatTiming.js"></script>
   <script src="notifications.js?v=20261022-identity" defer></script>
   <script>
@@ -3923,6 +3923,9 @@
     function rememberConfirmedReply(char,result) {
       if(!char?.id||!result?.replyId||!result.partnerReply)return;
       const room=state.savedRooms[char.id]||{charId:char.id,messages:[]};
+      const confirmed=new Set(result.batchMessageIds||[result.replyId.slice(6)]);
+      room.messages=(room.messages||[]).map(m=>m.sender==='user'&&confirmed.has(m.id)?{...m,awaitingReply:false,failed:false,isFailed:false,failReason:null}:m);
+      if(state.currentChar?.id===char.id)for(const m of state.messages)if(m.sender==='user'&&confirmed.has(m.id)){m.awaitingReply=false;m.failed=false;m.isFailed=false;m.failReason=null;}
       room.messages=AzitMessageDelivery.merge(room.messages,[{id:result.replyId,sender:'ai',text:result.partnerReply,...(result.replyBubbles?{bubbles:result.replyBubbles,giftReaction:true}:{}),createdAt:result.replyCreatedAt||result.systemMessages?.[0]?.createdAt-1||Date.now(),unread:true}],result.systemMessages);
       if(result.roomLeft){room.roomLeft=true;room.partnerLeftAt=result.systemMessages?.[0]?.createdAt||Date.now();room.partnerLeftReplyId=result.replyId;}
       room.updatedAt=Date.now();room.unreadCount=room.messages.filter(m=>m.sender==='ai'&&m.unread).length;state.savedRooms[char.id]=room;
@@ -4000,7 +4003,7 @@
       state.idleFollowUpTimer=setTimeout(async()=>{
         state.idleFollowUpTimer=null;
         const current=idleFollowUpState();
-        if(state.currentChar?.id!==char.id||state.roomLeft||state.isAiBusy||current.count>=2||current.userMessageId!==snapshot.userMessageId||current.lastReplyId!==snapshot.lastReplyId)return;
+        if(document.visibilityState!=='visible'||state.currentChar?.id!==char.id||state.roomLeft||state.isAiBusy||current.count>=2||current.userMessageId!==snapshot.userMessageId||current.lastReplyId!==snapshot.lastReplyId)return;
         state.isAiBusy=true;
         const turnId=state.messageTurnId,startedAt=Date.now();
         try{
@@ -4011,7 +4014,7 @@
           if(state.currentChar?.id!==char.id||state.roomLeft||state.messageTurnId!==turnId||idleFollowUpState().userMessageId!==snapshot.userMessageId)return;
           await runRealisticReplySequence({bubbles:[result.partnerReply],replyId:result.replyId},true,turnId,startedAt);
         }catch(error){
-          if(state.currentChar?.id===char.id&&state.messageTurnId===turnId)showGenerationError(()=>scheduleIdleFollowUp());
+          // Optional background contact failure must never fail an answered user turn.
         }finally{
           if(state.currentChar?.id===char.id&&state.messageTurnId===turnId)state.isAiBusy=false;
         }
@@ -4525,12 +4528,13 @@
       };
     }
 
-    function showGenerationError(retry, message, requestId) {
-      const reqId = requestId || state.messages.filter(m => m.sender === 'user').at(-1)?.id;
-      if (reqId && typeof markUserMessageFailed === 'function') {
+    function showGenerationError(retry, message, requestId, pending = false) {
+      const reqId = requestId || null;
+      if(reqId&&(state.savedRooms[state.currentChar?.id]?.messages||[]).some(m=>m.id==='reply_'+reqId))return;
+      if (!pending && reqId && typeof markUserMessageFailed === 'function') {
         markUserMessageFailed(reqId, message || '전송 실패');
       }
-      const savedNotice=rememberSystemNotice('generation_error',message||'문제가 발생했습니다. 잠시 후에 다시 시도해주세요.',{requestId:reqId,requestKind:String(reqId||'').startsWith('greet_')?'greeting':'chat'});
+      const savedNotice=rememberSystemNotice(pending?'delivery_pending':'generation_error',message||'문제가 발생했습니다. 잠시 후에 다시 시도해주세요.',{requestId:reqId,requestKind:String(reqId||'').startsWith('greet_')?'greeting':'chat'});
       document.getElementById('generationErrorNotice')?.remove();
       const notice = document.createElement('div');
       notice.id = 'generationErrorNotice';
@@ -4759,6 +4763,10 @@
           await new Promise(resolve=>setTimeout(resolve,500));
           if(state.currentChar?.id===char?.id)return fetchLLMResponse(userText,requestId,retryCount+1,messageBatch);
         }
+        if(error.code==='DELIVERY_UNCONFIRMED'){
+          if(state.currentChar?.id===char?.id)showGenerationError(()=>retryGeneratedReply(char,userText,requestId,messageBatch),error.message,requestId,true);
+          return {bubbles:[],failed:true};
+        }
         if (requestId && typeof markUserMessageFailed === 'function') {
           for(const id of messageBatch?.map(item=>item.requestId)||[requestId])markUserMessageFailed(id,error.message || '전송 실패');
         }
@@ -4849,6 +4857,7 @@
     function markUserMessageFailed(msgId, reason) {
       if (!msgId) return;
       const msg = state.messages.find(m => m.id === msgId);
+      if(msg?.awaitingReply===false||(state.savedRooms[state.currentChar?.id]?.messages||[]).some(m=>m.id==='reply_'+msgId))return;
       if (msg) {
         msg.failed = true;
         msg.unread = false;
@@ -4877,11 +4886,13 @@
       saveAccountState();
     }
 
-    function markUserMessageSucceeded(msgId) {
+    function markUserMessageSucceeded(msgId, persist = true) {
       if (!msgId) return;
       const msg = state.messages.find(m => m.id === msgId);
       if (msg) {
         msg.failed = false;
+        msg.isFailed = false;
+        msg.awaitingReply = false;
         msg.failReason = null;
       }
       const row = chatContainer.querySelector(`[data-msg-id="${msgId}"]`);
@@ -4894,7 +4905,7 @@
           bubble.classList.remove('border-2', 'border-rose-500/80');
         }
       }
-      saveAccountState();
+      if(persist)saveAccountState();
     }
 
     function appendMessage(sender, text, options = {}) {
@@ -4907,7 +4918,7 @@
           const button=document.createElement('button');button.type='button';button.textContent='성인인증 안내';button.className='block mx-auto mt-2 underline underline-offset-2 text-amber-700';
           button.onclick=()=>{const source=state.messages.find(m=>m.id===options.requestId&&m.sender==='user');showContentAccessNotice({code:options.errorCode,message:text},source?()=>retryGeneratedReply(state.currentChar,source.text,options.requestId):null,{char:state.currentChar,userText:source?.text,requestId:options.requestId});};row.appendChild(button);
         }
-        if(options.systemKind==='generation_error'&&options.requestId){
+        if(['generation_error','delivery_pending'].includes(options.systemKind)&&options.requestId){
           const source=state.messages.find(m=>m.id===options.requestId&&m.sender==='user');
           if(source||options.requestKind==='greeting'){
             const button=document.createElement('button');button.type='button';button.textContent='다시 시도';button.className='block mx-auto mt-2 underline underline-offset-2 text-amber-700';
@@ -5157,7 +5168,7 @@
           }
           return;
         }
-        if (!showContentAccessNotice(error)) showGenerationError(() => deliverFirstGreeting(char,requestId),undefined,requestId);
+        if (!showContentAccessNotice(error)) showGenerationError(() => deliverFirstGreeting(char,requestId),error.code==='DELIVERY_UNCONFIRMED'?error.message:undefined,requestId,error.code==='DELIVERY_UNCONFIRMED');
       } finally {
         if (state.currentChar?.id === char.id) {
           state.isGreetingPending = false;
@@ -5490,7 +5501,7 @@
             }
           }
           if (error.code === 'INSUFFICIENT_HEARTS') openHeartNeededModal(char.name);
-          else if (!showContentAccessNotice(error, () => sendGiftToCurrentChar(giftKey,customMsg,requestId), {char, requestId})) showGenerationError(()=>sendGiftToCurrentChar(giftKey,customMsg,requestId));
+          else if (!showContentAccessNotice(error, () => sendGiftToCurrentChar(giftKey,customMsg,requestId), {char, requestId})) showGenerationError(()=>sendGiftToCurrentChar(giftKey,customMsg,requestId),error.message,requestId,error.code==='DELIVERY_UNCONFIRMED');
         }
       } finally { chatContainer.querySelector(`[data-msg-id="${pendingId}"]`)?.remove();if(state.currentChar?.id===char.id){state.isAiBusy=false;hideTypingIndicator();updateHeaderDefaultStatus();} }
     }
@@ -7044,18 +7055,22 @@
       try{
         const data=await ApiClient.loadConversationUpdates(conversationSyncAfter,state.currentView==='chatRoom'?state.currentChar?.id:'');
         if(ApiClient.user?.id!==accountId)return;
-        conversationSyncAfter=data.syncVersion||conversationSyncAfter;if(data.unchanged)return;
+        if(data.unchanged)return;
         if(data.metCharIds)state.metCharIds=[...new Set([...state.metCharIds,...data.metCharIds])];
         for(const c of data.roomCharacters||[]){const existing=CHARACTERS.find(x=>x.id===c.id);if(existing)Object.assign(existing,c);else CHARACTERS.push(c);}
         for(const [id,incoming] of Object.entries(data.savedRooms||{})){
           const local=state.savedRooms[id]||{charId:id,messages:[]};
           state.savedRooms[id]={...local,...incoming,summaryOnly:Boolean(incoming.summaryOnly&&local.summaryOnly!==false),messages:AzitMessageDelivery.merge(local.messages,incoming.messages)};
-          if(state.currentChar?.id===id&&!state.isAiBusy&&!state.isGreetingPending&&!state.roomLeft){
+          if(state.currentChar?.id===id){
             const previous=state.messages,known=new Set(previous.map(m=>m.id)),clean=t=>String(t||'').replace(/\s/g,'');
             const covered=m=>m.sender==='ai'&&previous.filter(p=>p.sender==='ai'&&p.id?.startsWith(m.id+'_')).map(p=>clean(p.text)).join('')===clean(m.text);
-            const unseen=(incoming.messages||[]).filter(m=>!known.has(m.id)&&!covered(m));
+            const reconciled=AzitMessageDelivery.merge(previous,incoming.messages);
+            const unseen=reconciled.filter(m=>!known.has(m.id)&&!covered(m));
             for(const m of unseen)if(m.sender==='ai')m.unread=state.currentView!=='chatRoom';
-            state.messages=AzitMessageDelivery.merge(previous,unseen);
+            state.messages=reconciled;
+            const retained=new Set(state.messages.map(m=>m.id));
+            for(const old of previous)if(old.sender==='system'&&['generation_error','delivery_pending'].includes(old.systemKind)&&!retained.has(old.id))for(const row of chatContainer.querySelectorAll('[data-msg-id]'))if(row.dataset.msgId===old.id)row.remove();
+            for(const m of state.messages)if(m.sender==='user'&&m.awaitingReply===false)markUserMessageSucceeded(m.id,false);
             const open=state.currentView==='chatRoom',atBottom=chatContainer.scrollHeight-chatContainer.scrollTop-chatContainer.clientHeight<120;
             for(const m of unseen){if(m.sender==='ai'){m.unread=!open;for(const row of chatContainer.querySelectorAll('[data-msg-id]'))if(row.dataset.msgId.startsWith(m.id+'_'))row.remove();}if(open)appendMessage(m.sender,m.text,{...m,skipPush:true,noScroll:!atBottom});}
             if(open)state.savedRooms[id].messages=state.savedRooms[id].messages.map(m=>({...m,unread:false}));
@@ -7065,10 +7080,13 @@
         }
         if(typeof data.user?.hearts==='number')state.hearts=state.credits=data.user.hearts;
         saveAccountState();renderChatRoomsList();updateChatListBadges();
+        conversationSyncAfter=data.syncVersion||conversationSyncAfter;
       }catch{}finally{conversationSyncBusy=false;}
     }
     window.addEventListener('focus',()=>syncServerConversations());
-    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncServerConversations();});
+    document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')syncServerConversations();else clearIdleFollowUpTimer();});
+    window.addEventListener('online',()=>syncServerConversations());
+    window.addEventListener('pageshow',()=>syncServerConversations());
     setInterval(syncServerConversations,5000);
 
     function applyServerAccount(data) {

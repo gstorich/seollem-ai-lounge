@@ -16,6 +16,31 @@ function characterAndId(req,res) {
   if(!characters.isPublished(characterId)&&!req.user.savedRooms?.[characterId]){res.status(404).json({success:false,error:'현재 공개되지 않은 캐릭터입니다.'});return null;}
   return {character,requestId};
 }
+// Read-only receipt recovery: never generate another response or debit hearts.
+router.get('/requests/:id',async(req,res)=>{
+  res.set('Cache-Control','no-store');
+  const db=require('../services/dbService'),id=req.user.id,requestId=req.params.id,characterId=req.query.characterId;
+  if(!/^[a-zA-Z0-9_-]{1,100}$/.test(requestId)||typeof characterId!=='string')return res.status(400).json({success:false,error:'INVALID_REQUEST'});
+  let receipt=db.getChatRequest(id,requestId);
+  if(receipt?.batchRequestId)receipt=db.getChatRequest(id,receipt.batchRequestId);
+  const unknown=()=>res.json({success:true,state:'unknown'});
+  if(!receipt)return unknown();
+  const row=receipt.replyId&&db.sql.prepare('SELECT * FROM conversation_messages WHERE user_id=? AND character_id=? AND message_id=?').get(db.resolveUserId(id),characterId,receipt.replyId);
+  if(receipt.characterId!==characterId&&!row)return unknown();
+  if(!receipt.success){
+    if(receipt.status==='pending')return res.json({success:true,state:require('../services/generationLock').has(id)?'pending':'interrupted'});
+    return res.json({success:true,state:'failed',failure:{error:receipt.error,message:receipt.message,systemMessage:receipt.systemMessage,safetyCategory:receipt.safetyCategory,costDeducted:0,heartsRemaining:db.getUser(id).hearts}});
+  }
+  if(!row||!receipt.isAiGenerated)return unknown();
+  if(require('../services/aiReports').isHeld(characterId))return res.status(503).json({success:false,error:'CHARACTER_UNDER_REVIEW'});
+  if(receipt.contentPolicyVersion!==require('../services/contentAccess').version)return res.status(409).json({success:false,error:'REPLY_POLICY_CHANGED'});
+  if(receipt.contentAudience!=='general'&&!require('../services/contentAccess').verifiedAdult(db.getUser(id)))return res.status(403).json({success:false,error:'ADULT_VERIFICATION_REQUIRED'});
+  try{
+    const [message]=await require('../services/conversationArchive').hydrateRows([row]);
+    const result={success:true,isAiGenerated:true,partnerReply:message.text,replyId:receipt.replyId,replyCreatedAt:message.createdAt,heartsRemaining:db.getUser(id).hearts,costDeducted:receipt.costDeducted,roomLeft:receipt.roomLeft,batchMessageIds:receipt.batchMessageIds,...(message.bubbles?{replyBubbles:message.bubbles}:{}),...(receipt.giftMessageId?{giftMessageId:receipt.giftMessageId}:{}),...(receipt.systemMessages?{systemMessages:receipt.systemMessages}:{})};
+    return res.json({success:true,state:'completed',result});
+  }catch{return res.status(503).json({success:false,error:'HISTORY_UNAVAILABLE'});}
+});
 router.post('/send',async(req,res)=>{
   const {message,chatHistory=[]}=req.body;
   if(typeof message!=='string'||!message.trim()||message.length>2000||!Array.isArray(chatHistory)||chatHistory.length>12||chatHistory.some(m=>!m||!['user','assistant'].includes(m.role)||typeof m.content!=='string'||m.content.length>2000)) return res.status(400).json({success:false,error:'메시지 내용을 확인해주세요. (최대 2,000자)'});

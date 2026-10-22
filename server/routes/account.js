@@ -9,14 +9,14 @@ function snapshot(user,compact=false,activeRoom='') {
   return { success: true, user: { id: user.id, phone: user.phone, hearts: user.hearts,
     isVipUnlimited: user.isVipUnlimited, phoneBonusClaimed: user.phoneBonusClaimed, heartExpiry: db.getHeartSummary(user.id),
     isAdult: require('../services/contentAccess').verifiedAdult(user) },
-    savedRooms: Object.fromEntries(Object.entries(user.savedRooms||{}).map(([id,room])=>[id,compact&&id!==activeRoom?roomList.summary({...room,charId:id}):{...room,charId:id,messages:(room.messages||[]).slice(-40)}])), roomCharacters:Object.keys(user.savedRooms||{}).filter(id=>!compact||!characters.isPublished(id)).map(id=>characters.publicProfile(characters.getCharacterById(id))).filter(Boolean), metCharIds: user.metCharIds || [], matchFilter: user.matchFilter,
+    savedRooms: Object.fromEntries(Object.entries(user.savedRooms||{}).map(([id,room])=>[id,compact&&id!==activeRoom?roomList.summary({...room,charId:id}):{...room,charId:id,messages:require('../services/messageDeliveryState').normalize(user.id,id,(room.messages||[]).slice(-40))}])), roomCharacters:Object.keys(user.savedRooms||{}).filter(id=>!compact||!characters.isPublished(id)).map(id=>characters.publicProfile(characters.getCharacterById(id))).filter(Boolean), metCharIds: user.metCharIds || [], matchFilter: user.matchFilter,
     unlockedMedia: user.unlockedMedia || {}, prevCharId: user.prevCharId || null };
 }
 router.get('/hearts', (req,res) => {
   res.set('Cache-Control','no-store');
   res.json({success:true,hearts:db.getUser(req.user.id).hearts,summary:db.getHeartSummary(req.user.id),grants:db.getHeartGrants(req.user.id)});
 });
-router.get('/rooms/:id/messages',async(req,res)=>{res.set('Cache-Control','no-store');try{const result=await require('../services/conversationArchive').page(req.user.id,req.params.id,{before:req.query.before,limit:40});const {messages,...roomMetadata}=req.user.savedRooms?.[req.params.id]||{};res.json({success:true,...result,...(!req.query.before?{roomMetadata}:{})});}catch(e){res.status(e.status||503).json({success:false,error:e.status===400?'잘못된 조회 위치입니다.':'이전 대화를 불러오지 못했습니다. 다시 시도해주세요.'});}});
+router.get('/rooms/:id/messages',async(req,res)=>{res.set('Cache-Control','no-store');try{const result=await require('../services/conversationArchive').page(req.user.id,req.params.id,{before:req.query.before,limit:40});const {messages,...roomMetadata}=req.user.savedRooms?.[req.params.id]||{};res.json({success:true,...result,messages:require('../services/messageDeliveryState').normalize(req.user.id,req.params.id,result.messages),...(!req.query.before?{roomMetadata}:{})});}catch(e){res.status(e.status||503).json({success:false,error:e.status===400?'잘못된 조회 위치입니다.':'이전 대화를 불러오지 못했습니다. 다시 시도해주세요.'});}});
 router.get('/sync',(req,res)=>{res.set('Cache-Control','no-store');const user=req.user,revision=db.sql.prepare('SELECT version FROM account_message_versions WHERE user_id=?').get(user.id)?.version||0,syncVersion=String(user.updatedAt)+':'+revision;if(req.query.after===syncVersion)return res.json({success:true,unchanged:true,syncVersion});res.json({...snapshot(user,req.query.compact==='1',req.query.room),syncVersion});});
 router.get('/state', (req, res) => res.json(snapshot(req.user,req.query.compact==='1',req.query.room)));
 const roomStrings = ['memorySummary', 'lastGreetingSlot'];
@@ -39,7 +39,7 @@ function sanitizeRooms(rooms, existingRooms = {}) {
           // Canonical server notices already survive merges; clients cannot forge a departure.
           continue;
         }
-        if(!['generation_error','content_notice'].includes(message.systemKind))throw Error('Invalid system notice');
+        if(!['generation_error','content_notice','delivery_pending'].includes(message.systemKind))throw Error('Invalid system notice');
       }
       const msg = {};
       for (const key of msgStrings) if (typeof message[key] === 'string') msg[key] = message[key].slice(0,key === 'text' ? 8000 : 2000);

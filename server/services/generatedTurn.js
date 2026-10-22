@@ -20,7 +20,7 @@ module.exports = async function generatedTurn(req, res, {character, message, req
       userMessages=recovered.map(m=>({id:m.id,text:m.text}));message=userMessages.map(m=>m.text).join('\n');
     }
   }
-  const batchMetadata=userMessages?{batchMessageIds:userMessages.map(m=>m.id),characterId:character.id}:{};
+  const batchMetadata={characterId:character.id,kind,...(userMessages?{batchMessageIds:userMessages.map(m=>m.id)}:{})};
   const fingerprint = crypto.createHash('sha256').update(JSON.stringify({kind,characterId:character.id,message,...(userMessages?{userMessages}:{})})).digest('hex');
   if (previous?.fingerprint && previous.fingerprint !== fingerprint) return res.status(409).json({success:false,error:'REQUEST_CONFLICT',message:'다른 메시지에 사용한 요청입니다.'});
   if(previous?.batchRequestId)previous=db.getChatRequest(id,previous.batchRequestId);
@@ -161,7 +161,7 @@ module.exports = async function generatedTurn(req, res, {character, message, req
       fingerprint
     };
     // Keep failures retryable with the same ID; never cache a fabricated reply.
-    db.transaction(()=>{if(error.message!=='CONVERSATION_CHANGED')failure.systemMessage=require('./roomLifecycle').failure(id,character.id,requestId,kind,failure);db.saveChatRequest(id,requestId,failure);});
+    db.transaction(()=>{if(kind!=='proactive'&&error.message!=='CONVERSATION_CHANGED')failure.systemMessage=require('./roomLifecycle').failure(id,character.id,requestId,kind,failure);db.saveChatRequest(id,requestId,failure);});
     return res.status(status).json({...failure,heartsRemaining:db.getUser(id)?.hearts});
   } finally { active.delete(id); }
 };

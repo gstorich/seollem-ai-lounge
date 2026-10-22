@@ -11,6 +11,7 @@ node server/tests/wellbeing-api.cjs
 node server/tests/accounts.cjs
 node server/tests/storage-archive.cjs
 node server/tests/message-delivery.cjs
+node server/tests/background-recovery.cjs
 node server/tests/system-messages.cjs
 node server/tests/gift-reaction.cjs
 node server/tests/gift-ui.cjs
