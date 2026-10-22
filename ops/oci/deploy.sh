@@ -38,6 +38,7 @@ node server/tests/chat-voice.cjs
 node server/tests/character-behavior.cjs
 node server/tests/character-studio.cjs
 node server/tests/conversation-context.cjs
+node server/tests/chat-input-understanding.cjs
 node server/tests/proactive.cjs
 node server/tests/notifications.cjs
 node server/tests/address-context.cjs

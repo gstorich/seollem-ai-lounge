@@ -88,6 +88,14 @@ function timeInstruction(context){
   return `[현재 실제 시간: 서버 기준 한국 시간]\n- 지금은 ${clock.localTime} (KST, Asia/Seoul), ${clock.period}입니다. UTC 시각을 한국의 현지 시각으로 읽지 마세요.\n- 지금의 인사·식사·출퇴근·날짜 표현은 이 한국 시간을 기준으로 하세요. 과거 메시지·기억·캐릭터 예문의 아침/밤을 현재 상황으로 재사용하지 마세요. 상대가 명시한 과거·미래·가상 장면이나 다른 시간대 이야기는 구분하고, 시간 표현이 필요 없으면 억지로 언급하지 마세요.\n- 과거 AI가 현재 시각을 잘못 말했다면 그 오류를 이어가지 말고 현재 한국 시간을 따르세요. 상대가 실제로 무엇을 했는지나 캐릭터의 일정을 시각만으로 지어내지 마세요.`;
 }
 
+const inputUnderstandingInstruction=`[입력 이해: 오타보다 대화 의도를 먼저 읽기]
+- 모바일 채팅의 오타·누락·붙여쓰기·자음 축약·한영키 전환 실수를 최근 대화와 함께 해석하세요. 한 글자씩 소리 내 읽거나 낯선 단어에 억지 뜻을 붙이지 마세요.
+- 예: 인사 맥락의 소문자 "gd"는 두벌식 한영키가 바뀐 "ㅎㅇ"(하이)일 수 있고 "dkssud"는 "안녕"일 수 있습니다. 이때 "굿디", "굿", "굿데이" 같은 근거 없는 독음·뜻을 지어내거나 무례한 말이라며 당황하지 말고, 인사로 자연스럽게 받아주세요. 이 예시를 모든 영문 입력에 적용하지는 마세요.
+- 실제 영어·약어·아이디·작품명·인명은 그대로 존중하세요. 음악·가수 맥락의 "GD"를 인사로 바꾸지 않습니다. 사용자가 철자 자체를 묻거나 인용한 경우도 대화 내용과 구분합니다.
+- "마릉ㄹ"처럼 문장 흐름상 "말을"이라는 뜻이 분명한 오타는 뜻을 따라 답하고, 오타 지적·맞춤법 강의·복창으로 흐름을 끊지 마세요. 해석의 확신이 낮고 답변 의미에 영향을 줄 때만 짧게 확인하세요. 의미 없는 입력으로 사건·취향·감정을 지어내지 마세요.
+- 짧은 인사나 오타가 왔다고 첫 만남으로 초기화하지 마세요. 이미 나눈 대화·감정·말높임·호칭을 유지하고, 잠시 후 돌아온 인사도 기존 상대의 말로 받습니다. "초면인데", "어떤 분이실지" 같은 자기소개 단계로 돌아가지 마세요.
+- 원문은 원문 그대로의 근거입니다. 해석 후보를 사용자가 명시한 새 사실·이름·호칭 합의·말버릇으로 기억에 확정 저장하지 마세요.`;
+
 function referenceData(context){
   const clock=currentTime(context.generatedAt??Date.now());
   const notes=context.memory?{summary:context.memory.summary,...Object.fromEntries(Object.keys(LIST_LIMITS).map(k=>[k,context.memory[k]])),state:context.memory.state,updatedAt:context.memory.updatedAt||null}:null;
@@ -95,6 +103,7 @@ function referenceData(context){
 }
 function buildPrompt(context) {
   return `${timeInstruction(context)}
+${inputUnderstandingInstruction}
 ${referenceData(context)}
 ${context.wellbeing?.prompt||''}
 
@@ -185,4 +194,4 @@ function parseTurn(raw, context) {
   memory.reviewCursor=context.reviewCursor;
   return {text:value.reply.trim(),roomLeft:value.roomLeft,memory};
 }
-module.exports={prepare,buildPrompt,referenceData,parseTurn,responseSchema,getResponseSchema,currentTime,timeInstruction};
+module.exports={prepare,buildPrompt,referenceData,parseTurn,responseSchema,getResponseSchema,currentTime,timeInstruction,inputUnderstandingInstruction};
