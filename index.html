@@ -691,7 +691,7 @@
           <div class="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-[11.5px] font-medium text-[#7d7060]">
             <a href="/brand" class="hover:text-[#c4b5a2] transition">브랜드 이야기</a>
             <span class="text-[#3d3328]">·</span>
-            <a href="/support" class="hover:text-[#c4b5a2] transition">고객센터</a>
+            <a href="/support" class="hover:text-[#c4b5a2] transition">고객센터</a> <button type="button" data-ai-report-history class="hover:text-[#c4b5a2] transition">내 AI 답변 신고</button>
             <span class="text-[#3d3328]">·</span>
             <a href="/terms" class="hover:text-[#c4b5a2] transition">이용약관</a>
             <span class="text-[#3d3328]">·</span>
@@ -858,8 +858,8 @@
               충전하기
             </button>
           </div>
-          <div class="flex items-center gap-1.5 text-[12px] text-[#8a7c6c]">
-            <a href="/support" class="hover:text-[#d4c3af] underline">고객센터</a>
+          <div class="flex flex-wrap items-center gap-1.5 text-[12px] text-[#8a7c6c]">
+            <a href="/support" class="hover:text-[#d4c3af] underline">고객센터</a> <button type="button" data-ai-report-history class="underline whitespace-nowrap">신고 내역</button>
             <!-- Hidden hooks to maintain event listeners safely -->
             <button id="btnFooterSwitchVip" type="button" class="hidden">하트모드</button>
             <button id="btnOpenPhoneAuthFooter" type="button" class="hidden">인증</button>
@@ -1504,9 +1504,11 @@
   </div>
 
   <script src="/legal.js"></script>
+  <link rel="stylesheet" href="/aiReports.css"><script src="/aiReports.js"></script>
   <script src="messageDelivery.js?v=20261022-dedup"></script>
   <script src="roomList.js?v=20261022-rooms"></script>
   <script src="apiClient.js?v=20261022-rooms"></script>
+  <script>window.AzitAiReports.configure({});</script>
   <script src="chatTiming.js"></script>
   <script src="notifications.js?v=20261022-identity" defer></script>
   <link rel="stylesheet" href="/wellbeing.css">
@@ -5030,6 +5032,7 @@
           `;
         }
       }
+      window.AzitAiReports?.decorate(row,{sender,text,messageId:msgId,characterId:state.currentChar?.id});
       window.AzitWellbeing?.decorateMessage(row, {sender,text,mediaType});
       if (options.insertBeforeNode) {
         chatContainer.insertBefore(row, options.insertBeforeNode);

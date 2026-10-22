@@ -224,6 +224,7 @@ module.exports = {
         sql.prepare('DELETE FROM conversation_memory_items WHERE user_id=?').run(sessionId);
         sql.prepare('INSERT OR IGNORE INTO conversation_state_events SELECT ?,character_id,reply_id,data,created_at FROM conversation_state_events WHERE user_id=?').run(user.id,sessionId);
         sql.prepare('DELETE FROM conversation_state_events WHERE user_id=?').run(sessionId);
+        require('./aiReports').transfer(sessionId,user.id);
         require('./proactiveStore').transfer(sessionId,user.id);
         require('./wellbeingService').transfer(sessionId,user.id);
         require('./legalService');

@@ -14,6 +14,7 @@ router.post('/session',rateLimit({windowMs:15*60000,limit:5,skipSuccessfulReques
  ops.audit('operator','admin_login','session');res.json({success:true});
 });
 router.use(requireAdmin);
+router.use('/ai-reports',require('./adminAiReports'));
 router.use('/characters',require('./adminCharacters'));
 router.use('/commerce',require('./adminCommerce'));
 router.get('/funnel',(req,res)=>res.json({success:true,...require('../services/funnelInsights').insights(req.query.days)}));

@@ -83,6 +83,7 @@ router.post('/recall-previous', requireAuth, require('../services/legalService')
     return res.status(400).json({ success: false, error: '이전에 만난 인연 정보가 없습니다.' });
   }
 
+  if(require('../services/aiReports').isHeld(requestedId))return res.status(503).json({success:false,error:'CHARACTER_UNDER_REVIEW',message:'이 캐릭터는 답변 점검 중입니다. 하트는 차감되지 않았습니다.',costDeducted:0});
   const prevChar = characterService.getCharacterById(requestedId);
   if (!prevChar||!characterService.isPublished(requestedId)&&!user.savedRooms?.[requestedId]) {
     return res.status(404).json({ success: false, error: '상대방 정보를 찾을 수 없습니다.' });

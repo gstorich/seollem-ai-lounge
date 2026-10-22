@@ -254,6 +254,7 @@ async function callOpenAI(messages, systemInstruction, apiKey, signal = AbortSig
 
 module.exports = {
   async generateReply(character, chatHistory, userContext = {}) {
+    require('./aiReports').assertAvailable(character.id);
     const relationship = userContext.relationship || require('./relationshipContext').buildRelationshipContext(character,chatHistory);
     const conversation = {...(userContext.conversation || conversationContext.prepare(chatHistory, null, {kind:userContext.greeting?'greeting':'chat',speechRegister:relationship.speechRegister})),defaultRegister:require('./characterBehavior').getProfile(character).defaultRegister};
     const adult=userContext.verifiedAdult===true;
@@ -418,6 +419,7 @@ module.exports = {
     const text = chatPunctuation(cleanedText);
     if (!text.trim()) throw new Error('LLM_EMPTY_RESPONSE');
     if(conversation.kind==='gift'&&(text.split('\n').filter(x=>x.trim()).length<3||text.split('\n').filter(x=>x.trim()).length>4))throw Error('LLM_INVALID_GIFT_BUBBLES');
+    require('./aiReports').assertAvailable(character.id);
     return {
       text,
       ...(conversation.kind==='gift'?{replyBubbles:text.split('\n').map(x=>x.trim()).filter(Boolean)}:{}),

@@ -68,6 +68,7 @@ if (config.nodeEnv === 'production') {
 }
 
 app.use('/api/admin', requestLimit(60), require('./routes/admin'));
+app.use('/api/ai-reports', require('./routes/aiReports'));
 app.use('/api/support', require('./routes/support'));
 app.get('/api/public-config', (req,res) => {
   res.set('Cache-Control','no-store');
@@ -128,7 +129,7 @@ app.get('/sitemap.xml', (req, res) => {
   res.sendFile(path.join(__dirname, '..', 'sitemap.xml'));
 });
 for (const file of [
-  'branding.css', 'notification-badge.png', 'brand.css', 'roomList.js', 'messageDelivery.js', 'wellbeing.js', 'wellbeing.css', 'legal.js', 'commerce.js', 'advertising.js', 'apiClient.js', 'chatTiming.js', 'analytics.js',
+  'aiReports.js', 'aiReports.css', 'adminAiReports.js', 'branding.css', 'notification-badge.png', 'brand.css', 'roomList.js', 'messageDelivery.js', 'wellbeing.js', 'wellbeing.css', 'legal.js', 'commerce.js', 'advertising.js', 'apiClient.js', 'chatTiming.js', 'analytics.js',
   'notifications.js', 'notification-worker.js', 'manifest.webmanifest', 'admin.js',
   'adminCharacters.js', 'adminFunnel.js', 'support.js', 'billing.css', 'operations.css', 'policy.css', 'custom_avatars_manifest.json',
   'logo.png', 'logo-horizontal.png', 'app-icon.png', 'app-icon-192.png', 'app-icon-512.png',

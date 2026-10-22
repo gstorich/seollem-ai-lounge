@@ -117,6 +117,7 @@ module.exports = async function generatedTurn(req, res, {character, message, req
       result.roomLeft = false;
     }
     const response = db.transaction(()=>{
+      require('./aiReports').assertAvailable(character.id);
       require('./wellbeingService').assertCurrent(id,character.id,conversation.wellbeing);
       if(require('./contentAccess').verifiedAdult(user)&&!require('./contentAccess').verifiedAdult(db.getUser(id)))throw Object.assign(Error('ADULT_VERIFICATION_REQUIRED'),{accessBlocked:true});
       if(!require('./legalService').accepted(db.getUser(id)))throw Object.assign(Error('LLM_CONSENT_CHANGED'),{accessBlocked:true});
@@ -149,7 +150,7 @@ module.exports = async function generatedTurn(req, res, {character, message, req
       ...batchMetadata,
       error:accessBlocked?error.message:status===402?'INSUFFICIENT_HEARTS':'AI_GENERATION_FAILED',
       safetyCategory:error.safetyCategory||null,
-      message:accessBlocked
+      message:error.characterHeld?'이 캐릭터는 답변 점검 중입니다. 하트는 차감되지 않았습니다.':accessBlocked
         ?(error.message==='ADULT_VERIFICATION_REQUIRED'
           ?'이 내용은 성인인증 후 이용할 수 있습니다. 인증 전에는 일반 대화만 가능하며 하트는 차감되지 않았습니다.'
           :error.safetyCategory==='seriousHarm'

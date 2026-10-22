@@ -11,6 +11,7 @@ async function load(){ $('error').textContent='';$('content').innerHTML='<p clas
 function pager(total,size){return `<div class="pager"><button id="previous" ${page===0?'disabled':''}>이전</button><span class="muted">${page+1} 페이지 · ${fmt(total)}건</span><button id="next" ${(page+1)*size>=total?'disabled':''}>다음</button></div>`;}
 function bindPager(){if($('previous'))$('previous').onclick=()=>{page--;load();};if($('next'))$('next').onclick=()=>{page++;load();};}
 async function render(){
+ if(view==='aiReports'){await window.AzitAiReportAdmin.render({api,esc,fmt,date});return;}
  if(view==='safety'){
   const d=await api('/safety-monitoring?page='+page+'&days='+$('days').value);
   const ages={adult_test:'테스트 권한 · 기관 인증 아님',unknown:'연령 미확인·미인증',under19:'기관 확인 19세 미만',adult:'기관 확인 19세 이상'},reasons={ADULT_VERIFICATION_REQUIRED:'성인인증 필요 · 전달 차단',CONTENT_NOT_ALLOWED:'제공 금지 내용 · 전달 차단',LLM_INVALID_SAFETY:'안전 검사 장애 · 전달 차단',SAFETY_CHECK_UNAVAILABLE:'안전 검사 통신·응답 장애 · 전달 차단'};

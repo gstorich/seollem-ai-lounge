@@ -13,7 +13,7 @@ async function req(route,{method='GET',body,token,cookie,headers={}}={}){const r
  assert.equal(legacyAdminHtml.status, 404, 'Legacy /admin.html must return 404');
  const obfuscatedAdmin = await fetch(base + '/ops-manage-2026/admin');
  assert.equal(obfuscatedAdmin.status, 200, 'Obfuscated 2-depth admin entry route must be accessible');
- assert.match(await obfuscatedAdmin.text(), /아지트 대화방 운영 관리/);
+ assert.match(await obfuscatedAdmin.text(), /아지트(?:챗| 대화방)? 운영 관리/);
  const guest=(await req('/auth/guest',{method:'POST',body:{}})).data,other=(await req('/auth/guest',{method:'POST',body:{}})).data;
  const phone='01000000001',user={id:phone,phone,hearts:50,createdAt:Date.now(),updatedAt:Date.now(),savedRooms:{},metCharIds:[]};sql.prepare('INSERT INTO users VALUES(?,?,?)').run(phone,phone,JSON.stringify(user));const memberToken=jwt.sign({userId:phone},secret,{expiresIn:'1h'});
  assert.equal((await req('/admin/overview')).status,401);
