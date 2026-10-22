@@ -33,9 +33,9 @@
   if(sender!=='ai')return;
   const line=bubble.parentNode;line.classList.add('wb-message-line');
   const side=document.createElement('div');side.className='wb-message-side';
-  const time=line.querySelector('span');
+  const messageMeta=line.querySelector('.ai-report-actions')||line.querySelector('span');
   const button=document.createElement('button');button.type='button';button.className='wb-read';button.hidden=!prefs.readAloud;readLabel(button,false);
-  button.addEventListener('click',()=>speak(text,button));side.append(button);if(time)side.append(time);line.append(side);
+  button.addEventListener('click',()=>speak(text,button));side.append(button);if(messageMeta)side.append(messageMeta);line.append(side);
  }
  window.AzitWellbeing={resetAccount,decorateMessage};
  document.addEventListener('DOMContentLoaded',()=>{
