@@ -6064,6 +6064,28 @@
       });
     }
 
+    function openDailyHeartModal(amount = 10) {
+      if (typeof document?.getElementById !== 'function') return;
+      const modal = document.getElementById('dailyHeartGiftModal');
+      const amountEl = document.getElementById('dailyHeartModalAmount');
+      if (amountEl) amountEl.textContent = `${amount}개`;
+      if (modal) modal.classList.remove('hidden');
+    }
+    const btnConfirmDailyHeart = document.getElementById('btnConfirmDailyHeart');
+    if (btnConfirmDailyHeart) {
+      btnConfirmDailyHeart.addEventListener('click', () => {
+        document.getElementById('dailyHeartGiftModal')?.classList.add('hidden');
+      });
+    }
+    const dailyHeartModalEl = document.getElementById('dailyHeartGiftModal');
+    if (dailyHeartModalEl) {
+      dailyHeartModalEl.addEventListener('click', (e) => {
+        if (e.target.id === 'dailyHeartGiftModal') {
+          dailyHeartModalEl.classList.add('hidden');
+        }
+      });
+    }
+
     function openPaymentModal(customSubtitle) {
       const sub = document.getElementById('paymentModalSubtitle');
       if (sub) {
@@ -7013,27 +7035,6 @@
     window.addEventListener('online',()=>syncServerConversations());
     window.addEventListener('pageshow',()=>syncServerConversations());
     setInterval(syncServerConversations,5000);
-
-    function openDailyHeartModal(amount = 10) {
-      const modal = document.getElementById('dailyHeartGiftModal');
-      const amountEl = document.getElementById('dailyHeartModalAmount');
-      if (amountEl) amountEl.textContent = `${amount}개`;
-      if (modal) modal.classList.remove('hidden');
-    }
-    const btnConfirmDailyHeart = document.getElementById('btnConfirmDailyHeart');
-    if (btnConfirmDailyHeart) {
-      btnConfirmDailyHeart.addEventListener('click', () => {
-        document.getElementById('dailyHeartGiftModal')?.classList.add('hidden');
-      });
-    }
-    const dailyHeartModalEl = document.getElementById('dailyHeartGiftModal');
-    if (dailyHeartModalEl) {
-      dailyHeartModalEl.addEventListener('click', (e) => {
-        if (e.target.id === 'dailyHeartGiftModal') {
-          dailyHeartModalEl.classList.add('hidden');
-        }
-      });
-    }
 
     function applyServerAccount(data) {
       conversationSyncAfter=0;
