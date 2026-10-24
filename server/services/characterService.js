@@ -109,15 +109,24 @@ module.exports = {
     const authored={name:character.name,age:character.age,gender:character.gender,job:character.job,area:character.area,bio:character.bio,speechStyle:character.speechStyle,intent:/19금|은밀|시크릿|관능/.test(character.conceptTitle||'')?'대담한 플러팅과 은근한 로맨스':character.conceptMission,scenario:character.whyJoined};
     const now = new Date();
     const kstDate = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+    const kstYear = kstDate.getFullYear();
+    const kstMonth = kstDate.getMonth() + 1;
+    const kstDay = kstDate.getDate();
+    const days = ['일요일 (주말)', '월요일 (평일)', '화요일 (평일)', '수요일 (평일)', '목요일 (평일)', '금요일 (평일)', '토요일 (주말)'];
+    const kstDayOfWeek = days[kstDate.getDay()];
+    const isWeekend = kstDate.getDay() === 0 || kstDate.getDay() === 6;
     const kstHour = kstDate.getHours();
+    const kstMinute = kstDate.getMinutes();
+
     let timeBandDesc = '';
-    if (kstHour >= 0 && kstHour < 6) timeBandDesc = `새벽 ${kstHour}시 (조용하고 차분한 심야 시간대, 나른하거나 잠들기 전 폰 보는 감성적 분위기)`;
-    else if (kstHour >= 6 && kstHour < 9) timeBandDesc = `아침 ${kstHour}시 (기상, 출근/등교 준비, 분주한 일상 시작)`;
-    else if (kstHour >= 9 && kstHour < 12) timeBandDesc = `오전 ${kstHour}시 (업무/강의 집중 시간대, 틈틈이 나누는 메신저)`;
+    if (kstHour >= 0 && kstHour < 6) timeBandDesc = `심야/새벽 ${kstHour}시 (조용하고 차분한 심야 시간대, 나른하거나 잠들기 전 폰 보는 감성적 분위기)`;
+    else if (kstHour >= 6 && kstHour < 9) timeBandDesc = `아침 ${kstHour}시 (${isWeekend ? '주말 아침, 늦잠 자거나 여유로운 시작' : '평일 아침, 출근/등교 준비, 분주한 일상 시작'})`;
+    else if (kstHour >= 9 && kstHour < 12) timeBandDesc = `오전 ${kstHour}시 (${isWeekend ? '주말 오전, 침대에서 뒹굴거리거나 브런치/외출 준비' : '평일 오전, 업무/강의 집중 시간대, 틈틈이 나누는 메신저'})`;
     else if (kstHour >= 12 && kstHour < 14) timeBandDesc = `점심 ${kstHour}시 (식사, 커피 한 잔, 잠깐의 여유와 휴식)`;
-    else if (kstHour >= 14 && kstHour < 18) timeBandDesc = `나른한 오후 ${kstHour}시 (당 떨어지는 시간, 졸음, 퇴근/일과 마무리 대기)`;
-    else if (kstHour >= 18 && kstHour < 21) timeBandDesc = `저녁 ${kstHour}시 (퇴근길 만원 버스/지하철, 저녁 식사, 하루의 긴장 풀림)`;
-    else timeBandDesc = `늦은 밤 ${kstHour}시 (씻고 편하게 침대에 누워 뒹굴거리는 휴식 시간)`;
+    else if (kstHour >= 14 && kstHour < 18) timeBandDesc = `오후 ${kstHour}시 (${isWeekend ? '나른한 주말 오후, 카페, 드라이브, 쇼핑, 취미 생활' : '나른한 평일 오후, 당 떨어지는 시간, 졸음, 퇴근 대기'})`;
+    else if (kstHour >= 18 && kstHour < 21) timeBandDesc = `저녁 ${kstHour}시 (${isWeekend ? '주말 저녁, 맛있는 저녁 식사, 친구/연인과의 약속, 여유로운 저녁 시간' : '평일 저녁, 퇴근길 만원 버스/지하철, 저녁 식사, 하루의 긴장 풀림'})`;
+    else if (kstHour >= 21 && kstHour < 23) timeBandDesc = `밤 ${kstHour}시 (하루 일과를 마치고 침대나 소파에서 편하게 폰 보며 대화 나누는 가장 활발한 황금 저녁/밤 시간대. 심야 취급 금지!)`;
+    else timeBandDesc = `늦은 밤 ${kstHour}시 (씻고 침대에 누워 편안하게 하루를 마무리하는 휴식 시간)`;
     const isMale=character.gender==='male';
     const genderTone=isMale?`[남성 캐릭터 고유 화법 및 태도: 여성 캐릭터와 확연히 다른 듬직함과 주도성]
 - 어조 차별화: "어머", "어머나", "~했어용", "ㅠㅠ", 과도한 물결표, 애교성 말투 등 여성적인 어투는 일절 쓰지 않습니다.
@@ -139,9 +148,18 @@ ${behavior.buildDialogueCard(character,{greeting:userContext.greeting,seed:conve
 ${genderTone}
 ${chatVoiceProfiles.buildCompactPrompt(character)}
 ${chatVoiceProfiles.buildCadencePrompt(conversation.recent)}
-[현재 한국 시각(KST) 및 현실 생활감(Life Rhythm)]
-- 현재 시각: ${timeBandDesc}
-- 캐릭터는 모니터 앞 상담실에 갇힌 AI가 아니라 실제로 자기 일과를 살아가는 사람입니다. 직업과 현재 시간대에 맞는 소소한 생활감(출근길 피곤함, 점심 메뉴 고민, 나른한 졸음과 당 떨어짐, 퇴근길 만원 지하철, 침대 위 뒹굴거림 등)이 대화 속에 자연스럽게 툭툭 묻어나게 하세요.
+[현재 한국 시각(KST), 요일 및 현실 생활감(Life Rhythm)]
+- 현재 시각: ${kstYear}년 ${kstMonth}월 ${kstDay}일 ${kstDayOfWeek}, ${timeBandDesc}
+- [요일 및 평일/주말 일상 철저 구분]:
+  * 오늘은 "${kstDayOfWeek}"입니다. 요일을 절대 착각하지 마세요. (예: 토요일인데 금요일/불금이라고 착각하거나 평일 월요병 운운 엄격 금지!)
+  * ${isWeekend ? '오늘은 주말(토/일)입니다! "출근길 만원 지하철", "퇴근하고 지침", "오늘 퇴근하셨나요" 같은 평일 직장인 출퇴근 프레임을 상대에게 제멋대로 씌우지 마세요. 주말에 맞는 여유(늦잠, 외출, 맛있는 거 먹기, 넷플릭스, 집에서 뒹굴거리기 등)로 대화하세요.' : '오늘은 평일입니다. 직업과 시간대에 맞는 평일 일상(출근, 업무, 퇴근 후 휴식)을 자연스럽게 반영하세요.'}
+- [시간대 착각 및 심야 과장 엄격 금지]:
+  * 저녁 및 밤 시간대(18시~23시)는 대다수 사람들이 씻고 폰을 보며 가장 활발하게 대화를 나누는 황금 시간대입니다.
+  * "이 늦은 시간에 접속한 사람 또 있네", "안 자고 뭐해", "이 시간에 웬일이야"처럼 새벽 3~4시나 되는 것처럼 오버하거나 심야 취급하지 마세요.
+- [상대방 상태 제멋대로 단정/모순 엄격 금지]:
+  * "퇴근하고 바로 뻗으신 건가요"처럼 상대방이 자고 있거나 뻗었다고 엉뚱하게 단정하지 마세요. (뻗었으면 카톡에 접속조차 못 했을 텐데, 모니터 너머 상대방 상태를 함부로 추측해 모순된 말을 뱉지 마세요.)
+  * 상대방의 현재 상태나 한 일을 멋대로 넘겨짚지 말고, "오늘 뭐하고 보냈어?", "저녁 먹었어?", "주말 잘 보내고 있어?"처럼 자연스럽고 편안하게 물어보세요.
+- 캐릭터는 모니터 앞 상담실에 갇힌 AI가 아니라 실제로 자기 일과를 살아가는 사람입니다. 직업과 현재 요일/시간대에 맞는 소소한 생활감이 대화 속에 자연스럽게 툭툭 묻어나게 하세요.
 [메신저 현실 대화체 지침: 수필/에세이형 완결 문장 엄격 금지]
 - 실제 카카오톡은 신문 칼럼이나 완성된 글을 짓는 자리가 아닙니다.
 - "기승전결을 갖춘 긴 완성형 문장" 엄격 금지: "A는 좋은데 B하면 C해서 사람이 삭막해지더라고요", "다들 아침마다 알람을 미루는데 뇌가 멍해지는 지름길이라면서요 왜 그렇게 사나 싶어서"처럼 혼자서 장황하게 사색을 늘어놓거나 교과서처럼 논리정연하게 완결짓지 마세요.

@@ -85,7 +85,12 @@ function currentTime(now=Date.now()){
 }
 function timeInstruction(context){
   const clock=currentTime(context.generatedAt??Date.now());
-  return `[현재 실제 시간: 서버 기준 한국 시간]\n- 지금은 ${clock.localTime} (KST, Asia/Seoul), ${clock.period}입니다. UTC 시각을 한국의 현지 시각으로 읽지 마세요.\n- 지금의 인사·식사·출퇴근·날짜 표현은 이 한국 시간을 기준으로 하세요. 과거 메시지·기억·캐릭터 예문의 아침/밤을 현재 상황으로 재사용하지 마세요. 상대가 명시한 과거·미래·가상 장면이나 다른 시간대 이야기는 구분하고, 시간 표현이 필요 없으면 억지로 언급하지 마세요.\n- 과거 AI가 현재 시각을 잘못 말했다면 그 오류를 이어가지 말고 현재 한국 시간을 따르세요. 상대가 실제로 무엇을 했는지나 캐릭터의 일정을 시각만으로 지어내지 마세요.`;
+  const now=new Date(context.generatedAt??Date.now());
+  const kstDate=new Date(now.toLocaleString('en-US',{timeZone:'Asia/Seoul'}));
+  const days=['일요일','월요일','화요일','수요일','목요일','금요일','토요일'];
+  const dayName=days[kstDate.getDay()];
+  const isWeekend=kstDate.getDay()===0||kstDate.getDay()===6;
+  return `[현재 실제 시간: 서버 기준 한국 시간]\n- 지금은 ${clock.localTime} (KST, Asia/Seoul), ${clock.period} [${dayName} (${isWeekend ? '주말' : '평일'})]입니다. UTC 시각을 한국의 현지 시각으로 읽지 마세요.\n- 요일 및 평일/주말 일상 철저 구분: 오늘은 "${dayName} (${isWeekend ? '주말' : '평일'})"입니다. 요일을 절대 착각하지 마세요. (예: 토요일인데 금요일/불금이라고 착각하거나 평일 월요병 운운 엄격 금지!) ${isWeekend ? '오늘은 주말(토/일)이므로 평일 출퇴근 프레임("오늘 퇴근했어?", "출근길", "퇴근하고 지침")을 상대에게 씌우지 마세요. 주말에 맞는 여유(늦잠, 외출, 뒹굴거리기 등)로 대화하세요.' : '오늘은 평일입니다.'}\n- 저녁/밤 18시~23시는 가장 활발한 대화 시간대이므로 "이 시간에 접속한 사람 또 있네", "안 자고 뭐해"처럼 심야 취급하지 마세요. 상대가 "뻗었다"거나 자고 있다고 모순된 상태를 멋대로 단정 짓지 마세요.\n- 지금의 인사·식사·출퇴근·날짜 표현은 이 한국 시간을 기준으로 하세요. 과거 메시지·기억·캐릭터 예문의 아침/밤을 현재 상황으로 재사용하지 마세요. 상대가 명시한 과거·미래·가상 장면이나 다른 시간대 이야기는 구분하고, 시간 표현이 필요 없으면 억지로 언급하지 마세요.\n- 과거 AI가 현재 시각을 잘못 말했다면 그 오류를 이어가지 말고 현재 한국 시간과 요일을 따르세요. 상대가 실제로 무엇을 했는지나 캐릭터의 일정을 시각만으로 지어내지 마세요.`;
 }
 
 const inputUnderstandingInstruction=`[입력 이해: 오타보다 대화 의도를 먼저 읽기]
