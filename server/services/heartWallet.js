@@ -106,7 +106,7 @@ function createWallet(sql) {
       if(delta>0){const ledgerId=ledger(id,delta,reason,acquiredAt);addGrant(id,delta,acquiredAt,reason,ledgerId,delta,customExpiresAt);}
       if(delta<0){
         let remaining=-delta;
-        const grants=sql.prepare('SELECT id,remaining_units FROM heart_grants WHERE user_id=? AND remaining_units>0 ORDER BY expires_at ASC, acquired_at ASC, source_ledger_id ASC, id ASC').all(id);
+        const grants=sql.prepare("SELECT id,remaining_units FROM heart_grants WHERE user_id=? AND remaining_units>0 ORDER BY CASE WHEN reason='daily_free' THEN 0 ELSE 1 END, acquired_at ASC, source_ledger_id ASC, id ASC").all(id);
         for(const grant of grants){const used=Math.min(remaining,grant.remaining_units);sql.prepare('UPDATE heart_grants SET remaining_units=remaining_units-? WHERE id=?').run(used,grant.id);remaining-=used;if(!remaining)break;}
         if(remaining)throw Error('Wallet balance mismatch');
         ledger(id,delta,reason,Date.now());
