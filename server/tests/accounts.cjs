@@ -13,7 +13,7 @@ const base = 'http://127.0.0.1:19411/api';
 let child, logs = '';
 const env = { ...process.env, NODE_ENV: 'production', HOST: '127.0.0.1', PORT: '19411', DATABASE_FILE: path.join(dir,'legacy.json'),
   SQLITE_FILE: path.join(dir,'test.sqlite'), JWT_SECRET: jwtSecret, GEMINI_API_KEY: 'synthetic-test-key', OPENAI_API_KEY: '',
-  ALIGO_API_KEY: 'mock-key', ALIGO_USER_ID: 'mock-user', ALIGO_SENDER: '01000000000', SMS_CAPTURE_FILE: capture };
+  ALIGO_API_KEY: 'mock-key', ALIGO_USER_ID: 'mock-user', ALIGO_SENDER: '01000000000', SMS_CAPTURE_FILE: capture, DAILY_FREE_HEARTS: '0' };
 async function start() {
   child = spawn(process.execPath, ['--require', path.join(__dirname,'mock-sms.cjs'), '--require', path.join(__dirname,'mock-llm.cjs'), 'server/server.js'], { cwd: root, env, stdio: ['ignore','pipe','pipe'] });
   child.stdout.on('data', b => { logs += b; }); child.stderr.on('data', b => { logs += b; });

@@ -12,6 +12,24 @@ function calendarExpiry(acquiredAt,years) {
 function expiresAfterTwoYears(at){return calendarExpiry(at,2);}
 function expiresAfterOneYear(at){return calendarExpiry(at,1);}
 function expiresForAcquisition(at){return calendarExpiry(at,at>=ONE_YEAR_POLICY_AT?1:2);}
+function getEndOfDayKst(timestamp = Date.now()) {
+  const local = new Date(timestamp + 9 * 3600000);
+  const year = local.getUTCFullYear();
+  const month = local.getUTCMonth();
+  const day = local.getUTCDate();
+  return Date.UTC(year, month, day + 1, 0, 0, 0, 0) - 9 * 3600000;
+}
+function getStartOfDayKst(timestamp = Date.now()) {
+  const local = new Date(timestamp + 9 * 3600000);
+  const year = local.getUTCFullYear();
+  const month = local.getUTCMonth();
+  const day = local.getUTCDate();
+  return Date.UTC(year, month, day, 0, 0, 0, 0) - 9 * 3600000;
+}
+function getKstDateString(timestamp = Date.now()) {
+  const local = new Date(timestamp + 9 * 3600000);
+  return local.toISOString().slice(0, 10);
+}
 function units(value) {
   const result = Math.round(value * 10);
   if (!Number.isFinite(value) || !Number.isSafeInteger(result) || value < 0 || Math.abs(value * 10 - result) > 1e-6) throw Error('Invalid heart amount');
@@ -28,10 +46,11 @@ function createWallet(sql) {
   function tx(fn) { if (sql.isTransaction) return fn();sql.exec('BEGIN IMMEDIATE');try{const value=fn();sql.exec('COMMIT');return value;}catch(e){sql.exec('ROLLBACK');throw e;} }
   function rawUser(id) { const row=sql.prepare('SELECT data FROM users WHERE id=?').get(id);return row?JSON.parse(row.data):null; }
   function ledger(id,delta,reason,at) { return Number(sql.prepare('INSERT INTO ledger(user_id,delta,reason,created_at) VALUES(?,?,?,?)').run(id,delta,reason,at).lastInsertRowid); }
-  function addGrant(id,amount,at,reason,ledgerId,remaining=amount) {
+  function addGrant(id,amount,at,reason,ledgerId,remaining=amount,customExpiresAt=null) {
     if(amount<=0)return;
+    const expiresAt = customExpiresAt || expiresForAcquisition(at);
     sql.prepare('INSERT INTO heart_grants(id,user_id,granted_units,remaining_units,acquired_at,expires_at,reason,source_ledger_id) VALUES(?,?,?,?,?,?,?,?)')
-      .run(crypto.randomUUID(),id,amount,remaining,at,expiresForAcquisition(at),reason,ledgerId);
+      .run(crypto.randomUUID(),id,amount,remaining,at,expiresAt,reason,ledgerId);
   }
   function initialize(id) {
     if(sql.prepare('SELECT 1 FROM heart_wallets WHERE user_id=?').get(id))return;
@@ -79,15 +98,15 @@ function createWallet(sql) {
       return due.length;
     });
   }
-  function change(id,delta,reason,acquiredAt=Date.now()) {
+  function change(id,delta,reason,acquiredAt=Date.now(),customExpiresAt=null) {
     if(!Number.isSafeInteger(delta))throw Error('Invalid heart units');
     return tx(()=>{
       const user=expire(id);if(!user)throw Error('Account not found');
       if(delta<0 && units(user.hearts)<-delta){const error=Error('하트가 부족합니다.');error.code='INSUFFICIENT_HEARTS';throw error;}
-      if(delta>0){const ledgerId=ledger(id,delta,reason,acquiredAt);addGrant(id,delta,acquiredAt,reason,ledgerId);}
+      if(delta>0){const ledgerId=ledger(id,delta,reason,acquiredAt);addGrant(id,delta,acquiredAt,reason,ledgerId,delta,customExpiresAt);}
       if(delta<0){
         let remaining=-delta;
-        const grants=sql.prepare('SELECT id,remaining_units FROM heart_grants WHERE user_id=? AND remaining_units>0 ORDER BY acquired_at,source_ledger_id,id').all(id);
+        const grants=sql.prepare('SELECT id,remaining_units FROM heart_grants WHERE user_id=? AND remaining_units>0 ORDER BY expires_at ASC, acquired_at ASC, source_ledger_id ASC, id ASC').all(id);
         for(const grant of grants){const used=Math.min(remaining,grant.remaining_units);sql.prepare('UPDATE heart_grants SET remaining_units=remaining_units-? WHERE id=?').run(used,grant.id);remaining-=used;if(!remaining)break;}
         if(remaining)throw Error('Wallet balance mismatch');
         ledger(id,delta,reason,Date.now());
@@ -134,4 +153,4 @@ function createWallet(sql) {
   }
   return {expire,expireAll,change,create,transfer,summary,grants,startWorker};
 }
-module.exports={createWallet,expiresAfterTwoYears,expiresAfterOneYear,expiresForAcquisition,ONE_YEAR_POLICY_AT,units};
+module.exports={createWallet,expiresAfterTwoYears,expiresAfterOneYear,expiresForAcquisition,getEndOfDayKst,getStartOfDayKst,getKstDateString,ONE_YEAR_POLICY_AT,units};

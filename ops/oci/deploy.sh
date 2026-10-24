@@ -32,6 +32,7 @@ node server/tests/content-access.cjs
 node server/tests/content-access-ui.cjs
 node server/tests/legal.cjs
 node server/tests/heart-expiry.cjs
+node server/tests/daily-free-hearts.cjs
 node server/tests/llm-completion.cjs
 node server/tests/chat-timing.cjs
 node server/tests/chat-voice.cjs

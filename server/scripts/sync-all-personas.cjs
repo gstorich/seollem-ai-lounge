@@ -544,7 +544,7 @@ function enrichFemaleCharacters(females) {
       taboo: c.taboo || archetype.taboo,
       crushTrigger: c.crushTrigger || archetype.crushTrigger,
       // If original concept was plain, enrich with narrative
-      speechStyle: c.speechStyle ? `${c.speechStyle}. ${archetype.speechTone}` : archetype.speechTone,
+      speechStyle: c.speechStyle ? (c.speechStyle.includes(archetype.speechTone) ? c.speechStyle : `${c.speechStyle}. ${archetype.speechTone}`) : archetype.speechTone,
       conceptTitle: c.conceptTitle || archetype.title,
       conceptMission: c.conceptMission || archetype.mission,
       conceptGuidance: c.conceptGuidance || archetype.guidance

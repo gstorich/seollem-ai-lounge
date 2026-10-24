@@ -32,6 +32,7 @@ module.exports = {
   heartsPerMessage: parseFloat(process.env.HEARTS_PER_MESSAGE) || 3.7,
   defaultGuestHearts: parseFloat(process.env.DEFAULT_GUEST_HEARTS) || 50,
   phoneAuthBonusHearts: parseFloat(process.env.PHONE_AUTH_BONUS_HEARTS) || 100,
+  dailyFreeHearts: Number.isFinite(parseFloat(process.env.DAILY_FREE_HEARTS)) ? parseFloat(process.env.DAILY_FREE_HEARTS) : 10,
 
   // Database
   databaseFile,

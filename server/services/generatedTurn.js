@@ -9,6 +9,7 @@ const FAILURE = '문제가 발생했습니다. 잠시 후에 다시 시도해주
 // commit together only after an actual provider response has been validated.
 module.exports = async function generatedTurn(req, res, {character, message, requestId, kind, cost, userMessage, followUp, gift, userMessages}) {
   const id = req.user.id;
+  db.grantDailyFreeHeartsIfNeeded(id);
   let previous = db.getChatRequest(id, requestId);
   // Restored system notices retry from the last visible user message. Recover
   // the original batch IDs without copying conversation bodies into receipts.

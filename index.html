@@ -6992,6 +6992,9 @@
       state.phoneBonusClaimed = Boolean(data.user.phoneBonusClaimed);
       serverStateReady = true;
       updateAccountAndCreditUI();
+      if (data.user?.dailyFreeAwarded) {
+        showToast(`🎁 오늘 사용 가능한 일일 무료 하트 ${data.user.dailyFreeAmount || 10}개가 지급되었습니다! (오늘 자정까지 유효)`);
+      }
       window.dispatchEvent(new Event('azit-account-ready'));
     }
     function renderAccountHome() {

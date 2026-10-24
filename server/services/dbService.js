@@ -181,7 +181,50 @@ if (!sql.prepare("SELECT 1 FROM metadata WHERE key='conversation_archive_v1'").g
 module.exports = {
   transaction, getUser, createUser, updateUser, mergeRooms, resolveUserId,
   sql, // Internal service queries only; never expose a client SQL endpoint.
-  creditHearts(id, hearts, reason) { return wallet.change(id, units(hearts), reason); },
+  creditHearts(id, hearts, reason, acquiredAt = Date.now(), customExpiresAt = null) {
+    return wallet.change(id, units(hearts), reason, acquiredAt, customExpiresAt);
+  },
+  grantDailyFreeHeartsIfNeeded(userId, now = Date.now()) {
+    userId = resolveUserId(userId);
+    const user = getUser(userId);
+    // 가입한 사람 (휴대폰 번호가 연동된 회원)에게만 일일 하트 지급
+    if (!user || !user.phone) {
+      return { granted: false, reason: 'NOT_MEMBER' };
+    }
+    const heartWallet = require('./heartWallet');
+    const todayStr = heartWallet.getKstDateString(now);
+    const startOfDay = heartWallet.getStartOfDayKst(now);
+    const endOfDay = heartWallet.getEndOfDayKst(now);
+
+    return transaction(() => {
+      const u = getUser(userId);
+      if (!u || !u.phone) return { granted: false, reason: 'NOT_MEMBER' };
+
+      // 오늘 이미 지급받았는지 확인 (acquired_at이 오늘 KST 자정 이후이고 reason이 'daily_free')
+      const existing = sql.prepare(
+        "SELECT 1 FROM heart_grants WHERE user_id=? AND reason='daily_free' AND acquired_at>=? AND acquired_at<?"
+      ).get(u.id, startOfDay, endOfDay);
+      if (existing) {
+        return { granted: false, reason: 'ALREADY_GRANTED_TODAY', hearts: u.hearts };
+      }
+
+      const dailyAmount = config.dailyFreeHearts;
+      if (dailyAmount <= 0) return { granted: false, reason: 'DAILY_AMOUNT_ZERO', hearts: u.hearts };
+
+      // 당일에만 사용 가능: expiresAt은 오늘 KST 자정(익일 00:00:00 KST)
+      const expiresAt = endOfDay;
+      wallet.change(u.id, units(dailyAmount), 'daily_free', now, expiresAt);
+      updateUser(u.id, { lastDailyHeartDate: todayStr });
+
+      const updated = getUser(u.id);
+      return {
+        granted: true,
+        amount: dailyAmount,
+        hearts: updated.hearts,
+        expiresAt
+      };
+    });
+  },
   getHeartSummary: wallet.summary, getHeartGrants: wallet.grants,
   expireHearts: wallet.expireAll, startHeartExpiryWorker: wallet.startWorker,
   findUserByPhone(phone) { const row = sql.prepare('SELECT id FROM users WHERE phone=?').get(phone); return row ? getUser(row.id) : null; },
