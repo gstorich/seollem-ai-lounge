@@ -2,20 +2,19 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
+const { execFileSync } = require('node:child_process');
+
 const root = path.resolve(__dirname, '../..');
 const html = fs.readFileSync(path.join(root, 'index.html'), 'utf8');
-const start = html.indexOf('const AVATARS_20_30');
-const marker = 'const CHARACTERS = buildAllCharacters();';
-const end = html.indexOf(marker);
-if (start < 0 || end < start) throw new Error('Persona catalog boundaries changed');
-const catalog = vm.runInNewContext(html.slice(start, end + marker.length) + '; JSON.stringify(CHARACTERS)', {}, { timeout: 3000 });
-const fields = ['id', 'name', 'age', 'ageDecade', 'gender', 'traitKey', 'regionGroup', 'job', 'avatar', 'area', 'bio', 'speechStyle', 'whyJoined', 'crushTrigger', 'conceptTitle', 'conceptMission', 'conceptGuidance'];
-const characters = JSON.parse(catalog).map(c => Object.fromEntries(fields.map(key => [key, c[key]])));
-if (characters.length !== 2356 || new Set(characters.map(c => c.id)).size !== characters.length) throw new Error(`Unexpected persona catalog count: ${characters.length}`);
-fs.writeFileSync(path.join(root, 'server/services/frontendCharacters.json'), JSON.stringify(characters) + '\n');
-console.log(`Synchronized ${characters.length} frontend personas`);
 
+// Synchronize gifts catalog
 const giftStart = html.indexOf('const GIFT_CATALOG =');
 const giftEnd = html.indexOf('const NON_FACE_DAILY_PHOTOS', giftStart);
-const gifts = JSON.parse(vm.runInNewContext(html.slice(giftStart, giftEnd) + '; JSON.stringify(GIFT_CATALOG)', {}, { timeout: 1000 }));
-fs.writeFileSync(path.join(root, 'server/services/gifts.json'), JSON.stringify(gifts) + '\n');
+if (giftStart >= 0 && giftEnd > giftStart) {
+  const gifts = JSON.parse(vm.runInNewContext(html.slice(giftStart, giftEnd) + '; JSON.stringify(GIFT_CATALOG)', {}, { timeout: 1000 }));
+  fs.writeFileSync(path.join(root, 'server/services/gifts.json'), JSON.stringify(gifts) + '\n');
+  console.log('Synchronized gifts catalog');
+}
+
+// Synchronize all 2,356 personas with Deep Life Narratives (Backstory, Philosophy, Core Wound, Taboo)
+execFileSync(process.execPath, [path.join(__dirname, 'sync-all-personas.cjs')], { stdio: 'inherit' });
