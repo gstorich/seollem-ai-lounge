@@ -283,6 +283,7 @@
     #giftModal > div,
     #paymentModal > div,
     #heartNeededModal > div,
+    #dailyHeartGiftModal > div,
     #onboardingGenderModal > div,
     #matchFilterModal > div {
       background-color: #332b24 !important;
@@ -1107,6 +1108,46 @@
             49,000원 결제하고 6,500 하트 받기
           </button>
         </div>
+      </div>
+    </div>
+
+    <!-- DAILY FREE HEARTS WELCOME MODAL (기분 좋은 일일 하트 선물 팝업) -->
+    <div id="dailyHeartGiftModal" class="hidden fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="w-full max-w-[360px] rounded-3xl bg-[#2b2520] p-6 shadow-2xl text-center space-y-4 border border-[#e5a93c]/50 text-[#fbf7f2] msg-animate relative overflow-hidden">
+        <!-- 상단 축하 배경 그라데이션 장식 -->
+        <div class="absolute -top-12 -left-12 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl pointer-events-none"></div>
+        <div class="absolute -top-12 -right-12 w-32 h-32 bg-rose-500/15 rounded-full blur-2xl pointer-events-none"></div>
+        
+        <div class="w-20 h-20 mx-auto rounded-3xl bg-gradient-to-br from-amber-400/20 via-rose-500/20 to-amber-600/20 border border-amber-400/40 flex items-center justify-center text-4xl shadow-inner">
+          🎁
+        </div>
+        
+        <div class="space-y-1.5">
+          <span class="inline-block px-3 py-1 rounded-full bg-amber-500/15 border border-amber-500/30 text-amber-300 font-bold text-[11.5px] tracking-wider uppercase">
+            Daily Free Gift
+          </span>
+          <h3 class="text-[20px] font-black text-[#fbf7f2] tracking-tight">
+            일일 하트 <span id="dailyHeartModalAmount" class="text-amber-400 font-extrabold">10개</span>가 지급되었어요!
+          </h3>
+          <p class="text-[13.5px] text-[#d5c8b7] leading-relaxed pt-1">
+            오늘도 설레는 하루를 위해<br/>
+            <strong>일일 하트 10개</strong>를 선물로 충전해 드렸어요 ❤️
+          </p>
+        </div>
+
+        <div class="p-3.5 rounded-2xl bg-[#362f29] border border-[#4d4135] text-left text-[12.5px] space-y-2 text-[#d5c8b7]">
+          <div class="flex items-center gap-1.5 text-amber-300 font-semibold text-[12.5px]">
+            <span>⏰</span>
+            <span>당일 한정 사용 안내</span>
+          </div>
+          <p class="text-[12px] text-[#b9aa97] leading-relaxed">
+            지급된 일일 하트는 <strong>오늘 자정(23:59:59)까지만</strong> 사용할 수 있고, 하루가 경과한 후 사용하지 않은 하트는 자동으로 소멸되어요.
+          </p>
+        </div>
+
+        <button id="btnConfirmDailyHeart" type="button" class="w-full py-3.5 rounded-xl bg-gradient-to-r from-[#d8962d] to-[#c48726] hover:from-[#e5a93c] hover:to-[#d8962d] active:scale-[0.98] text-[#1a140b] font-black text-[15.5px] shadow-lg shadow-amber-900/30 border border-[#e5a93c]/60 transition cursor-pointer">
+          신나게 대화 시작하기 ❤️
+        </button>
       </div>
     </div>
 
@@ -6962,6 +7003,7 @@
           state.savedRooms[id].unreadCount=incoming.summaryOnly?incoming.unreadCount:state.savedRooms[id].messages.filter(m=>m.sender==='ai'&&m.unread).length;
         }
         if(typeof data.user?.hearts==='number')state.hearts=state.credits=data.user.hearts;
+        if(data.user?.dailyFreeAwarded) openDailyHeartModal(data.user.dailyFreeAmount || 10);
         saveAccountState();renderChatRoomsList();updateChatListBadges();
         conversationSyncAfter=data.syncVersion||conversationSyncAfter;
       }catch{}finally{conversationSyncBusy=false;}
@@ -6971,6 +7013,27 @@
     window.addEventListener('online',()=>syncServerConversations());
     window.addEventListener('pageshow',()=>syncServerConversations());
     setInterval(syncServerConversations,5000);
+
+    function openDailyHeartModal(amount = 10) {
+      const modal = document.getElementById('dailyHeartGiftModal');
+      const amountEl = document.getElementById('dailyHeartModalAmount');
+      if (amountEl) amountEl.textContent = `${amount}개`;
+      if (modal) modal.classList.remove('hidden');
+    }
+    const btnConfirmDailyHeart = document.getElementById('btnConfirmDailyHeart');
+    if (btnConfirmDailyHeart) {
+      btnConfirmDailyHeart.addEventListener('click', () => {
+        document.getElementById('dailyHeartGiftModal')?.classList.add('hidden');
+      });
+    }
+    const dailyHeartModalEl = document.getElementById('dailyHeartGiftModal');
+    if (dailyHeartModalEl) {
+      dailyHeartModalEl.addEventListener('click', (e) => {
+        if (e.target.id === 'dailyHeartGiftModal') {
+          dailyHeartModalEl.classList.add('hidden');
+        }
+      });
+    }
 
     function applyServerAccount(data) {
       conversationSyncAfter=0;
@@ -6993,7 +7056,7 @@
       serverStateReady = true;
       updateAccountAndCreditUI();
       if (data.user?.dailyFreeAwarded) {
-        showToast(`🎁 오늘 사용 가능한 일일 무료 하트 ${data.user.dailyFreeAmount || 10}개가 지급되었습니다! (오늘 자정까지 유효)`);
+        openDailyHeartModal(data.user.dailyFreeAmount || 10);
       }
       window.dispatchEvent(new Event('azit-account-ready'));
     }
