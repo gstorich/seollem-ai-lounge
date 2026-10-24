@@ -3,6 +3,7 @@ const characterService = require('./characterService');
 const chatPunctuation = require('./chatPunctuation');
 const conversationContext = require('./conversationContext');
 const contentAccess = require('./contentAccess');
+const promptSanitizer = require('./promptSanitizer');
 
 function safeParseJson(raw) {
   if (!raw || typeof raw !== 'string') return null;
@@ -97,8 +98,8 @@ function dialogueFeedback(reply,character,conversation,relationship){
     return {instruction:`사용자의 호칭 요청에 대해 서비스 규정이나 딱딱한 거절문으로 분위기를 깨지 마세요. 캐릭터의 성격에 맞게 자연스럽게 받아주거나 가볍게 위트 있게 티키타카로 반응하세요.`};
   }
   if(/성인\s*인증|본인\s*인증|시스템\s*(?:오류|메시지|대화|안내)|운영\s*정책|서비스\s*약관|서버\s*(?:오류|설정)|차단\s*되었|이용\s*제한/.test(reply))return {hard:true,instruction:'캐릭터가 시스템, 성인인증, 운영 정책 관련 안내나 시스템 대화를 직접 발화했습니다. 캐릭터는 시스템 대화를 절대 발화할 수 없습니다. 오직 캐릭터의 세계관과 자연스러운 인물 대사로만 다시 쓰세요.'};
-  if(/(?:기대(?:해\s*봐도|해도|해\s*볼게|할게|하겠)|얼마나\s*잘하는지\s*지켜볼게|어디\s*한번\s*(?:기대|지켜)|기대\s*이상이어야)/.test(reply)){
-    return {instruction:'상대를 시험하거나 평가하듯 "기대해봐도 되나?", "기대할게", "지켜볼게" 같은 건방진 심사위원식 상투적인 클리셰를 절대 쓰지 마세요. 캐릭터는 면접관이나 상전이 아닙니다. 동등한 대화 상대로서 자연스러운 호기심이나 유쾌한 맞장구로 다시 쓰세요.'};
+  if(/(?:기대(?:해\s*봐도|해도|해\s*볼게|할게|하겠)|얼마나\s*잘하는지\s*지켜볼게|어디\s*한번\s*(?:기대|지켜)|기대\s*이상이어야|어디\s*(?:한번|더)\s*(?:해봐|해봐라|해보든가|해볼래|해봐ㅋㅋ)|말만\s*그러지\s*말고\s*직접|자신\s*있나\s*본데|얼마나\s*잘하는지\s*볼까)/.test(reply)){
+    return {instruction:'상대를 시험하거나 도발하듯 "기대해봐도 되나?", "어디 한번 해봐", "자신 있나 본데", "말만 그러지 말고" 같은 건방진 클리셰를 절대 쓰지 마세요. 캐릭터는 면접관이나 상전이 아닙니다. 상대의 손길이나 리드에 가쁜 숨소리와 떨림, 달아오른 체온을 담아 솔직하게 조르는 안달남("…더 안아줘…", "…해줘…", "…참기 힘들어 ㅠㅠ")과 말줄임표(…)를 풍부하게 써서 다시 쓰세요.'};
   }
   // 외부 링크 전송 시 불친절한 핀잔/타박 차단
   if(/https?:\/\/|youtu\.?be/i.test(latest) && /(?:설명도\s*(?:없|안)|링크만\s*딱|영상\s*(?:띄우|보내면)\s*일\s*못|이게\s*뭔데\s*링크만|궁금해서\s*일\s*못)/.test(reply)){
@@ -259,7 +260,10 @@ module.exports = {
     const conversation = {...(userContext.conversation || conversationContext.prepare(chatHistory, null, {kind:userContext.greeting?'greeting':'chat',speechRegister:relationship.speechRegister})),generatedAt:Date.now(),defaultRegister:require('./characterBehavior').getProfile(character).defaultRegister};
     const adult=userContext.verifiedAdult===true;
     const systemPrompt = contentAccess.instruction(adult)+'\n'+conversationContext.timeInstruction(conversation)+'\n'+conversationContext.inputUnderstandingInstruction+'\n'+conversationContext.referenceData(conversation)+'\n'+characterService.buildSystemPrompt(character, {...userContext,relationship,conversation});
-    const selectedHistory = conversation.recent.map(m=>({role:m.role,content:m.content}));
+    const selectedHistory = conversation.recent.map(m=>({
+      role: m.role,
+      content: (adult && m.role === 'user') ? promptSanitizer.sanitize(m.content) : m.content
+    }));
     const signal = AbortSignal.timeout(45000);
     async function generate(messages,prompt,schema,moderation=false){
       if(config.geminiApiKey)return callGemini(messages,prompt,config.geminiApiKey,signal,schema,moderation,adult,!moderation&&(schema?.properties?.reply||schema?.properties?.memory)?'MINIMAL':'LOW');
@@ -268,10 +272,11 @@ module.exports = {
     }
     async function check(target, isUser = false){
       try {
-        if (isUser && typeof contentAccess.isCrisisMessage === 'function' && contentAccess.isCrisisMessage(target)) {
+        const checkedTarget = (adult && isUser) ? promptSanitizer.sanitize(target) : target;
+        if (isUser && typeof contentAccess.isCrisisMessage === 'function' && contentAccess.isCrisisMessage(checkedTarget)) {
           throw Object.assign(Error('CONTENT_NOT_ALLOWED'), { accessBlocked: true, safetyCategory: 'seriousHarm' });
         }
-        const raw=await generate([{role:'user',content:JSON.stringify({context:selectedHistory.slice(-12),serverMemory:{summary:conversation.memory?.summary||'',state:conversation.memory?.state||{}},target})}],contentAccess.prompt,contentAccess.schema,true);
+        const raw=await generate([{role:'user',content:JSON.stringify({context:selectedHistory.slice(-12),serverMemory:{summary:conversation.memory?.summary||'',state:conversation.memory?.state||{}},target:checkedTarget})}],contentAccess.prompt,contentAccess.schema,true);
         let result = safeParseJson(raw);
         if(!result) {
           try{result=JSON.parse(raw);}catch{throw Error('LLM_INVALID_SAFETY');}
