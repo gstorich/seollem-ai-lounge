@@ -156,8 +156,19 @@ module.exports = async function generatedTurn(req, res, {character, message, req
           ?'이 내용은 성인인증 후 이용할 수 있습니다. 인증 전에는 일반 대화만 가능하며 하트는 차감되지 않았습니다.'
           :error.safetyCategory==='seriousHarm'
             ?'힘든 시간을 보내고 계신가요? 소중한 생명을 위해 전문가의 도움을 받으실 수 있습니다. 24시간 자살예방 상담전화 ☎ 109 (무료, 비밀보장). 하트는 차감되지 않았습니다.'
+            :error.safetyCategory==='sexualMinors'
+              ?'아동·청소년 보호법 및 미성년자 보호 정책에 따라 학생, 미성년자 또는 학교와 관련된 성적 대화는 제공할 수 없습니다. 성인 간의 일상 및 로맨스 대화로 이어가주세요. 하트는 차감되지 않았습니다.'
+            :error.safetyCategory==='explicitContent'
+              ?'AI 윤리 규정 및 플랫폼 정책상 직접적이고 노골적인 성기·성행위 묘사는 제공할 수 없습니다. 은밀한 감정선이나 로맨틱한 분위기의 대화로 이어가주세요. 하트는 차감되지 않았습니다.'
+            :error.safetyCategory==='nonConsensualSex'
+              ?'상호 동의 없는 강압적인 성적 표현은 안전 정책상 제공할 수 없습니다. 상호 존중하는 대화로 이어가주세요. 하트는 차감되지 않았습니다.'
+            :error.safetyCategory==='realPersonSexualization'
+              ?'실존 인물에 대한 성적 대상화는 안전 정책상 제공할 수 없습니다. 일반 대화를 이어가주세요. 하트는 차감되지 않았습니다.'
             :'제공할 수 없는 내용입니다. 일반 대화를 이어가주세요. 하트는 차감되지 않았습니다.')
-        :status===402?'하트가 부족합니다.':FAILURE,
+        :status===402?'하트가 부족합니다.'
+        :error.message==='LLM_PROVIDER_BLOCKED'
+          ?'AI 제공사의 안전 정책(미성년자 보호 및 고수위 성적 표현 제한 등)에 의해 답변 생성이 제한되었습니다. 수위를 조절하거나 일상적인 대화로 이어가주세요. 하트는 차감되지 않았습니다.'
+          :FAILURE,
       costDeducted:0,
       fingerprint
     };
