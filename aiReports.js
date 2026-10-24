@@ -3,6 +3,7 @@ const categories={sexual_minors:'미성년자 관련 성적 내용',non_consensu
 let dialog,busy=false,historyPage=0,menu,menuTrigger;
 const esc=x=>String(x??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const date=x=>new Date(x).toLocaleString('ko-KR',{timeZone:'Asia/Seoul'});
+const sirenSvg='<svg class="ai-report-siren-icon" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M7 18v-6a5 5 0 1 1 10 0v6" class="siren-dome"/><path d="M5 21a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-1a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2z" class="siren-base"/><path d="M12 13v5" class="siren-bulb"/><path d="M12 1v3" class="siren-ray"/><path d="M1 12h3" class="siren-ray"/><path d="M20 12h3" class="siren-ray"/><path d="M4.5 4.5l2 2" class="siren-ray"/><path d="M19.5 4.5l-2 2" class="siren-ray"/></svg>';
 function closeMenu(restoreFocus=false){
  if(!menu)return;
  menu.remove();menu=null;
@@ -14,7 +15,7 @@ function showMenu(trigger,item){
  if(menuTrigger===trigger){closeMenu();return;}
  closeMenu();menuTrigger=trigger;trigger.setAttribute('aria-expanded','true');
  menu=document.createElement('div');menu.id='aiAnswerMenu';menu.className='ai-answer-menu';menu.setAttribute('role','menu');menu.setAttribute('aria-label','AI 답변 메뉴');
- const report=document.createElement('button');report.type='button';report.setAttribute('role','menuitem');report.tabIndex=-1;report.textContent='신고하기';
+ const report=document.createElement('button');report.type='button';report.setAttribute('role','menuitem');report.tabIndex=-1;report.textContent='🚨 신고하기';
  report.onclick=()=>{closeMenu();open(item);};menu.append(report);document.body.append(menu);
  const bounds=trigger.getBoundingClientRect(),height=menu.offsetHeight;
  menu.style.left=Math.max(8,Math.min(bounds.left,window.innerWidth-menu.offsetWidth-8))+'px';
@@ -26,7 +27,7 @@ document.addEventListener('scroll',()=>closeMenu(),true);
 window.addEventListener('resize',()=>closeMenu());
 function shell(title){
  closeMenu();
- if(!dialog){dialog=document.createElement('dialog');dialog.className='ai-report-dialog';dialog.innerHTML='<div class="ai-report-top"><h2 id="aiReportTitle"></h2><button type="button" aria-label="신고 창 닫기">✕</button></div><div class="ai-report-body"></div>';dialog.setAttribute('aria-labelledby','aiReportTitle');document.body.append(dialog);dialog.querySelector('button').onclick=()=>dialog.close();}
+ if(!dialog){dialog=document.createElement('dialog');dialog.className='ai-report-dialog';dialog.innerHTML='<div class="ai-report-top"><h2 id="aiReportTitle"></h2><button type="button" aria-label="신고 창 닫기">✕</button></div><div class="ai-report-body"></div>';dialog.setAttribute('aria-labelledby','aiReportTitle');document.body.append(dialog);dialog.querySelector('button').onclick=()=>dialog.close();dialog.addEventListener('click',e=>{if(e.target===dialog)dialog.close();});}
  dialog.querySelector('h2').textContent=title;const body=dialog.querySelector('.ai-report-body');body.replaceChildren();if(!dialog.open)dialog.showModal();return body;
 }
 async function history(){
@@ -49,7 +50,7 @@ window.AzitAiReports={configure(){document.querySelectorAll('[data-ai-report-his
  if(sender!=='ai'||!messageId||!characterId)return;
  const content=row.children[1],line=content?.children[1],time=line?.lastElementChild;if(!line||!time)return;
  const actions=document.createElement('div');actions.className='ai-report-actions';line.replaceChild(actions,time);
- const b=document.createElement('button');b.type='button';b.className='ai-report-trigger';b.textContent='…';b.setAttribute('aria-label','AI 답변 메뉴');b.setAttribute('aria-haspopup','menu');b.setAttribute('aria-expanded','false');b.setAttribute('aria-controls','aiAnswerMenu');
- const item={messageId,characterId,text};b.onclick=()=>showMenu(b,item);b.onkeydown=e=>{if(e.key==='ArrowDown'){e.preventDefault();showMenu(b,item);}};actions.append(b,time);
+ const b=document.createElement('button');b.type='button';b.className='ai-report-trigger';b.innerHTML=sirenSvg;b.setAttribute('aria-label','AI 답변 신고');b.setAttribute('title','AI 답변 신고');
+ const item={messageId,characterId,text};b.onclick=()=>open(item);actions.append(b,time);
 },history};
 })();
