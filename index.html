@@ -323,15 +323,19 @@
     /* Modal Cards & Boxes */
     #paymentModal .pkg-card {
       background-color: #383029 !important;
-      border-color: #4f4236 !important;
+      border: 1.5px solid #4f4236 !important;
       color: #fbf7f2 !important;
+      transition: all 0.2s ease !important;
     }
     #paymentModal .pkg-card:hover {
       background-color: #423830 !important;
+      border-color: #735d48 !important;
     }
-    #paymentModal .pkg-card[data-pkg="popular"] {
-      background-color: #423526 !important;
-      border-color: #e5a93c !important;
+    #paymentModal .pkg-card.is-selected {
+      background-color: #453728 !important;
+      border: 2px solid #f0be64 !important;
+      box-shadow: 0 0 16px rgba(240, 190, 100, 0.3) !important;
+      transform: scale(1.01) !important;
     }
     #paymentBonusAuthBanner {
       background-color: #3b3024 !important;
@@ -999,19 +1003,22 @@
             <strong>휴대폰 번호 연동 전에는 결제할 수 없습니다.</strong><br>먼저 번호를 연동하고 첫 인증 혜택 100하트로 대화를 이어가세요.
           </div>
 
-          <!-- 3. Heart packages: modest volume benefits -->
-          <p class="text-[12px] text-[#baa997] leading-relaxed">단가 혜택은 스타터 대비 1하트당 가격 기준입니다. 큰 패키지도 혜택이 조금씩만 늘어납니다.</p>
+          <!-- 3. Heart packages: Volume discount benefits -->
+          <p class="text-[12.5px] text-[#e0cfbe] leading-relaxed font-medium">💡 패키지가 클수록 하트당 단가 할인율과 보너스 혜택이 더욱 커집니다.</p>
           <div class="space-y-2.5 pt-1">
             <!-- Package 1: Starter -->
             <div data-pkg="starter" class="pkg-card cursor-pointer p-4 rounded-2xl border border-[#4d4135] bg-[#362f29] hover:bg-[#3d352e] flex items-center justify-between transition shadow-xs">
-              <div>
-                <div class="flex items-center gap-1.5 flex-wrap">
-                  <span class="font-black text-[#fbf7f2] text-[16px]">스타터 패키지</span>
-                  <span class="px-2 py-0.5 rounded-full text-[10.5px] font-black bg-[#e11d48]/25 text-[#fda4af] border border-[#e11d48]/40">기본 구성</span>
-                </div>
-                <div class="text-[14.5px] text-[#f0be64] font-black mt-1 flex items-center gap-1.5">
-                  <span>하트 2,500개</span>
-                  <span class="text-[11px] text-[#baa997] font-normal">(첫 충전 추천)</span>
+              <div class="flex items-center gap-3">
+                <div class="pkg-check shrink-0 w-6 h-6 rounded-full border-2 border-[#5c4e3f] bg-[#2b2520] flex items-center justify-center transition-all"></div>
+                <div>
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="font-black text-[#fbf7f2] text-[16px]">스타터 패키지</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10.5px] font-black bg-[#e11d48]/25 text-[#fda4af] border border-[#e11d48]/40">기본 구성</span>
+                  </div>
+                  <div class="text-[14.5px] text-[#f0be64] font-black mt-1 flex items-center gap-1.5">
+                    <span>하트 2,500개</span>
+                    <span class="text-[11px] text-[#baa997] font-normal">(첫 충전 추천)</span>
+                  </div>
                 </div>
               </div>
               <div class="text-right">
@@ -1020,16 +1027,19 @@
             </div>
 
             <!-- Package 2: Popular [BEST 1위] -->
-            <div data-pkg="popular" class="pkg-card cursor-pointer p-4 rounded-2xl border-2 border-[#e5a93c] bg-[#423526] hover:bg-[#4d3d2c] flex items-center justify-between transition shadow-sm relative overflow-hidden">
+            <div data-pkg="popular" class="pkg-card cursor-pointer p-4 rounded-2xl border border-[#4d4135] bg-[#362f29] hover:bg-[#3d352e] flex items-center justify-between transition shadow-sm relative overflow-hidden">
               <span class="absolute top-0 right-0 px-3 py-0.5 rounded-bl-xl text-[10px] font-black bg-[#e5a93c] text-[#1a140b] shadow-xs">BEST 인기 1위</span>
-              <div>
-                <div class="flex items-center gap-1.5 flex-wrap">
-                  <span class="font-black text-[#fbf7f2] text-[16.5px]">베스트 패키지</span>
-                  <span class="px-2 py-0.5 rounded-full text-[10.5px] font-black bg-[#e11d48] text-white shadow-xs font-bold">단가 약 5% 혜택</span>
-                </div>
-                <div class="text-[15px] text-[#f0be64] font-black mt-1 flex items-center gap-1.5">
-                  <span>하트 6,500개</span>
-                  <span class="text-[11.5px] text-[#ede2d5] font-semibold">(최다 판매)</span>
+              <div class="flex items-center gap-3">
+                <div class="pkg-check shrink-0 w-6 h-6 rounded-full border-2 border-[#5c4e3f] bg-[#2b2520] flex items-center justify-center transition-all"></div>
+                <div>
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="font-black text-[#fbf7f2] text-[16.5px]">베스트 패키지</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10.5px] font-black bg-[#e11d48] text-white shadow-xs font-bold">단가 약 5% 혜택</span>
+                  </div>
+                  <div class="text-[15px] text-[#f0be64] font-black mt-1 flex items-center gap-1.5">
+                    <span>하트 6,500개</span>
+                    <span class="text-[11.5px] text-[#ede2d5] font-semibold">(최다 판매)</span>
+                  </div>
                 </div>
               </div>
               <div class="text-right pt-2">
@@ -1039,14 +1049,17 @@
 
             <!-- Package 3: Mania -->
             <div data-pkg="mania" class="pkg-card cursor-pointer p-4 rounded-2xl border border-[#4d4135] bg-[#362f29] hover:bg-[#3d352e] flex items-center justify-between transition shadow-xs">
-              <div>
-                <div class="flex items-center gap-1.5 flex-wrap">
-                  <span class="font-black text-[#fbf7f2] text-[16px]">VIP 메가 패키지</span>
-                  <span class="px-2 py-0.5 rounded-full text-[10.5px] font-black bg-[#e11d48]/25 text-[#fda4af] border border-[#e11d48]/40">단가 약 11% 혜택</span>
-                </div>
-                <div class="text-[14.5px] text-[#f0be64] font-black mt-1 flex items-center gap-1.5">
-                  <span>하트 12,500개</span>
-                  <span class="text-[11.5px] text-[#c084fc] font-semibold">(대용량 넉넉한 대화)</span>
+              <div class="flex items-center gap-3">
+                <div class="pkg-check shrink-0 w-6 h-6 rounded-full border-2 border-[#5c4e3f] bg-[#2b2520] flex items-center justify-center transition-all"></div>
+                <div>
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="font-black text-[#fbf7f2] text-[16px]">VIP 메가 패키지</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10.5px] font-black bg-[#e11d48]/25 text-[#fda4af] border border-[#e11d48]/40">단가 약 11% 혜택</span>
+                  </div>
+                  <div class="text-[14.5px] text-[#f0be64] font-black mt-1 flex items-center gap-1.5">
+                    <span>하트 12,500개</span>
+                    <span class="text-[11.5px] text-[#c084fc] font-semibold">(대용량 넉넉한 대화)</span>
+                  </div>
                 </div>
               </div>
               <div class="text-right">
@@ -1056,14 +1069,17 @@
 
             <!-- Package 4: Master -->
             <div data-pkg="master" class="pkg-card cursor-pointer p-4 rounded-2xl border border-[#4d4135] bg-[#362f29] hover:bg-[#3d352e] flex items-center justify-between transition shadow-xs">
-              <div>
-                <div class="flex items-center gap-1.5 flex-wrap">
-                  <span class="font-black text-[#fbf7f2] text-[16px]">VVIP 로열 패키지</span>
-                  <span class="px-2 py-0.5 rounded-full text-[10.5px] font-black bg-[#e11d48]/25 text-[#fda4af] border border-[#e11d48]/40">단가 약 15% 혜택</span>
-                </div>
-                <div class="text-[14.5px] text-[#f0be64] font-black mt-1 flex items-center gap-1.5">
-                  <span>하트 22,000개</span>
-                  <span class="text-[11px] text-[#f59e0b] font-semibold">(최대 혜택)</span>
+              <div class="flex items-center gap-3">
+                <div class="pkg-check shrink-0 w-6 h-6 rounded-full border-2 border-[#5c4e3f] bg-[#2b2520] flex items-center justify-center transition-all"></div>
+                <div>
+                  <div class="flex items-center gap-1.5 flex-wrap">
+                    <span class="font-black text-[#fbf7f2] text-[16px]">VVIP 로열 패키지</span>
+                    <span class="px-2 py-0.5 rounded-full text-[10.5px] font-black bg-[#e11d48]/25 text-[#fda4af] border border-[#e11d48]/40">단가 약 15% 혜택</span>
+                  </div>
+                  <div class="text-[14.5px] text-[#f0be64] font-black mt-1 flex items-center gap-1.5">
+                    <span>하트 22,000개</span>
+                    <span class="text-[11px] text-[#f59e0b] font-semibold">(최대 혜택)</span>
+                  </div>
                 </div>
               </div>
               <div class="text-right">
@@ -6099,7 +6115,7 @@
       }
       updateAccountAndCreditUI();
       document.getElementById('paymentModal').classList.remove('hidden');
-      document.querySelector(`.pkg-card[data-pkg="${state.selectedPkg}"]`)?.click();
+      selectPackageCard(state.selectedPkg);
       refreshHeartWallet();
     }
 
@@ -6499,16 +6515,29 @@
       });
     }
 
+    function selectPackageCard(pkgKey) {
+      state.selectedPkg = pkgKey;
+      document.querySelectorAll('.pkg-card').forEach(card => {
+        const isSelected = card.getAttribute('data-pkg') === pkgKey;
+        card.classList.toggle('is-selected', isSelected);
+        const check = card.querySelector('.pkg-check');
+        if (check) {
+          if (isSelected) {
+            check.className = 'pkg-check shrink-0 w-6 h-6 rounded-full bg-[#f0be64] text-[#1a140b] flex items-center justify-center font-black text-[13px] shadow-sm';
+            check.textContent = '✓';
+          } else {
+            check.className = 'pkg-check shrink-0 w-6 h-6 rounded-full border-2 border-[#5c4e3f] bg-[#2b2520] flex items-center justify-center transition-all';
+            check.textContent = '';
+          }
+        }
+      });
+      updatePaymentEligibilityUI();
+    }
+
     document.querySelectorAll('.pkg-card').forEach(card => {
       card.addEventListener('click', () => {
         const pkgKey = card.getAttribute('data-pkg');
-        state.selectedPkg = pkgKey;
-        document.querySelectorAll('.pkg-card').forEach(c => {
-          c.className = 'pkg-card cursor-pointer p-4 rounded-2xl border border-[#4d4135] bg-[#362f29] hover:bg-[#3d352e] flex items-center justify-between transition';
-        });
-        card.className = 'pkg-card cursor-pointer p-4 rounded-2xl border-2 border-[#e5a93c] bg-[#423526] flex items-center justify-between transition shadow-md';
-        const pkg = PACKAGES[pkgKey] || PACKAGES.popular;
-        updatePaymentEligibilityUI();
+        selectPackageCard(pkgKey);
       });
     });
 
