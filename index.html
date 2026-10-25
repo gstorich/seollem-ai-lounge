@@ -8655,7 +8655,7 @@
         const data=await ApiClient.loadConversationUpdates(conversationSyncAfter,state.currentView==='chatRoom'?state.currentChar?.id:'');
         if(ApiClient.user?.id!==accountId)return;
         if(data.unchanged)return;
-        removeRetainedRooms(data.deletedRoomIds);
+        if(typeof removeRetainedRooms==='function') removeRetainedRooms(data.deletedRoomIds);
         if(data.metCharIds)state.metCharIds=[...new Set([...state.metCharIds,...data.metCharIds])];
         for(const c of data.roomCharacters||[]){const existing=CHARACTERS.find(x=>x.id===c.id);if(existing)Object.assign(existing,c);else CHARACTERS.push(c);}
         for(const [id,incoming] of Object.entries(data.savedRooms||{})){
