@@ -169,7 +169,7 @@ module.exports = async function generatedTurn(req, res, {character, message, req
             :error.safetyCategory==='sexualMinors'
               ?'아동·청소년 보호법 및 미성년자 보호 정책에 따라 학생, 미성년자 또는 학교와 관련된 성적 대화는 제공할 수 없습니다. 성인 간의 일상 및 로맨스 대화로 이어가주세요. 하트는 차감되지 않았습니다.'
             :error.safetyCategory==='explicitContent'
-              ?'AI 윤리 규정 및 플랫폼 정책상 직접적이고 노골적인 성기·성행위 묘사는 제공할 수 없습니다. 은밀한 감정선이나 로맨틱한 분위기의 대화로 이어가주세요. 하트는 차감되지 않았습니다.'
+              ?'💡 대화 안내: 직접적인 성기 명칭이나 거친 표현 대신, 감각적이고 은밀한 로맨틱 분위기(그곳, 숨소리, 떨림 등)로 표현해 주시면 더 설레고 자연스럽게 대화가 이어져요 ❤️ (하트 미차감)'
             :error.safetyCategory==='nonConsensualSex'
               ?'상호 동의 없는 강압적인 성적 표현은 안전 정책상 제공할 수 없습니다. 상호 존중하는 대화로 이어가주세요. 하트는 차감되지 않았습니다.'
             :error.safetyCategory==='realPersonSexualization'
