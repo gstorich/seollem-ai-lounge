@@ -117,6 +117,16 @@ module.exports = async function generatedTurn(req, res, {character, message, req
     if (result.roomLeft && message && /(ai|에이아이|인공지능|기계|로봇|챗봇|육신)/i.test(message)) {
       result.roomLeft = false;
     }
+
+    // [보안/안전 3]: 성인 로맨스/롤플레잉 중 사용자의 거친 플레이나 신체 묘사에 대해 AI가 부당하게 roomLeft: true로 방폭하는 것 차단
+    // 사용자가 명시적으로 대화 종료("꺼져", "나가", "그만해", "차단해", "말 섞지 마")를 요구하거나 심한 패드립을 한 경우가 아니라면,
+    // 성인 모드에서의 스킨십/체벌/지배 롤플레잉 중에는 방폭(roomLeft: true)을 차단하여 대화 연속성 보호
+    if (result.roomLeft && require('./contentAccess').verifiedAdult(user)) {
+      const isExplicitExit = /(?:꺼져|나가(?:라)?|사라져|그만(?:해|하자)|차단(?:해|할게)|말\s*(?:걸지\s*마|섞지\s*마)|느금|애미|시발놈아|개새끼야)/.test(message || '');
+      if (!isExplicitExit) {
+        result.roomLeft = false;
+      }
+    }
     const response = db.transaction(()=>{
       require('./aiReports').assertAvailable(character.id);
       require('./wellbeingService').assertCurrent(id,character.id,conversation.wellbeing);
