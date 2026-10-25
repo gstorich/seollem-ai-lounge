@@ -320,6 +320,8 @@
               headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` }, keepalive: JSON.stringify(body).length < 50000
             });
             for (const [id, room] of Object.entries(body.savedRooms)) roomFingerprints.set(id, JSON.stringify(room));
+            for(const id of data.deletedRoomIds||[]){roomFingerprints.delete(id);if(pending?.savedRooms)delete pending.savedRooms[id];}
+            if(data.deletedRoomIds?.length&&token===authToken)window.dispatchEvent(new CustomEvent('azit-rooms-removed',{detail:data.deletedRoomIds}));
             accountFingerprint = accountSignature(body);
             return data;
           } catch (error) {

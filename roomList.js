@@ -18,5 +18,12 @@
   for(const room of cached.slice(limit))rooms[room.charId]=summary(room);
   for(const room of Object.values(rooms||{}))if(room.summaryOnly&&room.messages?.length&&!keep.has(room.charId))rooms[room.charId]=summary(room);
  }
- const api={latest,activity,summary,page,trimCache};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.AzitRoomList=api;
+ const MAX_ROOMS=100;
+ function trimRooms(rooms,limit=MAX_ROOMS){
+  const oldest=Object.keys(rooms||{}).sort((a,b)=>activity(rooms[a])-activity(rooms[b])||(Number(rooms[a].firstMetAt)||0)-(Number(rooms[b].firstMetAt)||0)||a.localeCompare(b));
+  const removed=oldest.slice(0,Math.max(0,oldest.length-limit));
+  for(const id of removed)delete rooms[id];
+  return removed;
+ }
+ const api={latest,activity,summary,page,trimCache,trimRooms,MAX_ROOMS};if(typeof module!=='undefined'&&module.exports)module.exports=api;root.AzitRoomList=api;
 })(typeof window!=='undefined'?window:globalThis);

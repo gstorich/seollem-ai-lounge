@@ -2,7 +2,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs'),vm=require('nod
 const html=fs.readFileSync(path.resolve(__dirname,'../../index.html'),'utf8');
 function section(from,to){const start=html.indexOf(from),end=html.indexOf(to,start);assert(start>=0&&end>start);return html.slice(start,end);}
 function scenario(){let saved;const char={id:'room-a'},state={currentChar:char,currentView:'chatRoom',messages:[{id:'user-1',sender:'user',text:'안녕',createdAt:1}],savedRooms:{},userFacts:[],metCharIds:[],activePendingDeliveries:{}};
- const context=vm.createContext({AzitMessageDelivery:delivery,state,Date,serverStateReady:true,window:{ApiClient:{isHosted:()=>true}},ApiClient:{saveState(p){saved=JSON.parse(JSON.stringify(p));}},compressOldMessagesIntoMemory(){},updateAccountAndCreditUI(){},renderChatRoomsList(){},updateChatListBadges(){},CHARACTERS:[char],getStorageKeyForAccount(){}});
+ const context=vm.createContext({AzitMessageDelivery:delivery,AzitRoomList:require('../../roomList'),state,Date,serverStateReady:true,window:{ApiClient:{isHosted:()=>true}},ApiClient:{saveState(p){saved=JSON.parse(JSON.stringify(p));}},compressOldMessagesIntoMemory(){},updateAccountAndCreditUI(){},renderChatRoomsList(){},updateChatListBadges(){},CHARACTERS:[char],getStorageKeyForAccount(){}});
  vm.runInContext(section('    function saveAccountState()','    function loadAccountState()')+'\n'+section('    function rememberConfirmedReply(','    // 창에서 벗어났을 때도'),context);return {context,state,get saved(){return saved;}};
 }
 const full={replyId:'reply_provider-1',partnerReply:'첫 번째 말풍선 두 번째 말풍선 마지막 말풍선'};

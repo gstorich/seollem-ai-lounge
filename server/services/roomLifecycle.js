@@ -1,5 +1,6 @@
 const db=require('./dbService');
 function close(userId,character,replyId,at=Date.now()){
+ if (db.isRoomDeleted(userId, character.id)) return null;
  return db.transaction(()=>{
   const notice={id:'system_left_'+replyId,sender:'system',systemKind:'partner_left',text:character.name+'님이 대화방을 나갔습니다.',createdAt:at+1};
   const user=db.appendMessages(userId,character.id,[notice]);
@@ -11,6 +12,7 @@ function close(userId,character,replyId,at=Date.now()){
  });
 }
 function failure(userId,characterId,requestId,kind,result){
+ if (db.isRoomDeleted(userId, characterId)) return null;
  const existed=Boolean(db.getUser(userId)?.savedRooms?.[characterId]);
  const notice={id:'system_error_'+requestId,sender:'system',systemKind:result.error==='AI_GENERATION_FAILED'?'generation_error':'content_notice',text:result.message,errorCode:result.error,requestId,requestKind:kind,createdAt:Date.now()};
  const user=db.appendMessages(userId,characterId,[notice]);

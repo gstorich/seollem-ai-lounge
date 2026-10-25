@@ -42,9 +42,10 @@ module.exports = {
   catalogVersion(){return registry?registry.catalog().version+'-'+require('./aiReports').holdVersion():'builtin';},
   isPublished(id){if(registry&&require('./aiReports').isHeld(id))return false;return registry?registry.catalog().enabled.has(id):CHARACTERS.some(c=>c.id===id);},
 
-  findMatch(filters = {}, metIds = []) {
+  findMatch(filters = {}, metIds = [], photoOwners = new Map()) {
     const met=new Set(metIds);
     let pool=(registry?[...registry.catalog().all.values()].filter(c=>registry.catalog().enabled.has(c.id)&&!require('./aiReports').isHeld(c.id)):CHARACTERS).filter(c=>matchesFilters(c,filters)&&!met.has(c.id));
+    pool=pool.filter(c=>!require('../../matchPhotos').conflicts(c,photoOwners));
     if(!pool.length)return null;
 
     // 접속 초반 (만난 인연 수가 5명 미만인 신규/초반 유저) & 특정 성향 미지정 시:

@@ -1,6 +1,7 @@
 const express = require('express');
 const crypto = require('node:crypto');
 const router = express.Router();
+const db = require('../services/dbService');
 const characters = require('../services/characterService');
 const config = require('../config');
 const generatedTurn = require('../services/generatedTurn');
@@ -45,6 +46,7 @@ router.post('/send',async(req,res)=>{
   const {message,chatHistory=[]}=req.body;
   if(typeof message!=='string'||!message.trim()||message.length>2000||!Array.isArray(chatHistory)||chatHistory.length>12||chatHistory.some(m=>!m||!['user','assistant'].includes(m.role)||typeof m.content!=='string'||m.content.length>2000)) return res.status(400).json({success:false,error:'메시지 내용을 확인해주세요. (최대 2,000자)'});
   const value=characterAndId(req,res);if(!value)return;
+  if(db.isRoomDeleted(req.user.id,value.character.id))db.reopenRoom(req.user.id,value.character.id);
   let userMessages;
   if(req.body.messages!==undefined){
     const batch=req.body.messages;

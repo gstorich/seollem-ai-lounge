@@ -4,6 +4,9 @@ const characterService = require('../services/characterService');
 const dbService = require('../services/dbService');
 const { requireAuth } = require('../middleware/auth');
 const { eligibility } = require('../services/matchAccess');
+const matchPhotos = require('../../matchPhotos');
+const photoOwnersFor = user => matchPhotos.roomPhotoOwners(user.savedRooms,id=>characterService.getCharacterById(id));
+const photoConflict = res => res.status(409).json({success:false,error:'MATCH_PHOTO_IN_USE',message:'대화 목록에 같은 프로필 사진의 상대가 있어요. 다른 상대를 소개받아 주세요.'});
 
 // GET /api/match/characters
 router.get('/characters', (req, res) => {
@@ -36,17 +39,19 @@ router.post('/request', requireAuth, require('../services/legalService').require
   const selectionFilters=filters||user.matchFilter||{};
   const metIds=new Set([...(user.metCharIds||[]),...Object.keys(user.savedRooms||{})]);
   const allowRepeat=req.body.allowRepeat===true;
-  let matchedChar=characterId?characterService.getCharacterById(characterId):characterService.findMatch(selectionFilters,[...metIds]);
+  const photoOwners=photoOwnersFor(user);
+  let matchedChar=characterId?characterService.getCharacterById(characterId):characterService.findMatch(selectionFilters,[...metIds],photoOwners);
+  if(matchedChar&&matchPhotos.conflicts(matchedChar,photoOwners))return photoConflict(res);
   if(matchedChar&&metIds.has(matchedChar.id)&&!allowRepeat)return res.status(409).json({success:false,error:'MATCH_ALREADY_MET',message:'이미 만난 상대입니다. 대화 목록에서 이어가세요.',metCharIds:[...metIds]});
   if(!matchedChar&&allowRepeat){
-    const pool=characterService.getAllCharacters().filter(c=>characterService.matchesFilters(c,selectionFilters)&&metIds.has(c.id)&&!user.savedRooms?.[c.id]?.roomLeft&&c.id!==req.body.excludeCharacterId);
+    const pool=characterService.getAllCharacters().filter(c=>characterService.matchesFilters(c,selectionFilters)&&metIds.has(c.id)&&!user.savedRooms?.[c.id]?.roomLeft&&c.id!==req.body.excludeCharacterId&&!matchPhotos.conflicts(c,photoOwners));
     const activity=require('../../roomList').activity;
     pool.sort((a,b)=>Number(Boolean(user.savedRooms?.[b.id]))-Number(Boolean(user.savedRooms?.[a.id]))||activity(user.savedRooms?.[a.id]||{})-activity(user.savedRooms?.[b.id]||{}));
     matchedChar=pool[0]||null;
   }
   if(!matchedChar){
     const eligible=characterService.getAllCharacters().filter(c=>characterService.matchesFilters(c,selectionFilters));
-    return res.status(404).json({success:false,error:eligible.length?'MATCH_POOL_EXHAUSTED':'NO_MATCHING_CHARACTERS',message:eligible.length?'선택한 조건의 새로운 상대를 모두 만났어요. 조건을 바꾸거나 대화 목록에서 이전 상대와 이어가세요.':'조건에 맞는 공개 캐릭터가 없습니다. 매칭 조건을 바꿔주세요.'});
+    return res.status(404).json({success:false,error:eligible.length?'MATCH_POOL_EXHAUSTED':'NO_MATCHING_CHARACTERS',message:eligible.length?'현재 조건에서 대화 목록의 사진과 겹치지 않는 새로운 상대가 없습니다. 조건을 바꾸거나 기존 대화를 이어가세요.':'조건에 맞는 공개 캐릭터가 없습니다. 매칭 조건을 바꿔주세요.'});
   }
   const repeated=metIds.has(matchedChar.id);
   if(repeated&&user.savedRooms?.[matchedChar.id]?.roomLeft)return res.status(400).json({success:false,error:'ROOM_LEFT',message:'종료된 대화는 다시 소개하지 않습니다. 다른 상대를 선택해주세요.'});
@@ -58,6 +63,7 @@ router.post('/request', requireAuth, require('../services/legalService').require
   }
 
   // Update met character history
+  dbService.reopenRoom(user.id,matchedChar.id);
   metIds.add(matchedChar.id);
 
   dbService.updateUser(user.id, {
@@ -89,6 +95,8 @@ router.post('/recall-previous', requireAuth, require('../services/legalService')
     return res.status(404).json({ success: false, error: '상대방 정보를 찾을 수 없습니다.' });
   }
 
+  if(matchPhotos.conflicts(prevChar,photoOwnersFor(user)))return photoConflict(res);
+
   // Cost: 20 hearts if not VIP
   const cost = 20;
   if (!user.isVipUnlimited && user.hearts < cost) {
@@ -102,6 +110,7 @@ router.post('/recall-previous', requireAuth, require('../services/legalService')
   const debited = dbService.transaction(() => dbService.debit(user.id, cost, 'recall'));
   if (!debited) return res.status(402).json({ success: false, error: '하트가 부족합니다.' });
   const nextHearts = debited.hearts;
+  dbService.reopenRoom(user.id,prevChar.id);
 
   return res.json({
     success: true,

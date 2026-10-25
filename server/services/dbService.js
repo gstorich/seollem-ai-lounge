@@ -8,6 +8,7 @@ const sql = new DatabaseSync(sqliteFile);
 sql.exec(`PRAGMA journal_mode=WAL; PRAGMA synchronous=FULL; PRAGMA busy_timeout=5000;
 CREATE TABLE IF NOT EXISTS users (id TEXT PRIMARY KEY, phone TEXT UNIQUE, data TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS account_message_versions(user_id TEXT PRIMARY KEY,version INTEGER NOT NULL DEFAULT 0);
+CREATE TABLE IF NOT EXISTS room_deletions(user_id TEXT NOT NULL,character_id TEXT NOT NULL,deleted_at INTEGER NOT NULL,reopened_at INTEGER NOT NULL DEFAULT 0,PRIMARY KEY(user_id,character_id));
 CREATE TABLE IF NOT EXISTS orders (id TEXT PRIMARY KEY, data TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS aliases (old_id TEXT PRIMARY KEY, new_id TEXT NOT NULL);
 CREATE TABLE IF NOT EXISTS otp_challenges (
@@ -84,7 +85,19 @@ function transaction(fn) {
   catch (error) { sql.exec('ROLLBACK'); throw error; }
 }
 function getUser(id) {
-  return wallet.expire(id);
+  const user=wallet.expire(id);
+  return user&&Object.keys(user.savedRooms||{}).length>100?transaction(()=>putUser(user)):user;
+}
+function deletedRoomIds(id){return sql.prepare('SELECT character_id FROM room_deletions WHERE user_id=? AND reopened_at<=deleted_at').all(resolveUserId(id)).map(r=>r.character_id);}
+function markRoomDeleted(id,characterId){
+  id=resolveUserId(id);const now=Date.now();
+  sql.prepare('INSERT INTO room_deletions VALUES(?,?,?,0) ON CONFLICT(user_id,character_id) DO UPDATE SET deleted_at=excluded.deleted_at,reopened_at=0').run(id,characterId,now);
+  sql.prepare('DELETE FROM conversation_memory_items WHERE user_id=? AND character_id=?').run(id,characterId);
+  sql.prepare('DELETE FROM conversation_state_events WHERE user_id=? AND character_id=?').run(id,characterId);
+  sql.prepare('INSERT INTO conversation_state VALUES(?,?,NULL,NULL,1,?) ON CONFLICT(user_id,character_id) DO UPDATE SET data=NULL,last_reply_id=NULL,revision=revision+1,updated_at=excluded.updated_at').run(id,characterId,now);
+  // Also safe during startup migration, before proactive services initialize.
+  if(sql.prepare("SELECT 1 FROM sqlite_master WHERE name='proactive_jobs'").get())sql.prepare('DELETE FROM proactive_jobs WHERE user_id=? AND character_id=?').run(id,characterId);
+  if(sql.prepare("SELECT 1 FROM sqlite_master WHERE name='proactive_deliveries'").get())sql.prepare("UPDATE proactive_deliveries SET push_status='cancelled' WHERE user_id=? AND character_id=? AND push_status='pending'").run(id,characterId);
 }
 function archiveRooms(user) {
   const insert=sql.prepare('INSERT OR IGNORE INTO conversation_messages VALUES(?,?,?,?,?)');
@@ -95,7 +108,10 @@ function archiveRooms(user) {
   }
 }
 function putUser(user) {
+  user.savedRooms={...user.savedRooms};
+  for(const id of deletedRoomIds(user.id))delete user.savedRooms[id];
   archiveRooms(user);
+  for(const id of require('../../roomList').trimRooms(user.savedRooms))markRoomDeleted(user.id,id);
   user.savedRooms=Object.fromEntries(Object.entries(user.savedRooms||{}).map(([id,room])=>[id,{...room,messages:(room.messages||[]).slice(-120)}]));
   user.updatedAt = Date.now();
   sql.prepare('INSERT INTO users(id,phone,data) VALUES(?,?,?) ON CONFLICT(id) DO UPDATE SET phone=excluded.phone,data=excluded.data')
@@ -178,8 +194,17 @@ if (!sql.prepare("SELECT 1 FROM metadata WHERE key='conversation_archive_v1'").g
   sql.prepare("INSERT INTO metadata VALUES('conversation_archive_v1',?)").run(new Date().toISOString());
 });
 
+if(!sql.prepare("SELECT 1 FROM metadata WHERE key='room_limit_100_v1'").get())transaction(()=>{
+  for(const row of sql.prepare("SELECT data FROM users WHERE (SELECT count(*) FROM json_each(users.data,'$.savedRooms'))>100").all())putUser(JSON.parse(row.data));
+  sql.prepare("INSERT INTO metadata VALUES('room_limit_100_v1',?)").run(new Date().toISOString());
+});
+
 module.exports = {
   transaction, getUser, createUser, updateUser, mergeRooms, resolveUserId,
+  deletedRoomIds,
+  isRoomDeleted(id,characterId){const row=sql.prepare('SELECT deleted_at,reopened_at FROM room_deletions WHERE user_id=? AND character_id=?').get(resolveUserId(id),characterId);return Boolean(row&&row.reopened_at<=row.deleted_at);},
+  reopenRoom(id,characterId){sql.prepare('UPDATE room_deletions SET reopened_at=MAX(?,deleted_at+1) WHERE user_id=? AND character_id=?').run(Date.now(),resolveUserId(id),characterId);},
+  deleteRoom(id,characterId){return transaction(()=>{const user=getUser(id);markRoomDeleted(user.id,characterId);delete user.savedRooms[characterId];return putUser(user);});},
   sql, // Internal service queries only; never expose a client SQL endpoint.
   creditHearts(id, hearts, reason, acquiredAt = Date.now(), customExpiresAt = null) {
     return wallet.change(id, units(hearts), reason, acquiredAt, customExpiresAt);
@@ -253,6 +278,9 @@ module.exports = {
         wallet.transfer(sessionId, user.id, bonusAwarded);
         sql.prepare('DELETE FROM users WHERE id=?').run(sessionId);
         sql.prepare('INSERT OR REPLACE INTO aliases VALUES(?,?)').run(sessionId, user.id);
+        sql.prepare(`INSERT INTO room_deletions SELECT ?,character_id,deleted_at,reopened_at FROM room_deletions WHERE user_id=?
+          ON CONFLICT(user_id,character_id) DO UPDATE SET reopened_at=CASE WHEN excluded.deleted_at>room_deletions.deleted_at THEN excluded.reopened_at WHEN excluded.deleted_at=room_deletions.deleted_at THEN MAX(room_deletions.reopened_at,excluded.reopened_at) ELSE room_deletions.reopened_at END,deleted_at=MAX(room_deletions.deleted_at,excluded.deleted_at)`).run(user.id,sessionId);
+        sql.prepare('DELETE FROM room_deletions WHERE user_id=?').run(sessionId);
         sql.prepare('INSERT OR IGNORE INTO conversation_messages SELECT ?,character_id,message_id,data,created_at FROM conversation_messages WHERE user_id=?').run(user.id,sessionId);
         sql.prepare('DELETE FROM conversation_messages WHERE user_id=?').run(sessionId);
         sql.prepare('INSERT OR IGNORE INTO archive_message_refs SELECT ?,character_id,message_id,object_key,entry_index FROM archive_message_refs WHERE user_id=?').run(user.id,sessionId);
@@ -309,7 +337,8 @@ module.exports = {
     id = resolveUserId(id);
     const user = getUser(id);
     if (!user) throw new Error('Account no longer exists');
-    const rooms = mergeRooms(user.savedRooms, { [characterId]: { charId: characterId, messages, updatedAt: Date.now() } });
+    if(module.exports.isRoomDeleted(id,characterId))throw Object.assign(Error('ROOM_DELETED'),{code:'ROOM_DELETED'});
+    const rooms = mergeRooms(user.savedRooms, { [characterId]: { charId: characterId, firstMetAt:user.savedRooms?.[characterId]?.firstMetAt||Date.now(), messages, updatedAt: Date.now() } });
     return updateUser(id, { savedRooms: rooms });
   },
   getChatRequest(id, requestId) {

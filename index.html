@@ -628,6 +628,8 @@
         </div>
       </header>
 
+      <p class="shrink-0 px-4 py-2 text-xs text-[#a39585]">대화방은 최대 100개 보관됩니다. 초과하면 마지막 대화가 가장 오래된 방부터 자동 삭제됩니다.</p>
+
       <!-- Notification Permission Banner (인연의 답장 실시간 수신 안내 배너) -->
       <div id="notificationPromptBannerList" class="hidden shrink-0 bg-[#2d241c] border-b border-[#544332] px-3.5 py-2.5 z-20 flex items-center justify-between gap-2.5 shadow-sm">
         <div class="flex items-center gap-2.5 min-w-0">
@@ -771,9 +773,9 @@
           </button>
 
           <!-- Center: Avatar + Name & Age -->
-          <div class="flex items-center gap-2.5 flex-1 min-w-0 px-1 py-1" id="headerInfoArea">
+          <div class="flex items-center gap-2.5 flex-1 min-w-0 px-1 py-1 cursor-pointer" id="headerInfoArea" title="프로필 사진 보기">
             <div class="relative shrink-0">
-              <img id="headerAvatar" src="avatars/avatar_05_yoon_jieun.jpg" alt="프로필" class="w-10 h-10 rounded-2xl object-cover border border-[#d99a2c] shadow-xs" />
+              <img id="headerAvatar" src="avatars/avatar_05_yoon_jieun.jpg" alt="프로필" class="w-10 h-10 rounded-2xl object-cover border border-[#d99a2c] shadow-xs hover:opacity-90 active:scale-95 transition" />
               <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-emerald-500 ring-2 ring-[#201b17]"></span>
             </div>
 
@@ -902,6 +904,29 @@
       <span id="profileModalStyle" class="hidden"></span>
       <span id="profileModalTimeDesc" class="hidden"></span>
       <div id="profileAlbumGrid" class="hidden"></div>
+    </div>
+
+    <!-- Compact Avatar Preview Modal (프사 컴팩트 팝업) -->
+    <div id="avatarPreviewModal" class="hidden fixed inset-0 z-50 bg-black/65 backdrop-blur-xs flex items-center justify-center p-4 transition-opacity duration-200" aria-modal="true" role="dialog">
+      <div id="avatarPreviewBackdrop" class="absolute inset-0"></div>
+      <div id="avatarPreviewCard" class="relative z-10 bg-[#2b2520] border border-[#524436] rounded-3xl p-4 max-w-[270px] w-full text-center shadow-2xl flex flex-col items-center transform transition-all duration-200 scale-95 opacity-0">
+        <!-- Close Button -->
+        <button id="btnCloseAvatarPreview" type="button" class="absolute -top-3 -right-3 w-8 h-8 rounded-full bg-[#3d332a] hover:bg-[#4d4034] border border-[#6b5845] text-[#ded8cb] hover:text-white flex items-center justify-center text-sm font-bold shadow-md transition active:scale-90 z-20 cursor-pointer" aria-label="닫기">
+          ✕
+        </button>
+        <!-- Avatar Photo (Square, compact) -->
+        <div class="w-full aspect-square rounded-2xl overflow-hidden border border-[#5e5143] bg-[#1a140b] shadow-inner mb-3 select-none">
+          <img id="avatarPreviewImg" src="" alt="프로필 사진" class="w-full h-full object-cover" />
+        </div>
+        <!-- Profile Info -->
+        <div class="w-full text-center">
+          <div class="flex items-center justify-center gap-1.5 mb-1">
+            <h3 id="avatarPreviewName" class="text-[16px] font-black text-[#f5eee6] truncate"></h3>
+            <span id="avatarPreviewAgeJob" class="text-[12.5px] font-bold text-[#e5a93c] truncate"></span>
+          </div>
+          <p id="avatarPreviewBio" class="text-[12px] text-[#b5a796] line-clamp-2 leading-snug px-1"></p>
+        </div>
+      </div>
     </div>
 
     <!-- Modal 2-1: Leave Room / Rematch Confirmation Dialog -->
@@ -1578,8 +1603,9 @@
   <script src="/legal.js"></script>
   <link rel="stylesheet" href="/aiReports.css?v=20261024-siren"><script src="/aiReports.js?v=20261024-siren"></script>
   <script src="messageDelivery.js?v=20261022-resume"></script>
-  <script src="roomList.js?v=20261022-rooms"></script>
-  <script src="apiClient.js?v=20261022-resume"></script>
+  <script src="roomList.js?v=20261025-limit100"></script>
+  <script src="matchPhotos.js?v=20261025-kept-rooms"></script>
+  <script src="apiClient.js?v=20261025-limit100"></script>
   <script>window.AzitAiReports.configure({});</script>
   <script src="chatTiming.js"></script>
   <script src="notifications.js?v=20261022-identity" defer></script>
@@ -4959,6 +4985,7 @@
           };
         }
 
+        AzitRoomList.trimRooms(state.savedRooms);
         const payload = {
           savedRooms: state.savedRooms,
           unlockedMedia: state.unlockedMedia,
@@ -6533,7 +6560,7 @@
         if (mediaType === 'photo') {
           row.innerHTML = `
             <div class="shrink-0 mt-0.5">
-              <img src="${escapeHtml(char.avatar)}" alt="${escapeHtml(char.name)}" class="w-10 h-10 rounded-2xl object-cover border border-[#ded8cb]" />
+              <img src="${escapeHtml(char.avatar)}" alt="${escapeHtml(char.name)}" class="w-10 h-10 rounded-2xl object-cover border border-[#ded8cb] cursor-pointer hover:opacity-90 active:scale-95 transition chat-avatar-img" title="프로필 사진 보기" />
             </div>
             <div class="flex-1 max-w-[82%]">
               <div class="text-[13.5px] font-bold text-[#444444] mb-1 ml-0.5">${escapeHtml(char.name)}</div>
@@ -6553,7 +6580,7 @@
 
           row.innerHTML = `
             <div class="shrink-0 mt-0.5">
-              <img src="${escapeHtml(char.avatar)}" alt="${escapeHtml(char.name)}" class="w-10 h-10 rounded-2xl object-cover border border-[#ded8cb]" />
+              <img src="${escapeHtml(char.avatar)}" alt="${escapeHtml(char.name)}" class="w-10 h-10 rounded-2xl object-cover border border-[#ded8cb] cursor-pointer hover:opacity-90 active:scale-95 transition chat-avatar-img" title="프로필 사진 보기" />
             </div>
             <div class="flex-1 max-w-[82%]">
               <div class="text-[13.5px] font-bold text-[#444444] mb-1 ml-0.5">${escapeHtml(char.name)}</div>
@@ -6584,7 +6611,7 @@
         } else {
           row.innerHTML = `
             <div class="shrink-0 mt-0.5">
-              <img src="${escapeHtml(char.avatar)}" alt="${escapeHtml(char.name)}" class="w-10 h-10 rounded-2xl object-cover border border-[#443a31]" />
+              <img src="${escapeHtml(char.avatar)}" alt="${escapeHtml(char.name)}" class="w-10 h-10 rounded-2xl object-cover border border-[#443a31] cursor-pointer hover:opacity-90 active:scale-95 transition chat-avatar-img" title="프로필 사진 보기" />
             </div>
             <div class="flex-1 max-w-[82%]">
               <div class="text-[13.5px] font-bold text-[#e5a93c] mb-1 ml-0.5">${escapeHtml(char.name)}</div>
@@ -6789,6 +6816,10 @@
 
     function getFilteredUnmetPool(excludeCurrent = true) {
       const metSet = new Set([...state.metCharIds,...Object.keys(state.savedRooms||{})]);
+      const catalogById=new Map(CHARACTERS.map(c=>[c.id,c]));
+      const keptRooms={...state.savedRooms};
+      if(excludeCurrent&&state.currentChar){keptRooms[state.currentChar.id]||={};catalogById.set(state.currentChar.id,state.currentChar);}
+      const photoOwners=AzitMatchPhotos.roomPhotoOwners(keptRooms,id=>catalogById.get(id));
       const { gender, ages, traits, regions } = state.matchFilter;
       const targetGender = gender || (typeof localStorage !== 'undefined' && localStorage.getItem('azit_user_gender_pref')) || 'female';
 
@@ -6796,6 +6827,7 @@
         if (excludeCurrent && state.currentChar && c.id === state.currentChar.id) return false;
         if ((c.gender || 'female') !== targetGender) return false;
         if (metSet.has(c.id)) return false;
+        if (AzitMatchPhotos.conflicts(c,photoOwners)) return false;
         if (ages && ages.length > 0 && !ages.includes(c.ageDecade)) return false;
         if (traits && traits.length > 0 && !traits.includes(c.traitKey)) return false;
         if (regions && regions.length > 0 && !regions.includes(c.regionGroup)) return false;
@@ -7635,9 +7667,53 @@
       // Disabled: No profile album to preserve immersion
     }
 
-    function openProfileModal() {
-      // Disabled: No detailed profile modal to preserve natural immersion
+    function openAvatarPreview(char = state.currentChar) {
+      if (!char) return;
+      const modal = document.getElementById('avatarPreviewModal');
+      const card = document.getElementById('avatarPreviewCard');
+      const img = document.getElementById('avatarPreviewImg');
+      const nameEl = document.getElementById('avatarPreviewName');
+      const ageJobEl = document.getElementById('avatarPreviewAgeJob');
+      const bioEl = document.getElementById('avatarPreviewBio');
+      if (!modal || !img) return;
+
+      img.src = char.avatar || 'avatars/avatar_05_yoon_jieun.jpg';
+      img.alt = (char.name || '프로필') + ' 사진';
+      if (nameEl) nameEl.textContent = char.name || '';
+      if (ageJobEl) {
+        const age = char.age ? `${char.age}세` : '';
+        const job = char.job || '';
+        ageJobEl.textContent = [age, job].filter(Boolean).join(' · ');
+      }
+      if (bioEl) bioEl.textContent = char.bio || '';
+
+      modal.classList.remove('hidden');
+      requestAnimationFrame(() => {
+        if (card) {
+          card.classList.remove('scale-95', 'opacity-0');
+          card.classList.add('scale-100', 'opacity-100');
+        }
+      });
     }
+
+    function closeAvatarPreview() {
+      const modal = document.getElementById('avatarPreviewModal');
+      const card = document.getElementById('avatarPreviewCard');
+      if (!modal || modal.classList.contains('hidden')) return;
+      if (card) {
+        card.classList.remove('scale-100', 'opacity-100');
+        card.classList.add('scale-95', 'opacity-0');
+      }
+      setTimeout(() => {
+        modal.classList.add('hidden');
+      }, 150);
+    }
+
+    function openProfileModal() {
+      openAvatarPreview(state.currentChar);
+    }
+    window.openAvatarPreview = openAvatarPreview;
+    window.closeAvatarPreview = closeAvatarPreview;
     window.openProfileModal = openProfileModal;
     window.openPhotoLightbox = openPhotoLightbox;
 
@@ -8332,7 +8408,14 @@
         if (ApiClient.isHosted()) {
           saveAccountState();
           await ApiClient.flushState();
-          const match = await ApiClient.requestMatch(state.matchFilter, nextChar?.id, {allowRepeat,excludeCharacterId:state.currentChar?.id});
+          let match;
+          try {
+            match = await ApiClient.requestMatch(state.matchFilter, nextChar?.id, {allowRepeat,excludeCharacterId:state.currentChar?.id});
+          } catch(error) {
+            if(error.code!=='MATCH_PHOTO_IN_USE')throw error;
+            // Another device may have retained a room after our last state sync.
+            match = await ApiClient.requestMatch(state.matchFilter, undefined, {allowRepeat:false,excludeCharacterId:state.currentChar?.id});
+          }
           updateMatchAccess(match);
           resumed=Boolean(match.repeated);
           nextChar = CHARACTERS.find(character => character.id === match.character.id);
@@ -8431,6 +8514,53 @@
       });
     }
 
+    // Avatar Preview Trigger Handlers (Header & Messages)
+    const headerInfoArea = document.getElementById('headerInfoArea');
+    if (headerInfoArea) {
+      headerInfoArea.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openAvatarPreview(state.currentChar);
+      });
+    }
+
+    const headerAvatar = document.getElementById('headerAvatar');
+    if (headerAvatar) {
+      headerAvatar.addEventListener('click', (e) => {
+        e.stopPropagation();
+        openAvatarPreview(state.currentChar);
+      });
+    }
+
+    // Chat Message Avatar Click Event Delegation
+    if (chatContainer) {
+      chatContainer.addEventListener('click', (e) => {
+        const avatarImg = e.target.closest('.chat-avatar-img');
+        if (avatarImg && state.currentChar) {
+          e.stopPropagation();
+          openAvatarPreview(state.currentChar);
+        }
+      });
+    }
+
+    // Close Avatar Preview Listeners
+    const btnCloseAvatarPreview = document.getElementById('btnCloseAvatarPreview');
+    if (btnCloseAvatarPreview) {
+      btnCloseAvatarPreview.addEventListener('click', closeAvatarPreview);
+    }
+    const avatarPreviewBackdrop = document.getElementById('avatarPreviewBackdrop');
+    if (avatarPreviewBackdrop) {
+      avatarPreviewBackdrop.addEventListener('click', closeAvatarPreview);
+    }
+    const avatarPreviewModal = document.getElementById('avatarPreviewModal');
+    if (avatarPreviewModal) {
+      avatarPreviewModal.addEventListener('click', (e) => {
+        if (e.target === avatarPreviewModal) closeAvatarPreview();
+      });
+    }
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') closeAvatarPreview();
+    });
+
 
 
     const legacyRandomMatch = document.getElementById('btnRandomMatch');
@@ -8499,6 +8629,17 @@
       setInterval(updateTimer, 1000);
     }
 
+    function removeRetainedRooms(ids) {
+      const removed=new Set(ids||[]);
+      if(Array.isArray(state.pendingUserMessages))state.pendingUserMessages=state.pendingUserMessages.filter(item=>!removed.has(item.charId));
+      for(const id of removed){delete state.savedRooms[id];if(state.activePendingDeliveries)delete state.activePendingDeliveries[id];}
+      if(state.currentChar&&removed.has(state.currentChar.id)){
+        clearAllTimers();state.currentChar=null;state.messages=[];state.roomLeft=true;
+        setChatInputEnabled(false);if(state.currentView==='chatRoom')showView('chatList');
+      }
+    }
+    window.addEventListener('azit-rooms-removed',event=>{removeRetainedRooms(event.detail);renderChatRoomsList();updateChatListBadges();});
+
     function installPublishedCharacters(profiles) {
       const known=CHARACTERS.filter(c=>state.savedRooms?.[c.id]).map(c=>({...c,published:false}));
       const merged=new Map([...known,...profiles.map(c=>({...c,published:true}))].map(c=>[c.id,c]));
@@ -8514,6 +8655,7 @@
         const data=await ApiClient.loadConversationUpdates(conversationSyncAfter,state.currentView==='chatRoom'?state.currentChar?.id:'');
         if(ApiClient.user?.id!==accountId)return;
         if(data.unchanged)return;
+        removeRetainedRooms(data.deletedRoomIds);
         if(data.metCharIds)state.metCharIds=[...new Set([...state.metCharIds,...data.metCharIds])];
         for(const c of data.roomCharacters||[]){const existing=CHARACTERS.find(x=>x.id===c.id);if(existing)Object.assign(existing,c);else CHARACTERS.push(c);}
         for(const [id,incoming] of Object.entries(data.savedRooms||{})){

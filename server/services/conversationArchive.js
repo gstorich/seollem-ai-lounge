@@ -149,8 +149,9 @@ async function page(userId, characterId, { before, limit = 40 } = {}) {
     } catch { throw Object.assign(Error('INVALID_CURSOR'), { status: 400 }); }
   }
   const rows = db.sql.prepare(`SELECT * FROM conversation_messages WHERE user_id=? AND character_id=?
+    AND created_at>COALESCE((SELECT deleted_at FROM room_deletions WHERE user_id=? AND character_id=?),-1)
     ${cursor ? 'AND (created_at<? OR (created_at=? AND message_id<?))' : ''}
-    ORDER BY created_at DESC,message_id DESC LIMIT ?`).all(userId, characterId, ...(cursor ? [cursor[0], cursor[0], cursor[1]] : []), limit + 1);
+    ORDER BY created_at DESC,message_id DESC LIMIT ?`).all(userId, characterId,userId,characterId, ...(cursor ? [cursor[0], cursor[0], cursor[1]] : []), limit + 1);
   const selected = rows.slice(0, limit);
   const messages = await hydrateRows(selected);
   const oldest = selected.at(-1);
