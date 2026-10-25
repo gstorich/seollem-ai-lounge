@@ -10,7 +10,7 @@ const greeting=section('    async function deliverFirstGreeting(', '    async fu
 const pending=section('    async function processPendingUserMessagesNow(', '    async function sendUserMessage(');
 async function scenario(queue=[],fail=false){
  const char={id:'test-character',name:'테스트'},displayed=[],sent=[],notices=[];
- const state={savedRooms:{},currentChar:char,pendingUserMessages:queue,isAiBusy:false,isGreetingPending:false};
+ const state={messages:[],savedRooms:{},currentChar:char,pendingUserMessages:queue,isAiBusy:false,isGreetingPending:false};
  const api={isConnected:()=>true,async sendGreeting(){if(fail)throw Error('Provider failure');return {isAiGenerated:true,partnerReply:'실제 API 첫 메시지',replyId:'reply_greeting'};}};
  const context=vm.createContext({AzitMessageDelivery:require('../../messageDelivery'),saveAccountState(){},renderChatRoomsList(){},updateChatListBadges(){},state,window:{ApiClient:api},ApiClient:api,Date,Math,headerStatusText:{},showTypingIndicator(){},hideTypingIndicator(){},updateHeaderDefaultStatus(){},async runRealisticReplySequence(plan){displayed.push(plan.bubbles[0]);},async executeUserMessageTurn(text,requestId,c){sent.push({text,requestId,charId:c.id});},showContentAccessNotice(){return false;},showGenerationError(){notices.push('error');}});
  const persist=section('    function rememberConfirmedReply(', '    function flushPendingDeliveryForChar(');

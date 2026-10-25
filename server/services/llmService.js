@@ -120,6 +120,7 @@ function dialogueFeedback(reply,character,conversation,relationship){
   if(character.creatorDefinition)return null; // Authored styles are not generic presets.
   if(/요청하신\s*대로|앞으로는?\s*정중하게|존댓말(?:을|로)\s*(?:사용|대화|말씀).*겠|말투를\s*바꾸겠/.test(reply))return {instruction:'요청을 설명하는 직원용 확인문이 나왔습니다. 설정 변경을 복창하지 말고, 실제로 요청된 말높임으로 한두 마디 대화를 이어가세요. 장난을 중단하되 성격과 취향은 유지합니다. 장황한 사과나 다른 주제를 고르라는 질문도 필요 없습니다.'};
   if(conversation.kind==='greeting'){
+    if(/민초|민트초코|부먹|찍먹/.test(reply))return {instruction:'첫마디에서 민트초코(민초), 부먹/찍먹 같은 진부하고 유행 지난 밸런스게임 질문이 나왔습니다. 식상한 음식 호불호 질문을 절대 하지 마세요. 이 인물의 직업, 생활감, 성격 매력, 또는 둘 사이의 설레거나 유쾌한 대화 컨셉이 살아있는 리얼한 첫마디로 다시 작성하세요.'};
     if(/뻔한\s*(?:인사|대화)|인사.*(?:생략|건너)|오늘\s*하루|뭐\s*하고\s*(?:계|있|지내)|재미있는?\s*(?:얘기|이야기).*?(?:할|해볼)|아무\s*말.*(?:없|안\s*하)/.test(reply))return {instruction:'첫마디가 또 인사 방식 설명이나 상투적인 질문으로 돌아갔습니다. 인사가 뻔하다는 설명, 접속 계기와 근황 보고는 빼세요. 이 인물의 고유한 관심이나 태도가 드러나는 실제 한마디를 바로 보내세요. 아직 말하지 않은 상대의 침묵을 탓하지 않습니다.'};
     if(require('./characterBehavior').getProfile(character).key==='bold'&&!/설레|썸|꼬시|끌리|끌려|유혹|두근|호감|플러팅|데이트|아슬|긴장|작업\s*(?:걸|거)|남친|여친/.test(reply))return {instruction:'이 인물은 대담하게 먼저 플러팅하는 성향인데 무난한 말동무 인사가 나왔습니다. 신상 문답이나 재미있는 얘기를 요구하지 말고, 자기가 설레는 대화를 원한다는 호기심과 호감을 짧고 솔직하게 먼저 드러내세요. 상대 신상이나 연애 관계를 지어내지 않고 노골적인 묘사는 하지 않습니다.'};
   }
