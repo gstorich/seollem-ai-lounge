@@ -1,0 +1,62 @@
+- generic [active] [ref=f3e1]:
+  - generic [ref=f3e115]:
+    - generic [ref=f3e117]:
+      - button "목록" [ref=f3e118] [cursor=pointer]
+      - generic [ref=f3e122]:
+        - img "프로필" [ref=f3e124]
+        - generic [ref=f3e127]:
+          - heading "윤지은" [level=2] [ref=f3e128]
+          - generic [ref=f3e129]: AI
+          - generic [ref=f3e130]: 28세 · 필라테스 강사
+      - button "🔀 다른 사람" [ref=f3e132] [cursor=pointer]:
+        - generic [ref=f3e133]: 🔀
+        - generic [ref=f3e134]: 다른 사람
+    - generic [ref=f3e135]:
+      - generic [ref=f3e136]:
+        - generic [ref=f3e137]: 🔔
+        - generic [ref=f3e138]:
+          - paragraph [ref=f3e139]: 실시간 답장 알림
+          - paragraph [ref=f3e140]: 알림을 켜두면 다른 탭에 있어도 상대방 답장을 바로 알 수 있어요
+      - generic [ref=f3e141]:
+        - button "알림 켜기" [ref=f3e142] [cursor=pointer]
+        - button "✕" [ref=f3e143] [cursor=pointer]
+    - main [ref=f3e144]:
+      - generic [ref=f3e146]:
+        - paragraph [ref=f3e147]: 🌸 '윤지은'님과의 대화를 이어갑니다
+        - paragraph [ref=f3e148]: 따뜻하고 고운 말을 나누어 주세요.
+        - generic [ref=f3e149]: 대화 상대는 생성형 AI 가상 인물(페르소나)입니다
+      - button "첫 대화입니다" [disabled] [ref=f3e154]
+      - generic [ref=f3e155]:
+        - generic [ref=f3e156]: 오전 1:30
+        - generic [ref=f3e158]: 안녕하세요
+      - generic [ref=f3e159]:
+        - generic [ref=f3e160]: 문제가 발생했습니다. 잠시 후에 다시 시도해주세요.
+        - button "다시 시도" [ref=f3e161] [cursor=pointer]
+    - generic [ref=f3e162]:
+      - generic [ref=f3e163]:
+        - button "🎁 선물" [ref=f3e164] [cursor=pointer]:
+          - generic [ref=f3e165]: 🎁
+          - generic [ref=f3e166]: 선물
+        - generic [ref=f3e167]:
+          - textbox "따뜻한 메시지를 입력해보세요..." [ref=f3e168]
+          - button "음성 입력" [ref=f3e169] [cursor=pointer]
+        - button "전송" [ref=f3e173] [cursor=pointer]:
+          - generic [ref=f3e175]: ♥ -3.7
+      - generic [ref=f3e176]:
+        - generic [ref=f3e177]:
+          - generic [ref=f3e178]: 보유 1,000 하트 ❤️
+          - button "충전하기" [ref=f3e179] [cursor=pointer]
+        - generic [ref=f3e180]:
+          - link "고객센터" [ref=f3e181] [cursor=pointer]:
+            - /url: /support
+          - button "휴대폰 인증" [ref=f3e182] [cursor=pointer]
+  - region "쿠키 사용 설정" [ref=f3e77]:
+    - strong [ref=f3e78]: 쿠키 사용에 동의하시겠어요?
+    - paragraph [ref=f3e79]:
+      - text: 분석 쿠키는 Google Analytics 방문·기능 이용 분석에 사용해요. 광고 측정까지 허용하면 Google·Meta에 광고 클릭 식별자와 방문·번호 인증·첫 대화 성공·상품 확인·결제 등 전환 정보를 보내 광고 성과를 측정해요. 전화번호와 대화·문의 내용은 보내지 않아요. 허용하지 않아도 모든 기능을 이용할 수 있고, ‘쿠키 설정’에서 언제든 바꿀 수 있어요.
+      - link "처리 항목·보관·철회 안내" [ref=f3e80] [cursor=pointer]:
+        - /url: /privacy#cookies
+    - generic [ref=f3e81]:
+      - button "분석만 허용" [ref=f3e82] [cursor=pointer]
+      - button "분석·광고 측정 허용" [ref=f3e83] [cursor=pointer]
+      - button "허용 안 함" [ref=f3e84] [cursor=pointer]

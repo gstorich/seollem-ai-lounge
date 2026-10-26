@@ -1,4 +1,6 @@
 (()=>{'use strict';
+// Age verification is an internal operational flow, never an advertising signal.
+if(location.pathname==='/verification/complete'||new URLSearchParams(location.search).get('intent')==='identity'||location.hash==='#identity')return;
 const isTester = Boolean(
   (typeof localStorage !== 'undefined' && localStorage.getItem('azit_tester') === '1') ||
   (typeof document !== 'undefined' && /(?:^|;\s*)azit_tester=1/.test(document.cookie || '')) ||

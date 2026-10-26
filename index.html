@@ -596,8 +596,8 @@
       .chat-footer-account{font-size:11px}
     }
   </style>
-  <script src="/analytics.js" defer></script>
-  <script src="/advertising.js" defer></script>
+  <script src="/analytics.js?v=20261025-commerce" defer></script>
+  <script src="/advertising.js?v=20261025-commerce" defer></script>
 <link rel="stylesheet" href="/branding.css?v=20261022-identity"></head>
 <body class="w-full h-full flex items-center justify-center bg-[#1a1613] select-none text-[#fbf7f2]">
 
@@ -985,7 +985,7 @@
           </div>
         </div>
 
-        <p class="text-[11.5px] text-[#6b7684] leading-relaxed">현재 문자 인증은 휴대폰 번호 연결을 위한 절차이며, 실명·성인 확인이 아닙니다. <a href="/billing#identity" class="underline">19세 이상 성인인증</a> · <a href="/verification" class="underline">본인확인 도입 안내</a></p>
+        <p class="text-[11.5px] text-[#6b7684] leading-relaxed">현재 문자 인증은 휴대폰 번호 연결을 위한 절차이며, 실명·성인 확인이 아닙니다. <a href="/billing?intent=identity#identity" class="underline">19세 이상 성인인증</a> · <a href="/verification" class="underline">본인확인 도입 안내</a></p>
         <p id="phoneAuthStatus" role="status" class="text-[12px] text-rose-600" aria-live="polite"></p>
         <div id="phoneAuthAccountActions" class="hidden grid grid-cols-1 sm:grid-cols-2 gap-2">
           <button id="btnSwitchPhoneAccount" type="button" class="w-full px-3 py-3 rounded-xl bg-[#c48726] hover:bg-[#d8962d] text-[#1a140b] font-bold text-[13px] border border-[#e5a93c]/50">다른 번호로 로그인</button>
@@ -1455,6 +1455,15 @@
           </button>
         </div>
 
+        <div class="space-y-2 p-3 rounded-2xl bg-[#362f29] border border-[#4d4135] text-[12.5px]">
+          <strong class="text-[#fbf7f2]">충전 · 인증 · 결제 내역</strong>
+          <p class="text-[#baa997]">문자 로그인과 만 19세 이상 성인인증은 별도 절차입니다. 일반 대화에는 성인인증이 필요하지 않아요.</p>
+          <div class="flex flex-wrap gap-3 text-[#f3ca85] underline underline-offset-2">
+            <a href="/billing?intent=checkout#checkout">하트 충전</a>
+            <a href="/billing?intent=identity#identity">성인인증 · 상태 확인</a>
+            <a href="/billing?intent=orders#ordersSection">결제 내역 · 환불</a>
+          </div>
+        </div>
         <div class="space-y-3 p-3 rounded-2xl bg-[#362f29] border border-[#4d4135] text-[12.5px]">
           <strong class="text-[#fbf7f2]">먼저 오는 연락 · 알림</strong>
           <label class="flex items-center justify-between gap-3 text-[#d5c8b7]"><span>가끔 먼저 오는 연락 받기</span><input id="allowFirstContact" type="checkbox" checked class="w-5 h-5 accent-amber-400" /></label>
@@ -6137,48 +6146,14 @@
 
         startBtn.onclick = async () => {
           startBtn.disabled = true;
-          startBtn.textContent = '본인확인 창 준비 중...';
-          feedback.classList.add('hidden');
           try {
-            if (!state.verifiedPhone) {
-              startBtn.disabled = false;
-              startBtn.textContent = '🔒 성인인증(본인확인) 시작하기';
-              feedback.className = 'text-[12px] mt-2.5 text-[#ff7b94] leading-relaxed';
-              feedback.textContent = '본인확인을 위해 먼저 휴대폰 번호로 로그인해주세요.';
-              feedback.classList.remove('hidden');
-              openPhoneAuthModal();
-              return;
-            }
-            const identityCfg = await ApiClient.request('/identity/config');
-            if (!identityCfg.enabled) {
-              throw new Error('본인확인 서비스가 준비 중입니다. 관리자 문의를 이용해주세요.');
-            }
-            let module = window.PortOne;
-            if (!module) {
-              await new Promise((resolve, reject) => {
-                const s = document.createElement('script');
-                s.src = 'https://cdn.portone.io/v2/browser-sdk.js';
-                s.onload = resolve;
-                s.onerror = () => reject(new Error('인증 모듈을 불러오지 못했습니다.'));
-                document.head.appendChild(s);
-              });
-              module = window.PortOne;
-            }
-            const prepared = await ApiClient.request('/identity/prepare', 'POST', {});
-            const result = await module.requestIdentityVerification(prepared);
-            if (!result || result.code !== undefined) throw new Error(result?.message || '본인확인을 완료하지 않았습니다.');
-            await ApiClient.request('/identity/complete', 'POST', { identityVerificationId: prepared.identityVerificationId });
-            const finalState = await ApiClient.loadState();
-            if (finalState.user?.isAdult) {
-              onSuccess();
-            } else {
-              throw new Error('본인확인은 완료되었으나 성인(만 19세 이상) 인증 대상이 아닙니다.');
-            }
+            saveAccountState();
+            await ApiClient.flushState();
+            if (state.currentChar?.id) sessionStorage.setItem('azit-commerce-chat', state.currentChar.id);
+            location.href = '/billing?intent=identity#identity';
           } catch (err) {
             startBtn.disabled = false;
-            startBtn.textContent = '🔒 성인인증(본인확인) 시작하기';
-            feedback.className = 'text-[12px] mt-2.5 text-[#ff7b94] leading-relaxed';
-            feedback.textContent = err.message || '본인확인을 완료하지 못했습니다.';
+            feedback.textContent = '계정을 저장하지 못했습니다. 잠시 후 다시 시도해주세요.';
             feedback.classList.remove('hidden');
           }
         };
@@ -8034,6 +8009,9 @@
         document.getElementById('phoneAuthModal').classList.add('hidden');
         authStatus('');
         showToast(result.bonusAwarded ? '휴대폰 인증 완료! 100 하트를 지급하고 대화를 보관했습니다.' : '로그인했습니다. 저장된 하트와 대화를 불러왔습니다.');
+        const nextCommerce = sessionStorage.getItem('azit-commerce-return');
+        sessionStorage.removeItem('azit-commerce-return');
+        if (nextCommerce && /^\/billing(?:\?package=(?:starter|popular|mania|master))?#(?:checkout|identity|ordersSection)$/.test(nextCommerce)) location.href = nextCommerce;
       } catch (error) { ApiClient.resumeSync(); authStatus(error.message); }
       finally { btnConfirmPhoneAuth.disabled = false; }
     });
@@ -8837,7 +8815,8 @@
       updateMatchCooldownUI();
       setInterval(updateMatchCooldownUI, 1000);
       renderAccountHome();
-      const requestedChat=new URLSearchParams(location.search).get('chat');
+      const requestedChat=new URLSearchParams(location.search).get('chat') || sessionStorage.getItem('azit-commerce-chat');
+      sessionStorage.removeItem('azit-commerce-chat');
       if(requestedChat)await openContactRoom(requestedChat);
       const userGenderPref = state.matchFilter.gender || localStorage.getItem('azit_user_gender_pref');
       if (new URLSearchParams(location.search).get('account') === 'phone') {

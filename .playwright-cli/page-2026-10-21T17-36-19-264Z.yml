@@ -1,0 +1,127 @@
+- generic [active] [ref=f1e1]:
+  - banner [ref=f1e2]:
+    - link "아지트챗 홈" [ref=f1e3] [cursor=pointer]:
+      - /url: /
+      - generic [ref=f1e4]: 아지트챗
+    - navigation "서비스 안내" [ref=f1e5]:
+      - link "대화 홈" [ref=f1e6] [cursor=pointer]:
+        - /url: /
+      - link "서비스 소개" [ref=f1e7] [cursor=pointer]:
+        - /url: /about
+      - link "브랜드 이야기" [ref=f1e8] [cursor=pointer]:
+        - /url: /brand
+      - link "하트 상품" [ref=f1e9] [cursor=pointer]:
+        - /url: /products
+      - link "본인확인 안내" [ref=f1e10] [cursor=pointer]:
+        - /url: /verification
+      - link "이용약관" [ref=f1e11] [cursor=pointer]:
+        - /url: /terms
+      - link "개인정보처리방침" [ref=f1e12] [cursor=pointer]:
+        - /url: /privacy
+      - link "환불 정책" [ref=f1e13] [cursor=pointer]:
+        - /url: /refund
+      - link "고객센터" [ref=f1e14] [cursor=pointer]:
+        - /url: /support
+      - link "이용·청소년 보호" [ref=f1e15] [cursor=pointer]:
+        - /url: /safety
+      - link "정책·변경 이력" [ref=f1e16] [cursor=pointer]:
+        - /url: /policies
+  - main [ref=f1e17]:
+    - paragraph [ref=f1e18]: AZITCHAT · SERVICE GUIDE
+    - heading "서비스 소개" [level=1] [ref=f1e19]
+    - paragraph [ref=f1e20]: 캐릭터와 나누는 대화부터 하트 이용과 계정 연결까지, 아지트챗의 이용 방법을 안내합니다.
+    - generic [ref=f1e21]:
+      - heading "내 취향의 AI 캐릭터와 나누는 1:1 채팅" [level=2] [ref=f1e22]
+      - paragraph [ref=f1e23]: 아지트챗은 메이비웍스가 운영하는 온라인 디지털 콘텐츠 서비스입니다. 각자의 성격·배경·말투를 가진 가상의 AI 캐릭터를 만나 텍스트로 대화합니다. 실제 사람을 연결하는 만남·채팅 중개 서비스가 아닙니다.
+      - paragraph [ref=f1e24]: 남성·여성 캐릭터 중 원하는 조건으로 상대를 찾고, 나누었던 대화를 대화방 목록에서 이어갈 수 있습니다. 답변은 외부 AI API로 생성되며 특정 답변·관계·만족도를 보장하지 않습니다. 생성에 실패하면 오류를 안내하고 해당 답변의 하트는 차감하지 않습니다.
+      - link "AI 캐릭터와 대화 시작하기" [ref=f1e25] [cursor=pointer]:
+        - /url: /
+    - generic [ref=f1e26]:
+      - heading "서비스 이용 순서" [level=2] [ref=f1e27]
+      - list [ref=f1e28]:
+        - listitem [ref=f1e29]:
+          - strong [ref=f1e30]: "무료 체험:"
+          - text: 게스트로 접속하여 지급된 50하트로 서비스를 둘러봅니다.
+        - listitem [ref=f1e31]:
+          - strong [ref=f1e32]: "상대 선택:"
+          - text: 성별·나이·성격·지역 조건을 설정해 가상의 캐릭터와 연결합니다.
+        - listitem [ref=f1e33]:
+          - strong [ref=f1e34]: "대화:"
+          - text: 일반 텍스트 대화의 AI 답변 1회에 3.7하트를 사용합니다. 첫 인사는 무료입니다. 선물은 실행 전 표시된 비용이 적용되는 가상 콘텐츠입니다.
+        - listitem [ref=f1e35]:
+          - strong [ref=f1e36]: "번호 연결:"
+          - text: 문자 인증으로 번호를 연결하면 해당 번호를 고객 ID로 사용합니다. 최초 연결 혜택은 100하트이며, 하트와 대화는 번호 연결 계정에 보관됩니다.
+        - listitem [ref=f1e37]:
+          - strong [ref=f1e38]: "충전:"
+          - text: 번호 연결 후 하트 상품을 이용하는 구조입니다. 현재 실결제는 준비 중이며 결제와 유료 하트 지급은 발생하지 않습니다.
+      - paragraph [ref=f1e39]:
+        - link "상품별 수량·가격·제공 방법 확인" [ref=f1e40] [cursor=pointer]:
+          - /url: /products
+        - text: ·
+        - link "번호 연결 및 본인확인 안내" [ref=f1e41] [cursor=pointer]:
+          - /url: /verification
+    - generic [ref=f1e42]:
+      - heading "하트와 가상 콘텐츠" [level=2] [ref=f1e43]
+      - paragraph [ref=f1e44]: 하트는 서비스 안에서 대화와 화면에 비용이 표시된 가상 콘텐츠에 사용합니다. 하트는 획득일부터 1년간 유효하며, 먼저 획득한 하트부터 사용합니다. 캐릭터에게 보내는 선물은 가상 콘텐츠이며 실물 배송·기프티콘·현금 지급 상품이 아닙니다.
+      - paragraph [ref=f1e45]:
+        - text: 상품별 하트 수량과 부가세 포함 가격, 공급 방법은
+        - link "하트 상품 안내" [ref=f1e46] [cursor=pointer]:
+          - /url: /products
+        - text: 에서, 취소·환불 조건과 접수 방법은
+        - link "환불 정책" [ref=f1e47] [cursor=pointer]:
+          - /url: /refund
+        - text: 에서 확인할 수 있습니다.
+    - generic [ref=f1e48]:
+      - heading "이용 환경과 계정 보호" [level=2] [ref=f1e49]
+      - paragraph [ref=f1e50]: PC·모바일의 최신 브라우저와 인터넷 연결이 필요합니다. 현재의 문자 인증은 휴대폰 번호 소유를 확인하는 계정 연결 수단이며, 실명·성인 여부를 확인하는 본인확인 서비스가 아닙니다. 정식 본인확인·성인인증은 도입 준비 중입니다. 일반 대화는 성인인증 없이 이용할 수 있습니다. 성인인증을 받지 않았거나 성인이 아닌 이용자에게는 성적인 대화를 제공하지 않습니다.
+      - paragraph [ref=f1e51]:
+        - text: AI 대화에는 오류나 부정확한 정보가 포함될 수 있습니다. 결제 정보·비밀번호·타인의 개인정보를 대화에 입력하지 마세요. 수집 정보와 보관·처리 기준은
+        - link "개인정보처리방침" [ref=f1e52] [cursor=pointer]:
+          - /url: /privacy
+        - text: 에서 확인할 수 있습니다.
+    - generic [ref=f1e53]:
+      - heading "운영자 및 고객센터" [level=2] [ref=f1e54]
+      - paragraph [ref=f1e55]: "메이비웍스 · 대표 홍지민사업자등록번호 666-01-04235 · 통신판매업 신고번호 2026-안양동안-0369사업장 주소: 경기도 안양시 동안구 시민대로 327번길 11-41, 3층"
+      - paragraph [ref=f1e56]:
+        - text: 고객센터
+        - link "070-8110-8149" [ref=f1e57] [cursor=pointer]:
+          - /url: tel:07081108149
+        - text: ·
+        - link "maybeworks@naver.com" [ref=f1e58] [cursor=pointer]:
+          - /url: mailto:maybeworks@naver.com
+        - text: 계정·이용 장애·결제·환불 문의는
+        - link "고객센터 문의 접수" [ref=f1e59] [cursor=pointer]:
+          - /url: /support
+        - text: 에서 남길 수 있으며 접수 순서대로 답변합니다.
+    - generic [ref=f1e60]:
+      - heading "이용 연령·AI 안내" [level=2] [ref=f1e61]
+      - paragraph [ref=f1e62]:
+        - text: 대화 상대와 답변은 생성형 AI가 만드는 가상 콘텐츠입니다. 일반 대화에 별도 성인인증은 필요하지 않지만, 현재 Gemini API 조건상 AI 대화는 만 18세 이상만 이용할 수 있습니다. 별도의 성인 확인은 만 19세 이상 여부를 확인하며 번호 소유 인증과 구분합니다.
+        - link "이용·청소년 보호" [ref=f1e63] [cursor=pointer]:
+          - /url: /safety
+        - text: ·
+        - link "정책·변경 이력" [ref=f1e64] [cursor=pointer]:
+          - /url: /policies
+  - contentinfo [ref=f1e65]:
+    - strong [ref=f1e66]: 메이비웍스 · 아지트챗(AzitChat)
+    - paragraph [ref=f1e67]:
+      - text: "대표 홍지민 · 사업자등록번호 666-01-04235통신판매업 신고번호 2026-안양동안-0369사업장 주소: 경기도 안양시 동안구 시민대로 327번길 11-41, 3층고객센터:"
+      - link "070-8110-8149" [ref=f1e68] [cursor=pointer]:
+        - /url: tel:07081108149
+      - text: ·
+      - link "maybeworks@naver.com" [ref=f1e69] [cursor=pointer]:
+        - /url: mailto:maybeworks@naver.com
+      - text: 온라인 문의는 상시 접수하며 접수 순서대로 답변합니다. 배송이 없는 온라인 디지털 콘텐츠 서비스입니다.
+    - navigation "서비스 및 정책 바로가기" [ref=f1e70]:
+      - link "서비스 소개" [ref=f1e71] [cursor=pointer]:
+        - /url: /about
+      - link "상품 · 가격" [ref=f1e72] [cursor=pointer]:
+        - /url: /products
+      - link "본인확인 안내" [ref=f1e73] [cursor=pointer]:
+        - /url: /verification
+      - link "이용약관" [ref=f1e74] [cursor=pointer]:
+        - /url: /terms
+      - link "개인정보처리방침" [ref=f1e75] [cursor=pointer]:
+        - /url: /privacy
+      - link "환불 정책" [ref=f1e76] [cursor=pointer]:
+        - /url: /refund

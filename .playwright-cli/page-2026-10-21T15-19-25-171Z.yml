@@ -1,0 +1,104 @@
+- generic [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - heading "아지트챗 아지트챗 · AI 캐릭터와 나누는 1:1 대화" [level=1] [ref=e6]:
+          - img "아지트챗" [ref=e7]
+          - generic [ref=e8]: 아지트챗 · AI 캐릭터와 나누는 1:1 대화
+        - generic [ref=e9]: "0"
+      - generic [ref=e10]:
+        - button "🎯 조건" [ref=e11] [cursor=pointer]
+        - button "⚙️ 설정" [ref=e13] [cursor=pointer]
+    - generic [ref=e15]:
+      - generic [ref=e16]:
+        - generic [ref=e17]: 🔔
+        - generic [ref=e18]:
+          - paragraph [ref=e19]: 인연의 답장을 놓치지 마세요
+          - paragraph [ref=e20]: 알림을 켜두면 창을 닫아도 실시간으로 새 메시지를 알려드려요
+      - generic [ref=e21]:
+        - button "알림 켜기" [ref=e22] [cursor=pointer]
+        - button "✕" [ref=e23] [cursor=pointer]
+    - generic [ref=e24]:
+      - generic [ref=e25]:
+        - generic [ref=e26]:
+          - generic [ref=e27]: 실시간 1:1 프라이빗 대화
+          - heading "지금 접속 중인 상대 1,250명" [level=2] [ref=e29]
+          - paragraph [ref=e30]: 나를 기다리는 매력적인 상대들과 기다림 없이, 지금 바로 단둘만의 1:1 대화로 연결됩니다.
+        - button "새로운 상대와 대화 시작" [active] [ref=e31] [cursor=pointer]
+      - button "휴대폰 번호로 로그인 · 대화 보관" [ref=e36] [cursor=pointer]
+      - generic [ref=e37]:
+        - generic [ref=e38]:
+          - generic [ref=e39]: 💬 내가 나누던 대화
+          - generic [ref=e40]: "0"
+        - generic [ref=e41]: 터치하면 대화방으로 이동합니다
+      - generic [ref=e116]:
+        - generic [ref=e117]: 🍸
+        - generic [ref=e118]:
+          - paragraph [ref=e119]: 진행 중인 대화가 없습니다
+          - paragraph [ref=e120]: 위의 [새로운 상대와 대화 시작] 버튼을 눌러나만의 아늑한 인연을 만나보세요
+        - button "새로운 상대와 대화 시작" [ref=e121] [cursor=pointer]
+      - generic [ref=e49]:
+        - generic [ref=e50]:
+          - link "고객센터" [ref=e51] [cursor=pointer]:
+            - /url: /support
+          - generic [ref=e52]: ·
+          - link "이용약관" [ref=e53] [cursor=pointer]:
+            - /url: /terms
+          - generic [ref=e54]: ·
+          - link "개인정보처리방침" [ref=e55] [cursor=pointer]:
+            - /url: /privacy
+          - generic [ref=e56]: ·
+          - link "환불정책" [ref=e57] [cursor=pointer]:
+            - /url: /refund
+          - generic [ref=e58]: ·
+          - link "서비스·운영정책 ↗" [ref=e59] [cursor=pointer]:
+            - /url: /policies
+        - paragraph [ref=e60]:
+          - text: 취향에 맞는 가상의 AI 캐릭터와 일상 이야기를 나누는 1:1 채팅 서비스입니다. 가입 시 지급되는 무료 50 하트로 즉시 대화를 체험하실 수 있으며, 하트 소진 시 충전하여 이어가는 방식입니다. 상품과 이용 조건은
+          - link "서비스 소개" [ref=e61] [cursor=pointer]:
+            - /url: /about
+          - text: 와
+          - link "하트 상품 안내" [ref=e62] [cursor=pointer]:
+            - /url: /products
+          - text: 에서 확인하세요.
+        - generic [ref=e63]:
+          - generic [ref=e64]:
+            - generic [ref=e65]: 메이비웍스
+            - generic [ref=e66]: 대표 홍지민
+            - generic [ref=e67]: 사업자등록번호 666-01-04235
+            - link "사업자정보확인 ↗" [ref=e68] [cursor=pointer]:
+              - /url: https://www.ftc.go.kr/bizCommPop.do?wrkr_no=6660104235
+          - generic [ref=e69]: 통신판매업 신고 2026-안양동안-0369 · 주소 경기도 안양시 동안구 시민대로 327번길 11-41, 3층
+          - generic [ref=e70]:
+            - text: 고객센터
+            - link "070-8110-8149" [ref=e71] [cursor=pointer]:
+              - /url: tel:070-8110-8149
+            - text: ·
+            - link "maybeworks@naver.com" [ref=e72] [cursor=pointer]:
+              - /url: mailto:maybeworks@naver.com
+          - generic [ref=e73]:
+            - generic [ref=e74]: © 2026 MaybeWorks. All rights reserved.
+            - button "쿠키 설정" [ref=e75] [cursor=pointer]
+        - paragraph [ref=e76]: 아지트챗은 AI 가상 캐릭터와 대화하는 서비스이며, 실제 인물과의 사실관계를 보장하지 않습니다.
+    - generic [ref=e77]:
+      - generic [ref=e78]:
+        - generic [ref=e79]: "내 보유: 0 하트 ❤️"
+        - button "충전하기" [ref=e80] [cursor=pointer]
+      - generic [ref=e81]: 1:1 안심 대화
+  - generic [ref=e126]:
+    - generic [ref=e127]: 💔
+    - generic [ref=e128]:
+      - heading "하트가 부족해요!" [level=3] [ref=e129]
+      - paragraph [ref=e130]: 새로운 상대와 대화를 시작하려면 최소 3.7하트가 필요합니다. 하트를 채운 후 다시 매칭해주세요.
+    - generic [ref=e131]:
+      - generic [ref=e132]:
+        - generic [ref=e133]: 현재 보유 하트
+        - generic [ref=e134]: 0 하트
+      - generic [ref=e135]:
+        - generic [ref=e136]: 1회 대화 차감
+        - generic [ref=e137]: "-3.7 하트"
+    - paragraph [ref=e138]: 휴대폰 번호를 연동하면 첫 인증 시 100하트를 무료로 받습니다. 번호 연동 전에는 결제할 수 없습니다.
+    - generic [ref=e139]:
+      - button "휴대폰 연동하고 100하트 받기" [ref=e140] [cursor=pointer]
+      - button "다음에 할게요" [ref=e141] [cursor=pointer]
+  - generic: 👩 여성 대화 상대가 설정되었습니다.

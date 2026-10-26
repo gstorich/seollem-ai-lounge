@@ -43,3 +43,13 @@
 
 공식 문서: https://developers.portone.io/opi/ko/integration/pg/v2/inicis-v2 및 https://developers.portone.io/opi/ko/integration/pg/v2/inicis-unified-identity-verification
 API 필드 확인: @portone/server-sdk 0.19.0 공식 타입(SelectedChannel, PaidPayment, PaymentAmount, CancelPaymentBody, IdentityVerificationVerifiedCustomer). SDK 의존성을 추가 설치하지 않고 REST를 사용한다.
+
+## 2026-10-25 진입 및 광고 측정 정리
+
+- 설정 메뉴: 하트 충전, 성인인증·상태 확인, 결제 내역·환불을 분리한다.
+- 상품은 `/billing?package=상품ID`, 충전은 `/billing?intent=checkout#checkout`, 인증은 `/billing?intent=identity#identity`, 내역은 `/billing?intent=orders#ordersSection`에서 진행한다.
+- 인증 차단 안내에서도 동일 인증 화면을 사용한다. 번호 연결을 거치면 허용된 내부 목적지와 선택 상품을 복원하고, 대화 복귀 시 기존 방을 연다. 인증만으로 차단 메시지를 다시 전송하지 않는다.
+- 인증 진입·번호 연결 필요·개통 대기·구매 조건 미확인은 내부 commerce_events에 기록한다. 화면 기록은 기관의 성공 결과가 아니다.
+- 인증 전용 화면 및 인증 복귀 페이지에서는 광고·GA 태그를 실행하지 않는다. 결제 내역 조회는 상품 조회로 집계하지 않는다.
+- Google/Meta는 동의된 방문·번호 연결·첫 대화 성공·상품 조회·서버 주문 생성·서버 결제 확정을 구분한다. 결제 시작 및 결과 확인 시 서버 전송함을 즉시 확인하며, 브라우저 복귀·온라인 복구 때 미전송 광고 이벤트를 다시 확인한다.
+- 구매는 주문번호, Meta 브라우저/서버는 동일 event_id를 유지한다. 모의 결제·테스트 계정과 미동의는 광고 최적화에 포함하지 않는다. 실제 구매 전환의 최종 매체 귀속은 승인 후 실결제로 검수한다.

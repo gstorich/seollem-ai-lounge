@@ -1,0 +1,118 @@
+- generic [ref=f2e15]:
+  - complementary [ref=f2e16]:
+    - link "아지트챗 홈" [ref=f2e18] [cursor=pointer]:
+      - /url: /
+      - generic [ref=f2e19]: 아지트챗
+    - text: 운영 워크스페이스
+    - navigation "관리 메뉴" [ref=f2e20]:
+      - button "◫ 운영 현황" [ref=f2e21] [cursor=pointer]
+      - button "♙ 인증 회원" [ref=f2e22] [cursor=pointer]
+      - button "♧ 게스트 세션" [ref=f2e23] [cursor=pointer]
+      - button "📊 유입 경로·UTM" [ref=f2e24] [cursor=pointer]
+      - button "☷ 전체 채팅" [ref=f2e25] [cursor=pointer]
+      - button "⚑ AI 답변 신고" [ref=f2e26] [cursor=pointer]
+      - button "◈ 연령·콘텐츠 보호" [ref=f2e27] [cursor=pointer]
+      - button "◇ 대화 분석" [ref=f2e28] [cursor=pointer]
+      - button "🎯 매칭·추천 분석" [ref=f2e29] [cursor=pointer]
+      - button "✦ 캐릭터 스튜디오" [ref=f2e30] [cursor=pointer]
+      - button "◎ 인증·결제 이벤트" [ref=f2e31] [cursor=pointer]
+      - button "₩ 결제·환불" [ref=f2e32] [cursor=pointer]
+      - button "▤ 고객 문의" [ref=f2e33] [cursor=pointer]
+      - button "▥ 유입·결제 퍼널" [ref=f2e34] [cursor=pointer]
+      - button "↗ 방문 분석" [ref=f2e35] [cursor=pointer]
+      - button "≡ 처리 기록" [ref=f2e36] [cursor=pointer]
+    - generic [ref=f2e37]:
+      - link "서비스 열기 ↗" [ref=f2e38] [cursor=pointer]:
+        - /url: /
+      - paragraph [ref=f2e39]: 관리 작업은 기록됩니다.
+      - button "로그아웃" [ref=f2e40] [cursor=pointer]
+  - main [ref=f2e41]:
+    - generic [ref=f2e42]:
+      - generic [ref=f2e43]:
+        - paragraph [ref=f2e44]: AZITCHAT OPERATIONS
+        - heading "운영 현황" [level=1] [ref=f2e45]
+      - generic [ref=f2e46]:
+        - combobox "집계 기간" [ref=f2e47]:
+          - option "최근 7일"
+          - option "최근 30일" [selected]
+          - option "최근 90일"
+        - button "새로고침" [ref=f2e48] [cursor=pointer]
+        - button "로그아웃" [ref=f2e49] [cursor=pointer]
+    - alert [ref=f2e50]
+    - generic [ref=f2e51]:
+      - generic [ref=f2e52]:
+        - generic [ref=f2e53]:
+          - generic [ref=f2e54]: 전체 계정
+          - generic [ref=f2e55]: "1"
+          - text: 인증 회원 + 게스트
+        - generic [ref=f2e56]:
+          - generic [ref=f2e57]: 휴대폰 인증 회원
+          - generic [ref=f2e58]: "0"
+          - text: 현재 보관 중인 인증 계정
+        - generic [ref=f2e59]:
+          - generic [ref=f2e60]: 게스트 세션
+          - generic [ref=f2e61]: "1"
+          - text: 사람 수와 다릅니다 · 별도 목록에서 확인
+        - generic [ref=f2e62]:
+          - generic [ref=f2e63]: 대화한 게스트
+          - generic [ref=f2e64]: "0"
+          - text: 사용자 메시지가 1개 이상
+        - generic [ref=f2e65]:
+          - generic [ref=f2e66]: 미사용 게스트
+          - generic [ref=f2e67]: "1"
+          - text: 사용자 메시지가 없는 세션
+        - generic [ref=f2e68]:
+          - generic [ref=f2e69]: 기간 내 대화
+          - generic [ref=f2e70]: "0"
+          - text: 하트 차감이 발생한 대화
+        - generic [ref=f2e71]:
+          - generic [ref=f2e72]: 미처리 문의
+          - generic [ref=f2e73]: "0"
+          - text: 접수 + 처리 중
+        - generic [ref=f2e74]:
+          - generic [ref=f2e75]: 활동 계정
+          - generic [ref=f2e76]: "0"
+          - text: 기간 내 대화·재연결 사용
+        - generic [ref=f2e77]:
+          - generic [ref=f2e78]: 기간 내 신규 계정
+          - generic [ref=f2e79]: "1"
+          - text: 현재 남아 있는 계정 기준
+        - generic [ref=f2e80]:
+          - generic [ref=f2e81]: 보유 하트 총합
+          - generic [ref=f2e82]: "50"
+          - text: 현재 전체 계정 잔액
+      - generic [ref=f2e83]:
+        - generic [ref=f2e84]:
+          - heading "일별 대화 추이" [level=2] [ref=f2e85]
+          - paragraph [ref=f2e87]: 기간 내 대화가 없습니다.
+          - table [ref=f2e89]:
+            - rowgroup [ref=f2e90]:
+              - row [ref=f2e91]:
+                - columnheader "날짜" [ref=f2e92]
+                - columnheader "대화" [ref=f2e93]
+                - columnheader "활동 계정" [ref=f2e94]
+                - columnheader "사용 하트" [ref=f2e95]
+            - rowgroup
+        - generic [ref=f2e96]:
+          - heading "서비스 상태" [level=2] [ref=f2e97]
+          - paragraph [ref=f2e98]:
+            - generic [ref=f2e99]: 운영 중
+          - paragraph [ref=f2e100]:
+            - text: 대화 모델
+            - strong [ref=f2e101]: gemini-3.1-flash-lite
+          - paragraph [ref=f2e102]:
+            - text: 문자 인증
+            - strong [ref=f2e103]: 설정 필요
+          - paragraph [ref=f2e104]:
+            - text: 실결제
+            - strong [ref=f2e105]: 준비 중
+          - paragraph [ref=f2e106]:
+            - text: Google Analytics
+            - strong [ref=f2e107]: 측정 ID 설정 필요
+          - separator [ref=f2e108]
+          - heading "기간 내 인증·문의" [level=3] [ref=f2e109]
+          - paragraph [ref=f2e110]:
+            - text: guest_created
+            - strong [ref=f2e111]: "1"
+          - generic [ref=f2e112]: 실제 사용 지표는 서버 데이터 기준입니다. 방문자·유입 경로는 방문 분석에서 확인할 수 있습니다.
+    - paragraph [ref=f2e113]: 시간은 한국시간(KST) 기준입니다. 결제·환불 내역은 결제·환불 메뉴에서 확인합니다.

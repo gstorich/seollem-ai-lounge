@@ -1,0 +1,90 @@
+- generic [ref=e3]:
+  - generic [ref=e4]:
+    - generic [ref=e5]:
+      - heading "아지트챗 아지트챗 · AI 캐릭터와 나누는 1:1 대화" [level=1] [ref=e6]:
+        - img "아지트챗" [ref=e7]
+        - generic [ref=e8]: 아지트챗 · AI 캐릭터와 나누는 1:1 대화
+      - generic [ref=e9]: "1"
+    - generic [ref=e10]:
+      - button "🎯 조건" [ref=e11] [cursor=pointer]
+      - button "⚙️ 설정" [ref=e13] [cursor=pointer]
+  - generic [ref=e15]:
+    - generic [ref=e16]:
+      - generic [ref=e17]: 🔔
+      - generic [ref=e18]:
+        - paragraph [ref=e19]: 인연의 답장을 놓치지 마세요
+        - paragraph [ref=e20]: 알림을 켜두면 창을 닫아도 실시간으로 새 메시지를 알려드려요
+    - generic [ref=e21]:
+      - button "알림 켜기" [ref=e22] [cursor=pointer]
+      - button "✕" [ref=e23] [cursor=pointer]
+  - generic [ref=e24]:
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - generic [ref=e27]: 실시간 1:1 프라이빗 대화
+        - heading "지금 접속 중인 상대 1,249명" [level=2] [ref=e29]
+        - paragraph [ref=e30]: 나를 기다리는 매력적인 상대들과 기다림 없이, 지금 바로 단둘만의 1:1 대화로 연결됩니다.
+      - button "새로운 상대와 대화 시작" [ref=e31] [cursor=pointer]
+    - button "휴대폰 번호로 로그인 · 대화 보관" [ref=e36] [cursor=pointer]
+    - generic [ref=e37]:
+      - generic [ref=e38]:
+        - generic [ref=e39]: 💬 내가 나누던 대화
+        - generic [ref=e40]: "1"
+      - generic [ref=e41]: 터치하면 대화방으로 이동합니다
+    - generic [ref=e101] [cursor=pointer]:
+      - img "오채원" [ref=e103]
+      - generic [ref=e105]:
+        - generic [ref=e106]:
+          - generic [ref=e107]:
+            - generic [ref=e108]: 오채원
+            - generic [ref=e109]: 24세 · 베이커리 파티시에
+          - generic [ref=e110]: 오전 12:46
+        - paragraph [ref=e111]: 테스트 대화
+      - button "✕" [ref=e113]
+    - generic [ref=e56]:
+      - generic [ref=e57]:
+        - link "고객센터" [ref=e58] [cursor=pointer]:
+          - /url: /support
+        - generic [ref=e59]: ·
+        - link "이용약관" [ref=e60] [cursor=pointer]:
+          - /url: /terms
+        - generic [ref=e61]: ·
+        - link "개인정보처리방침" [ref=e62] [cursor=pointer]:
+          - /url: /privacy
+        - generic [ref=e63]: ·
+        - link "환불정책" [ref=e64] [cursor=pointer]:
+          - /url: /refund
+        - generic [ref=e65]: ·
+        - link "서비스·운영정책 ↗" [ref=e66] [cursor=pointer]:
+          - /url: /policies
+      - paragraph [ref=e67]:
+        - text: 취향에 맞는 가상의 AI 캐릭터와 일상 이야기를 나누는 1:1 채팅 서비스입니다. 가입 시 지급되는 무료 50 하트로 즉시 대화를 체험하실 수 있으며, 하트 소진 시 충전하여 이어가는 방식입니다. 상품과 이용 조건은
+        - link "서비스 소개" [ref=e68] [cursor=pointer]:
+          - /url: /about
+        - text: 와
+        - link "하트 상품 안내" [ref=e69] [cursor=pointer]:
+          - /url: /products
+        - text: 에서 확인하세요.
+      - generic [ref=e70]:
+        - generic [ref=e71]:
+          - generic [ref=e72]: 메이비웍스
+          - generic [ref=e73]: 대표 홍지민
+          - generic [ref=e74]: 사업자등록번호 666-01-04235
+          - link "사업자정보확인 ↗" [ref=e75] [cursor=pointer]:
+            - /url: https://www.ftc.go.kr/bizCommPop.do?wrkr_no=6660104235
+        - generic [ref=e76]: 통신판매업 신고 2026-안양동안-0369 · 주소 경기도 안양시 동안구 시민대로 327번길 11-41, 3층
+        - generic [ref=e77]:
+          - text: 고객센터
+          - link "070-8110-8149" [ref=e78] [cursor=pointer]:
+            - /url: tel:070-8110-8149
+          - text: ·
+          - link "maybeworks@naver.com" [ref=e79] [cursor=pointer]:
+            - /url: mailto:maybeworks@naver.com
+        - generic [ref=e80]:
+          - generic [ref=e81]: © 2026 MaybeWorks. All rights reserved.
+          - button "쿠키 설정" [ref=e82] [cursor=pointer]
+      - paragraph [ref=e83]: 아지트챗은 AI 가상 캐릭터와 대화하는 서비스이며, 실제 인물과의 사실관계를 보장하지 않습니다.
+  - generic [ref=e84]:
+    - generic [ref=e85]:
+      - generic [ref=e86]: "내 보유: 50 하트 ❤️"
+      - button "충전하기" [ref=e87] [cursor=pointer]
+    - generic [ref=e88]: 1:1 안심 대화

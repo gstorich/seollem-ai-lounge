@@ -1,0 +1,164 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e3]:
+      - generic [ref=e4]:
+        - generic [ref=e5]:
+          - heading "아지트챗 아지트챗 · AI 캐릭터와 나누는 1:1 대화" [level=1] [ref=e6]:
+            - img "아지트챗" [ref=e7]
+            - generic [ref=e8]: 아지트챗 · AI 캐릭터와 나누는 1:1 대화
+          - generic [ref=e9]: "0"
+        - generic [ref=e10]:
+          - button "🎯 조건" [ref=e11] [cursor=pointer]
+          - button "⚙️ 설정" [ref=e13] [cursor=pointer]
+      - generic [ref=e15]:
+        - generic [ref=e16]:
+          - generic [ref=e17]: 🔔
+          - generic [ref=e18]:
+            - paragraph [ref=e19]: 인연의 답장을 놓치지 마세요
+            - paragraph [ref=e20]: 알림을 켜두면 창을 닫아도 실시간으로 새 메시지를 알려드려요
+        - generic [ref=e21]:
+          - button "알림 켜기" [ref=e22] [cursor=pointer]
+          - button "✕" [ref=e23] [cursor=pointer]
+      - generic [ref=e24]:
+        - generic [ref=e25]:
+          - generic [ref=e26]:
+            - generic [ref=e27]: 실시간 1:1 프라이빗 대화
+            - heading "지금 접속 중인 상대 1,250명" [level=2] [ref=e85]
+            - paragraph [ref=e30]: 나를 기다리는 매력적인 상대들과 기다림 없이, 지금 바로 단둘만의 1:1 대화로 연결됩니다.
+          - button "새로운 상대와 대화 시작" [ref=e31] [cursor=pointer]
+        - button "휴대폰 번호로 로그인 · 대화 보관" [ref=e36] [cursor=pointer]
+        - generic [ref=e37]:
+          - generic [ref=e38]:
+            - generic [ref=e39]: 💬 내가 나누던 대화
+            - generic [ref=e40]: "0"
+          - generic [ref=e41]: 터치하면 대화방으로 이동합니다
+        - generic [ref=e134]:
+          - generic [ref=e135]: 🍸
+          - generic [ref=e136]:
+            - paragraph [ref=e137]: 진행 중인 대화가 없습니다
+            - paragraph [ref=e138]: 위의 [새로운 상대와 대화 시작] 버튼을 눌러나만의 아늑한 인연을 만나보세요
+          - button "새로운 상대와 대화 시작" [ref=e139] [cursor=pointer]
+        - generic [ref=e43]:
+          - generic [ref=e44]:
+            - link "고객센터" [ref=e45] [cursor=pointer]:
+              - /url: /support
+            - generic [ref=e46]: ·
+            - link "이용약관" [ref=e47] [cursor=pointer]:
+              - /url: /terms
+            - generic [ref=e48]: ·
+            - link "개인정보처리방침" [ref=e49] [cursor=pointer]:
+              - /url: /privacy
+            - generic [ref=e50]: ·
+            - link "환불정책" [ref=e51] [cursor=pointer]:
+              - /url: /refund
+            - generic [ref=e52]: ·
+            - link "서비스·운영정책 ↗" [ref=e53] [cursor=pointer]:
+              - /url: /policies
+          - paragraph [ref=e54]:
+            - text: 취향에 맞는 가상의 AI 캐릭터와 일상 이야기를 나누는 1:1 채팅 서비스입니다. 가입 시 지급되는 무료 50 하트로 즉시 대화를 체험하실 수 있으며, 하트 소진 시 충전하여 이어가는 방식입니다. 상품과 이용 조건은
+            - link "서비스 소개" [ref=e55] [cursor=pointer]:
+              - /url: /about
+            - text: 와
+            - link "하트 상품 안내" [ref=e56] [cursor=pointer]:
+              - /url: /products
+            - text: 에서 확인하세요.
+          - generic [ref=e57]:
+            - generic [ref=e58]:
+              - generic [ref=e59]: 메이비웍스
+              - generic [ref=e60]: 대표 홍지민
+              - generic [ref=e61]: 사업자등록번호 666-01-04235
+              - link "사업자정보확인 ↗" [ref=e62] [cursor=pointer]:
+                - /url: https://www.ftc.go.kr/bizCommPop.do?wrkr_no=6660104235
+            - generic [ref=e63]: 통신판매업 신고 2026-안양동안-0369 · 주소 경기도 안양시 동안구 시민대로 327번길 11-41, 3층
+            - generic [ref=e64]:
+              - text: 고객센터
+              - link "070-8110-8149" [ref=e65] [cursor=pointer]:
+                - /url: tel:070-8110-8149
+              - text: ·
+              - link "maybeworks@naver.com" [ref=e66] [cursor=pointer]:
+                - /url: mailto:maybeworks@naver.com
+            - generic [ref=e67]:
+              - generic [ref=e68]: © 2026 MaybeWorks. All rights reserved.
+              - button "쿠키 설정" [ref=e69] [cursor=pointer]
+          - paragraph [ref=e70]: 아지트챗은 AI 가상 캐릭터와 대화하는 서비스이며, 실제 인물과의 사실관계를 보장하지 않습니다.
+      - generic [ref=e71]:
+        - generic [ref=e72]:
+          - generic [ref=e73]: "내 보유: 50 하트 ❤️"
+          - button "충전하기" [ref=e74] [cursor=pointer]
+        - generic [ref=e75]: 1:1 안심 대화
+    - generic [ref=e144]:
+      - generic [ref=e145]:
+        - heading "⚙️ 환경설정 & 계정 관리" [level=3] [ref=e146]:
+          - generic [ref=e147]: ⚙️
+          - generic [ref=e148]: 환경설정 & 계정 관리
+        - button "✕" [ref=e149] [cursor=pointer]
+      - button "내 안부 기록 · 글씨와 음성" [ref=e150] [cursor=pointer]
+      - generic [ref=e151]:
+        - generic [ref=e153]:
+          - generic [ref=e154]: 📱
+          - generic [ref=e155]: 휴대폰 번호 연동 (대화 보관)
+        - paragraph [ref=e156]: 휴대폰 번호를 연동하시면 기기를 바꾸어도 모든 대화 기록과 보유 하트가 안전하게 이어집니다.
+        - button "내 안부 기록 · 글씨와 음성" [ref=e157] [cursor=pointer]
+        - button "휴대폰 번호 연동하기 (+100 하트 무료)" [ref=e158] [cursor=pointer]
+      - generic [ref=e159]:
+        - strong [ref=e160]: 먼저 오는 연락 · 알림
+        - generic [ref=e161]:
+          - generic [ref=e162]: 가끔 먼저 오는 연락 받기
+          - checkbox "가끔 먼저 오는 연락 받기" [checked] [ref=e163]
+        - paragraph [ref=e164]: 일부 AI 캐릭터가 이전 대화를 떠올리며 먼저 연락할 수 있어요. 먼저 온 메시지는 무료이며 밤 10시~오전 10시에는 보내지 않아요.
+        - button "브라우저 알림 허용" [disabled] [ref=e165]
+        - status [ref=e166]: 브라우저 알림을 준비 중이에요.
+      - button "설정 저장 및 닫기" [ref=e167] [cursor=pointer]
+    - generic: 👩 여성 대화 상대가 설정되었습니다.
+  - dialog [ref=e174]:
+    - generic [ref=e175]:
+      - heading "내 안부 · 편의 설정" [level=2] [ref=e176]
+      - button "안부 화면 닫기" [active] [ref=e177] [cursor=pointer]: 닫기
+    - heading "글씨와 음성" [level=3] [ref=e178]
+    - generic [ref=e179]:
+      - text: 채팅 글씨 크기
+      - combobox "채팅 글씨 크기" [ref=e180]:
+        - option "기본"
+        - option "크게"
+        - option "아주 크게" [selected]
+    - generic [ref=e181]:
+      - text: 읽어주기 속도
+      - combobox "읽어주기 속도" [ref=e182]:
+        - option "천천히"
+        - option "조금 천천히" [selected]
+        - option "보통"
+    - paragraph [ref=e183]: 상대방의 글 옆 ‘소리 내어 읽기’로 들을 수 있어요. 기기·브라우저의 합성 음성이며, 캐릭터가 녹음한 목소리가 아닙니다. 주변에 들릴 수 있으니 주의해주세요.
+    - generic [ref=e184]:
+      - checkbox "음성 입력 시 브라우저·기기 제공자가 음성을 처리할 수 있음을 확인했습니다." [ref=e185]
+      - text: 음성 입력 시 브라우저·기기 제공자가 음성을 처리할 수 있음을 확인했습니다.
+    - paragraph [ref=e186]: 마이크는 ‘음성 입력’을 누를 때만 켜집니다. 변환된 글은 직접 확인한 뒤 전송하세요. 아지트챗 서버에 음성 원본을 저장하지 않습니다. 기기 설정에 따라 읽어주기에도 외부 음성 서비스가 사용될 수 있습니다.
+    - heading "내 안부 기록" [level=3] [ref=e187]
+    - paragraph [ref=e188]: 내가 남기는 일상 메모입니다. 기본적으로 본인만 볼 수 있고 자녀·보호자에게 공유되지 않습니다. 건강정보 등 민감한 내용은 입력하지 마세요. 의료·응급 모니터링 기능은 아닙니다.
+    - generic [ref=e189]:
+      - generic [ref=e190]:
+        - text: 날짜
+        - textbox "날짜" [ref=e191]: 2026-10-21
+      - generic [ref=e192]:
+        - text: 오늘의 기분
+        - combobox "오늘의 기분" [ref=e193]:
+          - option "선택 안 함" [selected]
+          - option "좋아요"
+          - option "보통이에요"
+          - option "쉬고 싶어요"
+      - generic [ref=e194]:
+        - text: 일상 메모
+        - textbox "일상 메모" [ref=e195]:
+          - /placeholder: "예: 내일은 친구와 공원에 가기로 했어요"
+      - generic [ref=e196]:
+        - text: 이 기록을 참고할 상대
+        - combobox "이 기록을 참고할 상대" [ref=e197]:
+          - option "나만 보기" [selected]
+      - generic [ref=e198]:
+        - checkbox "선택한 AI 상대가 이 기록을 대화 생성에 참고하도록 허용합니다." [ref=e199]
+        - text: 선택한 AI 상대가 이 기록을 대화 생성에 참고하도록 허용합니다.
+      - paragraph [ref=e200]: 허용한 기록만 해당 상대와의 AI 대화 생성에 전달됩니다. 선택을 ‘나만 보기’로 바꾸면 이후 참고가 중단됩니다. 기록 삭제는 이미 나눈 대화를 지우지는 않습니다. 게스트 기록을 계속 보관하려면 휴대폰 번호를 연결해주세요.
+      - generic [ref=e201]:
+        - button "기록 저장" [ref=e202] [cursor=pointer]
+        - button "새 기록" [ref=e203] [cursor=pointer]
+    - status
+    - paragraph [ref=e205]: 아직 남긴 안부 기록이 없습니다.

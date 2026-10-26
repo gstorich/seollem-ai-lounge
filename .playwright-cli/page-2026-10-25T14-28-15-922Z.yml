@@ -1,0 +1,37 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - link "아지트챗" [ref=e4] [cursor=pointer]:
+      - /url: /
+    - link "상품 · 가격" [ref=e6] [cursor=pointer]:
+      - /url: /products
+  - paragraph [ref=e7]: AZITCHAT · MY ACCOUNT
+  - heading "하트 충전과 성인인증" [level=1] [ref=e8]
+  - paragraph [ref=e9]: 대화는 이어가고, 내 정보는 안전하게
+  - status [ref=e10]: 계정과 서비스 상태를 확인하고 있습니다.
+  - navigation "충전 및 인증 메뉴" [ref=e11]:
+    - link "하트 충전" [ref=e12] [cursor=pointer]:
+      - /url: /billing#checkout
+    - link "성인인증" [ref=e13] [cursor=pointer]:
+      - /url: /billing?intent=identity#identity
+    - link "결제 내역 · 환불" [ref=e14] [cursor=pointer]:
+      - /url: /billing#ordersSection
+  - generic [ref=e15]:
+    - generic [ref=e16]:
+      - heading "내 결제 내역" [level=2] [ref=e17]
+      - button "새로고침" [ref=e18] [cursor=pointer]
+    - paragraph [ref=e19]: 결제 후 페이지를 닫았더라도 서버에서 승인 내역을 확인해 하트를 지급합니다. 결과가 표시되지 않으면 ‘결과 확인’을 누르세요.
+  - paragraph [ref=e20]:
+    - link "대화로 돌아가기" [ref=e21] [cursor=pointer]:
+      - /url: /
+    - text: ·
+    - link "결제·환불 문의" [ref=e22] [cursor=pointer]:
+      - /url: /support
+  - generic [ref=e23]:
+    - strong [ref=e24]: 메이비웍스 · 대표 홍지민
+    - paragraph [ref=e25]:
+      - text: 사업자등록번호 666-01-04235 · 통신판매업 신고번호 2026-안양동안-0369경기도 안양시 동안구 시민대로 327번길 11-41, 3층
+      - link "070-8110-8149" [ref=e26] [cursor=pointer]:
+        - /url: tel:07081108149
+      - text: ·
+      - link "maybeworks@naver.com" [ref=e27] [cursor=pointer]:
+        - /url: mailto:maybeworks@naver.com

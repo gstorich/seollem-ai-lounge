@@ -1,0 +1,87 @@
+- generic [active] [ref=f3e1]:
+  - main [ref=f3e2]:
+    - generic [ref=f3e3]:
+      - link "아지트챗" [ref=f3e4] [cursor=pointer]:
+        - /url: /
+      - link "상품 · 가격" [ref=f3e6] [cursor=pointer]:
+        - /url: /products
+    - paragraph [ref=f3e7]: AZITCHAT · MY ACCOUNT
+    - heading "하트 충전과 성인인증" [level=1] [ref=f3e8]
+    - paragraph [ref=f3e9]: 대화는 이어가고, 내 정보는 안전하게
+    - status [ref=f3e10]: 실결제 서비스는 준비 중입니다. 결제와 유료 하트 지급은 발생하지 않습니다.
+    - generic [ref=f3e11]:
+      - heading "휴대폰 번호 연결이 필요합니다" [level=2] [ref=f3e12]
+      - paragraph [ref=f3e13]: 번호를 연결하면 대화와 하트가 내 계정에 저장됩니다. 처음 연결하면 100하트를 받을 수 있습니다. 결제는 번호 연결 후 이용할 수 있습니다.
+      - link "번호 연결 · 로그인" [ref=f3e14] [cursor=pointer]:
+        - /url: /?account=phone
+    - navigation "충전 및 인증 메뉴" [ref=f3e15]:
+      - link "하트 충전" [ref=f3e16] [cursor=pointer]:
+        - /url: /billing?intent=checkout#checkout
+      - link "성인인증" [ref=f3e17] [cursor=pointer]:
+        - /url: /billing?intent=identity#identity
+      - link "결제 내역 · 환불" [ref=f3e18] [cursor=pointer]:
+        - /url: /billing?intent=orders#ordersSection
+    - generic [ref=f3e20]:
+      - text: KG이니시스 카드 결제
+      - heading "대화를 이어갈 하트 충전" [level=2] [ref=f3e21]
+      - status [ref=f3e22]: 휴대폰 번호 연결 후 결제할 수 있습니다. 처음 연결하면 100하트를 받습니다.
+      - generic [ref=f3e23]: 결제자 이름 (결제대행사에 전달)
+      - textbox "결제자 이름 (결제대행사에 전달)" [ref=f3e24]
+      - generic [ref=f3e25]: 상품 선택
+      - combobox "상품 선택" [ref=f3e26]:
+        - option "스타터 패키지" [selected]
+        - option "베스트 패키지"
+        - option "VIP 메가 패키지"
+        - option "VVIP 로열 패키지"
+      - paragraph [ref=f3e27]: 19,900원 · 2,500하트
+      - paragraph [ref=f3e28]: 일회성 충전 · 부가세 포함 · 획득일부터 1년간 유효 · 결제 확인 후 계정에 지급
+      - paragraph [ref=f3e29]:
+        - text: 구매 후 7일 이내 해당 구매분 전량 미사용 시 전액 환불. 일부 사용·기한 경과 시 일반 환불 불가(법정 환급 예외 별도).
+        - link "법정 환급 문의" [ref=f3e30] [cursor=pointer]:
+          - /url: /support
+      - paragraph [ref=f3e31]:
+        - link "이용약관" [ref=f3e32] [cursor=pointer]:
+          - /url: /terms
+        - text: ·
+        - link "개인정보처리방침" [ref=f3e33] [cursor=pointer]:
+          - /url: /privacy
+        - text: ·
+        - link "환불 정책" [ref=f3e34] [cursor=pointer]:
+          - /url: /refund
+      - paragraph [ref=f3e35]: 미성년자는 법정대리인의 동의가 필요하며, 동의 없는 구매는 미성년자 본인 또는 법정대리인이 법령에 따라 취소할 수 있습니다.
+      - generic [ref=f3e36]:
+        - checkbox "상품·가격·유효기간과 취소·환불 조건을 확인했습니다." [ref=f3e37]
+        - text: 상품·가격·유효기간과 취소·환불 조건을 확인했습니다.
+      - button "번호 연결 후 카드 결제" [disabled] [ref=f3e38]
+      - paragraph [ref=f3e39]: 카드정보는 결제대행사 화면에서 입력합니다. 아지트챗은 카드번호를 보관하지 않습니다.
+    - generic [ref=f3e40]:
+      - generic [ref=f3e41]:
+        - heading "내 결제 내역" [level=2] [ref=f3e42]
+        - button "새로고침" [ref=f3e43] [cursor=pointer]
+      - paragraph [ref=f3e44]: 결제 후 페이지를 닫았더라도 서버에서 승인 내역을 확인해 하트를 지급합니다. 결과가 표시되지 않으면 ‘결과 확인’을 누르세요.
+      - paragraph [ref=f3e46]: 결제 내역이 없습니다.
+    - paragraph [ref=f3e47]:
+      - link "대화로 돌아가기" [ref=f3e48] [cursor=pointer]:
+        - /url: /
+      - text: ·
+      - link "결제·환불 문의" [ref=f3e49] [cursor=pointer]:
+        - /url: /support
+    - generic [ref=f3e50]:
+      - strong [ref=f3e51]: 메이비웍스 · 대표 홍지민
+      - paragraph [ref=f3e52]:
+        - text: 사업자등록번호 666-01-04235 · 통신판매업 신고번호 2026-안양동안-0369경기도 안양시 동안구 시민대로 327번길 11-41, 3층
+        - link "070-8110-8149" [ref=f3e53] [cursor=pointer]:
+          - /url: tel:07081108149
+        - text: ·
+        - link "maybeworks@naver.com" [ref=f3e54] [cursor=pointer]:
+          - /url: mailto:maybeworks@naver.com
+  - region "쿠키 사용 설정" [ref=f3e55]:
+    - strong [ref=f3e56]: 쿠키 사용에 동의하시겠어요?
+    - paragraph [ref=f3e57]:
+      - text: 분석 쿠키는 Google Analytics 방문·기능 이용 분석에 사용해요. 광고 측정까지 허용하면 Google·Meta에 광고 클릭 식별자와 방문·번호 인증·첫 대화 성공·상품 확인·결제 등 전환 정보를 보내 광고 성과를 측정해요. 전화번호와 대화·문의 내용은 보내지 않아요. 허용하지 않아도 모든 기능을 이용할 수 있고, ‘쿠키 설정’에서 언제든 바꿀 수 있어요.
+      - link "처리 항목·보관·철회 안내" [ref=f3e58] [cursor=pointer]:
+        - /url: /privacy#cookies
+    - generic [ref=f3e59]:
+      - button "분석만 허용" [ref=f3e60] [cursor=pointer]
+      - button "분석·광고 측정 허용" [ref=f3e61] [cursor=pointer]
+      - button "허용 안 함" [ref=f3e62] [cursor=pointer]

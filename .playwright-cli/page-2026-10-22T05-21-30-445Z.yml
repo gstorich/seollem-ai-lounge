@@ -1,0 +1,120 @@
+- generic [active] [ref=f2e1]:
+  - generic [ref=f2e15]:
+    - complementary [ref=f2e16]:
+      - link "아지트챗 홈" [ref=f2e18] [cursor=pointer]:
+        - /url: /
+        - generic [ref=f2e19]: 아지트챗
+      - text: 운영 워크스페이스
+      - navigation "관리 메뉴" [ref=f2e20]:
+        - button "◫ 운영 현황" [ref=f2e21] [cursor=pointer]
+        - button "♙ 인증 회원" [ref=f2e22] [cursor=pointer]
+        - button "♧ 게스트 세션" [ref=f2e23] [cursor=pointer]
+        - button "📊 유입 경로·UTM" [ref=f2e24] [cursor=pointer]
+        - button "☷ 전체 채팅" [ref=f2e25] [cursor=pointer]
+        - button "⚑ AI 답변 신고" [ref=f2e26] [cursor=pointer]
+        - button "◈ 연령·콘텐츠 보호" [ref=f2e27] [cursor=pointer]
+        - button "◇ 대화 분석" [ref=f2e28] [cursor=pointer]
+        - button "🎯 매칭·추천 분석" [ref=f2e29] [cursor=pointer]
+        - button "✦ 캐릭터 스튜디오" [ref=f2e30] [cursor=pointer]
+        - button "◎ 인증·결제 이벤트" [ref=f2e31] [cursor=pointer]
+        - button "₩ 결제·환불" [ref=f2e32] [cursor=pointer]
+        - button "▤ 고객 문의" [ref=f2e33] [cursor=pointer]
+        - button "▥ 유입·결제 퍼널" [ref=f2e34] [cursor=pointer]
+        - button "↗ 방문 분석" [ref=f2e35] [cursor=pointer]
+        - button "≡ 처리 기록" [ref=f2e36] [cursor=pointer]
+      - generic [ref=f2e37]:
+        - link "서비스 열기 ↗" [ref=f2e38] [cursor=pointer]:
+          - /url: /
+        - paragraph [ref=f2e39]: 관리 작업은 기록됩니다.
+        - button "로그아웃" [ref=f2e40] [cursor=pointer]
+    - main [ref=f2e41]:
+      - generic [ref=f2e42]:
+        - generic [ref=f2e43]:
+          - paragraph [ref=f2e44]: AZITCHAT OPERATIONS
+          - heading "AI 답변 신고" [level=1] [ref=f2e114]
+        - generic [ref=f2e46]:
+          - combobox "집계 기간" [ref=f2e47]:
+            - option "최근 7일"
+            - option "최근 30일" [selected]
+            - option "최근 90일"
+          - button "새로고침" [ref=f2e48] [cursor=pointer]
+          - button "로그아웃" [ref=f2e49] [cursor=pointer]
+      - alert [ref=f2e50]
+      - generic [ref=f2e51]:
+        - generic [ref=f2e173]:
+          - heading "AI 답변 신고" [level=2] [ref=f2e174]
+          - paragraph [ref=f2e175]: AI 생성 답변의 안전·품질 문제를 검토합니다. 사용자 간 신고·계정 제재 메뉴가 아닙니다.
+          - paragraph [ref=f2e176]: 신고 답변과 앞선 최대 4개·뒤의 최대 2개 메시지만 접수 시점에 보관합니다. 원문 조회와 조치 이력을 기록합니다.
+          - combobox "신고 상태" [ref=f2e177]:
+            - option "전체 상태" [selected]
+            - option "접수"
+            - option "검토 중"
+            - option "조치 완료"
+            - option "문제 없음"
+          - paragraph [ref=f2e178]: "검토 중: 1"
+        - generic [ref=f2e179]:
+          - heading "제공 중지 중인 캐릭터" [level=3] [ref=f2e180]
+          - paragraph [ref=f2e181]: 없음
+        - generic [ref=f2e182]:
+          - table [ref=f2e184]:
+            - rowgroup [ref=f2e185]:
+              - row [ref=f2e186]:
+                - columnheader "접수·변경일" [ref=f2e187]
+                - columnheader "AI 답변" [ref=f2e188]
+                - columnheader "사유·상태" [ref=f2e189]
+                - columnheader [ref=f2e190]
+            - rowgroup [ref=f2e191]:
+              - row [ref=f2e192]:
+                - cell "2026. 10. 22. 오후 2:20:38 변경 2026. 10. 22. 오후 2:21:29" [ref=f2e193]: 2026. 10. 22. 오후 2:20:38변경 2026. 10. 22. 오후 2:21:29
+                - cell "오채원 오늘 무슨 얘기 하고 있었지? 또 처음 물어보네" [ref=f2e194]: 오채원오늘 무슨 얘기 하고 있었지? 또 처음 물어보네
+                - cell "반복·맥락 오류·부적절한 말투 검토 중" [ref=f2e195]: 반복·맥락 오류·부적절한 말투검토 중
+                - cell [ref=f2e196]:
+                  - button "검토·조치" [ref=f2e197] [cursor=pointer]
+          - generic [ref=f2e198]:
+            - button "이전" [disabled] [ref=f2e199]
+            - generic [ref=f2e200]: 1 페이지 · 1건
+            - button "다음" [disabled] [ref=f2e201]
+      - paragraph [ref=f2e113]: 시간은 한국시간(KST) 기준입니다. 결제·환불 내역은 결제·환불 메뉴에서 확인합니다.
+  - dialog [ref=f2e144]:
+    - generic [ref=f2e145]:
+      - heading "AI 답변 신고 검토" [level=2] [ref=f2e146]
+      - button "상세 닫기" [ref=f2e147] [cursor=pointer]: ✕
+    - alert [ref=f2e148]
+    - generic [ref=f2e149]:
+      - paragraph [ref=f2e202]:
+        - strong [ref=f2e203]: 반복·맥락 오류·부적절한 말투 · 검토 중
+        - text: 2026. 10. 22. 오후 2:20:38
+      - paragraph [ref=f2e204]: 앞에서 나눈 이야기를 기억하지 않고 같은 질문을 반복합니다.
+      - heading "접수 당시 답변과 맥락" [level=3] [ref=f2e205]
+      - generic [ref=f2e206]:
+        - generic [ref=f2e207]:
+          - strong [ref=f2e208]: 사용자
+          - text: · 2026. 10. 22. 오후 2:19:18
+          - paragraph [ref=f2e209]: 아까 얘기랑 조금 다른 것 같은데
+        - generic [ref=f2e210]:
+          - strong [ref=f2e211]: 신고 대상 · AI 답변
+          - text: · 2026. 10. 22. 오후 2:19:23
+          - paragraph [ref=f2e212]: 오늘 무슨 얘기 하고 있었지? 또 처음 물어보네
+      - paragraph [ref=f2e213]: 현재 캐릭터 제공 정상. 일시 중지는 신규 소개·첫 인사·기존 방 답변·선물 반응·먼저 오는 연락을 차단합니다. 기록은 삭제하지 않으며 신고자를 제재하지 않습니다.
+      - heading "검토·조치" [level=3] [ref=f2e214]
+      - generic [ref=f2e215]: 조치 선택
+      - combobox "조치 선택" [ref=f2e216]:
+        - option "검토 시작" [selected]
+        - option "개선 조치 기록"
+        - option "문제 없음"
+        - option "캐릭터 제공 일시 중지"
+        - option "검토 메모"
+      - generic [ref=f2e217]: 내부 검토 근거·실제 조치 (필수)
+      - textbox "내부 검토 근거·실제 조치 (필수)" [ref=f2e218]
+      - generic [ref=f2e219]: 신고자에게 안내할 결과 (종결·중지·재개 시 필수)
+      - textbox "신고자에게 안내할 결과 (종결·중지·재개 시 필수)" [ref=f2e220]: 알려주신 답변의 반복·맥락 문제를 검토하고 있습니다.
+      - paragraph [ref=f2e221]: ‘개선 조치 기록’은 설정·정책·코드 등을 실제 수정한 뒤 근거를 남기는 용도입니다. 선택만으로 AI 설정이나 답변이 바뀌지 않습니다. 내역은 접수일로부터 최대 1년 보관합니다.
+      - button "검토·조치 저장" [ref=f2e222] [cursor=pointer]
+      - heading "처리 이력" [level=3] [ref=f2e223]
+      - article [ref=f2e224]:
+        - text: 2026. 10. 22. 오후 2:20:38 · 신고 접수
+        - paragraph
+      - article [ref=f2e225]:
+        - text: 2026. 10. 22. 오후 2:21:29 · 검토 시작
+        - paragraph [ref=f2e226]: 신고 답변과 앞선 사용자 메시지를 확인했습니다. 맥락 반복 문제를 검토합니다.
+        - paragraph [ref=f2e227]: "신고자 안내: 알려주신 답변의 반복·맥락 문제를 검토하고 있습니다."

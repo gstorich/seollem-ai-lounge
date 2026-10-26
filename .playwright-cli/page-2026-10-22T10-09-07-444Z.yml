@@ -1,0 +1,62 @@
+- generic [ref=f1e1]:
+  - generic [ref=f1e2]:
+    - generic [ref=f1e154]:
+      - generic [ref=f1e156]:
+        - button "목록" [ref=f1e157] [cursor=pointer]
+        - generic [ref=f1e161]:
+          - img "프로필" [ref=f1e163]
+          - generic [ref=f1e166]:
+            - heading "오채원" [level=2] [ref=f1e167]
+            - generic [ref=f1e168]: AI
+            - generic [ref=f1e169]: 24세 · 베이커리 파티시에
+        - button "🔀 다른 사람" [ref=f1e171] [cursor=pointer]:
+          - generic [ref=f1e172]: 🔀
+          - generic [ref=f1e173]: 다른 사람
+      - generic [ref=f1e174]:
+        - generic [ref=f1e175]:
+          - generic [ref=f1e176]: 🔔
+          - generic [ref=f1e177]:
+            - paragraph [ref=f1e178]: 실시간 답장 알림
+            - paragraph [ref=f1e179]: 알림을 켜두면 다른 탭에 있어도 상대방 답장을 바로 알 수 있어요
+        - generic [ref=f1e180]:
+          - button "알림 켜기" [ref=f1e181] [cursor=pointer]
+          - button "✕" [ref=f1e182] [cursor=pointer]
+      - main [ref=f1e183]:
+        - generic [ref=f1e185]:
+          - paragraph [ref=f1e186]: 🌸 '오채원'님과의 대화를 이어갑니다
+          - paragraph [ref=f1e187]: 따뜻하고 고운 말을 나누어 주세요.
+          - generic [ref=f1e188]: 대화 상대는 생성형 AI 가상 인물(페르소나)입니다
+        - button "첫 대화입니다" [disabled] [ref=f1e193]
+        - generic [ref=f1e194]:
+          - generic [ref=f1e195]: 오후 7:08
+          - generic [ref=f1e197]: 아까 무슨 얘기 했더라
+        - generic [ref=f1e198]:
+          - img "오채원" [ref=f1e200]
+          - generic [ref=f1e201]:
+            - generic [ref=f1e202]: 오채원
+            - generic [ref=f1e203]:
+              - generic [ref=f1e204]: 아까 얘기하던 거 있잖아ㅋㅋ 그거 좀 더 얘기해봐
+              - button "AI 답변 메뉴" [expanded] [ref=f1e206] [cursor=pointer]: …
+              - generic [ref=f1e207]: 오후 7:08
+      - generic [ref=f1e209]:
+        - generic [ref=f1e210]:
+          - button "🎁 선물" [ref=f1e211] [cursor=pointer]:
+            - generic [ref=f1e212]: 🎁
+            - generic [ref=f1e213]: 선물
+          - generic [ref=f1e214]:
+            - textbox "따뜻한 메시지를 입력해보세요..." [ref=f1e215]
+            - button "음성 입력" [ref=f1e216] [cursor=pointer]
+          - button "전송" [ref=f1e220] [cursor=pointer]:
+            - generic [ref=f1e222]: ♥ -3.7
+        - generic [ref=f1e223]:
+          - generic [ref=f1e224]:
+            - generic [ref=f1e225]: 보유 50 하트 ❤️
+            - button "충전하기" [ref=f1e226] [cursor=pointer]
+          - generic [ref=f1e227]:
+            - link "고객센터" [ref=f1e228] [cursor=pointer]:
+              - /url: /support
+            - button "신고 내역" [ref=f1e229] [cursor=pointer]
+            - button "휴대폰 인증" [ref=f1e230] [cursor=pointer]
+    - generic: 👩 여성 대화 상대가 설정되었습니다.
+  - menu "AI 답변 메뉴" [ref=f1e231]:
+    - menuitem "신고하기" [active] [ref=f1e232] [cursor=pointer]

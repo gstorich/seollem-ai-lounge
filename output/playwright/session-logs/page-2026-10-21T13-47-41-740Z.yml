@@ -1,0 +1,56 @@
+- generic [ref=e2]:
+  - generic [ref=e257]:
+    - generic [ref=e259]:
+      - button "목록" [ref=e260] [cursor=pointer]
+      - generic [ref=e264]:
+        - img "프로필" [ref=e266]
+        - generic [ref=e269]:
+          - heading "김민지" [level=2] [ref=e270]
+          - generic [ref=e271]: AI
+          - generic [ref=e272]: 23세 · 대학생 (컴퓨터공학과)
+      - button "🔀 다른 사람" [ref=e274] [cursor=pointer]:
+        - generic [ref=e275]: 🔀
+        - generic [ref=e276]: 다른 사람
+    - generic [ref=e277]:
+      - generic [ref=e278]:
+        - generic [ref=e279]: 🔔
+        - generic [ref=e280]:
+          - paragraph [ref=e281]: 실시간 답장 알림
+          - paragraph [ref=e282]: 알림을 켜두면 다른 탭에 있어도 상대방 답장을 바로 알 수 있어요
+      - generic [ref=e283]:
+        - button "알림 켜기" [ref=e284] [cursor=pointer]
+        - button "✕" [ref=e285] [cursor=pointer]
+    - main [ref=e286]:
+      - generic [ref=e288]:
+        - paragraph [ref=e289]: 🌸 김민지 (23세 · 대학생 (컴퓨터공학과)) 님과 대화가 시작되었습니다
+        - paragraph [ref=e290]: 따뜻하고 고운 말을 나누어 주세요.
+        - generic [ref=e291]: 대화 상대는 생성형 AI 가상 인물(페르소나)입니다
+      - generic [ref=e295]:
+        - img "김민지" [ref=e297]
+        - generic [ref=e298]:
+          - generic [ref=e299]: 김민지
+          - generic [ref=e300]:
+            - generic [ref=e301]:
+              - text: 오늘 이야기 즐거웠어요 다음에도 편하게 이야기해요
+              - button "소리 내어 읽기" [ref=e302] [cursor=pointer]
+            - generic [ref=e303]: 오후 10:47
+    - generic [ref=e304]:
+      - generic [ref=e305]:
+        - button "내 안부 · 편의 설정" [ref=e306] [cursor=pointer]
+        - button "음성 입력" [ref=e307] [cursor=pointer]
+      - generic [ref=e308]:
+        - button "🎁 선물" [ref=e309] [cursor=pointer]:
+          - generic [ref=e310]: 🎁
+          - generic [ref=e311]: 선물
+        - textbox "따뜻한 메시지를 입력해보세요..." [ref=e313]
+        - button "전송" [ref=e314] [cursor=pointer]:
+          - generic [ref=e316]: ♥ -3.7
+      - generic [ref=e317]:
+        - generic [ref=e318]:
+          - generic [ref=e319]: 보유 50 하트 ❤️
+          - button "충전하기" [ref=e320] [cursor=pointer]
+        - generic [ref=e321]:
+          - link "고객센터" [ref=e322] [cursor=pointer]:
+            - /url: /support
+          - button "휴대폰 인증" [ref=e323] [cursor=pointer]
+  - generic: 👩 여성 대화 상대가 설정되었습니다.

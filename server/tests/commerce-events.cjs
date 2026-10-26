@@ -30,6 +30,11 @@ async function req(route,{method='GET',body,auth=token,admin=false,headers={}}={
  assert.equal((await req('/admin/commerce/events?tests=1',{admin:true})).status,200);
  assert.equal((await req('/payment/events',{method:'POST',auth:otherToken,body:{flowId:id,stage:'sdk_opened'}})).status,404);
  assert.equal((await req('/payment/events',{method:'POST',body:{flowId:id,stage:'paid'}})).status,400,'Client cannot assert success');
+ const entryId='entry_'+require('node:crypto').randomUUID();
+ for(let i=0;i<2;i++)assert.equal((await req('/identity/events',{method:'POST',body:{flowId:entryId,stage:'entry_viewed',phone:'PRIVATE_PHONE'}})).status,200);
+ assert.equal(events.timeline('identity',entryId).length,1,'Entry duplicate dispatches deduplicate');
+ assert.equal((await req('/identity/events',{method:'POST',body:{flowId:entryId,stage:'verified_adult'}})).status,400,'An entry cannot assert adult verification');
+
  assert.equal((await req('/payment/events',{method:'POST',body:{flowId:id,stage:'sdk_opened',code:'PRIVATE_PAYLOAD',phone:'PRIVATE_PHONE'}})).status,200);
  await req('/payment/events',{method:'POST',body:{flowId:id,stage:'sdk_opened'}});assert.equal(events.timeline('payment',id).filter(e=>e.stage==='sdk_opened').length,1);
  assert.equal((await req('/identity/events',{method:'POST',auth:otherToken,body:{flowId:identityReq.identityVerificationId,stage:'sdk_opened'}})).status,404);

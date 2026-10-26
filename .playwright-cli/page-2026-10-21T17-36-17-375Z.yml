@@ -1,0 +1,165 @@
+- generic [active] [ref=e1]:
+  - link "본문으로 바로가기" [ref=e2] [cursor=pointer]:
+    - /url: "#main"
+  - banner [ref=e3]:
+    - link "아지트챗 홈" [ref=e4] [cursor=pointer]:
+      - /url: /
+      - generic [ref=e5]: 아지트챗
+    - navigation "브랜드 페이지" [ref=e6]:
+      - link "우리의 생각" [ref=e7] [cursor=pointer]:
+        - /url: "#philosophy"
+      - link "브랜드의 기준" [ref=e8] [cursor=pointer]:
+        - /url: "#identity"
+      - link "아지트챗으로" [ref=e9] [cursor=pointer]:
+        - /url: /
+        - text: 아지트챗으로 ↗
+  - main [ref=e10]:
+    - region [ref=e11]:
+      - generic [ref=e12]:
+        - paragraph [ref=e13]: AZIT CHAT · BRAND PHILOSOPHY
+        - heading [level=1] [ref=e14]:
+          - text: 누구에게나아지트는
+          - emphasis [ref=e15]: 필요하니까.
+        - paragraph [ref=e16]: 내가 원하는 모습으로 머물 수 있는나만의 공간.
+        - link "아지트챗이 생각하는 아지트" [ref=e17] [cursor=pointer]:
+          - /url: "#philosophy"
+          - text: 아지트챗이 생각하는 아지트
+          - generic [aria-hidden] [ref=e18]: ↓
+      - generic [aria-hidden] [ref=e19]:
+        - generic [ref=e22]: A LITTLE SPACE. ENTIRELY YOURS.
+        - generic [ref=e23]: 마음이 머무는 자리
+      - generic [ref=e24]:
+        - generic [ref=e25]: 우리에게 아지트가 필요한 이유
+        - generic [aria-hidden] [ref=e26]: 01 — 05
+    - region [ref=e27]:
+      - generic [ref=e28]:
+        - generic [ref=e29]: "01"
+        - paragraph [ref=e30]:
+          - text: 우리의 시작
+          - generic [ref=e31]: THE REASON WE EXIST
+      - generic [ref=e32]:
+        - heading "우리에게는 그런 곳이 있었습니다." [level=2] [ref=e33]: 우리에게는그런 곳이 있었습니다.
+        - paragraph [ref=e34]: 누구나 자신만의 비밀기지 하나쯤은 있었습니다.
+        - paragraph [ref=e35]: 누군가는 그곳에서 철없는 일탈을 꿈꿨고, 누군가는 이루고 싶은 미래를 그렸습니다.누군가는 세상으로부터 잠시 도망쳤고, 누군가는 아무것도 하지 않으며 쉬었습니다.
+        - paragraph [ref=e36]: 중요한 건 그곳에서 무엇을 했느냐가 아닙니다.
+        - paragraph [ref=e37]: 그곳에서는내가 원하는 모습으로존재할 수 있었다는 것.
+        - paragraph [ref=e38]: 시간이 흘러 우리는 어른이 되었고, 책임져야 할 것들도 많아졌습니다.
+        - paragraph [ref=e39]: 하지만 나이가 들었다고 설렘이 사라지는 것도, 장난치고 싶은 마음이 없어지는 것도 아닙니다.
+        - paragraph [ref=e40]: 지금도 우리에게는 잠시 쉬고, 마음껏 웃고, 새로운 관계를 만나고, 나다운 시간을 보낼 수 있는 공간이 필요합니다.
+    - region [ref=e41]:
+      - generic [ref=e42]:
+        - paragraph [ref=e43]: 정해진 기분도, 정해진 역할도 없이
+        - heading "오늘은 어떤 나로 있고 싶나요?" [level=2] [ref=e44]: 오늘은 어떤 나로있고 싶나요?
+        - generic [ref=e45]:
+          - generic [ref=e46]:
+            - text: "01"
+            - heading "설렘" [level=3] [ref=e47]
+            - paragraph [ref=e48]: 설레고 싶으면 설레면 됩니다.
+          - generic [ref=e49]:
+            - text: "02"
+            - heading "유희" [level=3] [ref=e50]
+            - paragraph [ref=e51]: 그저 심심해서 놀러 와도 됩니다.
+          - generic [ref=e52]:
+            - text: "03"
+            - heading "안식" [level=3] [ref=e53]
+            - paragraph [ref=e54]: 위로받거나 잠시 쉬어도 됩니다.
+          - generic [ref=e55]:
+            - text: "04"
+            - heading "친밀감" [level=3] [ref=e56]
+            - paragraph [ref=e57]: 누군가와 이야기를 나누어도 됩니다.
+        - paragraph [ref=e58]: 무엇을 해야 하는 곳보다,내 방식대로 시간을 보낼 수 있는 곳.
+    - region [ref=e59]:
+      - generic [ref=e60]:
+        - generic [ref=e61]: "02"
+        - paragraph [ref=e62]:
+          - text: 브랜드의 중심
+          - generic [ref=e63]: OUR IDENTITY
+      - generic [ref=e64]:
+        - heading "해방의 순간보다 나만의 공간." [level=2] [ref=e65]: 해방의 순간보다나만의 공간.
+        - paragraph [ref=e66]: 아지트는 반드시 무언가로부터 벗어나기 위해 찾는 곳은 아닙니다. 이유 없이 들러도 좋고, 하고 싶은 것이 있어도 좋습니다. 브랜드의 중심에는 언제나 ‘나만의 공간’이 있습니다.
+        - generic [ref=e67]:
+          - generic [ref=e68]:
+            - term [ref=e69]: 존재 이유
+            - definition [ref=e70]: 누구에게나 자신만의 공간이 필요하다.
+          - generic [ref=e71]:
+            - term [ref=e72]: 핵심 가치
+            - definition [ref=e73]: 자유 · 자율성 · 편안함
+          - generic [ref=e74]:
+            - term [ref=e75]: 감정적 경험
+            - definition [ref=e76]: 설렘 · 유희 · 안식 · 친밀감
+          - generic [ref=e77]:
+            - term [ref=e78]: 서비스의 역할
+            - definition [ref=e79]: 각자가 원하는 관계와 시간을 만들어 주는 곳.
+          - generic [ref=e80]:
+            - term [ref=e81]: 브랜드 성격
+            - definition [ref=e82]: 따뜻하지만 지나치게 진지하지 않고,자유롭지만 가볍지만은 않은.
+    - region [ref=e83]:
+      - generic [ref=e84]:
+        - generic [ref=e85]:
+          - generic [ref=e86]: "03"
+          - paragraph [ref=e87]:
+            - text: 사람을 바라보는 관점
+            - generic [ref=e88]: PEOPLE, BEFORE AGE
+        - generic [ref=e89]:
+          - paragraph [ref=e90]: 나이가 그 사람의 전부는 아니니까
+          - heading "여전히 꿈꾸고, 장난치고, 사랑하고 싶은 사람." [level=2] [ref=e91]: 여전히 꿈꾸고,장난치고,사랑하고 싶은 사람.
+          - paragraph [ref=e92]: 아지트챗은 시니어를 ‘돌봄이 필요한 사람’으로만 바라보지 않습니다.
+          - paragraph [ref=e93]: 여전히 새로운 관계가 궁금하고, 마음껏 웃고 싶고, 때로는 조용히 쉬고 싶은 사람. 무엇을 좋아하고 어떤 시간을 보낼지는 그 사람 자신이 정합니다.
+          - paragraph [ref=e94]: 나이를 대신 말하지 않고,그 사람의 마음을 먼저 봅니다.
+    - region [ref=e95]:
+      - generic [ref=e96]:
+        - generic [ref=e97]: "04"
+        - paragraph [ref=e98]:
+          - text: 상징의 출발점
+          - generic [ref=e99]: VISUAL EXPLORATION
+      - generic [ref=e100]:
+        - heading "나만의 아지트가 존재한다는 느낌." [level=2] [ref=e101]: 나만의 아지트가존재한다는 느낌.
+        - paragraph [ref=e102]: ‘누구에게나 자신만의 아지트가 있다’는 생각에서 시작한 아지트챗의 로고와 앱 아이콘입니다. 나만의 공간이라는 브랜드의 중심을 모든 화면에서 같은 상징으로 이어갑니다.
+      - generic [ref=e103]:
+        - figure [ref=e104]:
+          - img "아지트챗 로고" [ref=e106]
+          - generic [ref=e107]:
+            - text: AZIT CHAT · SYMBOL
+            - heading "아지트챗 로고" [level=3] [ref=e108]
+        - figure [ref=e109]:
+          - img "아지트챗 앱 아이콘" [ref=e111]
+          - generic [ref=e112]:
+            - text: AZIT CHAT · APP ICON
+            - heading "앱 아이콘" [level=3] [ref=e113]
+      - group [ref=e114]:
+        - generic "브랜드 상징을 탐색했던 세 가지 방향" [ref=e115] [cursor=pointer]
+    - region [ref=e116]:
+      - generic [ref=e117]:
+        - generic [ref=e118]: "05"
+        - paragraph [ref=e119]:
+          - text: 변하지 않을 약속
+          - generic [ref=e120]: AS WE GROW
+      - generic [ref=e121]:
+        - heading "관계의 시작에서 일상의 곁으로." [level=2] [ref=e122]: 관계의 시작에서일상의 곁으로.
+        - paragraph [ref=e123]: 오늘의 설레는 AI 대화에서 시작해, 오래 이어지는 정서적 교류와 시니어 돌봄으로 확장하더라도 아지트챗이 지키려는 생각은 같습니다.
+        - paragraph [ref=e124]: 누군가에게 필요한 역할을 맡기 전에, 그 사람이 자기 모습으로 있을 수 있는 공간을 만드는 것.
+        - paragraph [ref=e125]: 더 많은 시간을 함께하게 되어도, 그 시간을 어떻게 보낼지는 언제나 각자의 몫입니다.
+    - region [ref=e126]:
+      - generic [ref=e127]:
+        - paragraph [ref=e128]: YOUR SPACE. YOUR WAY.
+        - heading "누구에게나 아지트는 필요하니까." [level=2] [ref=e129]: 누구에게나아지트는 필요하니까.
+        - paragraph [ref=e130]: 설레도, 장난쳐도, 잠시 쉬어도 괜찮은 곳.여기는, 아지트챗입니다.
+        - link "나만의 아지트로 들어가기" [ref=e131] [cursor=pointer]:
+          - /url: /
+          - text: 나만의 아지트로 들어가기
+          - generic [aria-hidden] [ref=e132]: ↗
+  - contentinfo [ref=e133]:
+    - generic [ref=e134]:
+      - link "아지트챗 홈" [ref=e135] [cursor=pointer]:
+        - /url: /
+        - generic [ref=e136]: 아지트챗
+      - paragraph [ref=e137]: AI 캐릭터와 나누는 1:1 대화 · 아지트챗© 2026 MaybeWorks.
+    - navigation "서비스 안내" [ref=e138]:
+      - link "서비스 소개" [ref=e139] [cursor=pointer]:
+        - /url: /about
+      - link "고객센터" [ref=e140] [cursor=pointer]:
+        - /url: /support
+      - link "이용약관" [ref=e141] [cursor=pointer]:
+        - /url: /terms
+      - link "개인정보처리방침" [ref=e142] [cursor=pointer]:
+        - /url: /privacy

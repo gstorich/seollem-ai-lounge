@@ -1,0 +1,47 @@
+- generic [ref=f1e109]:
+  - generic [ref=f1e111]:
+    - button "목록" [ref=f1e112] [cursor=pointer]
+    - generic [ref=f1e116]:
+      - img "프로필" [ref=f1e118]
+      - generic [ref=f1e120]:
+        - generic [ref=f1e121]:
+          - heading "손지우" [level=2] [ref=f1e185]
+          - generic [ref=f1e123]: AI
+          - generic [ref=f1e124]: 29세 · 패션 브랜드 MD
+        - paragraph [ref=f1e125]: 손지우님이 입력 중...
+    - button "🔀 다른 사람" [active] [ref=f1e127] [cursor=pointer]:
+      - generic [ref=f1e128]: 🔀
+      - generic [ref=f1e129]: 다른 사람
+  - generic [ref=f1e130]:
+    - generic [ref=f1e131]:
+      - generic [ref=f1e132]: 🔔
+      - generic [ref=f1e133]:
+        - paragraph [ref=f1e134]: 실시간 답장 알림
+        - paragraph [ref=f1e135]: 알림을 켜두면 다른 탭에 있어도 상대방 답장을 바로 알 수 있어요
+    - generic [ref=f1e136]:
+      - button "알림 켜기" [ref=f1e137] [cursor=pointer]
+      - button "✕" [ref=f1e138] [cursor=pointer]
+  - main [ref=f1e139]:
+    - generic [ref=f1e187]:
+      - paragraph [ref=f1e188]: 🌸 손지우 (29세 · 패션 브랜드 MD) 님과 대화가 시작되었습니다
+      - paragraph [ref=f1e189]: 따뜻하고 고운 말을 나누어 주세요.
+      - generic [ref=f1e190]: 대화 상대는 생성형 AI 가상 인물(페르소나)입니다
+  - generic [ref=f1e148]: 손지우님이 입력 중...
+  - generic [ref=f1e155]:
+    - generic [ref=f1e156]:
+      - button "🎁 선물" [ref=f1e157] [cursor=pointer]:
+        - generic [ref=f1e158]: 🎁
+        - generic [ref=f1e159]: 선물
+      - generic [ref=f1e160]:
+        - textbox "따뜻한 메시지를 입력해보세요..." [ref=f1e161]
+        - button "음성 입력" [ref=f1e162] [cursor=pointer]
+      - button "전송" [ref=f1e166] [cursor=pointer]:
+        - generic [ref=f1e168]: ♥ -3.7
+    - generic [ref=f1e169]:
+      - generic [ref=f1e170]:
+        - generic [ref=f1e171]: 보유 50 하트 ❤️
+        - button "충전하기" [ref=f1e172] [cursor=pointer]
+      - generic [ref=f1e173]:
+        - link "고객센터" [ref=f1e174] [cursor=pointer]:
+          - /url: /support
+        - button "휴대폰 인증" [ref=f1e175] [cursor=pointer]

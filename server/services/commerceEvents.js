@@ -55,6 +55,12 @@ function overview(query){prune();const s=scope(query),page=Math.max(0,Math.min(1
 function timeline(flow,id){return db.sql.prepare('SELECT * FROM commerce_events WHERE flow=? AND flow_id=? ORDER BY id DESC LIMIT 200').all(flow,id);}
 function browser(flow){return(req,res)=>{
  const {flowId,stage}=req.body||{};
+ // Entry telemetry cannot assert verification or payment success. Scope the id to its owner.
+ if(['entry_viewed','phone_required','confirmation_required','service_unavailable'].includes(stage)){
+  if(typeof flowId!=='string'||!/^entry_[a-f0-9-]{36}$/.test(flowId))return res.sendStatus(400);
+  record({userId:req.user.id,flow,flowId,stage,source:'browser',mode:process.env.NODE_ENV==='production'?'live':'test',key:req.user.id+':'+flow+':'+flowId+':'+stage});
+  return res.json({success:true});
+ }
  if(!['sdk_opened','sdk_returned','sdk_cancelled','sdk_error','return_received'].includes(stage)||typeof flowId!=='string')return res.sendStatus(400);
  let row;
  if(flow==='payment'&&/^azit_[a-f0-9]{32}$/.test(flowId))row=db.sql.prepare('SELECT user_id,data FROM payment_orders WHERE id=? AND user_id=?').get(flowId,req.user.id);

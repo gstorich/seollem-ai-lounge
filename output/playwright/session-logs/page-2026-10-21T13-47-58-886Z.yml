@@ -1,0 +1,110 @@
+- generic [ref=e1]:
+  - generic [ref=e2]:
+    - generic [ref=e257]:
+      - generic [ref=e259]:
+        - button "목록" [ref=e260] [cursor=pointer]
+        - generic [ref=e264]:
+          - img "프로필" [ref=e266]
+          - generic [ref=e269]:
+            - heading "김민지" [level=2] [ref=e270]
+            - generic [ref=e271]: AI
+            - generic [ref=e272]: 23세 · 대학생 (컴퓨터공학과)
+        - button "🔀 다른 사람" [ref=e274] [cursor=pointer]:
+          - generic [ref=e275]: 🔀
+          - generic [ref=e276]: 다른 사람
+      - generic [ref=e277]:
+        - generic [ref=e278]:
+          - generic [ref=e279]: 🔔
+          - generic [ref=e280]:
+            - paragraph [ref=e281]: 실시간 답장 알림
+            - paragraph [ref=e282]: 알림을 켜두면 다른 탭에 있어도 상대방 답장을 바로 알 수 있어요
+        - generic [ref=e283]:
+          - button "알림 켜기" [ref=e284] [cursor=pointer]
+          - button "✕" [ref=e285] [cursor=pointer]
+      - main [ref=e286]:
+        - generic [ref=e288]:
+          - paragraph [ref=e289]: 🌸 김민지 (23세 · 대학생 (컴퓨터공학과)) 님과 대화가 시작되었습니다
+          - paragraph [ref=e290]: 따뜻하고 고운 말을 나누어 주세요.
+          - generic [ref=e291]: 대화 상대는 생성형 AI 가상 인물(페르소나)입니다
+        - generic [ref=e295]:
+          - img "김민지" [ref=e297]
+          - generic [ref=e298]:
+            - generic [ref=e299]: 김민지
+            - generic [ref=e300]:
+              - generic [ref=e301]:
+                - text: 오늘 이야기 즐거웠어요 다음에도 편하게 이야기해요
+                - button "소리 내어 읽기" [ref=e302] [cursor=pointer]
+              - generic [ref=e303]: 오후 10:47
+      - generic [ref=e304]:
+        - generic [ref=e305]:
+          - button "내 안부 · 편의 설정" [ref=e306] [cursor=pointer]
+          - button "음성 입력" [ref=e307] [cursor=pointer]
+        - generic [ref=e308]:
+          - button "🎁 선물" [ref=e309] [cursor=pointer]:
+            - generic [ref=e310]: 🎁
+            - generic [ref=e311]: 선물
+          - textbox "따뜻한 메시지를 입력해보세요..." [ref=e313]
+          - button "전송" [ref=e314] [cursor=pointer]:
+            - generic [ref=e316]: ♥ -3.7
+        - generic [ref=e317]:
+          - generic [ref=e318]:
+            - generic [ref=e319]: 보유 50 하트 ❤️
+            - button "충전하기" [ref=e320] [cursor=pointer]
+          - generic [ref=e321]:
+            - link "고객센터" [ref=e322] [cursor=pointer]:
+              - /url: /support
+            - button "휴대폰 인증" [ref=e323] [cursor=pointer]
+    - generic: 👩 여성 대화 상대가 설정되었습니다.
+  - dialog [ref=e174]:
+    - generic [ref=e175]:
+      - heading "내 안부 · 편의 설정" [level=2] [ref=e176]
+      - button "안부 화면 닫기" [active] [ref=e177] [cursor=pointer]: 닫기
+    - heading "글씨와 음성" [level=3] [ref=e178]
+    - generic [ref=e179]:
+      - text: 채팅 글씨 크기
+      - combobox "채팅 글씨 크기" [ref=e180]:
+        - option "기본"
+        - option "크게"
+        - option "아주 크게" [selected]
+    - generic [ref=e181]:
+      - text: 읽어주기 속도
+      - combobox "읽어주기 속도" [ref=e182]:
+        - option "천천히"
+        - option "조금 천천히" [selected]
+        - option "보통"
+    - paragraph [ref=e183]: 상대방의 글 옆 ‘소리 내어 읽기’로 들을 수 있어요. 기기·브라우저의 합성 음성이며, 캐릭터가 녹음한 목소리가 아닙니다. 주변에 들릴 수 있으니 주의해주세요.
+    - generic [ref=e184]:
+      - checkbox "음성 입력 시 브라우저·기기 제공자가 음성을 처리할 수 있음을 확인했습니다." [ref=e185]
+      - text: 음성 입력 시 브라우저·기기 제공자가 음성을 처리할 수 있음을 확인했습니다.
+    - paragraph [ref=e186]: 마이크는 ‘음성 입력’을 누를 때만 켜집니다. 변환된 글은 직접 확인한 뒤 전송하세요. 아지트챗 서버에 음성 원본을 저장하지 않습니다. 기기 설정에 따라 읽어주기에도 외부 음성 서비스가 사용될 수 있습니다.
+    - heading "내 안부 기록" [level=3] [ref=e187]
+    - paragraph [ref=e188]: 내가 남기는 일상 메모입니다. 기본적으로 본인만 볼 수 있고 자녀·보호자에게 공유되지 않습니다. 건강정보 등 민감한 내용은 입력하지 마세요. 의료·응급 모니터링 기능은 아닙니다.
+    - generic [ref=e189]:
+      - generic [ref=e190]:
+        - text: 날짜
+        - textbox "날짜" [ref=e191]: 2026-10-21
+      - generic [ref=e192]:
+        - text: 오늘의 기분
+        - combobox "오늘의 기분" [ref=e193]:
+          - option "선택 안 함" [selected]
+          - option "좋아요"
+          - option "보통이에요"
+          - option "쉬고 싶어요"
+      - generic [ref=e194]:
+        - text: 일상 메모
+        - textbox "일상 메모" [ref=e195]:
+          - /placeholder: "예: 내일은 친구와 공원에 가기로 했어요"
+      - generic [ref=e196]:
+        - text: 이 기록을 참고할 상대
+        - combobox "이 기록을 참고할 상대" [ref=e197]:
+          - option "나만 보기" [selected]
+          - option "김민지"
+      - generic [ref=e198]:
+        - checkbox "선택한 AI 상대가 이 기록을 대화 생성에 참고하도록 허용합니다." [ref=e199]
+        - text: 선택한 AI 상대가 이 기록을 대화 생성에 참고하도록 허용합니다.
+      - paragraph [ref=e200]: 허용한 기록만 해당 상대와의 AI 대화 생성에 전달됩니다. 선택을 ‘나만 보기’로 바꾸면 이후 참고가 중단됩니다. 기록 삭제는 이미 나눈 대화를 지우지는 않습니다. 게스트 기록을 계속 보관하려면 휴대폰 번호를 연결해주세요.
+      - generic [ref=e201]:
+        - button "기록 저장" [ref=e202] [cursor=pointer]
+        - button "새 기록" [ref=e203] [cursor=pointer]
+    - status
+    - paragraph [ref=e324]: 아직 남긴 안부 기록이 없습니다.

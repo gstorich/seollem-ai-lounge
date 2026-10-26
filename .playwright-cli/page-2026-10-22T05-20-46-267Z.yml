@@ -1,0 +1,15 @@
+- generic [ref=f2e2]:
+  - generic [ref=f2e3]:
+    - link "아지트챗 홈" [ref=f2e4] [cursor=pointer]:
+      - /url: /
+      - generic [ref=f2e5]: 아지트챗
+    - generic [ref=f2e6]: OPERATIONS ADMIN
+  - heading "운영 관리에 로그인" [level=1] [ref=f2e7]
+  - paragraph [ref=f2e8]: 관리자 비밀번호를 입력해주세요.
+  - generic [ref=f2e9]:
+    - generic [ref=f2e10]: 관리자 비밀번호
+    - textbox "관리자 비밀번호" [ref=f2e11]
+    - button "로그인" [ref=f2e12] [cursor=pointer]
+  - alert [ref=f2e13]
+  - link "서비스로 돌아가기 ↗" [ref=f2e14] [cursor=pointer]:
+    - /url: /

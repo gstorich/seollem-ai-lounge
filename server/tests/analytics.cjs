@@ -8,6 +8,7 @@ async function run(consent,pathname='/',dnt='0',search='?phone=01099999999',test
 (async()=>{
  const denied=await run('denied');assert.equal(denied.requests.length,0);assert.equal(denied.scripts.length,0);
  const admin=await run('granted','/admin');assert.equal(admin.requests.length,0);assert.equal(admin.scripts.length,0);
+ const identity=await run('granted','/billing','0','?intent=identity');assert.equal(identity.requests.length,0);assert.equal(identity.scripts.length,0);
  const dnt=await run('granted','/','1');assert.equal(dnt.scripts.length,0);
  const allowed=await run('granted');assert.equal(allowed.scripts.length,1);assert(allowed.scripts[0].startsWith('https://www.googletagmanager.com/gtag/js?id=G-'));
  allowed.handlers['azit-product-event']({detail:'chat_message_sent'});

@@ -1,4 +1,6 @@
 (()=>{'use strict';
+// Age verification is an internal operational flow, never an advertising signal.
+if(location.pathname==='/verification/complete'||new URLSearchParams(location.search).get('intent')==='identity'||location.hash==='#identity')return;
 const key='azit_ads_consent',allowedPaths=new Set(['/','/index.html','/billing','/payment/complete','/products']);
 if(!allowedPaths.has(location.pathname))return;
 const excluded=()=>navigator.doNotTrack==='1'||localStorage.getItem('azit_tester')==='1'||/(?:^|;\s*)(?:azit_tester=1|(?:__Host-)?azit_admin=)/.test(document.cookie||'');
@@ -53,7 +55,7 @@ async function start(){
    const s=document.createElement('script');s.async=true;s.src='https://connect.facebook.net/en_US/fbevents.js';s.onload=()=>sync().then(drain).catch(()=>{});document.head.appendChild(s);
   }
  }
- started=true;await sync();if(!pageSeen.has(pageKey)){pageSeen.add(pageKey);jobs.push({name:'page_view',key:pageKey});if(['/billing','/products'].includes(location.pathname))jobs.push({name:'view_pricing',key:crypto.randomUUID()});}await sendJobs();await drain();
+ started=true;await sync();if(!pageSeen.has(pageKey)){pageSeen.add(pageKey);jobs.push({name:'page_view',key:pageKey});if(['/billing','/products'].includes(location.pathname)&&query.get('intent')!=='orders'&&location.hash!=='#ordersSection')jobs.push({name:'view_pricing',key:crypto.randomUUID()});}await sendJobs();await drain();
  })().catch(()=>{loading=null;});return loading;
 }
 async function drain(){
@@ -78,6 +80,7 @@ const priceModal=document.getElementById('paymentModal');if(priceModal){let wasV
 window.addEventListener('azit-account-ready',()=>start().then(()=>sync()).then(sendJobs).then(drain).catch(()=>{}));
 window.addEventListener('azit-ad-account-ready',()=>start().then(()=>sync()).then(sendJobs).then(drain).catch(()=>{}));
 window.addEventListener('azit-product-event',e=>{if(['chat_message_sent','phone_verified','phone_login'].includes(e.detail))start().then(()=>sync()).then(sendJobs).then(drain).catch(()=>{});});
+window.addEventListener('focus',()=>{if(granted())start().then(()=>sync()).then(sendJobs).then(drain).catch(()=>{});});
 window.addEventListener('online',()=>sync().then(sendJobs).then(drain).catch(()=>{}));
 window.addEventListener('azit-consent-change',()=>{
  if(granted()){if(window.fbq)fbq('consent','grant');if(window.gtag)gtag('consent','update',{ad_storage:'granted',ad_user_data:'granted',ad_personalization:'denied'});start().then(()=>sync()).then(sendJobs).then(drain).catch(()=>{});}else{jobs.splice(0);for(const k of Object.keys(click))delete click[k];for(const raw of document.cookie.split(';')){const name=raw.split('=')[0].trim();if(!/^_(?:gcl|fbp|fbc)/.test(name))continue;document.cookie=name+'=; Max-Age=0; path=/; Secure; SameSite=Lax';const parts=location.hostname.split('.');for(let i=0;i<parts.length-1;i++)document.cookie=name+'=; Max-Age=0; path=/; domain=.'+parts.slice(i).join('.')+'; Secure; SameSite=Lax';}if(window.fbq)fbq('consent','revoke');if(window.gtag)gtag('consent','update',{ad_storage:'denied',ad_user_data:'denied',ad_personalization:'denied'});sync().catch(()=>{});}

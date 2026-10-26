@@ -1,0 +1,91 @@
+- generic [active] [ref=f3e1]:
+  - generic [ref=f3e3]:
+    - generic [ref=f3e4]:
+      - generic [ref=f3e5]:
+        - heading "아지트챗 아지트챗 · AI 캐릭터와 나누는 1:1 대화" [level=1] [ref=f3e6]:
+          - img "아지트챗" [ref=f3e7]
+          - generic [ref=f3e8]: 아지트챗 · AI 캐릭터와 나누는 1:1 대화
+        - generic [ref=f3e9]: "0"
+      - generic [ref=f3e10]:
+        - button "🎯 조건" [ref=f3e11] [cursor=pointer]
+        - button "⚙️ 설정" [ref=f3e13] [cursor=pointer]
+    - generic [ref=f3e15]:
+      - generic [ref=f3e16]:
+        - generic [ref=f3e17]: 🔔
+        - generic [ref=f3e18]:
+          - paragraph [ref=f3e19]: 인연의 답장을 놓치지 마세요
+          - paragraph [ref=f3e20]: 알림을 켜두면 창을 닫아도 실시간으로 새 메시지를 알려드려요
+      - generic [ref=f3e21]:
+        - button "알림 켜기" [ref=f3e22] [cursor=pointer]
+        - button "✕" [ref=f3e23] [cursor=pointer]
+    - generic [ref=f3e24]:
+      - generic [ref=f3e25]:
+        - generic [ref=f3e26]:
+          - generic [ref=f3e27]: 실시간 1:1 프라이빗 대화
+          - heading "지금 접속 중인 상대 불러오는 중" [level=2] [ref=f3e29]
+          - paragraph [ref=f3e30]: 나를 기다리는 매력적인 상대들과 기다림 없이, 지금 바로 단둘만의 1:1 대화로 연결됩니다.
+        - button "새로운 상대와 대화 시작" [ref=f3e31] [cursor=pointer]
+      - button "휴대폰 번호로 로그인 · 대화 보관" [ref=f3e36] [cursor=pointer]
+      - generic [ref=f3e37]:
+        - generic [ref=f3e38]:
+          - generic [ref=f3e39]: 💬 내가 나누던 대화
+          - generic [ref=f3e40]: "0"
+        - generic [ref=f3e41]: 터치하면 대화방으로 이동합니다
+      - generic [ref=f3e43]:
+        - generic [ref=f3e44]:
+          - link "고객센터" [ref=f3e45] [cursor=pointer]:
+            - /url: /support
+          - generic [ref=f3e46]: ·
+          - link "이용약관" [ref=f3e47] [cursor=pointer]:
+            - /url: /terms
+          - generic [ref=f3e48]: ·
+          - link "개인정보처리방침" [ref=f3e49] [cursor=pointer]:
+            - /url: /privacy
+          - generic [ref=f3e50]: ·
+          - link "환불정책" [ref=f3e51] [cursor=pointer]:
+            - /url: /refund
+          - generic [ref=f3e52]: ·
+          - link "서비스·운영정책 ↗" [ref=f3e53] [cursor=pointer]:
+            - /url: /policies
+        - paragraph [ref=f3e54]:
+          - text: 취향에 맞는 가상의 AI 캐릭터와 일상 이야기를 나누는 1:1 채팅 서비스입니다. 가입 시 지급되는 무료 50 하트로 즉시 대화를 체험하실 수 있으며, 하트 소진 시 충전하여 이어가는 방식입니다. 상품과 이용 조건은
+          - link "서비스 소개" [ref=f3e55] [cursor=pointer]:
+            - /url: /about
+          - text: 와
+          - link "하트 상품 안내" [ref=f3e56] [cursor=pointer]:
+            - /url: /products
+          - text: 에서 확인하세요.
+        - generic [ref=f3e57]:
+          - generic [ref=f3e58]:
+            - generic [ref=f3e59]: 메이비웍스
+            - generic [ref=f3e60]: 대표 홍지민
+            - generic [ref=f3e61]: 사업자등록번호 666-01-04235
+            - link "사업자정보확인 ↗" [ref=f3e62] [cursor=pointer]:
+              - /url: https://www.ftc.go.kr/bizCommPop.do?wrkr_no=6660104235
+          - generic [ref=f3e63]: 통신판매업 신고 2026-안양동안-0369 · 주소 경기도 안양시 동안구 시민대로 327번길 11-41, 3층
+          - generic [ref=f3e64]:
+            - text: 고객센터
+            - link "070-8110-8149" [ref=f3e65] [cursor=pointer]:
+              - /url: tel:070-8110-8149
+            - text: ·
+            - link "maybeworks@naver.com" [ref=f3e66] [cursor=pointer]:
+              - /url: mailto:maybeworks@naver.com
+          - generic [ref=f3e67]:
+            - generic [ref=f3e68]: © 2026 MaybeWorks. All rights reserved.
+            - button "쿠키 설정" [ref=f3e69] [cursor=pointer]
+        - paragraph [ref=f3e70]: 아지트챗은 AI 가상 캐릭터와 대화하는 서비스이며, 실제 인물과의 사실관계를 보장하지 않습니다.
+    - generic [ref=f3e71]:
+      - generic [ref=f3e72]:
+        - generic [ref=f3e73]: "내 보유: 50 하트 ❤️"
+        - button "충전하기" [ref=f3e74] [cursor=pointer]
+      - generic [ref=f3e75]: 1:1 안심 대화
+  - region "쿠키 사용 설정" [ref=f3e77]:
+    - strong [ref=f3e78]: 쿠키 사용에 동의하시겠어요?
+    - paragraph [ref=f3e79]:
+      - text: 분석 쿠키는 Google Analytics 방문·기능 이용 분석에 사용해요. 광고 측정까지 허용하면 Google·Meta에 광고 클릭 식별자와 방문·번호 인증·첫 대화 성공·상품 확인·결제 등 전환 정보를 보내 광고 성과를 측정해요. 전화번호와 대화·문의 내용은 보내지 않아요. 허용하지 않아도 모든 기능을 이용할 수 있고, ‘쿠키 설정’에서 언제든 바꿀 수 있어요.
+      - link "처리 항목·보관·철회 안내" [ref=f3e80] [cursor=pointer]:
+        - /url: /privacy#cookies
+    - generic [ref=f3e81]:
+      - button "분석만 허용" [ref=f3e82] [cursor=pointer]
+      - button "분석·광고 측정 허용" [ref=f3e83] [cursor=pointer]
+      - button "허용 안 함" [ref=f3e84] [cursor=pointer]

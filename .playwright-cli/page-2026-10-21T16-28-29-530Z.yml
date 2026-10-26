@@ -1,0 +1,77 @@
+- generic [active] [ref=f2e1]:
+  - generic [ref=f2e115]:
+    - generic [ref=f2e117]:
+      - button "목록" [ref=f2e118] [cursor=pointer]
+      - generic [ref=f2e122]:
+        - img "프로필" [ref=f2e124]
+        - generic [ref=f2e126]:
+          - generic [ref=f2e127]:
+            - heading "오채원" [level=2] [ref=f2e128]
+            - generic [ref=f2e129]: AI
+            - generic [ref=f2e130]: 24세 · 베이커리 파티시에
+          - paragraph [ref=f2e131]: 상대방이 대화방을 나갔습니다
+      - button "🔀 다른 사람" [ref=f2e133] [cursor=pointer]:
+        - generic [ref=f2e134]: 🔀
+        - generic [ref=f2e135]: 다른 사람
+    - generic [ref=f2e136]:
+      - generic [ref=f2e137]:
+        - generic [ref=f2e138]: 🔔
+        - generic [ref=f2e139]:
+          - paragraph [ref=f2e140]: 실시간 답장 알림
+          - paragraph [ref=f2e141]: 알림을 켜두면 다른 탭에 있어도 상대방 답장을 바로 알 수 있어요
+      - generic [ref=f2e142]:
+        - button "알림 켜기" [ref=f2e143] [cursor=pointer]
+        - button "✕" [ref=f2e144] [cursor=pointer]
+    - main [ref=f2e145]:
+      - generic [ref=f2e147]:
+        - paragraph [ref=f2e148]: 🚪 '오채원'님과의 종료된 대화입니다
+        - paragraph [ref=f2e149]: 따뜻하고 고운 말을 나누어 주세요.
+        - generic [ref=f2e150]: 대화 상대는 생성형 AI 가상 인물(페르소나)입니다
+      - button "첫 대화입니다" [disabled] [ref=f2e155]
+      - generic [ref=f2e156]:
+        - generic [ref=f2e157]: 오전 1:28
+        - generic [ref=f2e159]: 잘 지내
+      - generic [ref=f2e160]:
+        - img "오채원" [ref=f2e162]
+        - generic [ref=f2e163]:
+          - generic [ref=f2e164]: 오채원
+          - generic [ref=f2e165]:
+            - generic [ref=f2e166]: 오늘은 여기까지 할게
+            - generic [ref=f2e167]: 오전 1:28
+      - generic [ref=f2e169]: 오채원님이 대화방을 나갔습니다.
+      - generic [ref=f2e171]:
+        - generic [ref=f2e172]: 🚪
+        - generic [ref=f2e173]:
+          - paragraph [ref=f2e174]: 오채원님이 대화방을 나갔습니다
+          - paragraph [ref=f2e175]: 상대방이 대화를 종료하여 더 이상 메시지를 주고받을 수 없습니다. 새로운 인연과 대화를 이어가보세요!
+        - button "새로운 상대 찾기 ↻" [ref=f2e177] [cursor=pointer]:
+          - generic [ref=f2e178]: 새로운 상대 찾기
+          - generic [ref=f2e179]: ↻
+    - generic [ref=f2e180]:
+      - generic [ref=f2e181]:
+        - button "🎁 선물" [disabled] [ref=f2e182]:
+          - generic [ref=f2e183]: 🎁
+          - generic [ref=f2e184]: 선물
+        - generic [ref=f2e185]:
+          - textbox "따뜻한 메시지를 입력해보세요..." [disabled] [ref=f2e186]
+          - button "음성 입력" [ref=f2e187] [cursor=pointer]
+        - button "전송" [disabled] [ref=f2e191]:
+          - generic [ref=f2e193]: ♥ -3.7
+      - generic [ref=f2e194]:
+        - generic [ref=f2e195]:
+          - generic [ref=f2e196]: 보유 1,000 하트 ❤️
+          - button "충전하기" [ref=f2e197] [cursor=pointer]
+        - generic [ref=f2e198]:
+          - link "고객센터" [ref=f2e199] [cursor=pointer]:
+            - /url: /support
+          - button "휴대폰 인증" [ref=f2e200] [cursor=pointer]
+  - region "쿠키 사용 설정" [ref=f2e77]:
+    - strong [ref=f2e78]: 쿠키 사용에 동의하시겠어요?
+    - paragraph [ref=f2e79]:
+      - text: 분석 쿠키는 Google Analytics 방문·기능 이용 분석에 사용해요. 광고 측정까지 허용하면 Google·Meta에 광고 클릭 식별자와 방문·번호 인증·첫 대화 성공·상품 확인·결제 등 전환 정보를 보내 광고 성과를 측정해요. 전화번호와 대화·문의 내용은 보내지 않아요. 허용하지 않아도 모든 기능을 이용할 수 있고, ‘쿠키 설정’에서 언제든 바꿀 수 있어요.
+      - link "처리 항목·보관·철회 안내" [ref=f2e80] [cursor=pointer]:
+        - /url: /privacy#cookies
+    - generic [ref=f2e81]:
+      - button "분석만 허용" [ref=f2e82] [cursor=pointer]
+      - button "분석·광고 측정 허용" [ref=f2e83] [cursor=pointer]
+      - button "허용 안 함" [ref=f2e84] [cursor=pointer]

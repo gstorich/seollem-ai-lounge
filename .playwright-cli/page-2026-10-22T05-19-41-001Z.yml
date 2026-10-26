@@ -1,0 +1,102 @@
+- generic [active] [ref=e1]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - heading "아지트챗 · AI 캐릭터와 나누는 1:1 대화" [level=1] [ref=e6]:
+          - generic [ref=e8]: 아지트챗
+        - generic [ref=e10]: "0"
+      - generic [ref=e11]:
+        - button "🎯 조건" [ref=e12] [cursor=pointer]
+        - button "⚙️ 설정" [ref=e14] [cursor=pointer]
+    - generic [ref=e16]:
+      - generic [ref=e17]:
+        - generic [ref=e18]: 🔔
+        - generic [ref=e19]:
+          - paragraph [ref=e20]: 인연의 답장을 놓치지 마세요
+          - paragraph [ref=e21]: 알림을 켜두면 창을 닫아도 실시간으로 새 메시지를 알려드려요
+      - generic [ref=e22]:
+        - button "알림 켜기" [ref=e23] [cursor=pointer]
+        - button "✕" [ref=e24] [cursor=pointer]
+    - generic [ref=e25]:
+      - generic [ref=e26]:
+        - generic [ref=e27]:
+          - generic [ref=e28]: 실시간 1:1 프라이빗 대화
+          - heading "처음 만날 수 있는 상대 불러오는 중" [level=2] [ref=e30]
+          - paragraph [ref=e31]: 나를 기다리는 매력적인 상대들과 기다림 없이, 지금 바로 단둘만의 1:1 대화로 연결됩니다.
+        - button "새로운 상대와 대화 시작" [ref=e32] [cursor=pointer]
+      - button "휴대폰 번호로 로그인 · 대화 보관" [ref=e37] [cursor=pointer]
+      - generic [ref=e38]:
+        - generic [ref=e39]:
+          - generic [ref=e40]: 💬 내가 나누던 대화
+          - generic [ref=e41]: "0"
+        - generic [ref=e42]: 터치하면 대화방으로 이동합니다
+      - generic [ref=e43]:
+        - searchbox "대화방 검색" [ref=e44]
+        - combobox "대화방 분류" [ref=e45]:
+          - option "전체 대화" [selected]
+          - option "읽지 않음"
+          - option "대화 가능"
+          - option "종료된 대화"
+      - paragraph
+      - generic [ref=e47]:
+        - generic [ref=e48]:
+          - link "브랜드 이야기" [ref=e49] [cursor=pointer]:
+            - /url: /brand
+          - generic [ref=e50]: ·
+          - link "고객센터" [ref=e51] [cursor=pointer]:
+            - /url: /support
+          - button "내 AI 답변 신고" [ref=e52] [cursor=pointer]
+          - generic [ref=e53]: ·
+          - link "이용약관" [ref=e54] [cursor=pointer]:
+            - /url: /terms
+          - generic [ref=e55]: ·
+          - link "개인정보처리방침" [ref=e56] [cursor=pointer]:
+            - /url: /privacy
+          - generic [ref=e57]: ·
+          - link "환불정책" [ref=e58] [cursor=pointer]:
+            - /url: /refund
+          - generic [ref=e59]: ·
+          - link "서비스·운영정책 ↗" [ref=e60] [cursor=pointer]:
+            - /url: /policies
+        - paragraph [ref=e61]:
+          - text: 취향에 맞는 가상의 AI 캐릭터와 일상 이야기를 나누는 1:1 채팅 서비스입니다. 가입 시 지급되는 무료 50 하트로 즉시 대화를 체험하실 수 있으며, 하트 소진 시 충전하여 이어가는 방식입니다. 상품과 이용 조건은
+          - link "서비스 소개" [ref=e62] [cursor=pointer]:
+            - /url: /about
+          - text: 와
+          - link "하트 상품 안내" [ref=e63] [cursor=pointer]:
+            - /url: /products
+          - text: 에서 확인하세요.
+        - generic [ref=e64]:
+          - generic [ref=e65]:
+            - generic [ref=e66]: 메이비웍스
+            - generic [ref=e67]: 대표 홍지민
+            - generic [ref=e68]: 사업자등록번호 666-01-04235
+            - link "사업자정보확인 ↗" [ref=e69] [cursor=pointer]:
+              - /url: https://www.ftc.go.kr/bizCommPop.do?wrkr_no=6660104235
+          - generic [ref=e70]: 통신판매업 신고 2026-안양동안-0369 · 주소 경기도 안양시 동안구 시민대로 327번길 11-41, 3층
+          - generic [ref=e71]:
+            - text: 고객센터
+            - link "070-8110-8149" [ref=e72] [cursor=pointer]:
+              - /url: tel:070-8110-8149
+            - text: ·
+            - link "maybeworks@naver.com" [ref=e73] [cursor=pointer]:
+              - /url: mailto:maybeworks@naver.com
+          - generic [ref=e74]:
+            - generic [ref=e75]: © 2026 MaybeWorks. All rights reserved.
+            - button "쿠키 설정" [ref=e76] [cursor=pointer]
+        - paragraph [ref=e77]: 아지트챗은 AI 가상 캐릭터와 대화하는 서비스이며, 실제 인물과의 사실관계를 보장하지 않습니다.
+    - generic [ref=e78]:
+      - generic [ref=e79]:
+        - generic [ref=e80]: "내 보유: 50 하트 ❤️"
+        - button "충전하기" [ref=e81] [cursor=pointer]
+      - generic [ref=e82]: 1:1 안심 대화
+  - region "쿠키 사용 설정" [ref=e84]:
+    - strong [ref=e85]: 쿠키 사용에 동의하시겠어요?
+    - paragraph [ref=e86]:
+      - text: 분석 쿠키는 Google Analytics 방문·기능 이용 분석에 사용해요. 광고 측정까지 허용하면 Google·Meta에 광고 클릭 식별자와 방문·번호 인증·첫 대화 성공·상품 확인·결제 등 전환 정보를 보내 광고 성과를 측정해요. 전화번호와 대화·문의 내용은 보내지 않아요. 허용하지 않아도 모든 기능을 이용할 수 있고, ‘쿠키 설정’에서 언제든 바꿀 수 있어요.
+      - link "처리 항목·보관·철회 안내" [ref=e87] [cursor=pointer]:
+        - /url: /privacy#cookies
+    - generic [ref=e88]:
+      - button "분석만 허용" [ref=e89] [cursor=pointer]
+      - button "분석·광고 측정 허용" [ref=e90] [cursor=pointer]
+      - button "허용 안 함" [ref=e91] [cursor=pointer]

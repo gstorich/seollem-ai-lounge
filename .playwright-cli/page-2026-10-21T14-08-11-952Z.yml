@@ -1,0 +1,51 @@
+- generic [ref=e105]:
+  - generic [ref=e107]:
+    - button "목록" [ref=e108] [cursor=pointer]
+    - generic [ref=e112]:
+      - img "프로필" [ref=e114]
+      - generic [ref=e117]:
+        - heading "김민지" [level=2] [ref=e118]
+        - generic [ref=e119]: AI
+        - generic [ref=e120]: 23세 · 대학생 (컴퓨터공학과)
+    - button "🔀 다른 사람" [ref=e122] [cursor=pointer]:
+      - generic [ref=e123]: 🔀
+      - generic [ref=e124]: 다른 사람
+  - generic [ref=e125]:
+    - generic [ref=e126]:
+      - generic [ref=e127]: 🔔
+      - generic [ref=e128]:
+        - paragraph [ref=e129]: 실시간 답장 알림
+        - paragraph [ref=e130]: 알림을 켜두면 다른 탭에 있어도 상대방 답장을 바로 알 수 있어요
+    - generic [ref=e131]:
+      - button "알림 켜기" [ref=e132] [cursor=pointer]
+      - button "✕" [ref=e133] [cursor=pointer]
+  - main [ref=e134]:
+    - generic [ref=e136]:
+      - paragraph [ref=e137]: 🌸 '김민지'님과의 대화를 이어갑니다
+      - paragraph [ref=e138]: 따뜻하고 고운 말을 나누어 주세요.
+      - generic [ref=e139]: 대화 상대는 생성형 AI 가상 인물(페르소나)입니다
+    - generic [ref=e143]:
+      - img "김민지" [ref=e145]
+      - generic [ref=e146]:
+        - generic [ref=e147]: 김민지
+        - generic [ref=e148]:
+          - generic [ref=e149]: 오늘 이야기 즐거웠어요 다음에도 편하게 이야기해요
+          - generic [ref=e150]: 오후 10:47
+  - generic [ref=e152]:
+    - generic [ref=e153]:
+      - button "🎁 선물" [ref=e154] [cursor=pointer]:
+        - generic [ref=e155]: 🎁
+        - generic [ref=e156]: 선물
+      - generic [ref=e157]:
+        - textbox "따뜻한 메시지를 입력해보세요..." [ref=e158]
+        - button "음성 입력" [ref=e159] [cursor=pointer]
+      - button "전송" [ref=e163] [cursor=pointer]:
+        - generic [ref=e165]: ♥ -3.7
+    - generic [ref=e166]:
+      - generic [ref=e167]:
+        - generic [ref=e168]: 보유 50 하트 ❤️
+        - button "충전하기" [ref=e169] [cursor=pointer]
+      - generic [ref=e170]:
+        - link "고객센터" [ref=e171] [cursor=pointer]:
+          - /url: /support
+        - button "휴대폰 인증" [ref=e172] [cursor=pointer]

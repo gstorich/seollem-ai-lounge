@@ -17,6 +17,8 @@ async function run(choice='granted',pathname='/',dnt='0',search=''){
  const before=r.requests.filter(e=>e.route==='/advertising/event').length;r.observe();assert.equal(r.requests.filter(e=>e.route==='/advertising/event').length,before);
  r.state.choice='denied';r.handlers['azit-consent-change']();await new Promise(r=>setImmediate(r));const count=r.tags.filter(e=>e[0]==='event').length;await r.c.AzitAdvertising.track('view_pricing');await r.c.AzitAdvertising.drain();assert.equal(r.tags.filter(e=>e[0]==='event').length,count);
  for(const [choice,path,dnt]of [['denied','/','0'],['granted','/','1'],['granted','/admin','0']]){const x=await run(choice,path,dnt);assert.equal(x.scripts.length,0);assert.equal(x.requests.filter(e=>e.route==='/advertising/pending').length,0);}
+ for(const [path,search]of [['/billing','?intent=identity'],['/verification/complete','?identityVerificationId=private']]){const x=await run('granted',path,'0',search);assert.equal(x.scripts.length,0);assert.equal(x.requests.length,0,'Identity has no advertising signal');}
+ const history=await run('granted','/billing','0','?intent=orders');assert(!history.requests.some(e=>e.route==='/advertising/event'&&e.body.name==='view_pricing'));
  const unsafe=await run('granted','/','0','?phone=01012345678&message=PRIVATE');assert(!unsafe.scripts.some(s=>s.includes('fbevents')));assert(!JSON.stringify(unsafe.tags).includes('01012345678'));assert(!JSON.stringify(unsafe.tags).includes('PRIVATE'));
  console.log('PASS: browser dispatch for every mapped stage, exact Google labels, Meta browser/server IDs, zero upstream value, all modal entry paths, withdrawal/DNT/admin exclusion and sanitized URLs');
 })().catch(e=>{console.error(e);process.exitCode=1;});
