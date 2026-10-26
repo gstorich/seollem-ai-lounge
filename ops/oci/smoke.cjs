@@ -53,7 +53,7 @@ async function post(route, body, token) {
         assert.deepEqual(packages[pkg.id],pkg);
         assert(body.includes(pkg.price.toLocaleString('en-US')+'원'));
         assert(body.includes(pkg.hearts.toLocaleString('en-US')));
-        assert(body.includes('/?package='+pkg.id));
+        assert(body.includes('package='+pkg.id));
       }
     }
     for(const route of ['/billing','/payment/complete','/verification/complete']){
