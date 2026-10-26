@@ -18,7 +18,19 @@ for(const url of urls){const parsed=new URL(url);assert.equal(parsed.origin,'htt
  const title=html.match(/<title>(.*?)<\/title>/s)?.[1];assert(title&&title.length<65);assert(!titles.has(title));titles.add(title);
  assert(/<meta name="description" content="[^"]{20,}"/.test(html));assert(/<html lang="ko"/.test(html));
 }
-assert(!urls.some(u=>/support|admin|billing|complete/.test(u)));
+assert(urls.includes('https://azitchat.com/support'),'Public customer help must be discoverable');
+assert(!urls.some(u=>/admin|billing|complete|20261019-v|20261018-initial/.test(u)));
+const support=read('support.html');
+assert(support.includes('id="help-guide"'),'Useful help must be in the initial HTML');
+assert(support.includes('id="workspace" class="split" data-nosnippet hidden'));
+assert(support.includes('id="ticketDetail" data-nosnippet'));
+assert(read('server/routes/support.js').includes('router.use(requireAuth,'),'Ticket data must still require authentication');
+for(const [file,type] of [['support.html','ContactPage'],['safety.html','WebPage']]){
+ const page=read(file),data=JSON.parse(page.match(/<script type="application\/ld\+json">(.*?)<\/script>/s)[1]);
+ assert(data['@graph'].some(n=>n['@type']===type));
+ assert(data['@graph'].some(n=>n['@type']==='BreadcrumbList'));
+}
+for(const file of ['privacy-20261018-initial.html','privacy-20261019-v1.html'])assert(/name="robots" content="noindex/.test(read(file)));
 const html=read('index.html');
 assert(!/user-scalable=no|maximum-scale=1/.test(html));assert(!html.includes('cdn.tailwindcss.com'));assert(html.includes('/styles/app.css'));
 assert.equal((html.match(/<h1(?:\s|>)/g)||[]).length,1);
