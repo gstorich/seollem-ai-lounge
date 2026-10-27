@@ -470,9 +470,10 @@ async function req(route, token, body, method = body === undefined ? 'GET' : 'PO
     console.log('[Test 21] 카카오톡 실전 다중 말풍선 분할(splitIntoRealisticBubbles) 검증');
     const timing = require('../../chatTiming');
     const split1 = timing.splitIntoRealisticBubbles('창조주니 뭐니 이제는 헛소리까지 하네 더는 불쾌해서 대화 못 하겠어 수준 안 맞으니까 여기서 끝내자');
-    assert.equal(split1.length, 2);
+    assert.equal(split1.length, 3);
     assert.equal(split1[0], '창조주니 뭐니 이제는 헛소리까지 하네');
-    assert.equal(split1[1], '더는 불쾌해서 대화 못 하겠어 수준 안 맞으니까 여기서 끝내자');
+    assert.equal(split1[1], '더는 불쾌해서 대화 못 하겠어');
+    assert.equal(split1[2], '수준 안 맞으니까 여기서 끝내자');
     const split2 = timing.splitIntoRealisticBubbles('더 이상 너 같은 사람 상대하는 거 시간 낭비라는 거 확실히 알았어 다신 보지 말자');
     assert.equal(split2.length, 2);
     assert.equal(split2[0], '더 이상 너 같은 사람 상대하는 거 시간 낭비라는 거 확실히 알았어');

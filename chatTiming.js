@@ -78,6 +78,21 @@
 
     // 3. 구두점 없이 어절 단위로 긴 문장 (28자 이상)
     if (raw.length >= 28) {
+      const endings = '(?:았어|었어|였어|겠어|했어|했네|하네|없네|있네|없어|있어|잖아|거든|이야|보자|하자|줄게|할게|갈게|올게|맞아|아냐|같아|끝내자|알았어|좋아|돼|마셔요|먹어요|있어요|없어요|좋아요|돼요|해요|했네요|하네요|없네요|있네요|했거든요|하거든요|있거든요|없거든요|거든요|이거든요|잖아요|인걸요|편이에요|편이죠|이에요|예요|시죠|텐데요|까요|답니다|랍니다|드려요|할게요|갈게요|올게요|볼게요|줄게요|맞아요|아니에요|같아요|좋겠어요|보세요|해보세요|있으세요|계세요)';
+      const clauseSplits = raw.split(new RegExp('(?<=' + endings + ')\\s+')).map(s => s.trim()).filter(Boolean);
+      if (clauseSplits.length >= 2) {
+        const result = [];
+        for (const piece of clauseSplits) {
+          if (result.length === 0) {
+            result.push(piece);
+          } else if (result.length < 3 && result[result.length - 1].length >= 10 && piece.length >= 6) {
+            result.push(piece);
+          } else {
+            result[result.length - 1] += ' ' + piece;
+          }
+        }
+        if (result.length > 1) return result;
+      }
       const endMatch = raw.match(/^(.{10,38}?(?:았어|었어|였어|겠어|했어|했네|하네|없네|있네|없어|있어|잖아|거든|이야|보자|하자|줄게|할게|갈게|올게|맞아|아냐|같아|끝내자|알았어|좋아|돼))\s+(.{6,})$/);
       if (endMatch) {
         return [endMatch[1].trim(), endMatch[2].trim()];

@@ -308,11 +308,16 @@ module.exports = {
         if (isUser && typeof contentAccess.isCrisisMessage === 'function' && contentAccess.isCrisisMessage(checkedTarget)) {
           throw Object.assign(Error('CONTENT_NOT_ALLOWED'), { accessBlocked: true, safetyCategory: 'seriousHarm' });
         }
-        const raw=await generate([{role:'user',content:JSON.stringify({context:selectedHistory.slice(-12),serverMemory:{summary:conversation.memory?.summary||'',state:conversation.memory?.state||{}},target:checkedTarget})}],contentAccess.prompt,contentAccess.schema,true);
-        let result = safeParseJson(raw);
-        if(!result) {
-          try{result=JSON.parse(raw);}catch{throw Error('LLM_INVALID_SAFETY');}
-        }
+        const input={context:selectedHistory.slice(-12),serverMemory:{summary:conversation.memory?.summary||'',state:conversation.memory?.state||{}},target:checkedTarget};
+        const result=await require('./safetyClassifier').classify(input,{
+          adult:conversation.kind==='proactive'?false:adult,signal,stage:isUser?'input':'output',
+          gemini:async(data)=>{
+            const raw=await generate([{role:'user',content:JSON.stringify(data)}],contentAccess.prompt,contentAccess.schema,true);
+            const flags=safeParseJson(raw);
+            if(!flags||contentAccess.schema.required.some(k=>typeof flags[k]!=='boolean'))throw Error('LLM_INVALID_SAFETY');
+            return {flags};
+          }
+        });
         contentAccess.enforce(result, conversation.kind==='proactive'?false:adult);
       } catch(error) {error.safetyCheckFailed=true;error.safetyStage=isUser?'input':'output';throw error;}
     }

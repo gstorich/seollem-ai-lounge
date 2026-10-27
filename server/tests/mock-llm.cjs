@@ -2,6 +2,11 @@
 const assert=require('node:assert/strict');
 const original=global.fetch,counts=new Map();
 global.fetch=async(url,options)=>{
+  if(String(url)==='https://api.typesafe.ai/v1/systemone'){
+    const p=JSON.parse(options.body);
+    const certain=p.state.target.includes('hybrid-certain-safe');
+    return new Response(JSON.stringify({model:'jev-1.14.0',answers:Object.fromEntries(Object.keys(p.questions).map(k=>[k,{noul:certain?.01:.5}]))}));
+  }
   if(!String(url).startsWith('https://generativelanguage.googleapis.com/'))return original(url,options);
   const p=JSON.parse(options.body),prompt=p.systemInstruction.parts[0].text,recording=prompt.includes('[기억 기록 전용]');
   const text=p.contents.filter(m=>m.role==='user').at(-1).parts[0].text;

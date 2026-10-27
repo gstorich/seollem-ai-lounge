@@ -22,6 +22,8 @@ module.exports = {
   geminiModel: process.env.GEMINI_MODEL || 'gemini-3.1-flash-lite',
   openaiApiKey: process.env.OPENAI_API_KEY || '',
   defaultLlmProvider: process.env.DEFAULT_LLM_PROVIDER || 'gemini',
+  safetyClassifier: process.env.SAFETY_CLASSIFIER === 'jev_hybrid' ? 'jev_hybrid' : 'gemini',
+  typesafeApiKey: process.env.TYPESAFE_API_KEY || '',
 
   gaPropertyId: /^\d{5,20}$/.test(process.env.GA_PROPERTY_ID || '') ? process.env.GA_PROPERTY_ID : '',
   adminPasswordHash: process.env.ADMIN_PASSWORD_HASH || '',
