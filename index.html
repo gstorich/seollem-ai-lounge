@@ -82,6 +82,19 @@
     .typing-dot-2 { animation: dotPulse 1.2s infinite ease-in-out 0.18s; }
     .typing-dot-3 { animation: dotPulse 1.2s infinite ease-in-out 0.36s; }
     #headerStatusText:empty { display: none; }
+    /* Phone Camera Lo-Fi & Compression Simulation for Avatars */
+    .lofi-avatar-img {
+      image-rendering: auto;
+      filter: blur(0.6px) contrast(0.95) saturate(0.9) brightness(0.98);
+      transform: scale(1.02);
+    }
+    .lofi-camera-overlay {
+      background:
+        radial-gradient(circle at 50% 50%, rgba(0,0,0,0) 60%, rgba(0,0,0,0.28) 100%),
+        url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)' opacity='0.16'/%3E%3C/svg%3E");
+      mix-blend-mode: overlay;
+      opacity: 0.95;
+    }
 
     /* =========================================================================
        AZITCHAT MID WARM TAUPE & MOCHA LOUNGE THEME
@@ -915,8 +928,9 @@
           ✕
         </button>
         <!-- Avatar Photo (Square, compact) -->
-        <div class="w-full aspect-square rounded-2xl overflow-hidden border border-[#5e5143] bg-[#1a140b] shadow-inner mb-3 select-none">
-          <img id="avatarPreviewImg" src="" alt="프로필 사진" class="w-full h-full object-cover" />
+        <div class="relative w-full aspect-square rounded-2xl overflow-hidden border border-[#5e5143] bg-[#1a140b] shadow-inner mb-3 select-none">
+          <img id="avatarPreviewImg" src="" alt="프로필 사진" class="w-full h-full object-cover lofi-avatar-img" />
+          <div class="lofi-camera-overlay pointer-events-none absolute inset-0"></div>
         </div>
         <!-- Profile Info -->
         <div class="w-full text-center">
@@ -7642,6 +7656,41 @@
       // Disabled: No profile album to preserve immersion
     }
 
+    const lofiAvatarCache = new Map();
+
+    function renderLoFiAvatar(src, callback) {
+      if (!src) return;
+      if (lofiAvatarCache.has(src)) {
+        callback(lofiAvatarCache.get(src));
+        return;
+      }
+      const img = new Image();
+      img.crossOrigin = 'anonymous';
+      img.onload = () => {
+        try {
+          const canvas = document.createElement('canvas');
+          const size = 150; // 저해상도 150x150 다운샘플링으로 극단적인 AI 디테일 뭉개기
+          canvas.width = size;
+          canvas.height = size;
+          const ctx = canvas.getContext('2d');
+          ctx.imageSmoothingEnabled = true;
+          ctx.imageSmoothingQuality = 'low';
+          ctx.drawImage(img, 0, 0, size, size);
+
+          // 손실 압축 품질 0.35 (카카오톡 저용량 전송 폰카 질감)
+          const lofiUrl = canvas.toDataURL('image/jpeg', 0.35);
+          lofiAvatarCache.set(src, lofiUrl);
+          callback(lofiUrl);
+        } catch (e) {
+          callback(src);
+        }
+      };
+      img.onerror = () => {
+        callback(src);
+      };
+      img.src = src;
+    }
+
     function openAvatarPreview(char = state.currentChar) {
       if (!char) return;
       const modal = document.getElementById('avatarPreviewModal');
@@ -7652,7 +7701,7 @@
       const bioEl = document.getElementById('avatarPreviewBio');
       if (!modal || !img) return;
 
-      img.src = char.avatar || 'avatars/avatar_05_yoon_jieun.jpg';
+      const rawSrc = char.avatar || 'avatars/avatar_05_yoon_jieun.jpg';
       img.alt = (char.name || '프로필') + ' 사진';
       if (nameEl) nameEl.textContent = char.name || '';
       if (ageJobEl) {
@@ -7661,6 +7710,17 @@
         ageJobEl.textContent = [age, job].filter(Boolean).join(' · ');
       }
       if (bioEl) bioEl.textContent = char.bio || '';
+
+      if (lofiAvatarCache.has(rawSrc)) {
+        img.src = lofiAvatarCache.get(rawSrc);
+      } else {
+        img.src = rawSrc;
+        renderLoFiAvatar(rawSrc, (lofiSrc) => {
+          if (img && img.alt.includes(char.name || '')) {
+            img.src = lofiSrc;
+          }
+        });
+      }
 
       modal.classList.remove('hidden');
       requestAnimationFrame(() => {
